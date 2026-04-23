@@ -1,0 +1,157 @@
+name: Publish compiler-service images to GHCR
+
+# Builds and pushes the three ILGPUC.CompilerService Docker images
+# (cuda / rocm / opencl) to GitHub Container Registry. The published images
+# are consumed by the test workflow (.github/workflows/test.yml) — they
+# bundle the .NET 10 SDK + the native GPU compiler so `dotnet test` can run
+# inside the container with the local toolchain on PATH.
+#
+# See Src/docker/README.md and Src/plans/new_docker_containers.md for the
+# image design rationale, and plans/ci_redesign.md for the CI architecture.
+#
+# First-time setup (one-time, manual):
+#  1. Trigger this workflow via the Actions tab (workflow_dispatch).
+#  2. After the first successful push, navigate to the repo's Packages tab,
+#     open each new package, click "Package settings", and change visibility
+#     to Public. Without this step the published images stay private and
+#     external / fork-PR runners cannot pull them anonymously.
+
+on:
+  # Manual trigger via the Actions tab UI. Use this for out-of-band
+  # rebuilds when you need fresh CompilerService code baked into the
+  # published image (e.g., for third parties who consume the GHCR image
+  # directly without overriding the entrypoint).
+  workflow_dispatch:
+
+  # Monthly base-image refresh on the 1st of each month at 04:00 UTC.
+  # Catches NVIDIA / AMD / Intel / Ubuntu base security updates without
+  # requiring a source change. Most months this is a fast cache-hit
+  # rebuild (~3 minutes per image) thanks to the GHA layer cache.
+  schedule:
+    - cron: '0 4 1 * *'
+
+  # Source-driven rebuilds — INTENTIONALLY narrow.
+  #
+  # The published images contain the .NET 10 SDK + the native GPU compiler
+  # (nvcc / hipcc / ocloc) + a snapshot of the CompilerService binary. The
+  # CI test workflow (.github/workflows/test.yml) DOES NOT use the
+  # CompilerService binary inside the image — it bind-mounts freshly built
+  # test binaries from the host and runs `dotnet test --no-build` against
+  # those. So the image only needs to be rebuilt when the SDK pin, the
+  # Dockerfile, or the build context shape actually changes.
+  #
+  # Changes to ILGPU runtime / ILGPUC source do NOT trigger a rebuild —
+  # the test workflow always uses the latest source via the bind-mounted
+  # binaries. The bundled CompilerService snapshot lags master between
+  # rebuilds, which is fine: dev usage of the service goes through
+  # `Src/docker/run.sh` which builds locally and always gets fresh code.
+  #
+  # If you need a fresh CompilerService snapshot in the published image
+  # for some other reason, trigger this workflow manually via
+  # workflow_dispatch.
+  push:
+    branches: [master]
+    paths:
+      - 'Src/docker/**'
+      - 'global.json'
+      - '.dockerignore'
+      - '.github/workflows/docker-publish.yml'
+    tags:
+      - 'v*'
+
+# `packages: write` is required to push to ghcr.io under the repository
+# owner's namespace. `contents: read` is the default but listed for
+# explicitness. No other scopes are needed — the GITHUB_TOKEN handles auth.
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+
+  build-and-push:
+    name: Build and push (${{ matrix.backend }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - backend: cuda
+            dockerfile: Src/docker/Dockerfile.cuda
+            image: ilgpuc-compiler-service-cuda
+            version_tag: '13.2.0'
+            platforms: 'linux/amd64,linux/arm64'
+          - backend: rocm
+            dockerfile: Src/docker/Dockerfile.rocm
+            image: ilgpuc-compiler-service-rocm
+            version_tag: '7.1.1'
+            # ROCm has no upstream arm64 base — amd64 only.
+            platforms: 'linux/amd64'
+          - backend: opencl
+            dockerfile: Src/docker/Dockerfile.opencl
+            image: ilgpuc-compiler-service-opencl
+            # No upstream pin — Intel ocloc tracks the ubuntu:24.04 base.
+            version_tag: ''
+            # Intel publishes no arm64 ocloc — amd64 only.
+            platforms: 'linux/amd64'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # QEMU for arm64 emulation. Only the CUDA matrix entry needs it; the
+      # others are amd64-only and the action is a near no-op for them.
+      - name: Set up QEMU
+        if: contains(matrix.platforms, 'arm64')
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: arm64
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Compute the tag set:
+      #   - :latest          (default branch only)
+      #   - :<version_tag>   (default branch only, e.g. cuda:13.2.0)
+      #   - :sha-<short>     (every push, immutable, lets test workflows
+      #                       pin to the exact image they tested against)
+      #   - :v1.2.3          (only on tag pushes — release tags)
+      - name: Compute tags and labels
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository_owner }}/${{ matrix.image }}
+          tags: |
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=raw,value=${{ matrix.version_tag }},enable=${{ matrix.version_tag != '' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch) }}
+            type=sha,format=short
+            type=ref,event=tag
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ${{ matrix.dockerfile }}
+          platforms: ${{ matrix.platforms }}
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          # Per-backend cache scope so the three matrix legs don't thrash
+          # a shared cache. The 10 GB GHA cache is split three ways; only
+          # incremental application layers cache, base layers come fresh
+          # from upstream.
+          cache-from: type=gha,scope=${{ matrix.backend }}
+          cache-to: type=gha,scope=${{ matrix.backend }},mode=max
+          provenance: false   # smaller manifest, faster push
+
+      - name: Image digest
+        run: |
+          echo "Pushed ${{ matrix.image }} with digest:"
+          echo "  ${{ steps.meta.outputs.tags }}"

@@ -1,6 +1,6 @@
-﻿// ---------------------------------------------------------------------------------------
+// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2021-2023 ILGPU Project
+//                           Copyright (c) 2026 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CPUDevice.cs
@@ -9,345 +9,86 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
-using ILGPU.Util;
 using System;
-using System.Collections.Immutable;
-using System.Threading;
+using System.Numerics;
 
-namespace ILGPU.Runtime.CPU
+namespace ILGPU.Runtime.CPU;
+
+/// <summary>
+/// Represents a CPU device descriptor for vectorized CPU execution.
+/// </summary>
+public sealed class CPUDevice : Device, IDeviceAcceleratorTypeInfo
 {
     /// <summary>
-    /// Specifies a simulator kind of a <see cref="CPUDevice"/> instance.
+    /// Default device: array-based vectorization with 8 lanes.
+    /// Hardware acceleration depends on <see cref="Vector.IsHardwareAccelerated"/>.
     /// </summary>
-    public enum CPUDeviceKind
+    public static readonly CPUDevice Default = new(
+        vectorWidth: Vector<int>.Count,
+        isHardwareAccelerated: Vector.IsHardwareAccelerated);
+
+    /// <summary>
+    /// Creates a CPU device that emulates a specific warp size.
+    /// Useful for testing kernels targeting GPUs with specific warp sizes
+    /// (e.g., 32 for CUDA, 64 for AMD) on the CPU.
+    /// </summary>
+    public static CPUDevice Emulated(int warpSize) => new(
+        vectorWidth: warpSize,
+        isHardwareAccelerated: false);
+
+    /// <summary>
+    /// Creates a new CPU device descriptor.
+    /// </summary>
+    /// <param name="vectorWidth">The SIMD vector width (number of lanes).</param>
+    /// <param name="isHardwareAccelerated">
+    /// When <see langword="true"/>, the vector width maps to actual SIMD hardware
+    /// instructions. When <see langword="false"/>, vectorization uses scalar arrays.
+    /// </param>
+    internal CPUDevice(
+        int vectorWidth,
+        bool isHardwareAccelerated = false) : base(AcceleratorType.CPU)
     {
-        /// <summary>
-        /// A CPU accelerator that simulates a common configuration of a default GPU
-        /// simulator with 1 multiprocessor, a warp size of 4 and 4 warps per
-        /// multiprocessor.
-        /// </summary>
-        Default,
+        if (vectorWidth < 1)
+            throw new ArgumentOutOfRangeException(nameof(vectorWidth));
 
-        /// <summary>
-        /// a CPU accelerator that simulates a common configuration of an NVIDIA GPU
-        /// with 1 multiprocessor.
-        /// </summary>
-        Nvidia,
-
-        /// <summary>
-        /// A CPU accelerator that simulates a common configuration of an AMD GPU with
-        /// 1 multiprocessor.
-        /// </summary>
-        AMD,
-
-        /// <summary>
-        /// A CPU accelerator that simulates a common configuration of a legacy GCN AMD
-        /// GPU with 1 multiprocessor.
-        /// </summary>
-        LegacyAMD,
-
-        /// <summary>
-        /// A CPU accelerator that simulates a common configuration of an Intel GPU
-        /// with 1 multiprocessor.
-        /// </summary>
-        Intel
+        VectorWidth = vectorWidth;
+        IsHardwareAccelerated = isHardwareAccelerated;
+        Name = isHardwareAccelerated
+            ? "CPU (SIMD)"
+            : $"CPU (Emulated w{vectorWidth})";
+        WarpSize = vectorWidth;
+        MaxNumThreadsPerGroup = vectorWidth;
+        MaxNumThreadsPerMultiprocessor = vectorWidth;
+        NumMultiprocessors = Environment.ProcessorCount;
+        MaxSharedMemoryPerGroup = int.MaxValue;
+        MaxConstantMemory = int.MaxValue;
+        MemorySize = long.MaxValue;
+        // GroupSize = vectorWidth so that ComputeKernelConfig(n) returns
+        // (ceil(n/vectorWidth), vectorWidth). The CPU launcher bounds its
+        // loop on userExtent (the original n), not gridSize * groupSize,
+        // so extra lanes are safely masked out.
+        OptimalKernelSize = new KernelSize(
+            NumMultiprocessors, MaxNumThreadsPerGroup);
+        Capabilities = CPUAcceleratorCapabilities.Default;
     }
 
     /// <summary>
-    /// Represents a single CPU device.
+    /// Returns the SIMD vector width (number of lanes).
     /// </summary>
-    [DeviceType(AcceleratorType.CPU)]
-    public sealed class CPUDevice : Device
-    {
-        #region Constants
+    public int VectorWidth { get; }
 
-        /// <summary>
-        /// The default warp size of 4 threads per group.
-        /// </summary>
-        private const int DefaultWarpSize = 4;
+    /// <summary>
+    /// <see langword="true"/> when the vector width maps to actual SIMD hardware
+    /// instructions (<see cref="Vector{T}"/>, Vector256, etc.).
+    /// <see langword="false"/> for pure software emulation using scalar arrays.
+    /// </summary>
+    public bool IsHardwareAccelerated { get; }
 
-        /// <summary>
-        /// The default number of 4 warps per multiprocessor.
-        /// </summary>
-        private const int DefaultNumWarpsPerMultiprocessor = 4;
+    /// <inheritdoc/>
+    static AcceleratorType IDeviceAcceleratorTypeInfo.AcceleratorType =>
+        AcceleratorType.CPU;
 
-        /// <summary>
-        /// The default number of 1 multiprocessor.
-        /// </summary>
-        private const int DefaultNumMultiprocessors = 1;
-
-        #endregion
-
-        #region Static
-
-        /// <summary>
-        /// An implicitly defined CPU accelerator that is not intended for simulation
-        /// purposes. Instead, it acts as a placeholder accelerator for buffers that
-        /// are implicitly associated with a parent CPU accelerator.
-        /// </summary>
-        internal static readonly CPUDevice Implicit =
-            new CPUDevice(
-                numThreadsPerWarp: 0,
-                numWarpsPerMultiprocessor: 0,
-                numMultiprocessors: 0,
-                skipChecks: true);
-
-        /// <summary>
-        /// A CPU accelerator that simulates a common configuration of a default GPU
-        /// simulator with 1 multiprocessor, a warp size of 4 and 4 warps per
-        /// multiprocessor.
-        /// </summary>
-        public static readonly CPUDevice Default =
-            new CPUDevice(
-                DefaultWarpSize,
-                DefaultNumWarpsPerMultiprocessor,
-                DefaultNumMultiprocessors);
-
-        /// <summary>
-        /// A CPU accelerator that simulates a common configuration of an NVIDIA GPU with
-        /// 1 multiprocessor.
-        /// </summary>
-        public static readonly CPUDevice Nvidia =
-            new CPUDevice(
-                numThreadsPerWarp: 32,
-                numWarpsPerMultiprocessor: 32,
-                numMultiprocessors: 1);
-
-        /// <summary>
-        /// A CPU accelerator that simulates a common configuration of an AMD GPU with 1
-        /// multiprocessor.
-        /// </summary>
-        public static readonly CPUDevice AMD =
-            new CPUDevice(
-                numThreadsPerWarp: 32,
-                numWarpsPerMultiprocessor: 8,
-                numMultiprocessors: 1);
-
-        /// A CPU accelerator that simulates a common configuration of a legacy GCN AMD
-        /// GPU with 1 multiprocessor.
-        public static readonly CPUDevice LegacyAMD =
-            new CPUDevice(
-                numThreadsPerWarp: 64,
-                numWarpsPerMultiprocessor: 4,
-                numMultiprocessors: 1);
-
-        /// <summary>
-        /// A CPU accelerator that simulates a common configuration of an Intel GPU with
-        /// 1 multiprocessor.
-        /// </summary>
-        public static readonly CPUDevice Intel =
-            new CPUDevice(
-                numThreadsPerWarp: 16,
-                numWarpsPerMultiprocessor: 8,
-                numMultiprocessors: 1);
-
-        /// <summary>
-        /// Maps <see cref="CPUDeviceKind"/> values to
-        /// <see cref="CPUDevice"/> instances.
-        /// </summary>
-        public static readonly ImmutableArray<CPUDevice> All =
-            ImmutableArray.Create(new CPUDevice[]
-        {
-            Default,
-            Nvidia,
-            AMD,
-            LegacyAMD,
-            Intel,
-        });
-
-        /// <summary>
-        /// Gets a specific CPU device.
-        /// </summary>
-        /// <param name="kind">The CPU device kind.</param>
-        /// <returns>The CPU device.</returns>
-        public static CPUDevice GetDevice(
-            CPUDeviceKind kind) =>
-            kind < CPUDeviceKind.Default || kind > CPUDeviceKind.Intel
-            ? throw new ArgumentOutOfRangeException(nameof(kind))
-            : All[(int)kind];
-
-        /// <summary>
-        /// Returns CPU devices.
-        /// </summary>
-        /// <param name="predicate">
-        /// The predicate to include a given device.
-        /// </param>
-        /// <returns>All CPU devices.</returns>
-        public static ImmutableArray<Device> GetDevices(Predicate<CPUDevice> predicate)
-        {
-            var registry = new DeviceRegistry();
-            GetDevices(predicate, registry);
-            return registry.ToImmutable();
-        }
-
-        /// <summary>
-        /// Registers CPU devices.
-        /// </summary>
-        /// <param name="predicate">
-        /// The predicate to include a given device.
-        /// </param>
-        /// <param name="registry">The registry to add all devices to.</param>
-        internal static void GetDevices(
-            Predicate<CPUDevice> predicate,
-            DeviceRegistry registry)
-        {
-            if (registry is null)
-                throw new ArgumentNullException(nameof(registry));
-            if (predicate is null)
-                throw new ArgumentNullException(nameof(predicate));
-
-            foreach (var desc in All)
-                registry.Register(desc, predicate);
-        }
-
-        #endregion
-
-        #region Instance
-
-        /// <summary>
-        /// Constructs a new CPU accelerator description instance.
-        /// </summary>
-        /// <param name="numThreadsPerWarp">
-        /// The number of threads per warp within a group.
-        /// </param>
-        /// <param name="numWarpsPerMultiprocessor">
-        /// The number of warps per multiprocessor.
-        /// </param>
-        /// <param name="numMultiprocessors">
-        /// The number of multiprocessors (number of parallel groups) to simulate.
-        /// </param>
-        /// <param name="skipChecks">True, to skip internal bounds checks.</param>
-        private CPUDevice(
-            int numThreadsPerWarp,
-            int numWarpsPerMultiprocessor,
-            int numMultiprocessors,
-            bool skipChecks)
-        {
-            if (!skipChecks && (numThreadsPerWarp < 2 ||
-                !Utilities.IsPowerOf2(numWarpsPerMultiprocessor)))
-            {
-                throw new ArgumentOutOfRangeException(nameof(numThreadsPerWarp));
-            }
-            if (!skipChecks && numWarpsPerMultiprocessor < 1)
-                throw new ArgumentOutOfRangeException(nameof(numWarpsPerMultiprocessor));
-            if (!skipChecks && numMultiprocessors < 1)
-                throw new ArgumentOutOfRangeException(nameof(numMultiprocessors));
-
-            // Check for existing limitations with respect to barrier participants
-            if (numThreadsPerWarp * numWarpsPerMultiprocessor > short.MaxValue)
-                throw new ArgumentOutOfRangeException(nameof(numWarpsPerMultiprocessor));
-            if (NumMultiprocessors > short.MaxValue)
-                throw new ArgumentOutOfRangeException(nameof(numMultiprocessors));
-
-            Name = nameof(CPUAccelerator);
-            WarpSize = numThreadsPerWarp;
-            MaxNumThreadsPerGroup = numThreadsPerWarp * numWarpsPerMultiprocessor;
-            MaxNumThreadsPerMultiprocessor = MaxNumThreadsPerGroup;
-            NumMultiprocessors = numMultiprocessors;
-            MaxGroupSize = new Index3D(
-                MaxNumThreadsPerGroup,
-                MaxNumThreadsPerGroup,
-                MaxNumThreadsPerGroup);
-
-            MemorySize = long.MaxValue;
-            MaxGridSize = new Index3D(int.MaxValue, ushort.MaxValue, ushort.MaxValue);
-            MaxSharedMemoryPerGroup = int.MaxValue;
-            MaxConstantMemory = int.MaxValue;
-            NumThreads = MaxNumThreads;
-            Capabilities = new CPUCapabilityContext();
-        }
-
-        /// <summary>
-        /// Constructs a new CPU accelerator description instance.
-        /// </summary>
-        /// <param name="numThreadsPerWarp">
-        /// The number of threads per warp within a group.
-        /// </param>
-        /// <param name="numWarpsPerMultiprocessor">
-        /// The number of warps per multiprocessor.
-        /// </param>
-        /// <param name="numMultiprocessors">
-        /// The number of multiprocessors (number of parallel groups) to simulate.
-        /// </param>
-        public CPUDevice(
-            int numThreadsPerWarp,
-            int numWarpsPerMultiprocessor,
-            int numMultiprocessors)
-            : this(
-                  numThreadsPerWarp,
-                  numWarpsPerMultiprocessor,
-                  numMultiprocessors,
-                  skipChecks: false)
-        { }
-
-        #endregion
-
-        #region Properties
-
-        /// <summary>
-        /// Returns the number of threads.
-        /// </summary>
-        public int NumThreads { get; }
-
-        #endregion
-
-        #region Methods
-
-        /// <inheritdoc/>
-        public override Accelerator CreateAccelerator(Context context) =>
-            CreateCPUAccelerator(context);
-
-        /// <summary>
-        /// Creates a new CPU accelerator using <see cref="CPUAcceleratorMode.Auto"/>
-        /// and default thread priority.
-        /// </summary>
-        /// <param name="context">The ILGPU context.</param>
-        /// <returns>The created CPU accelerator.</returns>
-        public CPUAccelerator CreateCPUAccelerator(Context context) =>
-            CreateCPUAccelerator(context, CPUAcceleratorMode.Auto);
-
-        /// <summary>
-        /// Creates a new CPU accelerator with default thread priority.
-        /// </summary>
-        /// <param name="context">The ILGPU context.</param>
-        /// <param name="mode">The CPU accelerator mode.</param>
-        /// <returns>The created CPU accelerator.</returns>
-        public CPUAccelerator CreateCPUAccelerator(
-            Context context,
-            CPUAcceleratorMode mode) =>
-            CreateCPUAccelerator(context, mode, ThreadPriority.Normal);
-
-        /// <summary>
-        /// Creates a new CPU accelerator.
-        /// </summary>
-        /// <param name="context">The ILGPU context.</param>
-        /// <param name="mode">The CPU accelerator mode.</param>
-        /// <param name="threadPriority">
-        /// The thread priority of the execution threads.
-        /// </param>
-        /// <returns>The created CPU accelerator.</returns>
-        public CPUAccelerator CreateCPUAccelerator(
-            Context context,
-            CPUAcceleratorMode mode,
-            ThreadPriority threadPriority) =>
-            new CPUAccelerator(context, this, mode, threadPriority);
-
-        #endregion
-
-        #region Object
-
-        /// <inheritdoc/>
-        public override bool Equals(object? obj) =>
-            obj is CPUDevice device &&
-            device.WarpSize == WarpSize &&
-            device.MaxNumThreadsPerGroup == MaxNumThreadsPerGroup &&
-            device.NumMultiprocessors == NumMultiprocessors &&
-            base.Equals(obj);
-
-        /// <inheritdoc/>
-        public override int GetHashCode() =>
-            base.GetHashCode() ^ WarpSize ^ MaxNumThreadsPerGroup ^ NumMultiprocessors;
-
-        #endregion
-    }
+    /// <inheritdoc/>
+    public override Accelerator CreateAccelerator(Context context) =>
+        new CPUAccelerator(context, this);
 }

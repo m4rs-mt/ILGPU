@@ -1,0 +1,227 @@
+// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                           Copyright (c) 2026 ILGPU Project
+//                                    www.ilgpu.net
+//
+// File: CPUAtomicIntrinsics.tt/CPUAtomicIntrinsics.cs
+//
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details.
+// ---------------------------------------------------------------------------------------
+
+<#@ template debug="false" hostspecific="false" language="C#" #>
+<#@ assembly name="System.Core" #>
+<#@ import namespace="System.Linq" #>
+<#@ import namespace="System.Collections.Generic" #>
+<#@ output extension=".cs" #>
+<#
+var types = new TypeEntry[]
+{
+    new TypeEntry("int",    "Int32",   false, null,   null,                null,               null          ),
+    new TypeEntry("long",   "Int64",   false, null,   null,                null,               null          ),
+    new TypeEntry("uint",   "UInt32",  false, null,   null,                null,               null          ),
+    new TypeEntry("ulong",  "UInt64",  false, null,   null,                null,               null          ),
+    new TypeEntry("float",  "Float32", true,  "int",  "SingleToInt32Bits", "Int32BitsToSingle","originalInt" ),
+    new TypeEntry("double", "Float64", true,  "long", "DoubleToInt64Bits", "Int64BitsToDouble","originalLong"),
+};
+
+var ops = new OpEntry[]
+{
+    new OpEntry("Add",             "adds each value to its target address",                                       false, false, "Atomic.Add",                  false),
+    new OpEntry("Exchange",        "replaces each target with its value, returning the old value",                false, false, "Interlocked.Exchange",        true ),
+    new OpEntry("CompareExchange", "replaces each target with value if the current value equals the comparand",   true,  false, "Interlocked.CompareExchange", true ),
+    new OpEntry("And",             "applies bitwise AND to each target",                                          false, true,  "Interlocked.And",             false),
+    new OpEntry("Or",              "applies bitwise OR to each target",                                           false, true,  "Interlocked.Or",              false),
+    new OpEntry("Xor",             "applies bitwise XOR to each target",                                          false, true,  "Atomic.Xor",                  false),
+    new OpEntry("Min",             "stores the minimum of the current and new value at each target",              false, false, "Atomic.Min",                  false),
+    new OpEntry("Max",             "stores the maximum of the current and new value at each target",              false, false, "Atomic.Max",                  false),
+};
+#>
+using System;
+using System.Runtime.CompilerServices;
+using System.Threading;
+
+// disable: max_line_length
+
+namespace ILGPU.Runtime.CPU;
+
+/// <summary>
+/// Atomic operations for vectorized execution (serialized across lanes).
+/// All methods are aggressively inlined for optimal performance.
+/// </summary>
+/// <remarks>
+/// Each lane provides its own target address via a <c>nint[]</c>, so
+/// lane <c>i</c> atomically updates the memory location at <c>targets[i]</c>.
+/// The <c>mask</c> parameter suppresses side effects for inactive lanes — only
+/// lanes where <c>mask[i]</c> is true perform the atomic operation; inactive lanes
+/// return <c>default(T)</c> in the result array.
+/// Operations are serialized across lanes to maintain correctness.
+/// </remarks>
+public static class CPUAtomicIntrinsics
+{
+<# foreach (var type in types) { #>
+    #region <#= type.Region #> Atomic Operations
+
+<#     foreach (var op in ops) { if (op.IntOnly && type.IsFloat) continue; #>
+    /// <summary>
+    /// Atomically <#= op.Summary #>.
+    /// </summary>
+    /// <param name="targets">Per-lane memory target addresses.</param>
+    /// <param name="values">Per-lane values to apply atomically.</param>
+<#         if (op.HasComparands) { #>
+    /// <param name="comparands">Per-lane expected values for compare-exchange.</param>
+<#         } #>
+    /// <param name="mask">
+    /// Lane mask; only lanes where <c>mask[i]</c> is true
+    /// perform the operation.
+    /// </param>
+    /// <returns>
+    /// A new array containing per-lane pre-operation values for
+    /// active lanes; inactive lanes return <c>default</c>.
+    /// </returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static unsafe <#= type.Name #>[] <#= op.Name #>(
+        ReadOnlySpan<nint> targets, ReadOnlySpan<<#= type.Name #>> values,
+<#         if (op.HasComparands) { #>
+        ReadOnlySpan<<#= type.Name #>> comparands,
+<#         } #>
+        ReadOnlySpan<bool> mask)
+    {
+        var res = new <#= type.Name #>[values.Length];
+<#         WriteLoopBody(type, op, "res[i]"); #>
+        return res;
+    }
+
+<#     } /* end op foreach */ #>
+    #endregion
+
+<# } /* end type foreach */ #>
+    #region In-place Overloads
+
+<# foreach (var type in types) { #>
+    // <#= type.Region #>
+
+<#     foreach (var op in ops) { if (op.IntOnly && type.IsFloat) continue; #>
+    /// <summary>
+    /// In-place overload: atomically <#= op.Summary #>,
+    /// writing per-lane pre-operation values into <paramref name="result"/>.
+    /// </summary>
+    /// <param name="result">
+    /// Destination span; receives per-lane pre-operation values for active lanes;
+    /// inactive lanes are left unchanged.
+    /// </param>
+    /// <param name="targets">Per-lane memory target addresses.</param>
+    /// <param name="values">Per-lane values to apply atomically.</param>
+<#         if (op.HasComparands) { #>
+    /// <param name="comparands">Per-lane expected values for compare-exchange.</param>
+<#         } #>
+    /// <param name="mask">
+    /// Lane mask; only lanes where <c>mask[i]</c> is true perform the operation.
+    /// </param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static unsafe void <#= op.Name #>(
+        Span<<#= type.Name #>> result, ReadOnlySpan<nint> targets,
+        ReadOnlySpan<<#= type.Name #>> values,
+<#         if (op.HasComparands) { #>
+        ReadOnlySpan<<#= type.Name #>> comparands,
+<#         } #>
+        ReadOnlySpan<bool> mask)
+    {
+<#         WriteLoopBody(type, op, "result[i]"); #>
+    }
+
+<#     } /* end op foreach */ #>
+<# } /* end type foreach */ #>
+    #endregion
+}
+<#+
+class TypeEntry
+{
+    public string Name;
+    public string Region;
+    public bool   IsFloat;
+    public string IntType;
+    public string BitTo;
+    public string BitFrom;
+    public string OrigVar;
+
+    public TypeEntry(string name, string region, bool isFloat,
+        string intType, string bitTo, string bitFrom, string origVar)
+    {
+        Name    = name;
+        Region  = region;
+        IsFloat = isFloat;
+        IntType = intType;
+        BitTo   = bitTo;
+        BitFrom = bitFrom;
+        OrigVar = origVar;
+    }
+}
+
+class OpEntry
+{
+    public string Name;
+    public string Summary;
+    public bool   HasComparands;
+    public bool   IntOnly;
+    public string Call;
+    public bool   FloatSpecial;
+
+    public OpEntry(string name, string summary, bool hasComparands, bool intOnly,
+        string call, bool floatSpecial)
+    {
+        Name          = name;
+        Summary       = summary;
+        HasComparands = hasComparands;
+        IntOnly       = intOnly;
+        Call          = call;
+        FloatSpecial  = floatSpecial;
+    }
+}
+
+void WriteLoopBody(TypeEntry t, OpEntry op, string resultVar)
+{
+    bool bitConv = t.IsFloat && op.FloatSpecial;
+    if (bitConv)
+    {
+        WriteLine("        for (int i = 0; i < values.Length; i++)");
+        WriteLine("        {");
+        WriteLine("            if (!mask[i]) continue;");
+        WriteLine($"            ref {t.Name} tmp = ref Unsafe.AsRef<{t.Name}>((void*)targets[i]);");
+        if (op.HasComparands)
+        {
+            WriteLine($"            {t.IntType} {t.OrigVar} = Interlocked.{op.Name}(");
+            WriteLine($"                ref Unsafe.As<{t.Name}, {t.IntType}>(ref tmp),");
+            WriteLine($"                BitConverter.{t.BitTo}(values[i]),");
+            WriteLine($"                BitConverter.{t.BitTo}(comparands[i]));");
+        }
+        else
+        {
+            WriteLine($"            {t.IntType} {t.OrigVar} = Interlocked.{op.Name}(");
+            WriteLine($"                ref Unsafe.As<{t.Name}, {t.IntType}>(ref tmp),");
+            WriteLine($"                BitConverter.{t.BitTo}(values[i]));");
+        }
+        WriteLine($"            {resultVar} = BitConverter.{t.BitFrom}({t.OrigVar});");
+        WriteLine("        }");
+    }
+    else
+    {
+        WriteLine("        for (int i = 0; i < values.Length; i++)");
+        WriteLine("        {");
+        WriteLine("            if (mask[i])");
+        WriteLine("            {");
+        if (op.HasComparands)
+        {
+            WriteLine($"                {resultVar} = {op.Call}(");
+            WriteLine($"                    ref Unsafe.AsRef<{t.Name}>((void*)targets[i]), values[i], comparands[i]);");
+        }
+        else
+        {
+            WriteLine($"                {resultVar} = {op.Call}(");
+            WriteLine($"                    ref Unsafe.AsRef<{t.Name}>((void*)targets[i]), values[i]);");
+        }
+        WriteLine("            }");
+        WriteLine("        }");
+    }
+}
+#>

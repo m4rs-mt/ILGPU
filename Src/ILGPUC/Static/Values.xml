@@ -1,0 +1,291 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Values>
+    <Group Name="Types" Namespace="ModuleValues" BuilderType="ModuleBuilder"
+        BuildContextName="IModuleValueBuildContext">
+        <Value Type="TypeArray" Implementation="ArrayType" />
+        <Value Type="TypeHandle" Implementation="HandleType" />
+        <Value Type="TypeKind" Implementation="KindType" />
+        <Value Type="TypeObject" Implementation="ObjectType" />
+        <Value Type="TypePadding" Implementation="PaddingType" />
+        <Value Type="TypePointer" Implementation="PointerType" />
+        <Value Type="TypePrimitive" Implementation="PrimitiveType" />
+        <Value Type="TypeString" Implementation="StringType" />
+        <Value Type="TypeStructure" Implementation="StructureType" />
+        <Value Type="TypeView" Implementation="ViewType" />
+        <Value Type="TypeVoid" Implementation="VoidType" />
+    </Group>
+    <Group Name="ModuleValues" Namespace="ModuleValues" BuilderType="ModuleBuilder"
+        BuildContextName="IModuleValueBuildContext">
+        <Value Type="Global" Implementation="Global" />
+        <Value Type="Method" Implementation="Method" />
+        <Value Type="Undefined" Implementation="UndefinedValue" />
+    </Group>
+    <Group Name="Addresses" Namespace="PureValues" BuilderType="PureValueBuilder"
+        BuildContextName="IPureValueBuildContext">
+        <Value Type="LoadElementAddress" Implementation="LoadElementAddress" />
+        <Value Type="LoadFieldAddress" Implementation="LoadFieldAddress" />
+    </Group>
+    <Group Name="Arithmetic" Namespace="PureValues" BuilderType="PureValueBuilder"
+        BuildContextName="IPureValueBuildContext">
+        <Value Type="UnaryArithmetic" Implementation="UnaryArithmeticValue">
+            <Property Name="Kind">
+                <PropertyValue Name="Abs" />
+                <PropertyValue Name="Acos" />
+                <PropertyValue Name="Acosh" />
+                <PropertyValue Name="Asin" />
+                <PropertyValue Name="Asinh" />
+                <PropertyValue Name="Atan" />
+                <PropertyValue Name="Atanh" />
+                <PropertyValue Name="CLZ" />
+                <PropertyValue Name="CTZ" />
+                <PropertyValue Name="Ceiling" />
+                <PropertyValue Name="Cos" />
+                <PropertyValue Name="Cosh" />
+                <PropertyValue Name="Exp2" />
+                <PropertyValue Name="Exp" />
+                <PropertyValue Name="Floor" />
+                <PropertyValue Name="IsFin" />
+                <PropertyValue Name="IsInf" />
+                <PropertyValue Name="IsNaN" />
+                <PropertyValue Name="Log10" />
+                <PropertyValue Name="Log2" />
+                <PropertyValue Name="Log" />
+                <PropertyValue Name="Neg" />
+                <PropertyValue Name="Not" />
+                <PropertyValue Name="PopC" />
+                <PropertyValue Name="Rcp" />
+                <PropertyValue Name="Rsqrt" />
+                <PropertyValue Name="Sin" />
+                <PropertyValue Name="Sinh" />
+                <PropertyValue Name="Sqrt" />
+                <PropertyValue Name="Tan" />
+                <PropertyValue Name="Tanh" />
+            </Property>
+        </Value>
+        <Value Type="BinaryArithmetic" Implementation="BinaryArithmeticValue">
+            <Property Name="Kind">
+                <PropertyValue Name="Add" />
+                <PropertyValue Name="And" />
+                <PropertyValue Name="Atan2" />
+                <PropertyValue Name="BinaryLog" />
+                <PropertyValue Name="CopySign" />
+                <PropertyValue Name="Div" />
+                <PropertyValue Name="IEEERemainder" />
+                <PropertyValue Name="Max" />
+                <PropertyValue Name="Min" />
+                <PropertyValue Name="Mul" />
+                <PropertyValue Name="Or" />
+                <PropertyValue Name="Pow" />
+                <PropertyValue Name="Rem" />
+                <PropertyValue Name="Shl" />
+                <PropertyValue Name="Shr" />
+                <PropertyValue Name="Sub" />
+                <PropertyValue Name="Xor" />
+            </Property>
+        </Value>
+        <Value Type="TernaryArithmetic" Implementation="TernaryArithmeticValue">
+            <Property Name="Kind">
+                <PropertyValue Name="MultiplyAdd" />
+            </Property>
+        </Value>
+        <Value Type="Compare" Implementation="CompareValue">
+            <Property Name="Kind">
+                <PropertyValue Name="Equal" />
+                <PropertyValue Name="NotEqual" />
+                <PropertyValue Name="LessThan" />
+                <PropertyValue Name="LessEqual" />
+                <PropertyValue Name="GreaterThan" />
+                <PropertyValue Name="GreaterEqual" />
+            </Property>
+        </Value>
+        <Value Type="Convert" Implementation="ConvertValue" />
+        <Value Type="Predicate" Implementation="Predicate" />
+    </Group>
+    <Group Name="Arrays" Namespace="PureValues" BuilderType="PureValueBuilder"
+        BuildContextName="IPureValueBuildContext">
+        <Value Type="Array" Implementation="ArrayValue" />
+        <Value Type="GetArrayLength" Implementation="GetArrayLength" />
+        <Value Type="LoadArrayElementAddress" Implementation="LoadArrayElementAddress" />
+        <Value Type="ArrayToViewCast" Implementation="ArrayToViewCast" />
+    </Group>
+    <Group Name="Atomic" Namespace="BasicBlockValues">
+        <Value Type="GenericAtomic" Implementation="GenericAtomic">
+            <Property Name="Kind">
+                <PropertyValue Name="Exchange" />
+                <PropertyValue Name="Add" />
+                <PropertyValue Name="And" />
+                <PropertyValue Name="Or" />
+                <PropertyValue Name="Xor" />
+                <PropertyValue Name="Max" />
+                <PropertyValue Name="Min" />
+            </Property>
+        </Value>
+        <Value Type="AtomicCAS" Implementation="AtomicCAS" />
+        <Value Type="CustomAtomic" Implementation="CustomAtomic" />
+    </Group>
+    <Group Name="Casts" Namespace="PureValues" BuilderType="PureValueBuilder"
+        BuildContextName="IPureValueBuildContext">
+        <Value Type="PointerCast" Implementation="PointerCast" />
+        <Value Type="AddressSpaceCast" Implementation="AddressSpaceCast" />
+        <Value Type="IntAsPointerCast" Implementation="IntAsPointerCast" />
+        <Value Type="PointerAsIntCast" Implementation="PointerAsIntCast" />
+        <Value Type="FloatAsIntCast" Implementation="FloatAsIntCast" />
+        <Value Type="IntAsFloatCast" Implementation="IntAsFloatCast" />
+    </Group>
+    <Group Name="Constants" Namespace="PureValues" BuilderType="PureValueBuilder"
+        BuildContextName="IPureValueBuildContext">
+        <Value Type="Null" Implementation="NullValue" />
+        <Value Type="Primitive" Implementation="PrimitiveValue" />
+        <Value Type="String" Implementation="StringValue" />
+        <Value Type="GridIndex" Implementation="GridIndexValue" />
+        <Value Type="GroupIndex" Implementation="GroupIndexValue" />
+        <Value Type="SubGroupIndex" Implementation="SubGroupIndexValue" />
+        <Value Type="SubGroupLaneIndex" Implementation="SubGroupLaneIndexValue" />
+        <Value Type="GridDimension" Implementation="GridDimensionValue" />
+        <Value Type="GroupDimension" Implementation="GroupDimensionValue" />
+        <Value Type="SubGroupDimension" Implementation="SubGroupDimensionValue" />
+    </Group>
+    <Group Name="AcceleratorConstants" Namespace="PureValues" BuilderType="PureValueBuilder"
+        BuildContextName="IPureValueBuildContext">
+        <Value Type="AcceleratorType" Implementation="AcceleratorTypeValue" />
+        <Value Type="AcceleratorArchitecture" Implementation="AcceleratorArchitectureValue" />
+        <Value Type="FastMath" Implementation="FastMathValue" />
+        <Value Type="FlushToZero" Implementation="FlushToZeroValue" />
+    </Group>
+    <Group Name="Debugging" Namespace="BasicBlockValues" BuilderType="BasicBlockBuilder"
+        BuildContextName="IBasicBlockBuildContext">
+        <Value Type="DebugAssert" Implementation="DebugAssertOperation" />
+    </Group>
+    <Group Name="Internal" Namespace="PureValues">
+        <Value Type="Handle" Implementation="HandleValue" />
+    </Group>
+    <Group Name="IO" Namespace="BasicBlockValues">
+        <Value Type="WriteToOutput" Implementation="WriteToOutput" />
+    </Group>
+    <Group Name="Language" Namespace="BasicBlockValues">
+        <Value Type="LanguageEmit" Implementation="LanguageEmitValue">
+            <Property Name="Kind">
+                <PropertyValue Name="PTX" />
+            </Property>
+        </Value>
+    </Group>
+    <Group Name="Memory" Namespace="BasicBlockValues" BuilderType="BasicBlockBuilder"
+        BuildContextName="IBasicBlockBuildContext">
+        <Value Type="Alloca" Implementation="Alloca" />
+        <Value Type="GCInit" Implementation="GCInit" />
+        <Value Type="MemoryBarrier" Implementation="MemoryBarrier">
+            <Property Name="Kind">
+                <PropertyValue Name="GroupLevel" />
+                <PropertyValue Name="DeviceLevel" />
+                <PropertyValue Name="SystemLevel" />
+            </Property>
+        </Value>
+        <Value Type="Load" Implementation="Load" />
+        <Value Type="Store" Implementation="Store" />
+        <Value Type="Phi" Implementation="PhiValue" />
+    </Group>
+    <Group Name="Methods" Namespace="MethodValues">
+        <Value Type="Parameter" Implementation="Parameter" />
+        <Value Type="BasicBlock" Implementation="BasicBlock" />
+    </Group>
+    <Group Name="Structures" Namespace="PureValues">
+        <Value Type="Structure" Implementation="StructureValue" />
+        <Value Type="GetField" Implementation="GetField" />
+        <Value Type="SetField" Implementation="SetField" />
+    </Group>
+    <Group Name="ControlFlow" Namespace="BasicBlockValues" BuilderType="BasicBlockBuilder"
+        BuildContextName="IBasicBlockBuildContext">
+        <Value Type="Call" Implementation="MethodCall" />
+    </Group>
+    <Group Name="Threads" Namespace="BasicBlockValues">
+        <Value Type="Barrier" Implementation="Barrier">
+            <Property Name="Kind">
+                <PropertyValue Name="WarpLevel"
+                    Description="A barrier that operates on warp level." />
+                <PropertyValue Name="GroupLevel"
+                    Description="A barrier that operates on group level." />
+            </Property>
+        </Value>
+        <Value Type="Broadcast" Implementation="Broadcast">
+            <Property Name="Kind">
+                <PropertyValue Name="WarpLevel"
+                    Description="A broadcast operation that operates on warp level." />
+                <PropertyValue Name="GroupLevel"
+                    Description="A broadcast operation that operates on group level." />
+            </Property>
+        </Value>
+        <Value Type="PredicateBarrier" Implementation="PredicateBarrier">
+            <Property Name="Kind">
+                <PropertyValue Name="WarpLevel"
+                    Description="A predicate barrier that operates on warp level." />
+                <PropertyValue Name="GroupLevel"
+                    Description="A predicate barrier that operates on group level." />
+            </Property>
+            <Property Name="PredicateKind">
+                <PropertyValue Name="PopCount"
+                    Description="Returns the number of threads in the group for which the predicate evaluates to true." />
+                <PropertyValue Name="And"
+                    Description="Returns the logical and result of the predicate of all threads in the group." />
+                <PropertyValue Name="Or"
+                    Description="Returns the logical or result of the predicate of all threads in the group." />
+            </Property>
+        </Value>
+        <Value Type="Shuffle" Implementation="Shuffle">
+            <Property Name="Kind">
+                <PropertyValue Name="Generic"
+                    Description="A generic shuffle operation." />
+                <PropertyValue Name="Down"
+                    Description="A down-shuffle operation." />
+                <PropertyValue Name="Up"
+                    Description="An up-shuffle operation." />
+                <PropertyValue Name="Xor"
+                    Description="An xor-shuffle operation." />
+            </Property>
+        </Value>
+        <Value Type="WarpReduce" Implementation="WarpReduce">
+            <Property Name="Kind">
+                <PropertyValue Name="Reduce"
+                    Description="Warp-wide reduction with first-lane-only result." />
+                <PropertyValue Name="AllReduce"
+                    Description="Warp-wide reduction with all-lanes result via butterfly." />
+            </Property>
+        </Value>
+        <Value Type="WarpScan" Implementation="WarpScan">
+            <Property Name="Kind">
+                <PropertyValue Name="Inclusive"
+                    Description="Inclusive prefix scan." />
+                <PropertyValue Name="Exclusive"
+                    Description="Exclusive prefix scan (requires identity element)." />
+            </Property>
+        </Value>
+        <Value Type="GroupReduce" Implementation="GroupReduce">
+            <Property Name="Kind">
+                <PropertyValue Name="Reduce"
+                    Description="Group-wide reduction with first-thread-only result." />
+                <PropertyValue Name="AllReduce"
+                    Description="Group-wide reduction with all-threads result." />
+            </Property>
+        </Value>
+        <Value Type="GroupScan" Implementation="GroupScan">
+            <Property Name="Kind">
+                <PropertyValue Name="Inclusive"
+                    Description="Group-wide inclusive prefix scan." />
+                <PropertyValue Name="Exclusive"
+                    Description="Group-wide exclusive prefix scan." />
+            </Property>
+        </Value>
+        <Value Type="WarpRadixSort" Implementation="WarpRadixSort"
+            Description="Warp-wide radix sort." />
+        <Value Type="GroupRadixSort" Implementation="GroupRadixSort"
+            Description="Group-wide radix sort." />
+    </Group>
+    <Group Name="Views" Namespace="PureValues" BuilderType="PureValueBuilder"
+        BuildContextName="IPureValueBuildContext">
+        <Value Type="NewView" Implementation="NewView" />
+        <Value Type="GetViewLength" Implementation="GetViewLength" />
+        <Value Type="AlignTo" Implementation="AlignTo" />
+        <Value Type="AsAligned" Implementation="AsAligned" />
+        <Value Type="SubView" Implementation="SubView" />
+        <Value Type="ViewCast" Implementation="ViewCast" />
+    </Group>
+</Values>
