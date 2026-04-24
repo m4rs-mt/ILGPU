@@ -9,6 +9,7 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
+using System;
 using System.Threading.Tasks;
 using ILGPUC.Backends;
 using ILGPUC.Tests.Framework;
@@ -18,25 +19,37 @@ using Xunit.Abstractions;
 namespace ILGPUC.Tests.KnownIssues;
 
 /// <summary>
-/// Regression tests pinned to open ILGPUC codegen bugs in the shared-memory
-/// code path. Each test is currently skipped — remove the <c>Skip</c>
-/// argument when the corresponding bug is fixed. Both tests assert the
-/// end state (successful source generation / successful build), so the
-/// skipped test flips to green the moment the bug is resolved.
+/// Regression tests pinned to shared-memory code-path bugs that previously
+/// produced opaque internal-compiler-errors. Layered at the cheapest
+/// pipeline stage that actually catches each bug:
 ///
-/// Layered at the cheapest pipeline stage that actually catches each bug:
+///  * <see cref="SourceGeneration_SharedMemory1DTiled"/> — the previously
+///    crashing grouped <see cref="KernelIndex"/> + shared-memory tiled
+///    pattern now compiles end-to-end once the extent is a
+///    compile-time constant (see <c>KnownIssueKernels.TileSize</c>).
 ///
-///  * Bug B (<c>Group.GetSharedMemory&lt;T&gt;(int)</c> + 2D-index arithmetic
-///    in a grouped <see cref="KernelIndex"/> launch) crashes the frontend,
-///    so an in-process source-generation check on the CPU backend catches it.
+///  * <see cref="SourceGeneration_SharedMemory1DTiled_RuntimeExtent_Rejected"/>
+///    — the same pattern with a parameter-dependent extent is explicitly
+///    unsupported by the backends; the frontend must report it as a clear
+///    <see cref="NotSupportedException"/> rather than silently crashing.
 ///
-///  * Bug A (<c>Group.GetSharedMemory2D</c> codegen) emits a string of C#
-///    that parses but references an undefined helper; the failure only
-///    surfaces when the emitted file is compiled. The CPU backend has no
-///    native compile step, so this one lives at the MSBuild-integration
-///    layer — materialize <c>IntegrationProjects/SharedMemory2D</c>, run
-///    <c>dotnet build</c> as a subprocess, assert success. Same pattern as
-///    <see cref="IntegrationTests.MsBuildIntegrationTests"/>.
+///  * <see cref="SourceGeneration_SharedMemory2D"/> — Bug A's cheaper
+///    sibling: confirms the frontend now emits a concrete
+///    <see cref="IR.ModuleValues.StructureType"/> for
+///    <c>Group.GetSharedMemory2D&lt;T, TStride&gt;</c> instead of leaving
+///    behind a dangling <c>method_GetSharedMemory2D_*</c> call.
+///
+///  * <see cref="SourceGeneration_SharedMemory2D_RuntimeExtent_Rejected"/>
+///    — negative form: asserts a parameter-dependent 2D extent raises a
+///    clear frontend diagnostic at the intrinsic boundary.
+///
+///  * <see cref="Build_SharedMemory2D_Succeeds"/> — Bug A's end-to-end
+///    lock: the emitted <c>*_CompiledKernel.cs</c> must compile under the
+///    real ILGPU MSBuild integration. Used to fail with CS0103 on the
+///    undefined helper; now green.
+///
+/// Runs on the CPU backend because all four bugs live in the shared
+/// frontend / IR / C# emission stages.
 /// </summary>
 public sealed class SharedMemoryKnownIssueTests : BackendTestBase
 {
@@ -49,19 +62,10 @@ public sealed class SharedMemoryKnownIssueTests : BackendTestBase
     }
 
     /// <summary>
-    /// <see cref="KnownIssueKernels.SharedMemory1DTiledKernel"/> — currently
-    /// throws <c>ILGPUC.InternalCompilerException</c> wrapping an
-    /// <c>InvalidOperationException</c> from
-    /// <c>PureValueBuilder.CreateConvert</c>
-    /// (<c>targetType.BasicValueType == BasicValueType.None</c>) while
-    /// storing into a local during IL → IR lowering. When fixed, source
-    /// generation should complete and produce non-empty output.
+    /// Grouped <see cref="KernelIndex"/> kernel with a compile-time-constant
+    /// shared-memory extent compiles to non-empty backend source.
     /// </summary>
-    [Fact(Skip =
-        "Pending ILGPUC fix: Group.GetSharedMemory<T>(int) indexed with int "
-        + "arithmetic (`row * tileSize + col`) inside a grouped KernelIndex "
-        + "launch crashes the frontend at PureValueBuilder.CreateConvert — "
-        + "targetType.BasicValueType == BasicValueType.None.")]
+    [Fact]
     public void SourceGeneration_SharedMemory1DTiled() =>
         AssertSourceGenerationSucceeds(
             GetKernel(
@@ -69,23 +73,75 @@ public sealed class SharedMemoryKnownIssueTests : BackendTestBase
                 nameof(KnownIssueKernels.SharedMemory1DTiledKernel)));
 
     /// <summary>
+    /// Same kernel shape but with a parameter-dependent shared-memory extent
+    /// — backends cannot emit fixed-size shared arrays for this, so the
+    /// frontend raises a clear <see cref="NotSupportedException"/> at the
+    /// intrinsic boundary instead of producing an opaque internal-compiler
+    /// error downstream.
+    /// </summary>
+    [Fact]
+    public void SourceGeneration_SharedMemory1DTiled_RuntimeExtent_Rejected()
+    {
+        var kernel = GetKernel(
+            typeof(KnownIssueKernels),
+            nameof(KnownIssueKernels.SharedMemory1DTiledKernel_RuntimeExtent));
+        // location.GetNotSupportedException wraps the NotSupportedException
+        // in an InternalCompilerException; assert on the wrapped inner message.
+        var ex = Assert.ThrowsAny<Exception>(
+            () => AssertSourceGenerationSucceeds(kernel));
+        var inner = ex.InnerException ?? ex;
+        Assert.IsType<NotSupportedException>(inner);
+        Assert.Contains(
+            "compile-time constant extent",
+            inner.Message,
+            StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// Source generation for the 2D shared-memory kernel — cheaper than the
+    /// end-to-end build and catches regressions in the frontend intrinsic
+    /// handler before they reach MSBuild.
+    /// </summary>
+    [Fact]
+    public void SourceGeneration_SharedMemory2D() =>
+        AssertSourceGenerationSucceeds(
+            GetKernel(
+                typeof(KnownIssueKernels),
+                nameof(KnownIssueKernels.SharedMemory2DKernel)));
+
+    /// <summary>
+    /// Negative form: passing an <c>Index2D</c> derived from a kernel
+    /// parameter (not a <c>new Index2D(N, M)</c> literal) must raise a
+    /// clear <see cref="NotSupportedException"/> at the intrinsic boundary
+    /// instead of producing an opaque failure downstream.
+    /// </summary>
+    [Fact]
+    public void SourceGeneration_SharedMemory2D_RuntimeExtent_Rejected()
+    {
+        var kernel = GetKernel(
+            typeof(KnownIssueKernels),
+            nameof(KnownIssueKernels.SharedMemory2DKernel_RuntimeExtent));
+        var ex = Assert.ThrowsAny<Exception>(
+            () => AssertSourceGenerationSucceeds(kernel));
+        var inner = ex.InnerException ?? ex;
+        Assert.IsType<NotSupportedException>(inner);
+        Assert.Contains(
+            "compile-time constant extent",
+            inner.Message,
+            StringComparison.Ordinal);
+    }
+
+    /// <summary>
     /// Drives an end-to-end <c>dotnet build</c> of
     /// <c>IntegrationProjects/SharedMemory2D</c>, whose kernel calls
-    /// <c>Group.GetSharedMemory2D&lt;int, Stride2D.DenseX&gt;</c>. Source
-    /// generation currently succeeds (so the in-process Stage 2 check can't
-    /// catch this) but C# compilation of the emitted
-    /// <c>*_CompiledKernel.cs</c> fails with <c>CS0103
-    /// method_GetSharedMemory2D_*</c> (undefined helper reference), plus
-    /// <c>CPURuntimeView&lt;T&gt;</c> conversion / struct-field errors.
-    /// First observed when compiling the tiled variant of
-    /// <c>Samples/MatrixMultiply</c>.
+    /// <c>Group.GetSharedMemory2D&lt;int, Stride2D.DenseX&gt;</c>. Previously
+    /// failed at C# compile time with <c>CS0103
+    /// method_GetSharedMemory2D_*</c> (undefined helper reference) plus
+    /// <c>CPURuntimeView&lt;T&gt;</c> conversion / struct-field errors;
+    /// now emits a concrete <c>ArrayView2D</c> struct directly from the
+    /// intrinsic and compiles cleanly.
     /// </summary>
-    [Fact(Skip =
-        "Pending ILGPUC fix: Group.GetSharedMemory2D<T, TStride> codegen "
-        + "emits an undefined 'method_GetSharedMemory2D_*' helper and invalid "
-        + "CPURuntimeView<T> conversions in the generated *_CompiledKernel.cs. "
-        + "Surfaces at C# compile time, not at source emit — tested via an "
-        + "end-to-end dotnet build of IntegrationProjects/SharedMemory2D.")]
+    [Fact]
     public async Task Build_SharedMemory2D_Succeeds()
     {
         Skip.IfNot(
