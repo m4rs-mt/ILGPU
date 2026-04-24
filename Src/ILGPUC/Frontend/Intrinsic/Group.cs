@@ -10,9 +10,13 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU;
+using ILGPU.Runtime;
+using ILGPU.Util;
 using ILGPUC.IR;
 using ILGPUC.IR.BasicBlockValues;
+using ILGPUC.IR.ModuleValues;
 using ILGPUC.IR.PureValues;
+using System;
 using System.Linq;
 
 namespace ILGPUC.Frontend.Intrinsic;
@@ -181,6 +185,24 @@ partial class Intrinsics
         // Create shared allocation
         var allocaType = context.GetMethodGenericArguments().First();
         var length = context.Pull();
+
+        // Backends require a compile-time constant extent for shared-memory
+        // allocations (see LowerGroupCollectives comment on the scratch-slot
+        // path). If the length is runtime-dependent (e.g. derived from a
+        // kernel parameter), ModuleBuilder.CreateGlobal silently returns
+        // null and the frontend pushes an UndefinedValue whose type is
+        // KindType — that then fails at the next `stloc`'s convert with an
+        // opaque `BasicValueType.None` assertion. Detect the unsupported
+        // shape here and raise a clear diagnostic instead.
+        if (!IsCompileTimeConstant(length))
+        {
+            throw context.Location.GetNotSupportedException(
+                "Group.GetSharedMemory<T>(int) requires a compile-time "
+                + "constant extent. Expressions involving kernel parameters "
+                + "or other runtime values are not supported — declare the "
+                + "extent as a `const int` or a literal.");
+        }
+
         var alloca = builder.CreateGlobal(
             context.Location,
             builder.CreateType(allocaType),
@@ -192,6 +214,221 @@ partial class Intrinsics
             context.Location,
             alloca,
             length);
+    }
+
+    /// <summary>
+    /// Handles <see cref="Group.GetSharedMemory2D{T, TStride}(Index2D)"/>. The
+    /// runtime method is intercepted at the intrinsic boundary so the backend
+    /// never has to compile its generic body (static-abstract <c>FromExtent</c>
+    /// dispatch + extension-method <c>As2DView</c> chaining that does not round
+    /// trip through source emission). The handler allocates a compile-time
+    /// sized shared buffer, wraps it as a 1D view, computes the stride fields
+    /// that <c>TStride.FromExtent(extent)</c> would produce, and assembles an
+    /// <see cref="ArrayView2D{T, TStride}"/> struct directly in IR.
+    /// </summary>
+    private static Value? Group_GetSharedMemory2D(ref InvocationContext context)
+    {
+        var moduleBuilder = context.ModuleBuilder;
+        var builder = context.Builder;
+        var location = context.Location;
+
+        var generics = context.GetMethodGenericArguments();
+        var elementCLRType = generics[0];
+        var strideCLRType = generics[1];
+
+        // Pull the Index2D extent argument.
+        //
+        // `new Index2D(X, Y)` at the IL call site emits a newobj whose
+        // frontend lowering (CodeGenerator.MakeNewObject) allocates a temp
+        // via `CreateTempAlloca`, stores a null struct, invokes the ctor
+        // against the alloca pointer, then pushes a `Load(alloca)`. So at
+        // this point `extent` is a Load — trace it back through the ctor
+        // call to recover the literal X / Y argument values. That is the
+        // only compile-time-constant shape supported here — backends cannot
+        // emit a static shared-memory allocation with a runtime-derived
+        // extent.
+        var extent = context.Pull();
+        if (!TryResolveIndex2DCtorLiteral(
+                builder, extent, out var extentX, out var extentY) ||
+            !IsCompileTimeConstant(extentX) ||
+            !IsCompileTimeConstant(extentY))
+        {
+            throw location.GetNotSupportedException(
+                "Group.GetSharedMemory2D<T, TStride>(Index2D) requires a "
+                + "compile-time constant extent. Expressions involving "
+                + "kernel parameters or other runtime values are not "
+                + "supported — pass a `new Index2D(N, M)` literal with "
+                + "const N and M.");
+        }
+
+        // totalLength = extent.X * extent.Y (as int — matches what the
+        // inline wrapper `stride.ComputeBufferLength(extent)` produces for
+        // every concrete Stride2D with YStride/XStride == 1 on one axis).
+        var totalLength = builder.CreateArithmetic(
+            location, extentX, extentY, BinaryArithmeticKind.Mul);
+
+        // Allocate the shared buffer and build the backing 1D view.
+        var alloca = moduleBuilder.CreateGlobal(
+            location,
+            moduleBuilder.CreateType(elementCLRType),
+            MemoryAddressSpace.Shared,
+            totalLength);
+        var sharedBaseView = builder.CreateNewView(
+            location, alloca, totalLength);
+
+        // Convert extents to long for the LongIndex2D Extent field.
+        var extentXLong = builder.CreateConvertToInt64(location, extentX)
+            .AsNotNull();
+        var extentYLong = builder.CreateConvertToInt64(location, extentY)
+            .AsNotNull();
+
+        // Resolve the runtime ArrayView2D<T, TStride> structure type so the
+        // builder enforces the expected flat field layout. The default
+        // (generic) address space is what downstream users of the struct
+        // expect — local variables / kernel reads are always typed against
+        // the generic form, so we cast the shared view to generic before
+        // embedding.
+        var arrayView2DCLRType = typeof(ArrayView2D<,>)
+            .MakeGenericType(elementCLRType, strideCLRType);
+        var structType =
+            (StructureType)moduleBuilder.CreateType(arrayView2DCLRType);
+        var baseViewType = structType.Fields[0].As<ViewType>();
+        var baseView = builder.CreateAddressSpaceCast(
+            location, sharedBaseView, baseViewType.AddressSpace);
+
+        var sb = builder.CreateStructure(location, structType);
+        sb.Add(baseView);
+        sb.Add(extentXLong);
+        sb.Add(extentYLong);
+        AddStride2DFields(ref sb, strideCLRType, extentX, extentY, location);
+        return sb.Seal();
+    }
+
+    /// <summary>
+    /// Traces an <see cref="Index2D"/> value back to a
+    /// <c>new Index2D(x, y)</c> constructor invocation and recovers the two
+    /// primitive argument values that the ctor received. Matches the exact
+    /// pattern that <see cref="CodeGenerator.MakeNewObject"/> emits for a
+    /// struct newobj: an <see cref="Alloca"/> followed by a
+    /// <see cref="MethodCall"/> whose first argument is that alloca and
+    /// whose target is the two-int Index2D ctor.
+    /// </summary>
+    /// <returns>
+    /// <c>true</c> and sets <paramref name="x"/>/<paramref name="y"/> on a
+    /// match; <c>false</c> otherwise. The returned values have not yet been
+    /// checked for compile-time constancy — callers must verify.
+    /// </returns>
+    private static bool TryResolveIndex2DCtorLiteral(
+        IR.BasicBlockValues.Construction.BasicBlockBuilder builder,
+        Value? extent,
+        out Value x,
+        out Value y)
+    {
+        x = y = null!;
+
+        if (extent is not Load load) return false;
+
+        // The ctor was invoked with a pointer argument that the frontend may
+        // have wrapped in an address-space cast between the alloca and the
+        // call site — unwrap to compare.
+        var loadSource = UnwrapAddressSpaceCast(load.Source);
+        if (loadSource is not Alloca alloca) return false;
+
+        // Walk the linked list of values already emitted into the current
+        // basic-block builder (back-to-front). We're looking for the
+        // MethodCall to the Index2D(int, int) constructor whose 'this'
+        // pointer is the same alloca.
+        for (var cursor = builder.Last; cursor is not null; cursor = cursor.Previous)
+        {
+            if (cursor is not MethodCall call) continue;
+            if (call.Arguments.Length != 3) continue;
+
+            var callInstance = UnwrapAddressSpaceCast(call.Arguments[0]);
+            if (!ReferenceEquals(callInstance, alloca)) continue;
+
+            if (call.Target.Source is not System.Reflection.ConstructorInfo ctor
+                || ctor.DeclaringType != typeof(Index2D))
+                continue;
+
+            x = call.Arguments[1];
+            y = call.Arguments[2];
+            return true;
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Unwraps any <see cref="AddressSpaceCast"/> layers around a pointer
+    /// value to expose the underlying allocation / global.
+    /// </summary>
+    private static Value? UnwrapAddressSpaceCast(Value? value)
+    {
+        while (value is AddressSpaceCast cast)
+            value = cast.Source;
+        return value;
+    }
+
+    /// <summary>
+    /// Appends the flattened field values that <c>TStride.FromExtent(extent)</c>
+    /// would produce for each supported concrete <see cref="IStride2D{TSelf}"/>.
+    /// </summary>
+    private static void AddStride2DFields(
+        ref StructureValue.Builder sb,
+        Type strideCLRType,
+        Value extentX,
+        Value extentY,
+        Location location)
+    {
+        // DenseX.FromExtent(extent) = new(extent.X)            → {YStride = extent.X}
+        // DenseY.FromExtent(extent) = new(extent.Y)            → {XStride = extent.Y}
+        // General.FromExtent(extent) = new(extent)             → {StrideExtent = extent}
+        // Infinite has no instance fields.
+        if (strideCLRType == typeof(Stride2D.DenseX))
+        {
+            sb.Add(extentX);
+        }
+        else if (strideCLRType == typeof(Stride2D.DenseY))
+        {
+            sb.Add(extentY);
+        }
+        else if (strideCLRType == typeof(Stride2D.General))
+        {
+            // General wraps an Index2D, which flattens to two ints.
+            sb.Add(extentX);
+            sb.Add(extentY);
+        }
+        else if (strideCLRType == typeof(Stride2D.Infinite))
+        {
+            // No fields to add.
+        }
+        else
+        {
+            throw location.GetNotSupportedException(
+                $"Group.GetSharedMemory2D does not support stride type "
+                + $"'{strideCLRType.FullName}'. Supported types: "
+                + $"Stride2D.DenseX, Stride2D.DenseY, Stride2D.General, "
+                + $"Stride2D.Infinite.");
+        }
+    }
+
+    /// <summary>
+    /// Returns true if the given value is a compile-time constant — either
+    /// a primitive literal or a pure-value tree whose leaves are all
+    /// primitives (no parameters / method values).
+    /// </summary>
+    private static bool IsCompileTimeConstant(Value? value)
+    {
+        if (value is null) return false;
+        if (value is PrimitiveValue) return true;
+        if (value is not PureValue pureValue) return false;
+        bool allPure = true;
+        pureValue.VisitDFS(childValue =>
+        {
+            if (childValue is not PureValue)
+                allPure = false;
+        });
+        return allPure;
     }
 
     /// <summary>
