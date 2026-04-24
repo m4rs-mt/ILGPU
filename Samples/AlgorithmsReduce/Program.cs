@@ -46,7 +46,11 @@ static class Program
         stream.Sequence(buffer.View, i => (int)i);
 
         // Reduce: sum all elements -> returns the scalar result directly
-        int result = stream.Reduce<int, AddInt32>(buffer.View);
+        int result = stream.Reduce(
+            buffer.View,
+            identity: 0,
+            apply: (a, b) => a + b,
+            atomicApply: (ref int t, int v) => Atomic.Add(ref t, v));
         stream.Synchronize();
 
         Console.WriteLine($"Reduced = {result}");
