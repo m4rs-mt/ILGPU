@@ -13,11 +13,11 @@ name: CI
 #                                                                      │
 #                       build (Windows verification, matrix) ────────► │
 #                                                                      │
-#                       build-test-binaries ─→ test-cpu ─┬─ test-metal-compile  ─┐
-#                                                        ├─ test-cuda-compile   ─┤
-#                                                        ├─ test-rocm-compile   ─┤
-#                                                        └─ test-opencl-compile ─┤
-#                                                                                ▼
+#                       build-test-binaries ─→ build-samples ─→ test-cpu ─┬─ test-metal-compile  ─┐
+#                                                                          ├─ test-cuda-compile   ─┤
+#                                                                          ├─ test-rocm-compile   ─┤
+#                                                                          └─ test-opencl-compile ─┤
+#                                                                                                  ▼
 #                                                              ┌──→ checks-completed ◄─ all leaves
 #                                                              │   (display name: "All required checks done"
 #                                                              │    — keeps check-required.yml working)
@@ -281,11 +281,15 @@ jobs:
   # CompilerService contract tests. Every compile-only job below depends on
   # this job — a CPU regression here aborts the pipeline before any GPU
   # image pulls or macOS minutes are spent.
+  #
+  # Gated behind `build-samples` so a sample compilation regression fails
+  # fast and skips the 30-minute CPU test run instead of wasting runner
+  # minutes on work that will be cascade-skipped by the aggregator anyway.
 
   test-cpu:
     name: CPU tests (IR + NonKernel + CPU backend + integration)
     if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule' || github.event_name == 'push' || github.event.pull_request.head.repo.id != github.event.pull_request.base.repo.id
-    needs: build-test-binaries
+    needs: build-samples
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -342,6 +346,48 @@ jobs:
           name: test-results-cpu
           path: '**/TestResults/*.trx'
           if-no-files-found: ignore
+
+  # ===========================================================================
+  # Tier 2: Build all sample programs (gate before test-cpu)
+  # ===========================================================================
+  #
+  # Reuses the `test-binaries` artifact so the samples link against the EXACT
+  # same ILGPU.dll / ILGPUC.dll that the rest of the pipeline verifies. The
+  # samples reference those binaries via HintPath at ../Bin/$(Configuration)/
+  # net10.0 (see Samples/Directory.Build.props), so extracting the artifact at
+  # the repo root restores the expected layout. Backend defaults to CPU — no
+  # native toolchain needed on ubuntu-latest. `-c Debug` is required so the
+  # samples' $(Configuration) resolves to the Debug path that the artifact
+  # actually contains.
+  #
+  # Deliberately runs BEFORE test-cpu: a sample regression is detected in
+  # a few minutes and skips the 30-minute CPU test run, saving runner time
+  # on a change that the aggregator would fail anyway.
+
+  build-samples:
+    name: Build sample programs
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule' || github.event_name == 'push' || github.event.pull_request.head.repo.id != github.event.pull_request.base.repo.id
+    needs: build-test-binaries
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Download test binaries
+        uses: actions/download-artifact@v4
+        with:
+          name: test-binaries
+
+      - name: Build samples
+        run: dotnet build Samples/ILGPU.Samples.slnx -c Debug
 
   # ===========================================================================
   # Tier 3: compile-only jobs (parallel after test-cpu)
@@ -647,6 +693,7 @@ jobs:
       - check-version
       - build
       - build-test-binaries
+      - build-samples
       - test-cpu
       - test-metal-compile
       - test-cuda-compile
@@ -668,6 +715,7 @@ jobs:
           RESULT_CHECK_VERSION: ${{ needs.check-version.result }}
           RESULT_BUILD: ${{ needs.build.result }}
           RESULT_BUILD_TEST_BINARIES: ${{ needs.build-test-binaries.result }}
+          RESULT_BUILD_SAMPLES: ${{ needs.build-samples.result }}
           RESULT_TEST_CPU: ${{ needs.test-cpu.result }}
           RESULT_TEST_METAL: ${{ needs.test-metal-compile.result }}
           RESULT_TEST_CUDA: ${{ needs.test-cuda-compile.result }}
@@ -703,6 +751,7 @@ jobs:
           check_required  check-version        "$RESULT_CHECK_VERSION"
           check_required  build                "$RESULT_BUILD"
           check_required  build-test-binaries  "$RESULT_BUILD_TEST_BINARIES"
+          check_required  build-samples        "$RESULT_BUILD_SAMPLES"
           check_required  test-cpu             "$RESULT_TEST_CPU"
           check_required  test-metal-compile   "$RESULT_TEST_METAL"
           check_gpu_private test-cuda-compile  "$RESULT_TEST_CUDA"

@@ -47,7 +47,11 @@ static class Program
         // Inclusive scan
         using (var targetBuffer = stream.Allocate1D<int>(N))
         {
-            stream.InclusiveScan<int, AddInt32>(sourceBuffer.View, targetBuffer.View);
+            stream.InclusiveScan(
+                sourceBuffer.View,
+                targetBuffer.View,
+                identity: 0,
+                operation: (a, b) => a + b);
             stream.Synchronize();
 
             Console.WriteLine("Inclusive Scan:");
@@ -59,7 +63,11 @@ static class Program
         // Exclusive scan
         using (var targetBuffer = stream.Allocate1D<int>(N))
         {
-            stream.ExclusiveScan<int, AddInt32>(sourceBuffer.View, targetBuffer.View);
+            stream.ExclusiveScan(
+                sourceBuffer.View,
+                targetBuffer.View,
+                identity: 0,
+                operation: (a, b) => a + b);
             stream.Synchronize();
 
             Console.WriteLine("Exclusive Scan:");
