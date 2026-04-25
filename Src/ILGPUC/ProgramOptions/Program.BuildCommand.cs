@@ -83,13 +83,19 @@ sealed partial class Program
         };
 
         /// <summary>
-        /// Optional base URL of a remote <c>ILGPUC.CompilerService</c> for remote
-        /// compilation.
+        /// Zero or more base URLs of remote <c>ILGPUC.CompilerService</c>
+        /// instances. Each URL is probed for capabilities; the first URL to
+        /// advertise a target wins for that target. May be combined with the
+        /// <c>ILGPU_*_SERVICE_URL</c> environment variables — explicit URLs
+        /// take precedence.
         /// </summary>
-        readonly Option<Uri?> _compilerServiceOption = new("--compiler-service")
+        readonly Option<string[]> _compilerServiceOption = new("--compiler-service")
         {
             Description =
-                "Base URL of a remote ILGPUC.CompilerService instance",
+                "Base URL of a remote ILGPUC.CompilerService instance "
+                + "(repeatable; first to advertise a backend wins)",
+            AllowMultipleArgumentsPerToken = true,
+            DefaultValueFactory = static _ => [],
         };
 
         /// <summary>
@@ -299,14 +305,24 @@ sealed partial class Program
                     .CreateBackends(properties, parseResult))
                 .ToArray();
 
-            // Create compiler manager if --compile is set
+            // Create compiler manager if --compile is set. Walks the full
+            // resolution chain (explicit --compiler-service URIs → per-target
+            // env vars → global env var → Docker default ports → local
+            // toolchain). The local toolchain is included as a last-resort
+            // fallback so single-machine builds keep working.
             ICompilerManager? compilerManager = null;
             if (parseResult.GetValue(_compileOption))
             {
-                var serviceUrl = parseResult.GetValue(_compilerServiceOption);
-                compilerManager = serviceUrl is not null
-                    ? new RemoteCompilerManager(serviceUrl)
-                    : new CompilerManager();
+                var rawUrls = parseResult.GetValue(_compilerServiceOption)
+                    ?? [];
+                var serviceUrls = rawUrls
+                    .Where(s => !string.IsNullOrWhiteSpace(s))
+                    .Select(s => new Uri(s))
+                    .ToArray();
+                compilerManager = await CompilerManagerFactory.CreateAsync(
+                    serviceUrls,
+                    allowLocal: true,
+                    ct);
             }
 
             // Analyze the compilation
