@@ -330,6 +330,27 @@ sealed class CPUMethodEmitter(
     }
 
     /// <summary>
+    /// Returns <see langword="true"/> when <paramref name="st"/> has the
+    /// exact shape of <c>ILGPU.KernelIndex</c> — two primitive fields
+    /// <c>{i64 GridIndex, i32 GroupIndex}</c>. Unlike
+    /// <see cref="IsIndexStructType"/>, which only recognises homogeneous
+    /// multi-dim index structs, this check is used to decide whether the
+    /// grouped-kernel first parameter should be skipped when marshaling
+    /// user-visible arguments.
+    /// </summary>
+    internal static bool IsKernelIndexStructType(StructureType st)
+    {
+        if (st.NumFields != 2)
+            return false;
+        if (st.HasFlags(TypeFlags.PointerDependent | TypeFlags.ViewDependent))
+            return false;
+        return st.Fields[0] is PrimitiveType
+                { BasicValueType: BasicValueType.Int64 }
+            && st.Fields[1] is PrimitiveType
+                { BasicValueType: BasicValueType.Int32 };
+    }
+
+    /// <summary>
     /// Returns true if any field of the StructureValue is vectorized.
     /// </summary>
     private static bool HasVectorizedField(

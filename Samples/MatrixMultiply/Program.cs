@@ -22,6 +22,9 @@ namespace MatrixMultiply;
 
 static class Kernels
 {
+    // Compile-time tile size — Group.GetSharedMemory2D requires a constant extent.
+    public const int TileSize = 2;
+
     // 2D accelerated kernel: called via stream.Launch(Index2D extent, ...)
     public static void MatrixMultiplyAcceleratedKernel(
         Index2D index,
@@ -39,12 +42,60 @@ static class Kernels
         cView[index] = sum;
     }
 
-    // NOTE: The tiled variant was removed temporarily. The previous blocker
-    // (frontend crash on Group.GetSharedMemory<T> with a runtime-computed
-    // extent) is now fixed — a compile-time-constant TileSize resolves it.
-    // But the tiled kernel additionally hits distinct CPU-backend codegen
-    // bugs (generated C# references undefined struct fields and produces
-    // local name collisions). Track those separately.
+    // Tiled kernel using shared memory. Uses grouped 1D launch with
+    // manual 2D index reconstruction.
+    //
+    // Compiler-bug workarounds applied here, all tracked as ILGPUC issues:
+    //
+    //   1. The inner `for (k = 0; k < TileSize; k++)` dot product is
+    //      expanded manually. Nesting a for-loop inside the outer tile
+    //      loop body while also touching shared memory there triggers a
+    //      frontend SSA-construction bug — duplicate loop-header phi
+    //      nodes that the global optimizer's struct-value rewriter
+    //      rejects.
+    //
+    //   2. Per-element bounds checks on the shared-memory stores (i.e.
+    //      `if (row < extent.X && col < extent.Y) aTile[...] = ...; else
+    //      aTile[...] = 0;`) hit the same frontend bug. This kernel
+    //      therefore assumes all three matrix dimensions are multiples of
+    //      TileSize — the launcher skips the tiled path for non-aligned
+    //      inputs.
+    public static void MatrixMultiplyTiledKernel(
+        KernelIndex index,
+        ArrayView2D<float, Stride2D.DenseX> aView,
+        ArrayView2D<float, Stride2D.DenseX> bView,
+        ArrayView2D<float, Stride2D.DenseX> cView,
+        int numGroupsY)
+    {
+        var aTile = Group.GetSharedMemory2D<float, Stride2D.DenseX>(
+            new Index2D(TileSize, TileSize));
+        var bTile = Group.GetSharedMemory2D<float, Stride2D.DenseX>(
+            new Index2D(TileSize, TileSize));
+
+        int groupIdxX = (int)(index.GridIndex / numGroupsY);
+        int groupIdxY = (int)(index.GridIndex % numGroupsY);
+        int localX = index.GroupIndex / TileSize;
+        int localY = index.GroupIndex % TileSize;
+
+        int globalX = groupIdxX * TileSize + localX;
+        int globalY = groupIdxY * TileSize + localY;
+        var sum = 0.0f;
+
+        for (var i = 0; i < aView.IntExtent.Y; i += TileSize)
+        {
+            aTile[new Index2D(localX, localY)] = aView[new Index2D(globalX, localY + i)];
+            bTile[new Index2D(localX, localY)] = bView[new Index2D(localX + i, globalY)];
+            Group.Barrier();
+
+            // Inner dot product over k = 0..TileSize-1, unrolled for TileSize = 2.
+            sum += aTile[new Index2D(localX, 0)] * bTile[new Index2D(0, localY)];
+            sum += aTile[new Index2D(localX, 1)] * bTile[new Index2D(1, localY)];
+            Group.Barrier();
+        }
+
+        if (globalX < cView.IntExtent.X && globalY < cView.IntExtent.Y)
+            cView[new Index2D(globalX, globalY)] = sum;
+    }
 }
 
 static class Program
@@ -76,6 +127,24 @@ static class Program
         };
 
         RunMatrixMultiply(sanityMatrixA, sanityMatrixB, sanityMatrixC);
+
+        // Tiny aligned sanity test for the tiled variant (4x4 * 4x4).
+        var tinyA = new float[4, 4]
+        {
+            { 1, 2, 3, 4 },
+            { 5, 6, 7, 8 },
+            { 9, 10, 11, 12 },
+            { 13, 14, 15, 16 },
+        };
+        var tinyB = new float[4, 4]
+        {
+            { 1, 0, 0, 0 },
+            { 0, 1, 0, 0 },
+            { 0, 0, 1, 0 },
+            { 0, 0, 0, 1 },
+        };
+        // A * I = A
+        RunMatrixMultiply(tinyA, tinyB, tinyA);
 
         // Random matrices
         const int m = 500;
@@ -180,6 +249,39 @@ static class Program
         sw.Stop();
         Debug.Assert(MatrixEqual(acceleratedResult, expectedResult));
         Console.WriteLine($"- Accelerated implementation on {accelerator}: {sw.ElapsedMilliseconds}ms");
+
+        // The tiled implementation requires all three dimensions to be
+        // multiples of Kernels.TileSize. For non-aligned inputs the sample
+        // falls back to reporting a skip rather than running the kernel.
+        //
+        // Correctness note: the ILGPUC CPU backend allocates each group's
+        // shared-memory tile inside KernelEntryPoint via `stackalloc` and
+        // invokes the kernel serially per thread, so Group.Barrier() does
+        // not synchronize writes across threads in the same group and the
+        // tiled kernel produces incorrect results. To compare against the
+        // expected output, build with a GPU backend
+        // (`-p:ILGPUBackend=Metal|Cuda|ROCm|OpenCL`); with the default
+        // `-p:ILGPUBackend=CPU` the tiled timing is still reported but the
+        // output is not verified.
+        if (m % Kernels.TileSize == 0
+            && ka % Kernels.TileSize == 0
+            && n % Kernels.TileSize == 0)
+        {
+            sw.Restart();
+            var tiledResult = MatrixMultiplyTiled(stream, a, b);
+            sw.Stop();
+            var tiledMatches = MatrixEqual(tiledResult, expectedResult);
+            Console.WriteLine(
+                $"- Tiled implementation on {accelerator}: " +
+                $"{sw.ElapsedMilliseconds}ms " +
+                $"(result {(tiledMatches ? "matches" : "mismatches")})");
+        }
+        else
+        {
+            Console.WriteLine(
+                $"- Tiled implementation skipped: dimensions [{m}x{ka}] * " +
+                $"[{kb}x{n}] not a multiple of TileSize={Kernels.TileSize}");
+        }
     }
 
     #endregion
@@ -238,6 +340,47 @@ static class Program
             new Index2D(m, n),
             index => Kernels.MatrixMultiplyAcceleratedKernel(
                 index, aBuffer.View, bBuffer.View, cBuffer.View));
+        stream.Synchronize();
+
+        return cBuffer.GetAsArray2D();
+    }
+
+    #endregion
+
+    #region Tiled algorithm
+
+    static float[,] MatrixMultiplyTiled(AcceleratorStream stream, float[,] a, float[,] b)
+    {
+        var m = a.GetLength(0);
+        var ka = a.GetLength(1);
+        var kb = b.GetLength(0);
+        var n = b.GetLength(1);
+
+        if (ka != kb)
+            throw new ArgumentException(
+                $"Cannot multiply {m}x{ka} matrix by {n}x{kb} matrix", nameof(b));
+
+        // Compute grid dimensions
+        int numGroupsX = (m + Kernels.TileSize - 1) / Kernels.TileSize;
+        int numGroupsY = (n + Kernels.TileSize - 1) / Kernels.TileSize;
+        int totalGroups = numGroupsX * numGroupsY;
+        int groupSize = Kernels.TileSize * Kernels.TileSize;
+
+        var config = new KernelConfig(totalGroups, groupSize);
+
+        using var aBuffer = stream.Allocate2DDenseX<float>(new Index2D(m, ka));
+        using var bBuffer = stream.Allocate2DDenseX<float>(new Index2D(ka, n));
+        using var cBuffer = stream.Allocate2DDenseX<float>(new Index2D(m, n));
+        aBuffer.CopyFromCPU(a);
+        bBuffer.CopyFromCPU(b);
+
+        stream.Launch(in config, index =>
+            Kernels.MatrixMultiplyTiledKernel(
+                index,
+                aBuffer.View,
+                bBuffer.View,
+                cBuffer.View,
+                numGroupsY));
         stream.Synchronize();
 
         return cBuffer.GetAsArray2D();
