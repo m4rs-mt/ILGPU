@@ -467,6 +467,14 @@ sealed class CompiledKernelGenerator : DisposeBase
     {
         return kind switch
         {
+            // Struct-element views: declare the KernelArgs field as
+            // ViewImplementation<byte> to match the assignment site, which
+            // also uses <byte> (line ~723). The IR struct name (e.g.
+            // "struct_613") referenced by GetElementTypeName has no
+            // declaration in the C# wrapper file. Same memory layout
+            // either way under [StructLayout(Sequential)].
+            ParameterKind.View when ((ViewType)type).ElementType is StructureType =>
+                "ViewImplementation<byte>",
             ParameterKind.View =>
                 $"ViewImplementation<{GetElementTypeName((ViewType)type)}>",
             ParameterKind.Pointer => "IntPtr",
@@ -719,12 +727,31 @@ sealed class CompiledKernelGenerator : DisposeBase
             switch (param.Kind)
             {
                 case ParameterKind.View:
-                    var argElemType = ((ViewType)param.Type).ElementType
-                        is StructureType ? "byte"
-                        : GetElementTypeName((ViewType)param.Type);
-                    WriteLine(
-                        $"args.{param.Name} = " +
-                        $"new ViewImplementation<{argElemType}>({param.Name});");
+                    var viewType = (ViewType)param.Type;
+                    if (viewType.ElementType is StructureType)
+                    {
+                        // Struct-element view: ViewImplementation<byte> has
+                        // no constructor that takes ArrayView<UserStruct>,
+                        // so build the (pointer, length) pair via Unsafe —
+                        // mirrors EmitStructMarshalingCode's view branch.
+                        // Use .BaseView to land on the basic ArrayView<T>
+                        // form so LoadEffectiveAddress<T> can infer T;
+                        // guard against IsValid==false to avoid taking the
+                        // address of a default-initialized view.
+                        WriteLine(
+                            $"args.{param.Name} = {param.Name}.BaseView.IsValid" +
+                            $" ? new ViewImplementation<byte>(" +
+                            $"Unsafe.AsPointer(ref {param.Name}.BaseView" +
+                            $".LoadEffectiveAddress()), {param.Name}.BaseView.Length)" +
+                            $" : default(ViewImplementation<byte>);");
+                    }
+                    else
+                    {
+                        var argElemType = GetElementTypeName(viewType);
+                        WriteLine(
+                            $"args.{param.Name} = " +
+                            $"new ViewImplementation<{argElemType}>({param.Name});");
+                    }
                     break;
 
                 case ParameterKind.StructWithViews:
