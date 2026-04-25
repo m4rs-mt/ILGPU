@@ -54,12 +54,15 @@ static class Availability
         var lazy = s_availability.GetOrAdd(backend, bt =>
             new Lazy<Task<bool>>(async () =>
             {
+                var bttarget = MapToTarget(bt);
+                if (bttarget is null)
+                    return false;
                 var manager = await CompilerManagerFactory
-                    .GetCompilerManagerAsync(bt).ConfigureAwait(false);
+                    .ResolveAsync(bttarget.Value).ConfigureAwait(false);
                 var caps = await manager.GetCapabilitiesAsync(
                     CancellationToken.None).ConfigureAwait(false);
                 return caps.Compilers.Any(
-                    c => c.Target == MapToTarget(bt)!.Value && c.Available);
+                    c => c.Target == bttarget.Value && c.Available);
             }));
 
         return await lazy.Value.ConfigureAwait(false);
