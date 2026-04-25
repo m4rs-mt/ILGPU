@@ -13,11 +13,11 @@ name: CI
 #                                                                      │
 #                       build (Windows verification, matrix) ────────► │
 #                                                                      │
-#                       build-test-binaries ─→ build-samples ─→ test-cpu ─┬─ test-metal-compile  ─┐
-#                                                                          ├─ test-cuda-compile   ─┤
-#                                                                          ├─ test-rocm-compile   ─┤
-#                                                                          └─ test-opencl-compile ─┤
-#                                                                                                  ▼
+#                       build-test-binaries ─→ build-samples (CPU, Metal) ─→ test-cpu ─┬─ test-metal-compile  ─┐
+#                                                                                       ├─ test-cuda-compile   ─→ build-samples-cuda   ─┐
+#                                                                                       ├─ test-rocm-compile   ─→ build-samples-rocm   ─┤
+#                                                                                       └─ test-opencl-compile ─→ build-samples-opencl ─┤
+#                                                                                                                                       ▼
 #                                                              ┌──→ checks-completed ◄─ all leaves
 #                                                              │   (display name: "All required checks done"
 #                                                              │    — keeps check-required.yml working)
@@ -364,11 +364,37 @@ jobs:
   # a few minutes and skips the 30-minute CPU test run, saving runner time
   # on a change that the aggregator would fail anyway.
 
+  # The cheap tier of sample-build validation: source-emit only, no native
+  # toolchain or service required. Runs CPU on Ubuntu and Metal on macOS so
+  # IR-to-source regressions across both code paths fail at sample-build
+  # time. CUDA / ROCm / OpenCL native-binary embedding is covered by the
+  # *thorough* tier below (build-samples-{cuda,rocm,opencl}), which docker-
+  # runs the same GHCR images as the test-{cuda,rocm,opencl}-compile jobs.
+  #
+  # The `excludes` matrix entry lists samples that are *expected* to not
+  # compile for that backend because the sample exercises features the
+  # backend doesn't support (e.g. Float64 atomics on Metal). They build
+  # individually so a single excluded sample doesn't fail the whole job.
   build-samples:
-    name: Build sample programs
+    name: Build sample programs (${{ matrix.name }})
     if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule' || github.event_name == 'push' || github.event.pull_request.head.repo.id != github.event.pull_request.base.repo.id
     needs: build-test-binaries
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: CPU
+            backend: CPU
+            os: ubuntu-latest
+            excludes: ""
+          - name: Metal
+            backend: Metal
+            os: macos-latest
+            # AdvancedAtomics uses Float64 atomics — a permanent Metal
+            # limitation, not a codegen regression. Bump this list when
+            # other samples acquire Metal-incompatible features.
+            excludes: "AdvancedAtomics"
+    runs-on: ${{ matrix.os }}
     timeout-minutes: 20
     steps:
       - name: Checkout
@@ -387,7 +413,170 @@ jobs:
           name: test-binaries
 
       - name: Build samples
-        run: dotnet build Samples/ILGPU.Samples.slnx -c Debug
+        env:
+          ILGPU_BACKEND: ${{ matrix.backend }}
+          EXCLUDES: ${{ matrix.excludes }}
+        run: |
+          set -e
+          fail=0
+          # Build each sample csproj individually so an excluded one
+          # doesn't fail the whole job. Whitespace-tolerant exclude check.
+          for csproj in Samples/*/*.csproj; do
+            name="$(basename "$(dirname "$csproj")")"
+            if printf '%s\n' $EXCLUDES | grep -qx "$name"; then
+              echo "::notice::skipping $name on $ILGPU_BACKEND (excluded)"
+              continue
+            fi
+            echo "::group::Building $name"
+            if ! dotnet build "$csproj" -c Debug -p:ILGPUBackend=$ILGPU_BACKEND --nologo; then
+              echo "::error::sample build failed: $name on $ILGPU_BACKEND"
+              fail=1
+            fi
+            echo "::endgroup::"
+          done
+          exit $fail
+
+  # Thorough tier: builds samples *with* `--compile`, embedding a native
+  # binary produced by the in-container toolchain (nvcc / hipcc / ocloc).
+  # Same Docker images as the test-{cuda,rocm,opencl}-compile jobs, so
+  # they only become reachable once the toolchain image is healthy. No
+  # remote service URL is needed — the local CompilerManager inside the
+  # container handles the compile.
+  build-samples-cuda:
+    name: Build sample programs (Cuda)
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule' || github.event_name == 'push'
+    needs: test-cuda-compile
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Pull Cuda compiler image
+        run: |
+          docker pull ghcr.io/${{ github.repository_owner }}/ilgpuc-compiler-service-cuda:latest
+
+      - name: Build samples with --compile inside the container
+        run: |
+          docker run --rm \
+            --user "$(id -u):$(id -g)" \
+            -v "$GITHUB_WORKSPACE:/workspace" -w /workspace \
+            -e HOME=/tmp \
+            -e DOTNET_NOLOGO=1 \
+            -e DOTNET_CLI_TELEMETRY_OPTOUT=1 \
+            ghcr.io/${{ github.repository_owner }}/ilgpuc-compiler-service-cuda:latest \
+            bash -c '
+              dotnet build Samples/ILGPU.Samples.slnx -c Debug \
+                -p:ILGPUBackend=Cuda \
+                -p:ILGPUCompile=true
+            '
+
+  build-samples-rocm:
+    name: Build sample programs (ROCm)
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule' || github.event_name == 'push'
+    needs: test-rocm-compile
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      # See test-rocm-compile for context — the ROCm dev image is ~26.5 GB
+      # and ubuntu-latest needs preinstalled tooling pruned to fit it.
+      - name: Free disk space for the ROCm devel image
+        run: |
+          df -h /
+          sudo rm -rf \
+            /opt/hostedtoolcache \
+            /usr/share/dotnet/sdk \
+            /usr/local/lib/android \
+            /opt/ghc \
+            /usr/local/share/boost
+          df -h /
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Pull ROCm compiler image
+        run: |
+          docker pull ghcr.io/${{ github.repository_owner }}/ilgpuc-compiler-service-rocm:latest
+
+      - name: Build samples with --compile inside the container
+        run: |
+          docker run --rm \
+            --user "$(id -u):$(id -g)" \
+            -v "$GITHUB_WORKSPACE:/workspace" -w /workspace \
+            -e HOME=/tmp \
+            -e DOTNET_NOLOGO=1 \
+            -e DOTNET_CLI_TELEMETRY_OPTOUT=1 \
+            ghcr.io/${{ github.repository_owner }}/ilgpuc-compiler-service-rocm:latest \
+            bash -c '
+              dotnet build Samples/ILGPU.Samples.slnx -c Debug \
+                -p:ILGPUBackend=ROCm \
+                -p:ILGPUCompile=true
+            '
+
+  build-samples-opencl:
+    name: Build sample programs (OpenCL)
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule' || github.event_name == 'push'
+    needs: test-opencl-compile
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Pull OpenCL compiler image
+        run: |
+          docker pull ghcr.io/${{ github.repository_owner }}/ilgpuc-compiler-service-opencl:latest
+
+      - name: Build samples with --compile inside the container
+        run: |
+          docker run --rm \
+            --user "$(id -u):$(id -g)" \
+            -v "$GITHUB_WORKSPACE:/workspace" -w /workspace \
+            -e HOME=/tmp \
+            -e DOTNET_NOLOGO=1 \
+            -e DOTNET_CLI_TELEMETRY_OPTOUT=1 \
+            ghcr.io/${{ github.repository_owner }}/ilgpuc-compiler-service-opencl:latest \
+            bash -c '
+              dotnet build Samples/ILGPU.Samples.slnx -c Debug \
+                -p:ILGPUBackend=OpenCL \
+                -p:ILGPUCompile=true
+            '
 
   # ===========================================================================
   # Tier 3: compile-only jobs (parallel after test-cpu)
@@ -688,6 +877,11 @@ jobs:
 
   checks-completed:
     name: All required checks done
+    # NOTE: build-samples-{cuda,rocm,opencl} run as advisory checks but are
+    # NOT listed here. They surface kernel-portability regressions for the
+    # GPU backends but currently fail on pre-existing bugs (OpenCL CLAPI
+    # mismatch, KernelIndex param wiring on CUDA/ROCm). Once those land, add
+    # them to `needs:` and to the gpu_private check list below to harden CI.
     needs:
       - check-style
       - check-version
