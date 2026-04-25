@@ -448,8 +448,11 @@ sealed class ProgramBuilder : DisposeBase
                 // sync-over-async pattern used for CompileSourceAsync
                 // below. The probe runs at most once per backend per
                 // process so the blocking cost is bounded.
+                var target = Availability.MapToTarget(_backend)
+                    ?? throw new InvalidOperationException(
+                        $"Backend '{_backend}' has no native compilation target.");
                 var compilerManager = CompilerManagerFactory
-                    .GetCompilerManagerAsync(_backend)
+                    .ResolveAsync(target)
                     .GetAwaiter().GetResult();
                 var nativeResult = backend
                     .CompileSourceAsync(compiled, compilerManager)

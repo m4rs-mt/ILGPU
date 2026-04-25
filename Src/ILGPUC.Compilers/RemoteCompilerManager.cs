@@ -9,27 +9,28 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
-using ILGPUC.Compilers;
-using System;
 using System.Net.Http;
 using System.Net.Http.Json;
-using System.Threading;
-using System.Threading.Tasks;
 
 #pragma warning disable CA1031 // Do not catch general exception types
 
-namespace ILGPUC.Backends;
+namespace ILGPUC.Compilers;
 
 /// <summary>
 /// An <see cref="ICompilerManager"/> that forwards compilation requests to a remote
 /// ILGPUC.CompilerService instance over HTTP.
 /// </summary>
-sealed class RemoteCompilerManager : ICompilerManager
+public sealed class RemoteCompilerManager : ICompilerManager
 {
     private const string CompileEndpoint = "api/v1/compile";
     private const string CapabilitiesEndpoint = "api/v1/capabilities";
 
     private readonly HttpClient _httpClient;
+
+    /// <summary>
+    /// Returns the base URL this manager forwards requests to.
+    /// </summary>
+    public Uri BaseUrl { get; }
 
     /// <summary>
     /// Initializes a new <see cref="RemoteCompilerManager"/> that sends requests to
@@ -48,6 +49,7 @@ sealed class RemoteCompilerManager : ICompilerManager
     /// <param name="httpClient">The HTTP client to use for requests.</param>
     public RemoteCompilerManager(Uri baseUrl, HttpClient httpClient)
     {
+        BaseUrl = baseUrl;
         _httpClient = httpClient;
         _httpClient.BaseAddress = baseUrl;
     }
