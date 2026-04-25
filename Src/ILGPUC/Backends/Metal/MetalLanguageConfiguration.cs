@@ -136,6 +136,22 @@ sealed class MetalLanguageConfiguration : LanguageConfiguration
     public override string? EmitIndexComputation(
         string typeName, string paramName, TypeValue indexType)
     {
+        // KernelIndex (grouped launch) carries {long GridIndex, int GroupIndex}
+        // rather than a multi-dimensional thread index. Map the fields
+        // directly to Metal's threadgroup / thread-within-threadgroup
+        // builtins instead of deriving a global thread coordinate.
+        if (indexType is StructureType kernelIdx
+            && IsKernelIndexStructShape(kernelIdx))
+        {
+            var lines = new System.Text.StringBuilder();
+            lines.AppendLine($"  {typeName} {paramName};");
+            lines.AppendLine(
+                $"  {paramName}.Field0 = (long)threadgroup_position_in_grid.x;");
+            lines.AppendLine(
+                $"  {paramName}.Field1 = (int)thread_position_in_threadgroup.x;");
+            return lines.ToString().TrimEnd();
+        }
+
         // For struct index types (Index2D/Index3D), compute each field from
         // the corresponding dimension's built-in thread attributes
         if (indexType is StructureType structType)
@@ -159,6 +175,20 @@ sealed class MetalLanguageConfiguration : LanguageConfiguration
             $"({typeName})(threadgroup_position_in_grid.x * " +
             $"threads_per_threadgroup.x + thread_position_in_threadgroup.x);";
     }
+
+    /// <summary>
+    /// Matches the flat field layout of <c>ILGPU.KernelIndex</c> —
+    /// <c>{i64 GridIndex, i32 GroupIndex}</c>. Used to decide whether the
+    /// first kernel parameter should be filled from Metal's group / thread
+    /// builtins or treated as a multi-dim thread coordinate.
+    /// </summary>
+    private static bool IsKernelIndexStructShape(StructureType st) =>
+        st.NumFields == 2
+        && !st.HasFlags(TypeFlags.PointerDependent | TypeFlags.ViewDependent)
+        && st.Fields[0] is PrimitiveType
+            { BasicValueType: BasicValueType.Int64 }
+        && st.Fields[1] is PrimitiveType
+            { BasicValueType: BasicValueType.Int32 };
 
     public override bool IsFileScopeAddressSpace(MemoryAddressSpace addressSpace) =>
         addressSpace == MemoryAddressSpace.Constant;

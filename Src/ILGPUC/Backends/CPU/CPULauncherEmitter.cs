@@ -46,8 +46,12 @@ sealed class CPULauncherEmitter : LauncherEmitter
         // first parameter is the thread index — pass baseIndex.
         // For grouped launches (IndexDimensions == 0), there is no index
         // parameter — the kernel reads Grid.GlobalThreadIndex internally.
+        // For grouped KernelIndex launches, construct a KernelIndex struct
+        // below and pass that instead of a bare int.
         var callArgs = new List<string>();
-        if (ctx.IndexDimensions >= 1)
+        if (ctx.KernelIndexTypeName is not null)
+            callArgs.Add("_m_kernelIndex");
+        else if (ctx.IndexDimensions >= 1)
             callArgs.Add("baseIndex");
         foreach (var param in parameters)
         {
@@ -70,17 +74,46 @@ sealed class CPULauncherEmitter : LauncherEmitter
         // simdWidth lanes per iteration with bounds masking for the last batch.
         // userExtent is the original number of data elements requested by the
         // user, which may be less than gridSize * groupSize.
+        //
+        // Grouped kernels that take a KernelIndex step one thread at a time:
+        // the vectorized kernel body treats KernelIndex fields as scalars
+        // broadcast to every lane, so stepping by simdWidth would skip
+        // simdWidth-1 of every simdWidth threads. We pay the full SIMD
+        // redundancy for correctness here; proper per-lane KernelIndex
+        // vectorization is a larger backend change.
+        var stepExpr = ctx.KernelIndexTypeName is not null
+            ? "1"
+            : "simdWidth";
+        var activeLanesExpr = ctx.KernelIndexTypeName is not null
+            ? "1"
+            : "(int)Math.Min(simdWidth, userExtent - _i)";
         ctx.WriteLine(
-            "for (long _i = 0; _i < userExtent; _i += simdWidth)");
+            $"for (long _i = 0; _i < userExtent; _i += {stepExpr})");
         ctx.OpenScope();
         ctx.WriteLine("int baseIndex = (int)_i;");
         ctx.WriteLine(
-            "int activeLanes = (int)Math.Min(simdWidth, userExtent - _i);");
+            $"int activeLanes = {activeLanesExpr};");
 
         // Clear pooled buffers, re-init lane indices, and set active mask
         if (pool != null)
         {
             ctx.WriteLine("pool.Clear(baseIndex, activeLanes);");
+            ctx.WriteLine("");
+        }
+
+        // Construct a KernelIndex struct from (baseIndex, groupSize) for
+        // grouped launches whose entry point takes a KernelIndex. Fields
+        // are laid out as { long Field0 = GridIndex, int Field1 = GroupIndex }
+        // — matching the frontend's flat struct layout for
+        // ILGPU.KernelIndex.
+        if (ctx.KernelIndexTypeName is not null)
+        {
+            var kidxType = ctx.KernelIndexTypeName;
+            ctx.WriteLine($"var _m_kernelIndex = default({kidxType});");
+            ctx.WriteLine(
+                "_m_kernelIndex.Field0 = (long)(baseIndex / groupSize);");
+            ctx.WriteLine(
+                "_m_kernelIndex.Field1 = baseIndex % groupSize;");
             ctx.WriteLine("");
         }
 

@@ -689,6 +689,13 @@ sealed class CompiledKernelGenerator : DisposeBase
 
         var ctx = CreateEmissionContext();
         ctx.IndexDimensions = indexDims;
+
+        // Grouped kernels that take a KernelIndex as their first parameter
+        // need the launcher to construct a per-thread KernelIndex struct
+        // before calling KernelEntryPoint. The backend surfaces the
+        // post-backend-transform struct name via EntryPointIndexTypeName.
+        ctx.KernelIndexTypeName = _compiled.EntryPointIndexTypeName;
+
         _launcherEmitter.EmitLaunchBody(ctx, parameters);
 
         CloseScope();

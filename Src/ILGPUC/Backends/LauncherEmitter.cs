@@ -202,6 +202,15 @@ sealed class LauncherEmissionContext
     /// first parameter type.
     /// </summary>
     public int IndexDimensions { get; set; } = 1;
+
+    /// <summary>
+    /// The post-backend-transform name of the <c>KernelIndex</c> struct type
+    /// when the entry point's first parameter is <c>KernelIndex</c>
+    /// (grouped launch with GridIndex/GroupIndex access). <see langword="null"/>
+    /// otherwise. The CPU launcher uses this to construct a per-thread
+    /// <c>KernelIndex</c> struct before calling KernelEntryPoint.
+    /// </summary>
+    public string? KernelIndexTypeName { get; set; }
 }
 
 /// <summary>
