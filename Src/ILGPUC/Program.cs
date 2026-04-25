@@ -34,6 +34,7 @@ sealed partial class Program
         var root = new RootCommand("ILGPUC command line compiler");
         var _ = new CompileCommand(root);
         var __ = new BuildCommand(root);
+        var ___ = new ProbeServicesCommand(root);
 
         // Parse and invoke with cancellation support
         var parseResult = root.Parse(args);
