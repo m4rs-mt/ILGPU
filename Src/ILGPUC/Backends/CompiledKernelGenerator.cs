@@ -514,6 +514,21 @@ sealed class CompiledKernelGenerator : DisposeBase
             : GetPrimitiveTypeName(viewType.ElementType);
 
     /// <summary>
+    /// Returns <see langword="true"/> when <paramref name="typeName"/> is a
+    /// C# primitive-keyword name (one that supports an explicit
+    /// <c>(target)source</c> cast between any pair). Used by the launcher
+    /// emitter to decide whether a user-facing parameter type can be
+    /// bridged to its IR-flattened type with a plain cast or needs an
+    /// <c>Unsafe.BitCast</c> bitwise reinterpret.
+    /// </summary>
+    private static bool IsPrimitiveCSharpTypeName(string? typeName) =>
+        typeName is "bool" or "byte" or "sbyte"
+            or "short" or "ushort" or "char"
+            or "int" or "uint" or "nint" or "nuint"
+            or "long" or "ulong"
+            or "Half" or "float" or "double";
+
+    /// <summary>
     /// Returns the generated user-facing struct name for a structure type.
     /// </summary>
     private static string GetStructUserTypeName(StructureType st) =>
@@ -773,9 +788,31 @@ sealed class CompiledKernelGenerator : DisposeBase
                     // signedness mismatches like sbyte → byte (IR maps both
                     // Int8 / UInt8 to "byte"). The cast is identity for
                     // matched types.
-                    WriteLine(
-                        $"args.{param.Name} = " +
-                        $"({param.MarshaledTypeName}){param.Name};");
+                    //
+                    // User struct flattened to a primitive by IR transforms
+                    // (e.g. ClosureElimination collapses a single-long
+                    // closure into a long) needs a bitwise reinterpret —
+                    // a plain `(long)closure` cast does not compile because
+                    // there is no user-defined conversion. Detect this by
+                    // checking whether the launch type name is a C#
+                    // primitive keyword; if not, the user-facing parameter
+                    // is still a struct and BitCast is the right bridge.
+                    var userIsPrimitive = IsPrimitiveCSharpTypeName(
+                        param.LaunchTypeName);
+                    if (!userIsPrimitive
+                        && param.LaunchTypeName != param.MarshaledTypeName)
+                    {
+                        WriteLine(
+                            $"args.{param.Name} = Unsafe.BitCast<" +
+                            $"{param.LaunchTypeName}, " +
+                            $"{param.MarshaledTypeName}>({param.Name});");
+                    }
+                    else
+                    {
+                        WriteLine(
+                            $"args.{param.Name} = " +
+                            $"({param.MarshaledTypeName}){param.Name};");
+                    }
                     break;
             }
         }
