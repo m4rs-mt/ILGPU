@@ -1,5 +1,27 @@
 # Sample Compatibility — Findings and Fix Plan
 
+## Progress (this branch, post-plan)
+
+| Bug | Family | Source-emit | --compile | Status |
+|---|---|---|---|---|
+| AdvancedViews | A.1 (launcher view-of-struct) | ✅ `5deeb4d2d` | ⚠ now fails on a separate atomicAdd recast (family B) | C# launcher fixed |
+| GenericKernel | A.2 (launcher closure) | ✅ `e1a4d00ab` | ✅ `e1a4d00ab` | Fully fixed |
+| AdvancedAtomics | B.1 (Float64 atomic) | ✅ already passed | ❌ pending | Open |
+| InterleaveFields | B.2 (cross-type struct assign) | ✅ already passed | ❌ pending | Open |
+
+Sample-build status across all backends after these two fixes:
+
+| Backend | Source emit | --compile (live Docker) |
+|---|---|---|
+| CPU | 34/34 | n/a |
+| Metal | 33/33 (excludes AdvancedAtomics — Float64-atomic Metal limit) | n/a (no remote Metal builder needed) |
+| CUDA | 34/34 ↑ | 31/34 ↑ |
+| ROCm | 34/34 ↑ | 31/34 ↑ |
+| OpenCL | 34/34 ↑ | 31/34 ↑ |
+
+Family A is closed; family B (two bugs in IR→native-source emitters) is the
+remaining gap before the advisory CI tier can be promoted to required.
+
 ## Context
 
 The `build-samples` CI job historically built the ILGPU sample suite only
