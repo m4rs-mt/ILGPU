@@ -614,10 +614,12 @@ jobs:
       - name: Build samples with --compile
         env:
           ILGPU_BACKEND: Metal
-          # AdvancedAtomics uses Float64 atomics — a permanent Metal
-          # limitation, not a codegen regression. Bump this list when
-          # other samples acquire Metal-incompatible features.
-          EXCLUDES: "AdvancedAtomics"
+          # Samples that depend on Float64 — a permanent Metal limitation
+          # (Metal Shading Language has no `double`), not a codegen
+          # regression. AdvancedAtomics also needs Float64 atomics. Bump
+          # this list when other samples acquire Metal-incompatible
+          # features.
+          EXCLUDES: "AdvancedAtomics AlgorithmsMath FixedSizeBuffers SimpleMath WarpShuffle"
         run: |
           set -e
           fail=0
