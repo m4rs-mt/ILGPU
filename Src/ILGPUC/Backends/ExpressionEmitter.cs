@@ -355,20 +355,41 @@ sealed class ExpressionEmitter(GenerationContext context, TypeEmitter typeEmitte
     private Emitted EmitPointerCast(PointerCast cast)
     {
         var source = Emit(cast.Source);
-        // Determine address space from source chain, not target
+
+        // CPU emits C# (not C); raw pointer casts have no equivalent syntax.
+        // Element-type changes are handled via Unsafe.As / view-bitcast paths
+        // in CPUExpressionEmitter, so the base emitter passes through.
+        if (context.LanguageConfig is CPU.CPULanguageConfiguration)
+            return source;
+
         var addrSpace = GetEffectiveAddressSpace(cast.Source);
         var addrKeyword = context.LanguageConfig.GetAddressSpaceKeyword(addrSpace);
 
-        // CPU: no explicit pointer casts in C#
-        if (string.IsNullOrEmpty(addrKeyword))
-            return source;
-
-        // Build cast type using source address space + target element type
+        // Element-type aware cast handling. CUDA returns "" for Global (no
+        // address-space keyword on pointers), but a pointer-element-type
+        // change still needs a C-cast — e.g. `(long long*)double_ptr` for
+        // bit-cast atomics. Skip the cast only when nothing differs.
         var targetPtr = cast.Type as PointerType;
+        var sourcePtr = cast.Source.Type as PointerType;
         var elemTypeName = targetPtr is not null
             ? typeEmitter.GetTypeName(targetPtr.ElementType)
             : typeEmitter.GetTypeName(cast.Type);
-        var castType = $"{addrKeyword} {elemTypeName}*";
+        var sourceElemTypeName = sourcePtr is not null
+            ? typeEmitter.GetTypeName(sourcePtr.ElementType)
+            : null;
+
+        var hasAddrSpace = !string.IsNullOrEmpty(addrKeyword);
+        var elemDiffers = sourceElemTypeName is null
+            || !string.Equals(sourceElemTypeName, elemTypeName, StringComparison.Ordinal);
+
+        // No address-space keyword and same element type: pass through.
+        if (!hasAddrSpace && !elemDiffers)
+            return source;
+
+        // Build cast type using source address space + target element type
+        var castType = hasAddrSpace
+            ? $"{addrKeyword} {elemTypeName}*"
+            : $"{elemTypeName}*";
 
         return new Emitted(
             $"({castType}){Parenthesize(source, Prec.Unary)}",
