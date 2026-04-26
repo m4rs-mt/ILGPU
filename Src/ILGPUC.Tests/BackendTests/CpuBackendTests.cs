@@ -22,15 +22,18 @@ public sealed class CpuBackendTests : BackendTestBase
 {
     public CpuBackendTests(ITestOutputHelper output) : base(output, BackendType.CPU) { }
 
-    [Theory]
+    [SkippableTheory]
     [MemberData(nameof(KernelRegistry.AllKernelNames), MemberType = typeof(KernelRegistry))]
     public void SourceGeneration(string kernelName) =>
-        AssertSourceGenerationSucceeds(KernelRegistry.Resolve(kernelName));
+        AssertSourceGenerationSucceeds(
+            KernelRegistry.Resolve(kernelName),
+            required: KernelRegistry.GetRequiredCapabilities(kernelName));
 
-    [Theory]
+    [SkippableTheory]
     [MemberData(nameof(KernelRegistry.AllKernelNames), MemberType = typeof(KernelRegistry))]
     public void SourceGeneration_Release(string kernelName) =>
         AssertSourceGenerationSucceeds(
             KernelRegistry.Resolve(kernelName),
-            new CompilationProperties().WithMode(CompilationMode.Release));
+            new CompilationProperties().WithMode(CompilationMode.Release),
+            required: KernelRegistry.GetRequiredCapabilities(kernelName));
 }
