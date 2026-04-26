@@ -228,6 +228,36 @@ sealed class MetalIntrinsicEmitter : IntrinsicEmitter
 
     #endregion
 
+    #region Bit-Reinterpret Casts
+
+    /// <inheritdoc/>
+    public override string EmitFloatAsInt(
+        string arg,
+        BasicValueType sourceType,
+        BasicValueType targetType) =>
+        sourceType switch
+        {
+            BasicValueType.Float32 => $"as_type<int>({arg})",
+            BasicValueType.Float64 => $"as_type<long>({arg})",
+            _ => throw new NotSupportedException(
+                $"Float-as-int reinterpret not supported for source {sourceType}")
+        };
+
+    /// <inheritdoc/>
+    public override string EmitIntAsFloat(
+        string arg,
+        BasicValueType sourceType,
+        BasicValueType targetType) =>
+        targetType switch
+        {
+            BasicValueType.Float32 => $"as_type<float>({arg})",
+            BasicValueType.Float64 => $"as_type<double>({arg})",
+            _ => throw new NotSupportedException(
+                $"Int-as-float reinterpret not supported for target {targetType}")
+        };
+
+    #endregion
+
     #region Synchronization
 
     /// <inheritdoc/>

@@ -207,6 +207,18 @@ sealed class ExpressionEmitter(GenerationContext context, TypeEmitter typeEmitte
             TernaryArithmeticValue ternary => EmitTernaryArithmetic(ternary),
             CompareValue compare => EmitCompare(compare),
             ConvertValue convert => EmitConvert(convert),
+            FloatAsIntCast f2i => new Emitted(
+                IntrinsicEmitter.EmitFloatAsInt(
+                    Emit(f2i.Source).Text,
+                    f2i.Source.Type.BasicValueType,
+                    f2i.Type.BasicValueType),
+                Prec.Atom),
+            IntAsFloatCast i2f => new Emitted(
+                IntrinsicEmitter.EmitIntAsFloat(
+                    Emit(i2f.Source).Text,
+                    i2f.Source.Type.BasicValueType,
+                    i2f.Type.BasicValueType),
+                Prec.Atom),
             AddressSpaceCast cast => EmitAddressSpaceCast(cast),
             ViewCast viewCast => EmitViewCast(viewCast),
             PointerCast ptrCast => EmitPointerCast(ptrCast),
