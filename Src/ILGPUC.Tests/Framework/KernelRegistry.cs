@@ -41,6 +41,9 @@ static class KernelRegistry
         ["UnaryIntOpKernels"] = IntegerTypeArgs,
         ["CompareIntKernels"] = IntegerTypeArgs,
         ["CompareFloatKernels"] = FloatTypeArgs,
+        // Family A.2 — struct-closure marshalling (TClosure, T) tuple.
+        ["GenericKernelKernels"] =
+            [[typeof(AddOffsetClosure), typeof(long)]],
     };
 
     private static readonly Dictionary<string, BackendCapability> s_capabilities = [];
