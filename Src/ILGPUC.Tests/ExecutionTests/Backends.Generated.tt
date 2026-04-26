@@ -55,6 +55,7 @@ var testClasses = new[]
     "GroupScanRuntimeExecutionTests",
     "WarpRadixSortRuntimeExecutionTests",
     "GroupRadixSortRuntimeExecutionTests",
+    "AdvancedViewsExecutionTests",
 };
 
 var backends = new[] { "CPU", "Metal", "Cuda", "ROCm", "OpenCL" };
