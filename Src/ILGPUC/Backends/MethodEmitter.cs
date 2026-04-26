@@ -685,6 +685,25 @@ sealed class MethodEmitter(
         var header = doWhileLoop.Loop.Headers[0];
         EmitLoopPhiInitializers(header, doWhileLoop.Loop);
 
+        // Self-loop: condition references SSA values defined in the body that
+        // the back-edge phi update would overwrite. Capture the condition into
+        // a temporary BEFORE updating the phis (mirrors EmitSelfLoopAsDoWhile).
+        if (doWhileLoop.IsSelfLoop)
+        {
+            var condVar = "_loopCond";
+            context.WriteLine($"bool {condVar};");
+            context.WriteLine("do");
+            context.OpenScope();
+            EmitControlFlow(doWhileLoop.Body, placement);
+            var capturedCond = expressionEmitter.EmitExpression(
+                doWhileLoop.Condition);
+            context.WriteLine($"{condVar} = {capturedCond};");
+            EmitLoopBackEdgePhis(header, doWhileLoop.Loop);
+            context.CloseScope();
+            context.WriteLine($"while ({condVar});");
+            return;
+        }
+
         context.WriteLine("do");
         context.OpenScope();
         EmitControlFlow(doWhileLoop.Body, placement);
