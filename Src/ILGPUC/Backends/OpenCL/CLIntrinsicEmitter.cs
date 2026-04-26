@@ -181,6 +181,7 @@ sealed class CLIntrinsicEmitter(CLVendor vendor) : IntrinsicEmitter
         type switch
         {
             ArithmeticBasicValueType.Int32 => $"atomic_cmpxchg({ptr}, {compare}, {value})",
+            ArithmeticBasicValueType.Int64 => $"atom_cmpxchg({ptr}, {compare}, {value})", // 64-bit extension
             _ => throw new NotSupportedException(
                 $"Atomic CAS not supported for type {type} in OpenCL")
         };
