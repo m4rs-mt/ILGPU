@@ -225,6 +225,36 @@ abstract class IntrinsicEmitter
 
     #endregion
 
+    #region Bit-Reinterpret Casts
+
+    /// <summary>
+    /// Emits a bit-reinterpret cast from a float-typed expression to an
+    /// integer-typed expression of the same width (e.g. CUDA
+    /// <c>__double_as_longlong</c>, OpenCL <c>as_long</c>).
+    /// </summary>
+    /// <param name="arg">The source expression.</param>
+    /// <param name="sourceType">The source basic value type (Float16/32/64).</param>
+    /// <param name="targetType">The target basic value type (Int16/32/64).</param>
+    public abstract string EmitFloatAsInt(
+        string arg,
+        BasicValueType sourceType,
+        BasicValueType targetType);
+
+    /// <summary>
+    /// Emits a bit-reinterpret cast from an integer-typed expression to a
+    /// float-typed expression of the same width (e.g. CUDA
+    /// <c>__longlong_as_double</c>, OpenCL <c>as_double</c>).
+    /// </summary>
+    /// <param name="arg">The source expression.</param>
+    /// <param name="sourceType">The source basic value type (Int16/32/64).</param>
+    /// <param name="targetType">The target basic value type (Float16/32/64).</param>
+    public abstract string EmitIntAsFloat(
+        string arg,
+        BasicValueType sourceType,
+        BasicValueType targetType);
+
+    #endregion
+
     #region Synchronization
 
     /// <summary>

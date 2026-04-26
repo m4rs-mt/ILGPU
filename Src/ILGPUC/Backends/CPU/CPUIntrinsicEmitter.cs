@@ -199,6 +199,33 @@ sealed class CPUIntrinsicEmitter(int? vectorWidth) : IntrinsicEmitter
 
     #endregion
 
+    #region Bit-Reinterpret Casts
+
+    // The CPU backend handles FloatAsIntCast / IntAsFloatCast via
+    // CPUExpressionEmitter.EmitFloatAsIntCast / EmitIntAsFloatCast and never
+    // routes through the shared ExpressionEmitter dispatch, so these are
+    // unreachable. Kept abstract-conforming with a clear failure mode.
+
+    /// <inheritdoc/>
+    public override string EmitFloatAsInt(
+        string arg,
+        BasicValueType sourceType,
+        BasicValueType targetType) =>
+        throw new NotSupportedException(
+            "CPU backend uses CPUExpressionEmitter.EmitFloatAsIntCast directly; " +
+            "this path should not be reached.");
+
+    /// <inheritdoc/>
+    public override string EmitIntAsFloat(
+        string arg,
+        BasicValueType sourceType,
+        BasicValueType targetType) =>
+        throw new NotSupportedException(
+            "CPU backend uses CPUExpressionEmitter.EmitIntAsFloatCast directly; " +
+            "this path should not be reached.");
+
+    #endregion
+
     #region Synchronization
 
     /// <inheritdoc/>
