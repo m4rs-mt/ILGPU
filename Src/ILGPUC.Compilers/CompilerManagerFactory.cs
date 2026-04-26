@@ -73,8 +73,8 @@ public static class CompilerManagerFactory
         [CompilationTarget.OpenCLAmd] = "ILGPU_OPENCL_SERVICE_URL",
     };
 
-    private static readonly ConcurrentDictionary<string, RemoteCompilerManager> s_remoteManagers
-        = new();
+    private static readonly ConcurrentDictionary<string, RemoteCompilerManager>
+        s_remoteManagers = new();
 
     private static readonly Lazy<CompilerManager> s_localManager =
         new(() => new CompilerManager());
@@ -82,8 +82,8 @@ public static class CompilerManagerFactory
     // Per-target cache of the resolved manager for the no-explicit-URI path.
     // Each target's probe runs at most once per process; the chosen manager
     // is reused thereafter.
-    private static readonly ConcurrentDictionary<CompilationTarget, Lazy<Task<ICompilerManager>>>
-        s_resolved = new();
+    private static readonly ConcurrentDictionary<
+        CompilationTarget, Lazy<Task<ICompilerManager>>> s_resolved = new();
 
     /// <summary>
     /// Returns a single <see cref="ICompilerManager"/> for the given target,

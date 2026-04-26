@@ -17,7 +17,8 @@ using ILGPUC.Tests.Framework;
 namespace ILGPUC.Tests.Kernels;
 
 /// <summary>
-/// AoS-of-SoA point with two <see cref="System.Runtime.CompilerServices.InlineArrayAttribute"/>-backed
+/// AoS-of-SoA point with two
+/// <see cref="System.Runtime.CompilerServices.InlineArrayAttribute"/>-backed
 /// channels. Mirrors the manually-interleaved structure from
 /// <c>Samples/InterleaveFields</c>.
 /// </summary>
@@ -50,7 +51,8 @@ static class InterleaveFieldsKernels
 {
     [KnownFailingOn(
         BackendType.Cuda, BackendType.ROCm, BackendType.OpenCL,
-        Reason = "B.2 cross-type struct assignment — see Src/plans/fix_samples.md family B.2")]
+        Reason =
+            "B.2 cross-type struct assignment — see Src/plans/fix_samples.md family B.2")]
     public static void InterleaveFieldsKernel(
         Index1D index,
         ArrayView1D<InterleavedPoint4, Stride1D.Dense> dataView)

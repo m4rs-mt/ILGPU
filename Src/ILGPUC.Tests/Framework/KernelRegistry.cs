@@ -47,7 +47,8 @@ static class KernelRegistry
     };
 
     private static readonly Dictionary<string, BackendCapability> s_capabilities = [];
-    private static readonly Dictionary<string, KnownFailingOnAttribute> s_knownFailing = [];
+    private static readonly Dictionary<string, KnownFailingOnAttribute>
+        s_knownFailing = [];
     private static readonly Dictionary<string, MethodInfo> s_kernels = Discover();
 
     /// <summary>
