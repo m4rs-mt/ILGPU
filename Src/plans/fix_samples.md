@@ -4,10 +4,78 @@
 
 | Bug | Family | Source-emit | --compile | Status |
 |---|---|---|---|---|
-| AdvancedViews | A.1 (launcher view-of-struct) | ✅ `5deeb4d2d` | ⚠ now fails on a separate atomicAdd recast (family B) | C# launcher fixed |
+| AdvancedViews | A.1 (launcher view-of-struct) | ✅ `5deeb4d2d` | ✅ unblocked by B.1 fix | Fully fixed |
 | GenericKernel | A.2 (launcher closure) | ✅ `e1a4d00ab` | ✅ `e1a4d00ab` | Fully fixed |
-| AdvancedAtomics | B.1 (Float64 atomic) | ✅ already passed | ❌ pending | Open |
+| AdvancedAtomics | B.1 (Float64 atomic) | ✅ already passed | ✅ CUDA + ROCm verified | Fully fixed |
 | InterleaveFields | B.2 (cross-type struct assign) | ✅ already passed | ❌ pending | Open |
+
+### B.1 fix detail — three distinct defects in the C-like emitter pipeline
+
+After dumping the AfterBackendTransforms IR for `AddDoubleAtomicKernel`, the
+IR was confirmed correct: `LowerCustomAtomic` produces a clean self-loop
+with all bitcasts and pointer casts in place. The emitter mishandled it on
+three independent axes, each fixed in this round:
+
+1. **`ControlFlowReconstructor.ClassifyLoop` mis-classified self-loops as
+   `WhileLoop`**. `EmitWhileLoop` evaluates the condition before the body
+   (`while (cond) { body }`), but the self-loop condition references SSA
+   values defined inside the body (the operation result). Fix: route
+   self-loops to `DoWhileLoop` with a new `IsSelfLoop` flag and update
+   `EmitDoWhileLoop` to capture the condition into a `bool _loopCond`
+   temporary BEFORE the back-edge phi update (mirrors the pre-existing
+   `EmitSelfLoopAsDoWhile` for `ForLoop` self-loops).
+2. **`ExpressionEmitter.EmitDirect` dispatch table missed `BitCast`
+   subclasses (`FloatAsIntCast`, `IntAsFloatCast`)**. Both are
+   `PureValue → CastValue → BitCast`, but only `ConvertValue` (a sibling
+   under `CastValue`) had a dispatch arm. Without an arm, they fell through
+   to the catch-all `_ => GetValueName(value)`, so the cast assignment
+   became `tmp_5 = tmp_5;` and got filtered, leaving `tmp_5` undefined at
+   every reference. Fix: add explicit dispatch arms that route through new
+   `IntrinsicEmitter.EmitFloatAsInt` / `EmitIntAsFloat` abstract methods,
+   implemented per-backend:
+   - CUDA / ROCm: `__float_as_int`, `__double_as_longlong`,
+     `__int_as_float`, `__longlong_as_double`
+   - OpenCL: `as_int` / `as_long` / `as_float` / `as_double`
+   - Metal: `as_type<int>` / `as_type<long>` / `as_type<float>` /
+     `as_type<double>`
+   - CPU: throws — CPU has its own `CPUExpressionEmitter` path with
+     dedicated `EmitFloatAsIntCast` / `EmitIntAsFloatCast` methods that
+     bypass the shared `IntrinsicEmitter` entirely.
+3. **`ExpressionEmitter.EmitPointerCast` skipped emitting a C-cast when the
+   address-space keyword was empty**. CUDA returns `""` for
+   `MemoryAddressSpace.Global` (pointers to global memory have no qualifier
+   in CUDA C), so a pointer cast that changes only the element type
+   (`double*` → `long long*`, used by `LowerCustomAtomic` for float
+   atomics) collapsed to a pass-through, losing the type information. Fix:
+   emit the C-cast whenever the source and target element types differ,
+   independent of the address-space keyword.
+
+### Files touched (B.1)
+
+- `Src/ILGPUC/Backends/ControlFlowReconstructor.cs` — `DoWhileLoop` gains
+  `IsSelfLoop`, `ClassifyLoop` routes self-loops to `DoWhileLoop`.
+- `Src/ILGPUC/Backends/MethodEmitter.cs` — `EmitDoWhileLoop` self-loop
+  branch.
+- `Src/ILGPUC/Backends/ExpressionEmitter.cs` — `FloatAsIntCast` /
+  `IntAsFloatCast` dispatch arms, element-type-aware `EmitPointerCast`.
+- `Src/ILGPUC/Backends/IntrinsicEmitter.cs` — new abstract `EmitFloatAsInt`
+  / `EmitIntAsFloat` methods.
+- `Src/ILGPUC/Backends/{Cuda,ROCm,OpenCL,Metal}/{Backend}IntrinsicEmitter.cs`
+  — implementations.
+- `Src/ILGPUC/Backends/CPU/CPUIntrinsicEmitter.cs` — throwing stubs (CPU
+  bypasses this path entirely; see comment in file).
+
+### Verification (B.1)
+
+- `dotnet build Samples/AdvancedAtomics -c Debug -p:ILGPUBackend=Cuda
+  -p:ILGPUCompile=true -p:ILGPUCompilerServices='http://localhost:5001'`
+  → green; CUDA cubin embedded as `KernelBinary`.
+- `dotnet build Samples/AdvancedAtomics -c Debug -p:ILGPUBackend=ROCm
+  -p:ILGPUCompile=true -p:ILGPUCompilerServices='http://localhost:5002'`
+  → green; ROCm GCN binary embedded.
+- OpenCL still fails on `cl_khr_int64_base_atomics`: `Atomic CAS not
+  supported for type Int64 in OpenCL`. Pre-existing limitation, separate
+  ticket.
 
 Sample-build status across all backends after these two fixes:
 
