@@ -24,17 +24,20 @@ public sealed class ROCmBackendTests : BackendTestBase
     public ROCmBackendTests(ITestOutputHelper output)
         : base(output, BackendType.ROCm) { }
 
-    [Theory]
+    [SkippableTheory]
     [MemberData(nameof(KernelRegistry.AllKernelNames), MemberType = typeof(KernelRegistry))]
     public void SourceGeneration(string kernelName) =>
-        AssertSourceGenerationSucceeds(KernelRegistry.Resolve(kernelName));
+        AssertSourceGenerationSucceeds(
+            KernelRegistry.Resolve(kernelName),
+            required: KernelRegistry.GetRequiredCapabilities(kernelName));
 
-    [Theory]
+    [SkippableTheory]
     [MemberData(nameof(KernelRegistry.AllKernelNames), MemberType = typeof(KernelRegistry))]
     public void SourceGeneration_Release(string kernelName) =>
         AssertSourceGenerationSucceeds(
             KernelRegistry.Resolve(kernelName),
-            new CompilationProperties().WithMode(CompilationMode.Release));
+            new CompilationProperties().WithMode(CompilationMode.Release),
+            required: KernelRegistry.GetRequiredCapabilities(kernelName));
 
     // Native compilation — runs all kernels through hipcc.
     // Skips if hipcc is unavailable or the kernel requires unsupported capabilities.
@@ -43,5 +46,6 @@ public sealed class ROCmBackendTests : BackendTestBase
     public async Task NativeCompilation(string kernelName) =>
         await AssertNativeCompilationSucceeds(
             KernelRegistry.Resolve(kernelName),
-            required: KernelRegistry.GetRequiredCapabilities(kernelName));
+            required: KernelRegistry.GetRequiredCapabilities(kernelName),
+            knownFailing: KernelRegistry.GetKnownFailing(kernelName));
 }

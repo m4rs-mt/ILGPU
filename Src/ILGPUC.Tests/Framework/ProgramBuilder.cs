@@ -355,7 +355,7 @@ sealed class ProgramBuilder : DisposeBase
             && kernel.KernelMethod is IMethodSymbol { IsGenericMethod: true } sym)
         {
             var typeArgs = sym.TypeArguments
-                .Select(ta => ResolveTypeFromSymbol(ta))
+                .Select(ta => ResolveTypeFromSymbol(ta, assembly))
                 .ToArray();
             method = method.MakeGenericMethod(typeArgs);
         }
@@ -365,10 +365,13 @@ sealed class ProgramBuilder : DisposeBase
 
     /// <summary>
     /// Resolves a CLR <see cref="Type"/> from a Roslyn type symbol,
-    /// handling C# keyword aliases (int, long, float, etc.).
+    /// handling C# keyword aliases (int, long, float, etc.) and falling back
+    /// to a name lookup against the test program's loaded assembly for
+    /// user-defined struct/closure types.
     /// </summary>
     private static Type ResolveTypeFromSymbol(
-        RoslynSymbols.ITypeSymbol typeSymbol)
+        RoslynSymbols.ITypeSymbol typeSymbol,
+        Assembly assembly)
     {
         // Handle special types (C# keywords) directly
         if (typeSymbol.SpecialType != RoslynSymbols.SpecialType.None)
@@ -390,11 +393,17 @@ sealed class ProgramBuilder : DisposeBase
             };
         }
 
-        // Try CLR fully-qualified name
         var clrName = typeSymbol.ToDisplayString(
             SymbolDisplayFormat.FullyQualifiedFormat)
             .Replace("global::", "");
-        return Type.GetType(clrName) ?? typeof(int);
+
+        // Try the test program's assembly first (custom struct closures
+        // like AddOffsetClosure), then any loaded assembly via Type.GetType.
+        var simpleName = typeSymbol.Name;
+        return assembly.GetTypes()
+                .FirstOrDefault(t => t.FullName == clrName || t.Name == simpleName)
+            ?? Type.GetType(clrName)
+            ?? typeof(int);
     }
 
     private CompiledKernelGenerationResult GenerateWrapper(

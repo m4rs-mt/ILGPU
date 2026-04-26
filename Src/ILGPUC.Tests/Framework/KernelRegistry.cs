@@ -24,14 +24,18 @@ namespace ILGPUC.Tests.Framework;
 /// </summary>
 static class KernelRegistry
 {
-    private static readonly Type[] IntegerTypeArgs = [typeof(int), typeof(long)];
-    private static readonly Type[] FloatTypeArgs = [typeof(float), typeof(double)];
+    private static readonly Type[][] IntegerTypeArgs =
+        [[typeof(int)], [typeof(long)]];
+    private static readonly Type[][] FloatTypeArgs =
+        [[typeof(float)], [typeof(double)]];
 
     /// <summary>
-    /// Maps declaring class names to the type arguments used for generic expansion.
-    /// Classes not listed here but containing generic methods will be skipped.
+    /// Maps declaring class names to the type-argument tuples used for generic
+    /// expansion. Each inner <c>Type[]</c> is one full generic-instantiation
+    /// (its length must match the kernel's generic-arity). Classes not listed
+    /// here but containing generic methods will be skipped.
     /// </summary>
-    private static readonly Dictionary<string, Type[]> GenericExpansion = new()
+    private static readonly Dictionary<string, Type[][]> GenericExpansion = new()
     {
         ["BinaryIntOpKernels"] = IntegerTypeArgs,
         ["UnaryIntOpKernels"] = IntegerTypeArgs,
@@ -40,6 +44,7 @@ static class KernelRegistry
     };
 
     private static readonly Dictionary<string, BackendCapability> s_capabilities = [];
+    private static readonly Dictionary<string, KnownFailingOnAttribute> s_knownFailing = [];
     private static readonly Dictionary<string, MethodInfo> s_kernels = Discover();
 
     /// <summary>
@@ -63,6 +68,15 @@ static class KernelRegistry
         s_capabilities.TryGetValue(name, out var caps)
             ? caps
             : BackendCapability.None;
+
+    /// <summary>
+    /// Returns the <see cref="KnownFailingOnAttribute"/> annotation for the
+    /// given kernel, or <c>null</c> if the kernel has no annotation. Used
+    /// by backend-test theories to skip per-kernel-per-backend known
+    /// failures with a tracking message.
+    /// </summary>
+    public static KnownFailingOnAttribute? GetKnownFailing(string name) =>
+        s_knownFailing.TryGetValue(name, out var attr) ? attr : null;
 
     /// <summary>
     /// Total number of discovered kernels.
@@ -95,6 +109,10 @@ static class KernelRegistry
                     var name = $"{type.Name}.{method.Name}";
                     results[name] = method;
                     s_capabilities[name] = InferCapabilities(method);
+                    var knownFailing = method
+                        .GetCustomAttribute<KnownFailingOnAttribute>();
+                    if (knownFailing is not null)
+                        s_knownFailing[name] = knownFailing;
                 }
             }
         }
@@ -107,17 +125,24 @@ static class KernelRegistry
         Type declaringType,
         MethodInfo genericMethod)
     {
-        if (!GenericExpansion.TryGetValue(declaringType.Name, out var typeArgs))
+        if (!GenericExpansion.TryGetValue(declaringType.Name, out var tuples))
             return;
 
-        foreach (var ta in typeArgs)
+        foreach (var taTuple in tuples)
         {
+            if (taTuple.Length != genericMethod.GetGenericArguments().Length)
+                continue;
             try
             {
-                var concrete = genericMethod.MakeGenericMethod(ta);
-                var name = $"{declaringType.Name}.{genericMethod.Name}<{ta.Name}>";
+                var concrete = genericMethod.MakeGenericMethod(taTuple);
+                var argList = string.Join(", ", taTuple.Select(t => t.Name));
+                var name = $"{declaringType.Name}.{genericMethod.Name}<{argList}>";
                 results[name] = concrete;
                 s_capabilities[name] = InferCapabilities(concrete);
+                var knownFailing = genericMethod
+                    .GetCustomAttribute<KnownFailingOnAttribute>();
+                if (knownFailing is not null)
+                    s_knownFailing[name] = knownFailing;
             }
             catch (ArgumentException)
             {
@@ -150,6 +175,18 @@ static class KernelRegistry
 
         // Check return type
         caps |= InferFromType(method.ReturnType);
+
+        // Honour explicit [RequiresCapability(...)] annotations for caps
+        // that aren't inferable from the signature (e.g. Float64Atomics).
+        // Walk back to the open generic definition so concrete instantiations
+        // produced by ExpandGeneric still see the attribute.
+        var declaringMethod = method.IsGenericMethod
+            ? method.GetGenericMethodDefinition()
+            : method;
+        var explicitCap = declaringMethod
+            .GetCustomAttribute<RequiresCapabilityAttribute>();
+        if (explicitCap is not null)
+            caps |= explicitCap.Capability;
 
         return caps;
     }
