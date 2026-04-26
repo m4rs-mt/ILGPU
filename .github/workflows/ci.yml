@@ -7,7 +7,7 @@ name: CI
 #
 #   ┌─ check-style-line-lengths ─┐                ┌─ build (Windows verification, matrix) ─────────────────────────────────────────────────┐
 #   ├─ check-style-line-endings  ┼─→ check-style ─┤                                                                                        │
-#   └─ check-style-copyright-h.  ┘                └─ build-test-binaries ─→ build-samples (CPU, Metal) ─→ test-cpu ─┬─ test-metal-compile  ─→ build-samples-metal  ─┐
+#   └─ check-style-copyright-h.  ┘                └─ build-test-binaries ─→ build-samples (CPU) ────────→ test-cpu ─┬─ test-metal-compile  ─→ build-samples-metal  ─┐
 #                                                                                                                   ├─ test-cuda-compile   ─→ build-samples-cuda   ─┤
 #   check-version (parallel) ───────────────────────────────────────────────────────────────────────────────────► │ ├─ test-rocm-compile   ─→ build-samples-rocm   ─┤
 #                                                                                                                   └─ test-opencl-compile ─→ build-samples-opencl ─┤
@@ -364,16 +364,16 @@ jobs:
   # on a change that the aggregator would fail anyway.
 
   # The cheap tier of sample-build validation: source-emit only, no native
-  # toolchain or service required. Runs CPU on Ubuntu and Metal on macOS so
-  # IR-to-source regressions across both code paths fail at sample-build
-  # time. CUDA / ROCm / OpenCL native-binary embedding is covered by the
-  # *thorough* tier below (build-samples-{cuda,rocm,opencl}), which docker-
-  # runs the same GHCR images as the test-{cuda,rocm,opencl}-compile jobs.
+  # toolchain or service required. Runs CPU on Ubuntu so an IR-to-source
+  # regression on the CPU code path fails at sample-build time before the
+  # 30-minute test-cpu run. Metal / CUDA / ROCm / OpenCL sample builds all
+  # live in the *thorough* tier below (build-samples-{metal,cuda,rocm,opencl}),
+  # which runs after test-cpu — keeping test-cpu off the macOS runner queue
+  # so the Cuda/ROCm/OpenCL fan-out is not blocked by macOS availability.
   #
-  # The `excludes` matrix entry lists samples that are *expected* to not
-  # compile for that backend because the sample exercises features the
-  # backend doesn't support (e.g. Float64 atomics on Metal). They build
-  # individually so a single excluded sample doesn't fail the whole job.
+  # Matrix structure is preserved for trivial future re-expansion if a second
+  # source-emit-only backend ever makes sense at this tier. The `excludes`
+  # field lists samples that are *expected* to not compile for that backend.
   build-samples:
     name: Build sample programs (${{ matrix.name }})
     if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule' || github.event_name == 'push' || github.event.pull_request.head.repo.id != github.event.pull_request.base.repo.id
@@ -386,13 +386,6 @@ jobs:
             backend: CPU
             os: ubuntu-latest
             excludes: ""
-          - name: Metal
-            backend: Metal
-            os: macos-latest
-            # AdvancedAtomics uses Float64 atomics — a permanent Metal
-            # limitation, not a codegen regression. Bump this list when
-            # other samples acquire Metal-incompatible features.
-            excludes: "AdvancedAtomics"
     runs-on: ${{ matrix.os }}
     timeout-minutes: 20
     steps:
