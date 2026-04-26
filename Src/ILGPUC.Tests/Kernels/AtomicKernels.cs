@@ -90,4 +90,29 @@ static class AtomicKernels
             (ref double target, double compare, double val) =>
                 Atomic.CompareExchange(ref target, compare, val));
     }
+
+    /// <summary>
+    /// Atomic on shared (threadgroup) memory. Mirrors the
+    /// <c>Samples/SharedMemory</c> pattern that surfaced the Metal
+    /// codegen bug where <c>atomic_*_explicit</c> hard-coded a
+    /// <c>(device atomic_int*)</c> cast — Metal rejects the cross
+    /// address-space cast from <c>threadgroup int *</c>.
+    /// </summary>
+    public static void AtomicMaxOnSharedMemoryKernel(
+        Index1D index,
+        ArrayView1D<int, Stride1D.Dense> source,
+        ArrayView1D<int, Stride1D.Dense> result)
+    {
+        var shared = Group.GetSharedMemory<int>(1);
+        if (Group.IsFirstThread)
+            shared[0] = 0;
+        Group.Barrier();
+
+        if (index < source.Length)
+            Atomic.Max(ref shared[0], source[index]);
+        Group.Barrier();
+
+        if (Group.IsFirstThread && index < result.Length)
+            result[index] = shared[0];
+    }
 }
