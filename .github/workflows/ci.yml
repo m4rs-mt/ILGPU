@@ -938,14 +938,13 @@ jobs:
 
   checks-completed:
     name: All required checks done
-    # NOTE: build-samples-{cuda,rocm,opencl,metal} run as advisory checks
-    # but are NOT listed here. They surface kernel-portability regressions
+    # NOTE: build-samples-{cuda,rocm,opencl} still run as advisory checks
+    # and are NOT listed here. They surface kernel-portability regressions
     # for the GPU backends but currently fail on pre-existing bugs (OpenCL
     # CLAPI mismatch, KernelIndex param wiring on CUDA/ROCm). Once those
     # land, add them to `needs:` and to the gpu_private check list below
-    # to harden CI. build-samples-metal is the cleanest candidate to
-    # promote first — it doesn't depend on GHCR-private images, so it can
-    # gate fork PRs too (use check_required, not check_gpu_private).
+    # to harden CI. build-samples-metal IS gated here — Metal doesn't share
+    # those open bugs, doesn't need GHCR auth, and runs on fork PRs.
     needs:
       - check-style
       - check-version
@@ -954,6 +953,7 @@ jobs:
       - build-samples
       - test-cpu
       - test-metal-compile
+      - build-samples-metal
       - test-cuda-compile
       - test-rocm-compile
       - test-opencl-compile
@@ -976,6 +976,7 @@ jobs:
           RESULT_BUILD_SAMPLES: ${{ needs.build-samples.result }}
           RESULT_TEST_CPU: ${{ needs.test-cpu.result }}
           RESULT_TEST_METAL: ${{ needs.test-metal-compile.result }}
+          RESULT_BUILD_SAMPLES_METAL: ${{ needs.build-samples-metal.result }}
           RESULT_TEST_CUDA: ${{ needs.test-cuda-compile.result }}
           RESULT_TEST_ROCM: ${{ needs.test-rocm-compile.result }}
           RESULT_TEST_OPENCL: ${{ needs.test-opencl-compile.result }}
@@ -1012,6 +1013,7 @@ jobs:
           check_required  build-samples        "$RESULT_BUILD_SAMPLES"
           check_required  test-cpu             "$RESULT_TEST_CPU"
           check_required  test-metal-compile   "$RESULT_TEST_METAL"
+          check_required  build-samples-metal  "$RESULT_BUILD_SAMPLES_METAL"
           check_gpu_private test-cuda-compile  "$RESULT_TEST_CUDA"
           check_gpu_private test-rocm-compile  "$RESULT_TEST_ROCM"
           check_gpu_private test-opencl-compile "$RESULT_TEST_OPENCL"
