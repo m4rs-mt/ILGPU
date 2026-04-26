@@ -11,6 +11,7 @@
 
 using ILGPU;
 using ILGPU.Runtime;
+using ILGPUC.Tests.Framework;
 
 namespace ILGPUC.Tests.Kernels;
 
@@ -49,5 +50,44 @@ static class AtomicKernels
         int value)
     {
         Atomic.Exchange(ref data[0], value);
+    }
+
+    /// <summary>
+    /// Built-in <see cref="Atomic.Add"/> for <c>double</c>. Family B.1
+    /// regression — exercises the Float64 atomic add path through the
+    /// emitter on every backend that supports Float64 atomics
+    /// (CPU + CUDA + ROCm; Metal/OpenCL skip via capability gate).
+    /// </summary>
+    [RequiresCapability(BackendCapability.Float64Atomics)]
+    public static void AtomicAddDoubleKernel(
+        Index1D index,
+        ArrayView1D<double, Stride1D.Dense> data,
+        double value)
+    {
+        Atomic.Add(ref data[0], value);
+    }
+
+    /// <summary>
+    /// Custom <c>double</c> atomic add via <see cref="Atomic.MakeAtomic"/>
+    /// with a delegate-driven CAS loop. Family B.1 regression — exercises
+    /// the three emitter defects fixed on <c>temp5</c>:
+    /// self-loop classification (<c>do/while</c> vs <c>while</c>),
+    /// <see cref="ILGPU.IR.Values.FloatAsIntCast"/> /
+    /// <see cref="ILGPU.IR.Values.IntAsFloatCast"/> dispatch arms in
+    /// <c>ExpressionEmitter</c>, and element-type-aware pointer-cast
+    /// emission.
+    /// </summary>
+    [RequiresCapability(BackendCapability.Float64Atomics)]
+    public static void AtomicMakeAtomicAddDoubleKernel(
+        Index1D index,
+        ArrayView1D<double, Stride1D.Dense> data,
+        double value)
+    {
+        Atomic.MakeAtomic(
+            ref data[0],
+            value,
+            (current, val) => current + val,
+            (ref double target, double compare, double val) =>
+                Atomic.CompareExchange(ref target, compare, val));
     }
 }
