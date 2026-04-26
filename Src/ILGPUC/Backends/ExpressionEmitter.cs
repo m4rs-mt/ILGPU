@@ -1214,23 +1214,24 @@ sealed class ExpressionEmitter(GenerationContext context, TypeEmitter typeEmitte
         var ptr = Emit(atomic.Target).Text;
         var value = Emit(atomic.Value).Text;
         var type = atomic.ArithmeticBasicValueType;
+        var addressSpace = atomic.TargetAddressSpace;
 
         var text = atomic.Kind switch
         {
             GenericAtomicKind.Add =>
-                IntrinsicEmitter.EmitAtomicAdd(ptr, value, type),
+                IntrinsicEmitter.EmitAtomicAdd(ptr, value, type, addressSpace),
             GenericAtomicKind.Exchange =>
-                IntrinsicEmitter.EmitAtomicExchange(ptr, value, type),
+                IntrinsicEmitter.EmitAtomicExchange(ptr, value, type, addressSpace),
             GenericAtomicKind.Min =>
-                IntrinsicEmitter.EmitAtomicMin(ptr, value, type),
+                IntrinsicEmitter.EmitAtomicMin(ptr, value, type, addressSpace),
             GenericAtomicKind.Max =>
-                IntrinsicEmitter.EmitAtomicMax(ptr, value, type),
+                IntrinsicEmitter.EmitAtomicMax(ptr, value, type, addressSpace),
             GenericAtomicKind.And =>
-                IntrinsicEmitter.EmitAtomicAnd(ptr, value, type),
+                IntrinsicEmitter.EmitAtomicAnd(ptr, value, type, addressSpace),
             GenericAtomicKind.Or =>
-                IntrinsicEmitter.EmitAtomicOr(ptr, value, type),
+                IntrinsicEmitter.EmitAtomicOr(ptr, value, type, addressSpace),
             GenericAtomicKind.Xor =>
-                IntrinsicEmitter.EmitAtomicXor(ptr, value, type),
+                IntrinsicEmitter.EmitAtomicXor(ptr, value, type, addressSpace),
             _ => $"/* Unknown atomic: {atomic.Kind} */"
         };
         return new Emitted(text, Prec.Postfix);
@@ -1246,7 +1247,8 @@ sealed class ExpressionEmitter(GenerationContext context, TypeEmitter typeEmitte
         var value = Emit(cas.Value).Text;
 
         var text = IntrinsicEmitter.EmitAtomicCAS(
-            ptr, compare, value, cas.ArithmeticBasicValueType);
+            ptr, compare, value, cas.ArithmeticBasicValueType,
+            cas.TargetAddressSpace);
         return new Emitted(text, Prec.Postfix);
     }
 
