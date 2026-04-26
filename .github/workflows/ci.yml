@@ -5,34 +5,31 @@ name: CI
 #
 # Pipeline shape (auto-rendered by GitHub Actions from the `needs:` graph):
 #
-#                       ┌─ check-style-line-lengths ─┐
-#                       ├─ check-style-line-endings  ┼─→ check-style ──┐
-#                       └─ check-style-copyright-h.  ┘                 │
-#                                                                      │
-#                       check-version (parallel) ────────────────────► │
-#                                                                      │
-#                       build (Windows verification, matrix) ────────► │
-#                                                                      │
-#                       build-test-binaries ─→ build-samples (CPU, Metal) ─→ test-cpu ─┬─ test-metal-compile  ─→ build-samples-metal  ─┐
-#                                                                                       ├─ test-cuda-compile   ─→ build-samples-cuda   ─┤
-#                                                                                       ├─ test-rocm-compile   ─→ build-samples-rocm   ─┤
-#                                                                                       └─ test-opencl-compile ─→ build-samples-opencl ─┤
-#                                                                                                                                       ▼
-#                                                              ┌──→ checks-completed ◄─ all leaves
-#                                                              │   (display name: "All required checks done"
-#                                                              │    — keeps check-required.yml working)
-#                                                              ▼
-#                                                       package-library
-#                                                              │
-#                                                  ┌───────────┴───────────┐
-#                                                  ▼                       ▼
-#                                          publish-preview          publish-release
-#                                          (push to master)         (push to refs/tags/v*)
+#   ┌─ check-style-line-lengths ─┐                ┌─ build (Windows verification, matrix) ─────────────────────────────────────────────────┐
+#   ├─ check-style-line-endings  ┼─→ check-style ─┤                                                                                        │
+#   └─ check-style-copyright-h.  ┘                └─ build-test-binaries ─→ build-samples (CPU, Metal) ─→ test-cpu ─┬─ test-metal-compile  ─→ build-samples-metal  ─┐
+#                                                                                                                   ├─ test-cuda-compile   ─→ build-samples-cuda   ─┤
+#   check-version (parallel) ───────────────────────────────────────────────────────────────────────────────────► │ ├─ test-rocm-compile   ─→ build-samples-rocm   ─┤
+#                                                                                                                   └─ test-opencl-compile ─→ build-samples-opencl ─┤
+#                                                                                                                                                                   ▼
+#                                                                                          ┌──→ checks-completed ◄─ all leaves
+#                                                                                          │   (display name: "All required checks done"
+#                                                                                          │    — keeps check-required.yml working)
+#                                                                                          ▼
+#                                                                                   package-library
+#                                                                                          │
+#                                                                              ┌───────────┴───────────┐
+#                                                                              ▼                       ▼
+#                                                                      publish-preview          publish-release
+#                                                                      (push to master)         (push to refs/tags/v*)
 #
 # Key invariants:
 #  - publishing CANNOT happen unless `checks-completed` succeeded
 #  - `checks-completed` uses `if: always()` + explicit result inspection so
 #    it never silently passes on a skipped upstream
+#  - `check-style` gates the heavy `build` and `build-test-binaries` roots,
+#    so a style violation cascade-skips the entire test/sample tree before
+#    any Windows / Linux / macOS / GPU-container minutes are spent
 #  - the test-cpu job is the gate for the four compile-only jobs: a CPU
 #    regression fails fast and saves the runner credits the GPU pulls would
 #    burn
@@ -163,6 +160,7 @@ jobs:
     # WinForms references on Windows, etc.). Kept on windows-latest with
     # TreatWarningsAsErrors=true.
     if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule' || github.event_name == 'push' || github.event.pull_request.head.repo.id != github.event.pull_request.base.repo.id
+    needs: check-style
     runs-on: windows-latest
     timeout-minutes: 30
     strategy:
@@ -236,6 +234,7 @@ jobs:
     # so each test job uses the EXACT same binaries that this build
     # produced. No re-build per job, no risk of inconsistent inputs.
     if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule' || github.event_name == 'push' || github.event.pull_request.head.repo.id != github.event.pull_request.base.repo.id
+    needs: check-style
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
