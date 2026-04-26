@@ -33,6 +33,12 @@ namespace CopyrightUpdateTool.Abstractions
     interface IVersionControlService
     {
         /// <summary>
+        /// Returns the working directory of the discovered repository, or null when
+        /// the tool is run outside a git working tree.
+        /// </summary>
+        string? WorkingDirectory { get; }
+
+        /// <summary>
         /// Returns the relative path of this file, to the repository.
         /// </summary>
         Task<string?> GetRelativePathAsync(FileInfo file);
