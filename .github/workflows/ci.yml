@@ -977,13 +977,11 @@ jobs:
 
   checks-completed:
     name: All required checks done
-    # NOTE: build-samples-{cuda,rocm,opencl} still run as advisory checks
-    # and are NOT listed here. They surface kernel-portability regressions
-    # for the GPU backends but currently fail on pre-existing bugs (OpenCL
-    # CLAPI mismatch, KernelIndex param wiring on CUDA/ROCm). Once those
-    # land, add them to `needs:` and to the gpu_private check list below
-    # to harden CI. build-samples-metal IS gated here — Metal doesn't share
-    # those open bugs, doesn't need GHCR auth, and runs on fork PRs.
+    # All sample-build jobs now gate this aggregator. The GPU jobs
+    # (build-samples-{cuda,rocm,opencl}) need GHCR access and therefore
+    # `skipped` on fork PRs, so they're checked via `check_gpu_private`
+    # (allows skipped only on fork PRs). build-samples-metal runs on macOS
+    # without Docker and is fork-safe, so it's a hard `check_required`.
     needs:
       - check-style
       - check-version
@@ -996,6 +994,9 @@ jobs:
       - test-cuda-compile
       - test-rocm-compile
       - test-opencl-compile
+      - build-samples-cuda
+      - build-samples-rocm
+      - build-samples-opencl
     if: |
       always() &&
       (github.event_name == 'workflow_dispatch' ||
@@ -1019,6 +1020,9 @@ jobs:
           RESULT_TEST_CUDA: ${{ needs.test-cuda-compile.result }}
           RESULT_TEST_ROCM: ${{ needs.test-rocm-compile.result }}
           RESULT_TEST_OPENCL: ${{ needs.test-opencl-compile.result }}
+          RESULT_BUILD_SAMPLES_CUDA: ${{ needs.build-samples-cuda.result }}
+          RESULT_BUILD_SAMPLES_ROCM: ${{ needs.build-samples-rocm.result }}
+          RESULT_BUILD_SAMPLES_OPENCL: ${{ needs.build-samples-opencl.result }}
         run: |
           fail=0
 
@@ -1053,9 +1057,12 @@ jobs:
           check_required  test-cpu             "$RESULT_TEST_CPU"
           check_required  test-metal-compile   "$RESULT_TEST_METAL"
           check_required  build-samples-metal  "$RESULT_BUILD_SAMPLES_METAL"
-          check_gpu_private test-cuda-compile  "$RESULT_TEST_CUDA"
-          check_gpu_private test-rocm-compile  "$RESULT_TEST_ROCM"
-          check_gpu_private test-opencl-compile "$RESULT_TEST_OPENCL"
+          check_gpu_private test-cuda-compile    "$RESULT_TEST_CUDA"
+          check_gpu_private test-rocm-compile    "$RESULT_TEST_ROCM"
+          check_gpu_private test-opencl-compile  "$RESULT_TEST_OPENCL"
+          check_gpu_private build-samples-cuda   "$RESULT_BUILD_SAMPLES_CUDA"
+          check_gpu_private build-samples-rocm   "$RESULT_BUILD_SAMPLES_ROCM"
+          check_gpu_private build-samples-opencl "$RESULT_BUILD_SAMPLES_OPENCL"
 
           if [[ "$fail" -eq 0 ]]; then
             echo "All upstream jobs OK for event '${{ github.event_name }}' (fork PR: $IS_FORK_PR)."
