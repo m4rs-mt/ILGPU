@@ -38,8 +38,8 @@ sealed class OpenCLLauncherEmitter : PerArgumentLauncherEmitter
         int argIndex)
     {
         ctx.WriteLine(
-            $"CLAPI.SetKernelArgumentUnsafe(" +
-            $"clKernel, {argIndex}, {expression});");
+            $"CLAPI.CurrentAPI.SetKernelArgument(" +
+            $"clKernel.KernelPtr, {argIndex}, {expression});");
     }
 
     protected override int EmitViewArg(
@@ -49,12 +49,12 @@ sealed class OpenCLLauncherEmitter : PerArgumentLauncherEmitter
         int argIndex)
     {
         ctx.WriteLine(
-            $"CLAPI.SetKernelArgumentUnsafe(" +
-            $"clKernel, {argIndex}, {viewImplVar}.Ptr);");
+            $"CLAPI.CurrentAPI.SetKernelArgument(" +
+            $"clKernel.KernelPtr, {argIndex}, (IntPtr){viewImplVar}.Ptr);");
         argIndex++;
         ctx.WriteLine(
-            $"CLAPI.SetKernelArgumentUnsafe(" +
-            $"clKernel, {argIndex}, {viewImplVar}.Length);");
+            $"CLAPI.CurrentAPI.SetKernelArgument(" +
+            $"clKernel.KernelPtr, {argIndex}, {viewImplVar}.Length);");
         argIndex++;
         return argIndex;
     }
@@ -65,8 +65,8 @@ sealed class OpenCLLauncherEmitter : PerArgumentLauncherEmitter
         int argIndex)
     {
         ctx.WriteLine(
-            $"CLAPI.SetKernelArgumentUnsafe(" +
-            $"clKernel, {argIndex}, {expression});");
+            $"CLAPI.CurrentAPI.SetKernelArgument(" +
+            $"clKernel.KernelPtr, {argIndex}, (IntPtr){expression});");
     }
 
     protected override void EmitPostamble(
@@ -75,7 +75,9 @@ sealed class OpenCLLauncherEmitter : PerArgumentLauncherEmitter
     {
         ctx.WriteLine("");
         ctx.WriteLine(
-            "CLAPI.LaunchKernelWithStreamBinding<DefaultLaunchHandler>(" +
-            "clStream, clKernel, launchConfig);");
+            "CLException.ThrowIfFailed(" +
+            "CLAPI.CurrentAPI.LaunchKernelWithStreamBinding" +
+            "<CLAPI.DefaultLaunchHandler>(" +
+            "clStream, clKernel, launchConfig));");
     }
 }

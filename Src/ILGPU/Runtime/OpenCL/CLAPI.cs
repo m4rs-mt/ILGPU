@@ -27,7 +27,7 @@ unsafe partial class CLAPI
     /// <summary>
     /// An abstract launch handler to specialize kernel launches.
     /// </summary>
-    internal interface ILaunchHandler
+    public interface ILaunchHandler
     {
         /// <summary>
         /// Performs pre-launch operations for a specific kernel.
@@ -46,7 +46,7 @@ unsafe partial class CLAPI
     /// The default launch handler that does not perform any specific launch
     /// operations.
     /// </summary>
-    internal readonly struct DefaultLaunchHandler : ILaunchHandler
+    public readonly struct DefaultLaunchHandler : ILaunchHandler
     {
         /// <summary>
         /// Does not perform any operations and returns <see cref="CLError.CL_SUCCESS"/>.
@@ -62,7 +62,7 @@ unsafe partial class CLAPI
     /// <summary>
     /// A dynamic shared memory handler that setups a dynamic memory allocation.
     /// </summary>
-    internal readonly struct DynamicSharedMemoryHandler : ILaunchHandler
+    public readonly struct DynamicSharedMemoryHandler : ILaunchHandler
     {
         /// <summary>
         /// Setups a dynamic shared memory allocation.
@@ -725,7 +725,7 @@ unsafe partial class CLAPI
     [MethodImpl(
         MethodImplOptions.AggressiveOptimization |
         MethodImplOptions.AggressiveInlining)]
-    internal unsafe CLError LaunchKernelWithStreamBinding<THandler>(
+    public unsafe CLError LaunchKernelWithStreamBinding<THandler>(
         CLStream stream,
         CLKernel kernel,
         in KernelConfig kernelConfig)
