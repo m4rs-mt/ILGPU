@@ -11,6 +11,7 @@
 
 
 // disable: max_line_length
+using ILGPUC.IR;
 using ILGPUC.IR.BasicBlockValues;
 using ILGPUC.IR.PureValues;
 using System;
@@ -143,76 +144,100 @@ sealed class MetalIntrinsicEmitter : IntrinsicEmitter
     #region Atomic Operations
 
     /// <inheritdoc/>
-    public override string EmitAtomicAdd(string ptr, string value, ArithmeticBasicValueType type)
-    {
-        var atomicType = GetAtomicType(type);
-        return "atomic_fetch_add_explicit(" +
-            $"(device {atomicType}*){ptr}, {value}, memory_order_relaxed)";
-    }
+    public override string EmitAtomicAdd(
+        string ptr,
+        string value,
+        ArithmeticBasicValueType type,
+        MemoryAddressSpace addressSpace) =>
+        "atomic_fetch_add_explicit(" +
+        $"{AtomicCast(addressSpace, type)}{ptr}, {value}, memory_order_relaxed)";
 
     /// <inheritdoc/>
     public override string EmitAtomicExchange(
         string ptr,
         string value,
-        ArithmeticBasicValueType type)
-    {
-        var atomicType = GetAtomicType(type);
-        return "atomic_exchange_explicit(" +
-            $"(device {atomicType}*){ptr}, {value}, memory_order_relaxed)";
-    }
+        ArithmeticBasicValueType type,
+        MemoryAddressSpace addressSpace) =>
+        "atomic_exchange_explicit(" +
+        $"{AtomicCast(addressSpace, type)}{ptr}, {value}, memory_order_relaxed)";
 
     /// <inheritdoc/>
     public override string EmitAtomicCAS(
         string ptr,
         string compare,
         string value,
-        ArithmeticBasicValueType type)
-    {
-        var atomicType = GetAtomicType(type);
-        return "atomic_compare_exchange_weak_explicit(" +
-            $"(device {atomicType}*){ptr}, &{compare}, {value}, " +
-            "memory_order_relaxed, memory_order_relaxed)";
-    }
+        ArithmeticBasicValueType type,
+        MemoryAddressSpace addressSpace) =>
+        "atomic_compare_exchange_weak_explicit(" +
+        $"{AtomicCast(addressSpace, type)}{ptr}, &{compare}, {value}, " +
+        "memory_order_relaxed, memory_order_relaxed)";
 
     /// <inheritdoc/>
-    public override string EmitAtomicMin(string ptr, string value, ArithmeticBasicValueType type)
-    {
-        var atomicType = GetAtomicType(type);
-        return "atomic_fetch_min_explicit(" +
-            $"(device {atomicType}*){ptr}, {value}, memory_order_relaxed)";
-    }
+    public override string EmitAtomicMin(
+        string ptr,
+        string value,
+        ArithmeticBasicValueType type,
+        MemoryAddressSpace addressSpace) =>
+        "atomic_fetch_min_explicit(" +
+        $"{AtomicCast(addressSpace, type)}{ptr}, {value}, memory_order_relaxed)";
 
     /// <inheritdoc/>
-    public override string EmitAtomicMax(string ptr, string value, ArithmeticBasicValueType type)
-    {
-        var atomicType = GetAtomicType(type);
-        return "atomic_fetch_max_explicit(" +
-            $"(device {atomicType}*){ptr}, {value}, memory_order_relaxed)";
-    }
+    public override string EmitAtomicMax(
+        string ptr,
+        string value,
+        ArithmeticBasicValueType type,
+        MemoryAddressSpace addressSpace) =>
+        "atomic_fetch_max_explicit(" +
+        $"{AtomicCast(addressSpace, type)}{ptr}, {value}, memory_order_relaxed)";
 
     /// <inheritdoc/>
-    public override string EmitAtomicAnd(string ptr, string value, ArithmeticBasicValueType type)
-    {
-        var atomicType = GetAtomicType(type);
-        return "atomic_fetch_and_explicit(" +
-            $"(device {atomicType}*){ptr}, {value}, memory_order_relaxed)";
-    }
+    public override string EmitAtomicAnd(
+        string ptr,
+        string value,
+        ArithmeticBasicValueType type,
+        MemoryAddressSpace addressSpace) =>
+        "atomic_fetch_and_explicit(" +
+        $"{AtomicCast(addressSpace, type)}{ptr}, {value}, memory_order_relaxed)";
 
     /// <inheritdoc/>
-    public override string EmitAtomicOr(string ptr, string value, ArithmeticBasicValueType type)
-    {
-        var atomicType = GetAtomicType(type);
-        return "atomic_fetch_or_explicit(" +
-            $"(device {atomicType}*){ptr}, {value}, memory_order_relaxed)";
-    }
+    public override string EmitAtomicOr(
+        string ptr,
+        string value,
+        ArithmeticBasicValueType type,
+        MemoryAddressSpace addressSpace) =>
+        "atomic_fetch_or_explicit(" +
+        $"{AtomicCast(addressSpace, type)}{ptr}, {value}, memory_order_relaxed)";
 
     /// <inheritdoc/>
-    public override string EmitAtomicXor(string ptr, string value, ArithmeticBasicValueType type)
-    {
-        var atomicType = GetAtomicType(type);
-        return "atomic_fetch_xor_explicit(" +
-            $"(device {atomicType}*){ptr}, {value}, memory_order_relaxed)";
-    }
+    public override string EmitAtomicXor(
+        string ptr,
+        string value,
+        ArithmeticBasicValueType type,
+        MemoryAddressSpace addressSpace) =>
+        "atomic_fetch_xor_explicit(" +
+        $"{AtomicCast(addressSpace, type)}{ptr}, {value}, memory_order_relaxed)";
+
+    /// <summary>
+    /// Builds the leading address-space-qualified pointer cast used inside
+    /// every <c>atomic_*_explicit</c> call. Mirrors
+    /// <see cref="MetalLanguageConfiguration.GetAddressSpaceKeyword"/> so
+    /// shared-memory atomics emit <c>(threadgroup atomic_int*)</c> instead
+    /// of the cross-address-space <c>(device atomic_int*)</c> cast that
+    /// Metal rejects.
+    /// </summary>
+    private static string AtomicCast(
+        MemoryAddressSpace addressSpace,
+        ArithmeticBasicValueType type) =>
+        $"({GetAddressSpaceQualifier(addressSpace)} {GetAtomicType(type)}*)";
+
+    private static string GetAddressSpaceQualifier(MemoryAddressSpace addressSpace) =>
+        addressSpace switch
+        {
+            MemoryAddressSpace.Shared => "threadgroup",
+            MemoryAddressSpace.Local => "thread",
+            MemoryAddressSpace.Constant => "constant",
+            _ => "device",
+        };
 
     /// <inheritdoc/>
     private static string GetAtomicType(ArithmeticBasicValueType type) =>

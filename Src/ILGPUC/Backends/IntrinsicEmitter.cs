@@ -11,6 +11,7 @@
 
 
 // disable: max_line_length
+using ILGPUC.IR;
 using ILGPUC.IR.BasicBlockValues;
 using ILGPUC.IR.PureValues;
 
@@ -174,8 +175,19 @@ abstract class IntrinsicEmitter
     /// <param name="ptr">Pointer to the memory location.</param>
     /// <param name="value">Value to add.</param>
     /// <param name="type">The type of the operation (Int32, Int64, Float32, etc.).</param>
+    /// <param name="addressSpace">
+    /// Address space of the target pointer. Backends that need an
+    /// address-space-qualified cast (e.g. Metal, where shared-memory
+    /// atomics need <c>threadgroup</c> instead of <c>device</c>) use
+    /// this; backends that infer the address space from the pointer
+    /// expression (CUDA, ROCm, OpenCL, CPU) ignore it.
+    /// </param>
     /// <returns>Code for atomic add operation.</returns>
-    public abstract string EmitAtomicAdd(string ptr, string value, ArithmeticBasicValueType type);
+    public abstract string EmitAtomicAdd(
+        string ptr,
+        string value,
+        ArithmeticBasicValueType type,
+        MemoryAddressSpace addressSpace);
 
     /// <summary>
     /// Emits an atomic exchange operation (swap).
@@ -183,7 +195,8 @@ abstract class IntrinsicEmitter
     public abstract string EmitAtomicExchange(
         string ptr,
         string value,
-        ArithmeticBasicValueType type);
+        ArithmeticBasicValueType type,
+        MemoryAddressSpace addressSpace);
 
     /// <summary>
     /// Emits an atomic compare-and-swap operation.
@@ -192,36 +205,58 @@ abstract class IntrinsicEmitter
     /// <param name="compare">Expected value.</param>
     /// <param name="value">New value if comparison succeeds.</param>
     /// <param name="type">The type of the operation.</param>
+    /// <param name="addressSpace">Address space of the target pointer.</param>
     public abstract string EmitAtomicCAS(
         string ptr,
         string compare,
         string value,
-        ArithmeticBasicValueType type);
+        ArithmeticBasicValueType type,
+        MemoryAddressSpace addressSpace);
 
     /// <summary>
     /// Emits an atomic minimum operation.
     /// </summary>
-    public abstract string EmitAtomicMin(string ptr, string value, ArithmeticBasicValueType type);
+    public abstract string EmitAtomicMin(
+        string ptr,
+        string value,
+        ArithmeticBasicValueType type,
+        MemoryAddressSpace addressSpace);
 
     /// <summary>
     /// Emits an atomic maximum operation.
     /// </summary>
-    public abstract string EmitAtomicMax(string ptr, string value, ArithmeticBasicValueType type);
+    public abstract string EmitAtomicMax(
+        string ptr,
+        string value,
+        ArithmeticBasicValueType type,
+        MemoryAddressSpace addressSpace);
 
     /// <summary>
     /// Emits an atomic bitwise AND operation.
     /// </summary>
-    public abstract string EmitAtomicAnd(string ptr, string value, ArithmeticBasicValueType type);
+    public abstract string EmitAtomicAnd(
+        string ptr,
+        string value,
+        ArithmeticBasicValueType type,
+        MemoryAddressSpace addressSpace);
 
     /// <summary>
     /// Emits an atomic bitwise OR operation.
     /// </summary>
-    public abstract string EmitAtomicOr(string ptr, string value, ArithmeticBasicValueType type);
+    public abstract string EmitAtomicOr(
+        string ptr,
+        string value,
+        ArithmeticBasicValueType type,
+        MemoryAddressSpace addressSpace);
 
     /// <summary>
     /// Emits an atomic bitwise XOR operation.
     /// </summary>
-    public abstract string EmitAtomicXor(string ptr, string value, ArithmeticBasicValueType type);
+    public abstract string EmitAtomicXor(
+        string ptr,
+        string value,
+        ArithmeticBasicValueType type,
+        MemoryAddressSpace addressSpace);
 
     #endregion
 

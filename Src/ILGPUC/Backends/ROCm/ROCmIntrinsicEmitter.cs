@@ -11,6 +11,7 @@
 
 
 // disable: max_line_length
+using ILGPUC.IR;
 using ILGPUC.IR.BasicBlockValues;
 using ILGPUC.IR.PureValues;
 using System;
@@ -162,7 +163,8 @@ sealed class ROCmIntrinsicEmitter : IntrinsicEmitter
     public override string EmitAtomicAdd(
         string ptr,
         string value,
-        ArithmeticBasicValueType type) => type switch
+        ArithmeticBasicValueType type,
+        MemoryAddressSpace addressSpace) => type switch
         {
             ArithmeticBasicValueType.Int32 => $"atomicAdd({ptr}, {value})",
             ArithmeticBasicValueType.Int64 => $"atomicAdd((unsigned long long*){ptr}, {value})",
@@ -176,7 +178,8 @@ sealed class ROCmIntrinsicEmitter : IntrinsicEmitter
     public override string EmitAtomicExchange(
         string ptr,
         string value,
-        ArithmeticBasicValueType type) =>
+        ArithmeticBasicValueType type,
+        MemoryAddressSpace addressSpace) =>
         type switch
         {
             ArithmeticBasicValueType.Int32 => $"atomicExch({ptr}, {value})",
@@ -191,7 +194,8 @@ sealed class ROCmIntrinsicEmitter : IntrinsicEmitter
         string ptr,
         string compare,
         string value,
-        ArithmeticBasicValueType type) =>
+        ArithmeticBasicValueType type,
+        MemoryAddressSpace addressSpace) =>
         type switch
         {
             ArithmeticBasicValueType.Int32 => $"atomicCAS({ptr}, {compare}, {value})",
@@ -205,7 +209,8 @@ sealed class ROCmIntrinsicEmitter : IntrinsicEmitter
     public override string EmitAtomicMin(
         string ptr,
         string value,
-        ArithmeticBasicValueType type) =>
+        ArithmeticBasicValueType type,
+        MemoryAddressSpace addressSpace) =>
         type switch
         {
             ArithmeticBasicValueType.Int32 => $"atomicMin({ptr}, {value})",
@@ -218,7 +223,8 @@ sealed class ROCmIntrinsicEmitter : IntrinsicEmitter
     public override string EmitAtomicMax(
         string ptr,
         string value,
-        ArithmeticBasicValueType type) =>
+        ArithmeticBasicValueType type,
+        MemoryAddressSpace addressSpace) =>
         type switch
         {
             ArithmeticBasicValueType.Int32 => $"atomicMax({ptr}, {value})",
@@ -231,7 +237,8 @@ sealed class ROCmIntrinsicEmitter : IntrinsicEmitter
     public override string EmitAtomicAnd(
         string ptr,
         string value,
-        ArithmeticBasicValueType type) =>
+        ArithmeticBasicValueType type,
+        MemoryAddressSpace addressSpace) =>
         type switch
         {
             ArithmeticBasicValueType.Int32 => $"atomicAnd({ptr}, {value})",
@@ -244,7 +251,8 @@ sealed class ROCmIntrinsicEmitter : IntrinsicEmitter
     public override string EmitAtomicOr(
         string ptr,
         string value,
-        ArithmeticBasicValueType type) =>
+        ArithmeticBasicValueType type,
+        MemoryAddressSpace addressSpace) =>
         type switch
         {
             ArithmeticBasicValueType.Int32 => $"atomicOr({ptr}, {value})",
@@ -257,7 +265,8 @@ sealed class ROCmIntrinsicEmitter : IntrinsicEmitter
     public override string EmitAtomicXor(
         string ptr,
         string value,
-        ArithmeticBasicValueType type) =>
+        ArithmeticBasicValueType type,
+        MemoryAddressSpace addressSpace) =>
         type switch
         {
             ArithmeticBasicValueType.Int32 => $"atomicXor({ptr}, {value})",

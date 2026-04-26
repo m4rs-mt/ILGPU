@@ -11,6 +11,7 @@
 
 
 // disable: max_line_length
+using ILGPUC.IR;
 using ILGPUC.IR.BasicBlockValues;
 using ILGPUC.IR.PureValues;
 using System;
@@ -143,7 +144,11 @@ sealed class CLIntrinsicEmitter(CLVendor vendor) : IntrinsicEmitter
     #region Atomic Operations
 
     /// <inheritdoc/>
-    public override string EmitAtomicAdd(string ptr, string value, ArithmeticBasicValueType type) =>
+    public override string EmitAtomicAdd(
+        string ptr,
+        string value,
+        ArithmeticBasicValueType type,
+        MemoryAddressSpace addressSpace) =>
         type switch
         {
             ArithmeticBasicValueType.Int32 => $"atomic_add({ptr}, {value})",
@@ -156,7 +161,8 @@ sealed class CLIntrinsicEmitter(CLVendor vendor) : IntrinsicEmitter
     public override string EmitAtomicExchange(
         string ptr,
         string value,
-        ArithmeticBasicValueType type) =>
+        ArithmeticBasicValueType type,
+        MemoryAddressSpace addressSpace) =>
         type switch
         {
             ArithmeticBasicValueType.Int32 => $"atomic_xchg({ptr}, {value})",
@@ -170,7 +176,8 @@ sealed class CLIntrinsicEmitter(CLVendor vendor) : IntrinsicEmitter
         string ptr,
         string compare,
         string value,
-        ArithmeticBasicValueType type) =>
+        ArithmeticBasicValueType type,
+        MemoryAddressSpace addressSpace) =>
         type switch
         {
             ArithmeticBasicValueType.Int32 => $"atomic_cmpxchg({ptr}, {compare}, {value})",
@@ -179,7 +186,11 @@ sealed class CLIntrinsicEmitter(CLVendor vendor) : IntrinsicEmitter
         };
 
     /// <inheritdoc/>
-    public override string EmitAtomicMin(string ptr, string value, ArithmeticBasicValueType type) =>
+    public override string EmitAtomicMin(
+        string ptr,
+        string value,
+        ArithmeticBasicValueType type,
+        MemoryAddressSpace addressSpace) =>
         type switch
         {
             ArithmeticBasicValueType.Int32 => $"atomic_min({ptr}, {value})",
@@ -188,7 +199,11 @@ sealed class CLIntrinsicEmitter(CLVendor vendor) : IntrinsicEmitter
         };
 
     /// <inheritdoc/>
-    public override string EmitAtomicMax(string ptr, string value, ArithmeticBasicValueType type) =>
+    public override string EmitAtomicMax(
+        string ptr,
+        string value,
+        ArithmeticBasicValueType type,
+        MemoryAddressSpace addressSpace) =>
         type switch
         {
             ArithmeticBasicValueType.Int32 => $"atomic_max({ptr}, {value})",
@@ -197,7 +212,11 @@ sealed class CLIntrinsicEmitter(CLVendor vendor) : IntrinsicEmitter
         };
 
     /// <inheritdoc/>
-    public override string EmitAtomicAnd(string ptr, string value, ArithmeticBasicValueType type) =>
+    public override string EmitAtomicAnd(
+        string ptr,
+        string value,
+        ArithmeticBasicValueType type,
+        MemoryAddressSpace addressSpace) =>
         type switch
         {
             ArithmeticBasicValueType.Int32 => $"atomic_and({ptr}, {value})",
@@ -206,7 +225,11 @@ sealed class CLIntrinsicEmitter(CLVendor vendor) : IntrinsicEmitter
         };
 
     /// <inheritdoc/>
-    public override string EmitAtomicOr(string ptr, string value, ArithmeticBasicValueType type) =>
+    public override string EmitAtomicOr(
+        string ptr,
+        string value,
+        ArithmeticBasicValueType type,
+        MemoryAddressSpace addressSpace) =>
         type switch
         {
             ArithmeticBasicValueType.Int32 => $"atomic_or({ptr}, {value})",
@@ -215,7 +238,11 @@ sealed class CLIntrinsicEmitter(CLVendor vendor) : IntrinsicEmitter
         };
 
     /// <inheritdoc/>
-    public override string EmitAtomicXor(string ptr, string value, ArithmeticBasicValueType type) =>
+    public override string EmitAtomicXor(
+        string ptr,
+        string value,
+        ArithmeticBasicValueType type,
+        MemoryAddressSpace addressSpace) =>
         type switch
         {
             ArithmeticBasicValueType.Int32 => $"atomic_xor({ptr}, {value})",
