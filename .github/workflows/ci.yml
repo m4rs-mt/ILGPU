@@ -563,6 +563,11 @@ jobs:
           docker pull ghcr.io/${{ github.repository_owner }}/ilgpuc-compiler-service-opencl:latest
 
       - name: Build samples with --compile inside the container
+        env:
+          # Samples that depend on Float64 atomics — OpenCL has no
+          # native `atomic_add` on doubles. AdvancedAtomics intentionally
+          # exercises that path; mirrors the build-samples-metal exclusion.
+          EXCLUDES: "AdvancedAtomics"
         run: |
           docker run --rm \
             --user "$(id -u):$(id -g)" \
@@ -570,11 +575,28 @@ jobs:
             -e HOME=/tmp \
             -e DOTNET_NOLOGO=1 \
             -e DOTNET_CLI_TELEMETRY_OPTOUT=1 \
+            -e EXCLUDES \
             ghcr.io/${{ github.repository_owner }}/ilgpuc-compiler-service-opencl:latest \
             bash -c '
-              dotnet build Samples/ILGPU.Samples.slnx -c Debug \
-                -p:ILGPUBackend=OpenCL \
-                -p:ILGPUCompile=true
+              set -e
+              fail=0
+              for csproj in Samples/*/*.csproj; do
+                name="$(basename "$(dirname "$csproj")")"
+                if printf "%s\n" $EXCLUDES | grep -qx "$name"; then
+                  echo "::notice::skipping $name on OpenCL (excluded)"
+                  continue
+                fi
+                echo "::group::Building $name"
+                if ! dotnet build "$csproj" -c Debug \
+                    -p:ILGPUBackend=OpenCL \
+                    -p:ILGPUCompile=true \
+                    --nologo; then
+                  echo "::error::sample build failed: $name on OpenCL"
+                  fail=1
+                fi
+                echo "::endgroup::"
+              done
+              exit $fail
             '
 
   # Metal counterpart to build-samples-{cuda,rocm,opencl}. Runs on macOS
