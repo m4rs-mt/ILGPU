@@ -13,8 +13,8 @@ name: CI
 #                                                                      │
 #                       build (Windows verification, matrix) ────────► │
 #                                                                      │
-#                       build-test-binaries ─→ build-samples (CPU, Metal) ─→ test-cpu ─┬─ test-metal-compile  ─┐
-#                                                                                       ├─ test-cuda-compile   ─→ build-samples-cuda   ─┐
+#                       build-test-binaries ─→ build-samples (CPU, Metal) ─→ test-cpu ─┬─ test-metal-compile  ─→ build-samples-metal  ─┐
+#                                                                                       ├─ test-cuda-compile   ─→ build-samples-cuda   ─┤
 #                                                                                       ├─ test-rocm-compile   ─→ build-samples-rocm   ─┤
 #                                                                                       └─ test-opencl-compile ─→ build-samples-opencl ─┤
 #                                                                                                                                       ▼
@@ -578,6 +578,67 @@ jobs:
                 -p:ILGPUCompile=true
             '
 
+  # Metal counterpart to build-samples-{cuda,rocm,opencl}. Runs on macOS
+  # (no Docker; xcrun metal is preinstalled — same env as
+  # test-metal-compile) and exercises the full -p:ILGPUCompile=true round-
+  # trip per-sample so AdvancedAtomics' Float64-atomic limit can be
+  # excluded individually instead of failing the whole job. Mirrors the
+  # cheap-tier build-samples Metal exclude list at the top of this file.
+  build-samples-metal:
+    name: Build sample programs (Metal)
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule' || github.event_name == 'push' || github.event.pull_request.head.repo.id != github.event.pull_request.base.repo.id
+    needs: test-metal-compile
+    runs-on: macos-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Download test binaries
+        uses: actions/download-artifact@v4
+        with:
+          name: test-binaries
+
+      - name: Verify Metal toolchain
+        run: |
+          xcrun --find metal
+          xcrun -sdk macosx metal --version
+
+      - name: Build samples with --compile
+        env:
+          ILGPU_BACKEND: Metal
+          # AdvancedAtomics uses Float64 atomics — a permanent Metal
+          # limitation, not a codegen regression. Bump this list when
+          # other samples acquire Metal-incompatible features.
+          EXCLUDES: "AdvancedAtomics"
+        run: |
+          set -e
+          fail=0
+          for csproj in Samples/*/*.csproj; do
+            name="$(basename "$(dirname "$csproj")")"
+            if printf '%s\n' $EXCLUDES | grep -qx "$name"; then
+              echo "::notice::skipping $name on $ILGPU_BACKEND (excluded)"
+              continue
+            fi
+            echo "::group::Building $name"
+            if ! dotnet build "$csproj" -c Debug \
+                -p:ILGPUBackend=$ILGPU_BACKEND \
+                -p:ILGPUCompile=true \
+                --nologo; then
+              echo "::error::sample build failed: $name on $ILGPU_BACKEND"
+              fail=1
+            fi
+            echo "::endgroup::"
+          done
+          exit $fail
+
   # ===========================================================================
   # Tier 3: compile-only jobs (parallel after test-cpu)
   # ===========================================================================
@@ -877,11 +938,14 @@ jobs:
 
   checks-completed:
     name: All required checks done
-    # NOTE: build-samples-{cuda,rocm,opencl} run as advisory checks but are
-    # NOT listed here. They surface kernel-portability regressions for the
-    # GPU backends but currently fail on pre-existing bugs (OpenCL CLAPI
-    # mismatch, KernelIndex param wiring on CUDA/ROCm). Once those land, add
-    # them to `needs:` and to the gpu_private check list below to harden CI.
+    # NOTE: build-samples-{cuda,rocm,opencl,metal} run as advisory checks
+    # but are NOT listed here. They surface kernel-portability regressions
+    # for the GPU backends but currently fail on pre-existing bugs (OpenCL
+    # CLAPI mismatch, KernelIndex param wiring on CUDA/ROCm). Once those
+    # land, add them to `needs:` and to the gpu_private check list below
+    # to harden CI. build-samples-metal is the cleanest candidate to
+    # promote first — it doesn't depend on GHCR-private images, so it can
+    # gate fork PRs too (use check_required, not check_gpu_private).
     needs:
       - check-style
       - check-version
