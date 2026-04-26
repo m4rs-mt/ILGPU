@@ -19,37 +19,31 @@ using Xunit.Abstractions;
 namespace ILGPUC.Tests.KnownIssues;
 
 /// <summary>
-/// Regression tests pinned to shared-memory code-path bugs that previously
-/// produced opaque internal-compiler-errors. Layered at the cheapest
-/// pipeline stage that actually catches each bug:
-///
-///  * <see cref="SourceGeneration_SharedMemory1DTiled"/> — the previously
-///    crashing grouped <see cref="KernelIndex"/> + shared-memory tiled
-///    pattern now compiles end-to-end once the extent is a
-///    compile-time constant (see <c>KnownIssueKernels.TileSize</c>).
+/// Regression tests pinned to shared-memory bugs whose failure shape does
+/// NOT fit the auto-registered <c>Kernels/</c> + <c>BackendTests</c> flow:
 ///
 ///  * <see cref="SourceGeneration_SharedMemory1DTiled_RuntimeExtent_Rejected"/>
-///    — the same pattern with a parameter-dependent extent is explicitly
-///    unsupported by the backends; the frontend must report it as a clear
-///    <see cref="NotSupportedException"/> rather than silently crashing.
-///
-///  * <see cref="SourceGeneration_SharedMemory2D"/> — Bug A's cheaper
-///    sibling: confirms the frontend now emits a concrete
-///    <see cref="IR.ModuleValues.StructureType"/> for
-///    <c>Group.GetSharedMemory2D&lt;T, TStride&gt;</c> instead of leaving
-///    behind a dangling <c>method_GetSharedMemory2D_*</c> call.
+///    — the 1D shared-memory pattern with a parameter-dependent extent is
+///    explicitly unsupported by the backends; the frontend must report it
+///    as a clear <see cref="NotSupportedException"/> rather than silently
+///    crashing.
 ///
 ///  * <see cref="SourceGeneration_SharedMemory2D_RuntimeExtent_Rejected"/>
-///    — negative form: asserts a parameter-dependent 2D extent raises a
-///    clear frontend diagnostic at the intrinsic boundary.
+///    — same negative form for the 2D path.
 ///
-///  * <see cref="Build_SharedMemory2D_Succeeds"/> — Bug A's end-to-end
-///    lock: the emitted <c>*_CompiledKernel.cs</c> must compile under the
-///    real ILGPU MSBuild integration. Used to fail with CS0103 on the
-///    undefined helper; now green.
+///  * <see cref="Build_SharedMemory2D_Succeeds"/> — end-to-end MSBuild
+///    lock for the 2D shared-memory pattern. Used to fail with CS0103 on
+///    an undefined helper; now green and pinned via the real ILGPU
+///    MSBuild integration.
 ///
-/// Runs on the CPU backend because all four bugs live in the shared
-/// frontend / IR / C# emission stages.
+/// Positive-shape source-generation regressions (the tiled 1D and 2D
+/// kernels) have been migrated to <c>Kernels/SharedMemoryKernels.cs</c>
+/// so they pick up free coverage on all 5 backends via the auto-registered
+/// <c>BackendTests</c> theory. This file retains only the negative tests
+/// and the end-to-end build assertion.
+///
+/// Runs on the CPU backend because the frontend / IR / C# emission stages
+/// being exercised are backend-invariant.
 /// </summary>
 public sealed class SharedMemoryKnownIssueTests : BackendTestBase
 {
@@ -62,22 +56,11 @@ public sealed class SharedMemoryKnownIssueTests : BackendTestBase
     }
 
     /// <summary>
-    /// Grouped <see cref="KernelIndex"/> kernel with a compile-time-constant
-    /// shared-memory extent compiles to non-empty backend source.
-    /// </summary>
-    [Fact]
-    public void SourceGeneration_SharedMemory1DTiled() =>
-        AssertSourceGenerationSucceeds(
-            GetKernel(
-                typeof(KnownIssueKernels),
-                nameof(KnownIssueKernels.SharedMemory1DTiledKernel)));
-
-    /// <summary>
-    /// Same kernel shape but with a parameter-dependent shared-memory extent
-    /// — backends cannot emit fixed-size shared arrays for this, so the
-    /// frontend raises a clear <see cref="NotSupportedException"/> at the
-    /// intrinsic boundary instead of producing an opaque internal-compiler
-    /// error downstream.
+    /// 1D shared-memory kernel with a parameter-dependent extent — backends
+    /// cannot emit fixed-size shared arrays for this, so the frontend must
+    /// raise a clear <see cref="NotSupportedException"/> at the intrinsic
+    /// boundary instead of producing an opaque internal-compiler error
+    /// downstream.
     /// </summary>
     [Fact]
     public void SourceGeneration_SharedMemory1DTiled_RuntimeExtent_Rejected()
@@ -98,19 +81,7 @@ public sealed class SharedMemoryKnownIssueTests : BackendTestBase
     }
 
     /// <summary>
-    /// Source generation for the 2D shared-memory kernel — cheaper than the
-    /// end-to-end build and catches regressions in the frontend intrinsic
-    /// handler before they reach MSBuild.
-    /// </summary>
-    [Fact]
-    public void SourceGeneration_SharedMemory2D() =>
-        AssertSourceGenerationSucceeds(
-            GetKernel(
-                typeof(KnownIssueKernels),
-                nameof(KnownIssueKernels.SharedMemory2DKernel)));
-
-    /// <summary>
-    /// Negative form: passing an <c>Index2D</c> derived from a kernel
+    /// Negative 2D form: passing an <c>Index2D</c> derived from a kernel
     /// parameter (not a <c>new Index2D(N, M)</c> literal) must raise a
     /// clear <see cref="NotSupportedException"/> at the intrinsic boundary
     /// instead of producing an opaque failure downstream.
