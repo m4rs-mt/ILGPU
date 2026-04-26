@@ -75,7 +75,8 @@ public sealed class KnownFailingOnAttribute : Attribute
 
     public BackendType[] Backends { get; }
 
-    public string Reason { get; init; } = "Known failing — see attribute site for tracking.";
+    public string Reason { get; init; } =
+        "Known failing — see attribute site for tracking.";
 }
 
 /// <summary>
