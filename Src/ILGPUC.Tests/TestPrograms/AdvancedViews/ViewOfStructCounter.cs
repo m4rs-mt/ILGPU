@@ -1,0 +1,78 @@
+// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                           Copyright (c) 2026 ILGPU Project
+//                                    www.ilgpu.net
+//
+// File: ViewOfStructCounter.cs
+//
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details.
+// ---------------------------------------------------------------------------------------
+
+
+// disable: max_line_length
+// Test program: AdvancedViews / ViewOfStructCounter
+// 1024 threads atomically increment the ElementCounter field of a single
+// ComposedView via a reinterpreted byte->int view at the field offset.
+// Expected output: 1024
+
+using System;
+using ILGPU;
+using ILGPU.Runtime;
+
+#pragma warning disable CS0649
+struct ComposedView
+{
+    public static readonly int ElementCounterOffset =
+        Interop.OffsetOf<ComposedView>(nameof(ElementCounter));
+
+    public short SomeElement;
+    public byte SomeOtherElement;
+    public int ElementCounter;
+}
+#pragma warning restore CS0649
+
+static class Kernels
+{
+    public static void ViewOfStructCounterKernel(
+        Index1D index,
+        ArrayView1D<int, Stride1D.Dense> elements,
+        ArrayView<ComposedView> view,
+        int comparisonValue)
+    {
+        var element = elements[index];
+        if (element == comparisonValue)
+        {
+            var byteView = view.Cast<byte>();
+            int byteOffset = ComposedView.ElementCounterOffset;
+            var intView = byteView.SubView(byteOffset).Cast<int>();
+            Atomic.Add(ref intView[0], 1);
+        }
+    }
+}
+
+static class Program
+{
+    static void Main()
+    {
+        using var context = Context.Create(b => b.Default());
+        using var accelerator = context.GetPreferredDevice(preferCPU: true)
+            .CreateAccelerator(context);
+        var stream = accelerator.DefaultStream;
+
+        const int Length = 1024;
+        using var elementsBuffer = stream.Allocate1D<int>(Length);
+        using var composedBuffer = stream.Allocate1D<ComposedView>(1);
+        elementsBuffer.MemSetToZero();
+        composedBuffer.MemSetToZero();
+
+        stream.Launch(
+            (Index1D)Length,
+            index => Kernels.ViewOfStructCounterKernel(
+                index, elementsBuffer.View, composedBuffer.View, 0));
+        stream.Synchronize();
+
+        var results = composedBuffer.GetAsArray1D();
+        Console.WriteLine(results[0].ElementCounter);
+    }
+}
