@@ -1,0 +1,37 @@
+// HelloKernel: minimal end-to-end MSBuild integration test program.
+// One kernel that doubles the input index. Expected output: 0 2 4 6
+
+using System;
+using ILGPU;
+using ILGPU.Runtime;
+
+namespace HelloKernel;
+
+static class Kernels
+{
+    public static void DoubleKernel(
+        Index1D index, ArrayView1D<int, Stride1D.Dense> data)
+    {
+        data[index] = index.X * 2;
+    }
+}
+
+static class Program
+{
+    static void Main()
+    {
+        using var context = Context.Create(b => b.Default());
+        using var accelerator = context.GetPreferredDevice(preferCPU: $(PREFER_CPU))
+            .CreateAccelerator(context);
+        var stream = accelerator.DefaultStream;
+
+        using var buffer = stream.Allocate1D<int>(4);
+        stream.Launch(
+            (Index1D)4,
+            index => Kernels.DoubleKernel(index, buffer.View));
+        stream.Synchronize();
+
+        foreach (var v in buffer.GetAsArray1D())
+            Console.WriteLine(v);
+    }
+}
