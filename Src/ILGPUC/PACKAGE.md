@@ -6,12 +6,22 @@ ILGPU's AOT compiler toolchain. Compiles GPU kernels at MSBuild time and emits r
 
 ```xml
 <ItemGroup>
-  <PackageReference Include="ILGPU" Version="2.0.0-beta1" />
   <PackageReference Include="ILGPUC" Version="2.0.0-beta1" />
 </ItemGroup>
 ```
 
-NuGet auto-imports `build/ILGPUC.targets`. No additional `<Import>` is needed. The bundled MSBuild integration runs before `CoreCompile` and:
+ILGPUC declares `ILGPU` (the runtime library) as a transitive dependency, so a single `<PackageReference>` gives the consumer both:
+
+- a runtime reference to `ILGPU.dll` (for `ArrayView<T>`, `Index1D`, `Stream.Launch`, ...)
+- the build-time AOT toolchain (`build/` + `tools/` auto-imported by NuGet)
+
+For runtime-only consumption (no AOT, kernels JITted by the GPU runtime at first use), reference `ILGPU` directly:
+
+```xml
+<PackageReference Include="ILGPU" Version="2.0.0-beta1" />
+```
+
+No additional `<Import>` is needed in either case. The bundled MSBuild integration runs before `CoreCompile` and:
 
 1. Scans `@(Compile)` for `stream.Launch(...)` call sites
 2. Compiles each kernel through ILGPUC's IL frontend → IR → optimizer → backend

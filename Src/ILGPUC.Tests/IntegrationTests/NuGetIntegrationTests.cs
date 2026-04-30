@@ -53,8 +53,11 @@ public sealed class NuGetIntegrationTests
 
         var srcRoot = Path.Combine(IntegrationProjectFixture.RepoRoot, "Src");
         var ilgpucCsproj = Path.Combine(srcRoot, "ILGPUC", "ILGPUC.csproj");
+        var ilgpuCsproj = Path.Combine(srcRoot, "ILGPU", "ILGPU.csproj");
         Assert.True(File.Exists(ilgpucCsproj),
             $"ILGPUC.csproj not found at {ilgpucCsproj}");
+        Assert.True(File.Exists(ilgpuCsproj),
+            $"ILGPU.csproj not found at {ilgpuCsproj}");
 
         // Per-test temp feed and unique version so the global NuGet cache
         // never serves a stale package.
@@ -79,10 +82,39 @@ public sealed class NuGetIntegrationTests
             //    runs in CI. Doing it inline here (instead of shelling out to
             //    the bash script) keeps this test cross-platform — Windows CI
             //    can't run a .sh file directly.
+
+            // Step 1a: pack ILGPU into the temp feed FIRST, before the
+            //   publish runs below. ILGPUC's published .nuspec lists ILGPU
+            //   as a transitive NuGet dependency; the consumer's restore
+            //   fails with NU1101 if ILGPU isn't in the feed. Plain
+            //   `dotnet pack` works for ILGPU since it's a normal class
+            //   library — no staging dir / tools/ shenanigans.
             //
-            //    Step 1a: per-RID R2R publish into staging/tools/<tfm>/<rid>/.
-            //    Single RID is fine for the test — its goal is to verify the
-            //    targets-file resolution path, not to test cross-RID R2R.
+            //   ORDER MATTERS: the publish steps that follow specify
+            //   DebugType=none which removes ILGPU.pdb from Bin/Debug/.
+            //   ILGPU's nuspec sets IncludeSymbols=true so a subsequent
+            //   `dotnet pack ILGPU --no-build` would fail with NU5026
+            //   (missing pdb). Packing first sidesteps this by capturing
+            //   the pre-publish build state.
+            var sharedPackProps = new Dictionary<string, string>
+            {
+                ["Version"] = version,
+                ["PackageVersion"] = version,
+                ["IncludeSymbols"] = "false",
+            };
+            var packIlgpu = await MsBuildRunner.PackAsync(
+                ilgpuCsproj,
+                outputDir: feedDir,
+                configuration: "Debug",
+                noBuild: true,
+                properties: sharedPackProps);
+            Assert.True(packIlgpu.Succeeded,
+                $"dotnet pack ILGPU failed (exit {packIlgpu.ExitCode}). " +
+                $"Stderr: {packIlgpu.StdErr}\nStdout:\n{packIlgpu.FullStdOut}");
+
+            // Step 1b: per-RID R2R publish into staging/tools/<tfm>/<rid>/.
+            //   Single RID is fine for the test — its goal is to verify the
+            //   targets-file resolution path, not to test cross-RID R2R.
             var ridStaging = Path.Combine(
                 stagingDir, "tools", "net10.0", hostRid);
             var publishR2R = await MsBuildRunner.PublishAsync(
@@ -98,12 +130,16 @@ public sealed class NuGetIntegrationTests
                     ["PublishReadyToRunComposite"] = "false",
                     ["DebugType"] = "none",
                     ["DebugSymbols"] = "false",
+                    // Override pack-mode default to keep tool-internal
+                    // runtime DLLs (Roslyn / System.CommandLine /
+                    // ILGPUC.Compilers) in the publish output.
+                    ["_ILGPUCToolDepPrivateAssets"] = "",
                 });
             Assert.True(publishR2R.Succeeded,
                 $"dotnet publish (R2R, {hostRid}) failed (exit {publishR2R.ExitCode}). " +
                 $"Stderr: {publishR2R.StdErr}\nStdout:\n{publishR2R.FullStdOut}");
 
-            // Step 1b: JIT fallback into staging/tools/<tfm>/.
+            // Step 1c: JIT fallback into staging/tools/<tfm>/.
             var jitStaging = Path.Combine(stagingDir, "tools", "net10.0");
             var publishJit = await MsBuildRunner.PublishAsync(
                 ilgpucCsproj,
@@ -116,26 +152,30 @@ public sealed class NuGetIntegrationTests
                 {
                     ["DebugType"] = "none",
                     ["DebugSymbols"] = "false",
+                    ["_ILGPUCToolDepPrivateAssets"] = "",
                 });
             Assert.True(publishJit.Succeeded,
                 $"dotnet publish (JIT) failed (exit {publishJit.ExitCode}). " +
                 $"Stderr: {publishJit.StdErr}\nStdout:\n{publishJit.FullStdOut}");
 
-            // Step 1c: pack with the staging dir feeding the tools/ glob.
-            //   --no-build avoids re-running compile (publish already built).
-            var packProps = new Dictionary<string, string>
+            // Step 1d: pack ILGPUC with the staging dir feeding the tools/
+            //    glob. Do NOT pass noBuild: --no-build implies --no-restore,
+            //    which would leave project.assets.json in the publish
+            //    runs' state (PrivateAssets overridden empty to retain
+            //    runtime DLLs). The .nuspec must use the pack-mode default
+            //    (PrivateAssets="all") to keep Roslyn / System.CommandLine /
+            //    ILGPUC.Compilers off the consumer's transitive dep list.
+            //    Fresh restore is cheap; rebuild is incremental.
+            var ilgpucPackProps = new Dictionary<string, string>(sharedPackProps)
             {
-                ["Version"] = version,
-                ["PackageVersion"] = version,
-                ["IncludeSymbols"] = "false",
                 ["ILGPUCPackStagingDir"] = stagingDir,
             };
             var pack = await MsBuildRunner.PackAsync(
                 ilgpucCsproj,
                 outputDir: feedDir,
                 configuration: "Debug",
-                noBuild: true,
-                properties: packProps);
+                noBuild: false,
+                properties: ilgpucPackProps);
             Assert.True(pack.Succeeded,
                 $"dotnet pack ILGPUC failed (exit {pack.ExitCode}). " +
                 $"Stderr: {pack.StdErr}\nStdout:\n{pack.FullStdOut}");

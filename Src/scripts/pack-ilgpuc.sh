@@ -108,6 +108,7 @@ for rid in "${RIDS[@]}"; do
         -p:PublishReadyToRunComposite=false \
         -p:DebugType=none \
         -p:DebugSymbols=false \
+        -p:_ILGPUCToolDepPrivateAssets= \
         --output "$STAGING/tools/net10.0/$rid" \
         --nologo \
         --verbosity minimal
@@ -125,6 +126,7 @@ dotnet publish "$CSPROJ" \
     --self-contained false \
     -p:DebugType=none \
     -p:DebugSymbols=false \
+    -p:_ILGPUCToolDepPrivateAssets= \
     --output "$STAGING/tools/net10.0" \
     --nologo \
     --verbosity minimal
@@ -165,11 +167,19 @@ fi
 # build/ILGPU.Kernels.targets, not as an assembly reference). The staging
 # dir contents land under tools/ via a <None> glob in the csproj that
 # activates when ILGPUCPackStagingDir is set.
+#
+# Do NOT pass --no-build here. --no-build implies --no-restore, which
+# would make pack read the project.assets.json left behind by the
+# publish runs above (those overrode PrivateAssets to bring runtime DLLs
+# into the staging dir). The published .nuspec needs the *pack-mode*
+# default PrivateAssets="all" so Roslyn / System.CommandLine /
+# ILGPUC.Compilers don't leak as transitive deps. Fresh restore is cheap
+# (everything's already in the package cache) and the rebuild is
+# incremental.
 echo
 echo "==> pack"
 dotnet pack "$CSPROJ" \
     --configuration "$CONFIG" \
-    --no-build \
     --output "$OUTPUT" \
     -p:PackageVersion="$VERSION" \
     -p:Version="$VERSION" \
