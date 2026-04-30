@@ -29,6 +29,18 @@ ILGPU_UPDATE_IR=1 dotnet test --filter IRTests --blame-hang-timeout 360s
 
 # Update snapshots + commit submodule
 scripts/update-snapshots.sh
+
+# Compile-time perf regression tests — deterministic counter budgets
+# (methods discovered, assemblies scanned, cache reuse, walkability).
+# Runs as part of the regular suite; this just filters to that layer.
+dotnet test --filter PerfTests --blame-hang-timeout 360s
+
+# Compile-time profiling bench — opt-in only, writes trace.csv +
+# summary.json to ILGPUC.Tests' bench-output/. Same workload as the
+# old ILGPUC.CompileBench exe (a[i] = b[i] * c[i] across all five
+# backends). Optional: ILGPU_BENCH_WARMUP / ILGPU_BENCH_ITERATIONS /
+# ILGPU_BENCH_OUTPUT.
+ILGPU_RUN_BENCH=1 dotnet test --filter CompileBench --blame-hang-timeout 360s
 ```
 
 Target framework is **net10.0** (C# 13). `AllowUnsafeBlocks` is enabled.
