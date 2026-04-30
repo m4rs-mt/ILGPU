@@ -18,16 +18,53 @@ using ILGPUC.IR.ModuleValues.Construction;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using System.Threading;
 using System.Threading.Tasks;
 
 #pragma warning disable CA1031 // Do not catch general exception types
 
 namespace ILGPUC.Frontend;
+
+/// <summary>
+/// Per-sub-phase timing breakdown of <see cref="ILFrontend.LoadMethods"/>.
+/// </summary>
+internal struct LoadMethodsTimings
+{
+    /// <summary>Total time spent inside <c>DisassembleMethods</c>.</summary>
+    public double DisassembleTotalMs;
+
+    /// <summary>Aggregated <c>Intrinsics.TryImplement</c> time across all
+    /// processed methods (worker-thread sum, not wall clock).</summary>
+    public double IntrinsicResolveMs;
+
+    /// <summary>Number of <c>Intrinsics.TryImplement</c> invocations.</summary>
+    public long IntrinsicResolveCount;
+
+    /// <summary>Aggregated <c>Disassembler.TryDisassemble</c> time across
+    /// all methods (worker-thread sum, not wall clock).</summary>
+    public double RawDisassembleMs;
+
+    /// <summary>Number of <c>Disassembler.TryDisassemble</c> invocations.</summary>
+    public long RawDisassembleCount;
+
+    /// <summary>Total methods discovered (entry + transitive).</summary>
+    public int MethodsDiscovered;
+
+    /// <summary>Distinct assemblies whose PDBs were probed.</summary>
+    public int AssembliesScanned;
+
+    /// <summary>Time loading PDB streams + parsing debug metadata.</summary>
+    public double LoadDebugSymbolsMs;
+
+    /// <summary>Time attaching sequence-point locations to instructions.</summary>
+    public double AttachSequencePointsMs;
+}
 
 /// <summary>
 /// The ILGPUC MSIL frontend.
@@ -52,13 +89,42 @@ sealed class ILFrontend
     private readonly Stack<HashSet<MethodBase>> _methodsStack = new(2);
 
     /// <summary>
-    /// Constructs a new IL frontend using the given paths to resolve debug information
+    /// Optional cross-compilation cache shared across all <see cref="ILFrontend"/>
+    /// instances created by a single <see cref="ILGPUC.KernelCompiler"/>. When
+    /// non-null, disassembled bodies and loaded PDBs are looked up here first
+    /// and only computed on a miss; when null the frontend behaves as before.
+    /// </summary>
+    private readonly ILFrontendCache? _cache;
+
+    /// <summary>
+    /// Constructs a new IL frontend using the given paths to resolve debug
+    /// information. The frontend operates in standalone (uncached) mode.
     /// </summary>
     /// <param name="backendType">The current backend type we are compiling for.</param>
     /// <param name="pdbSearchPaths">The list of search paths.</param>
     public ILFrontend(BackendType backendType, params List<string?> pdbSearchPaths)
+        : this(backendType, cache: null, pdbSearchPaths) { }
+
+    /// <summary>
+    /// Constructs a new IL frontend that shares disassembly + PDB caches with
+    /// every other frontend constructed against the same
+    /// <paramref name="cache"/>. Pass <see langword="null"/> for the legacy,
+    /// uncached behaviour.
+    /// </summary>
+    /// <param name="backendType">The current backend type we are compiling for.</param>
+    /// <param name="cache">
+    /// Optional shared cache; typically owned by the calling
+    /// <see cref="ILGPUC.KernelCompiler"/> so that all kernel compilations in
+    /// one CLI invocation reuse parsed BCL bodies and loaded PDBs.
+    /// </param>
+    /// <param name="pdbSearchPaths">The list of search paths.</param>
+    public ILFrontend(
+        BackendType backendType,
+        ILFrontendCache? cache,
+        params List<string?> pdbSearchPaths)
     {
         BackendType = backendType;
+        _cache = cache;
 
         // Determine pdb lookup directories
         var currentDirectory = Directory.GetCurrentDirectory();
@@ -179,21 +245,112 @@ sealed class ILFrontend
             _methods.Keys.Select(t => t.Module.Assembly).Distinct(),
             LoadDebugSymbols);
 
-        // Process all methods and get debug info assigned to them
+        // Process all methods and get debug info assigned to them.
+        // TryClaimLocationAttachment skips bodies whose instructions were
+        // already location-tagged by an earlier compile that shared the same
+        // cached DisassembledMethod — sequence-point merging is value-
+        // deterministic for a given PDB so reattaching is wasted work.
         Parallel.ForEach(_methods, method =>
         {
-            // Make sure the method is valid
             if (method.Value is null) return;
+            if (!method.Value.TryClaimLocationAttachment()) return;
 
-            // Get sequence information from data
             var sequencePoints = LoadSequencePoints(method.Key);
             if (!sequencePoints.IsValid) return;
 
-            // Assemble all instructions
             foreach (var instruction in method.Value)
                 instruction.UpdateLocation(sequencePoints);
         });
     }
+
+    /// <summary>
+    /// Instrumented variant of <see cref="LoadMethods"/> that records the
+    /// elapsed time of each constituent sub-phase and the number of methods
+    /// processed at each stage. Intended for profiling / benchmarking only.
+    /// </summary>
+    /// <param name="methods">Methods to load.</param>
+    /// <param name="timings">Receives the per-sub-phase timing breakdown.</param>
+    internal void LoadMethodsInstrumented(
+        IReadOnlyCollection<MethodBase> methods,
+        out LoadMethodsTimings timings)
+    {
+        timings = default;
+        var sw = Stopwatch.StartNew();
+
+        // Sub-phase 1: disassemble entry methods + transitive walk.
+        // Within ProcessMethod we accumulate finer-grained counters into
+        // thread-static fields so the bench can split disassembly time
+        // between intrinsic resolution and actual IL parsing.
+        var prev = s_collectSubCounters;
+        s_collectSubCounters = true;
+        s_intrinsicNs = 0;
+        s_intrinsicCount = 0;
+        s_disassembleNs = 0;
+        s_disassembleCount = 0;
+        try
+        {
+            DisassembleMethods(methods);
+        }
+        finally
+        {
+            s_collectSubCounters = prev;
+        }
+        sw.Stop();
+        timings.DisassembleTotalMs = sw.Elapsed.TotalMilliseconds;
+        timings.IntrinsicResolveMs = s_intrinsicNs / 1_000_000.0;
+        timings.IntrinsicResolveCount = s_intrinsicCount;
+        timings.RawDisassembleMs = s_disassembleNs / 1_000_000.0;
+        timings.RawDisassembleCount = s_disassembleCount;
+        timings.MethodsDiscovered = _methods.Count;
+
+        // Sub-phase 2: per-assembly PDB load.
+        var assemblies = _methods.Keys
+            .Select(t => t.Module.Assembly)
+            .Distinct()
+            .ToArray();
+        timings.AssembliesScanned = assemblies.Length;
+
+        sw.Restart();
+        Parallel.ForEach(assemblies, LoadDebugSymbols);
+        sw.Stop();
+        timings.LoadDebugSymbolsMs = sw.Elapsed.TotalMilliseconds;
+
+        // Sub-phase 3: sequence-point attachment for each disassembled method.
+        // The TryClaimLocationAttachment gate matches the production
+        // LoadMethods path so warm runs measured by the bench correctly
+        // reflect the no-op cost.
+        sw.Restart();
+        Parallel.ForEach(_methods, method =>
+        {
+            if (method.Value is null) return;
+            if (!method.Value.TryClaimLocationAttachment()) return;
+
+            var sequencePoints = LoadSequencePoints(method.Key);
+            if (!sequencePoints.IsValid) return;
+            foreach (var instruction in method.Value)
+                instruction.UpdateLocation(sequencePoints);
+        });
+        sw.Stop();
+        timings.AttachSequencePointsMs = sw.Elapsed.TotalMilliseconds;
+    }
+
+    // Process-wide accumulators populated only when running through
+    // LoadMethodsInstrumented. Production LoadMethods leaves the gate at
+    // false so the timing branches in ProcessMethod compile down to no-ops
+    // on the hot path. Counters are touched via Interlocked from parallel
+    // worker threads; not safe for concurrent benches in the same process.
+    private static volatile bool s_collectSubCounters;
+    private static long s_intrinsicNs;
+    private static long s_intrinsicCount;
+    private static long s_disassembleNs;
+    private static long s_disassembleCount;
+
+    private static readonly double s_nanosPerTick =
+        1_000_000_000.0 / Stopwatch.Frequency;
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static long ToNanos(long elapsedTicks) =>
+        (long)(elapsedTicks * s_nanosPerTick);
 
     /// <summary>
     /// Disassembles all methods and tracks nested/referenced methods to be disassembled.
@@ -246,11 +403,20 @@ sealed class ILFrontend
         var sourceLocation = new Method.MethodLocation(method);
 
         // Try to remap an intrinsic function
+        bool collect = s_collectSubCounters;
+        long intrinsicStart = collect ? Stopwatch.GetTimestamp() : 0;
         var intrinsicKind = Intrinsics.TryImplement(
             sourceLocation,
             method,
             BackendType,
             out var impl);
+        if (collect)
+        {
+            Interlocked.Add(
+                ref s_intrinsicNs,
+                ToNanos(Stopwatch.GetTimestamp() - intrinsicStart));
+            Interlocked.Increment(ref s_intrinsicCount);
+        }
         if (intrinsicKind == IntrinsicImplementationKind.Remapped ||
             intrinsicKind == IntrinsicImplementationKind.Implemented)
         {
@@ -278,22 +444,71 @@ sealed class ILFrontend
             // Disassemble our new method. Transitively discovered methods
             // (e.g. BCL internals) may contain unsupported IL instructions or
             // unresolvable tokens — treat them as non-disassemblable.
+            //
+            // The cross-compilation cache is consulted at this single
+            // call site, keyed by the method that is actually parsed.
+            // Aliasing introduced later by intrinsic remapping
+            // (`_methods[source] ??= _methods[target]`) stays per-instance
+            // so that future backend-specific intrinsic implementations
+            // continue to resolve correctly per backend.
             DisassembledMethod? disassembled;
-
-            try
+            if (_cache is not null &&
+                _cache.Disassembly.TryGetValue(method, out var cached))
             {
-                disassembled = Disassembler.TryDisassemble(method);
+                if (cached.Status == DisassembleStatus.Failed ||
+                    cached.Body is null)
+                    return;
+                disassembled = cached.Body;
             }
-            catch (Exception)
+            else
             {
-                // Transitively discovered methods may fail to disassemble due to
-                // unsupported IL, unresolvable tokens, etc. The code generator
-                // will simply skip methods without a disassembled body.
-                return;
-            }
+                long disStart = collect ? Stopwatch.GetTimestamp() : 0;
+                try
+                {
+                    disassembled = Disassembler.TryDisassemble(method);
+                }
+                catch (Exception)
+                {
+                    if (collect)
+                    {
+                        Interlocked.Add(
+                            ref s_disassembleNs,
+                            ToNanos(Stopwatch.GetTimestamp() - disStart));
+                        Interlocked.Increment(ref s_disassembleCount);
+                    }
+                    // Transitively discovered methods may fail to disassemble
+                    // due to unsupported IL, unresolvable tokens, etc. The
+                    // code generator will simply skip methods without a
+                    // disassembled body. Memoize the failure so warm compiles
+                    // in the same session don't re-throw.
+                    _cache?.Disassembly.TryAdd(
+                        method,
+                        new DisassemblyCacheEntry(null, DisassembleStatus.Failed));
+                    return;
+                }
+                if (collect)
+                {
+                    Interlocked.Add(
+                        ref s_disassembleNs,
+                        ToNanos(Stopwatch.GetTimestamp() - disStart));
+                    Interlocked.Increment(ref s_disassembleCount);
+                }
 
-            // Ignore empty assignments
-            if (disassembled is null) return;
+                if (disassembled is null)
+                {
+                    _cache?.Disassembly.TryAdd(
+                        method,
+                        new DisassemblyCacheEntry(null, DisassembleStatus.Failed));
+                    return;
+                }
+
+                // Publish to the shared cache for later kernel compiles in the
+                // same KernelCompiler session.
+                _cache?.Disassembly.TryAdd(
+                    method,
+                    new DisassemblyCacheEntry(
+                        disassembled, DisassembleStatus.Disassembled));
+            }
 
             // Add method to internal methods
             lock (_methods) _methods[method] = disassembled;
@@ -350,34 +565,76 @@ sealed class ILFrontend
     /// <summary>
     /// Loads all debug symbols of all referenced assemblies.
     /// </summary>
+    /// <remarks>
+    /// Per-assembly results are stored both in the per-instance
+    /// <see cref="_referencedAssemblies"/> dictionary (so that
+    /// <see cref="TryLoadDebugInformation"/> stays a simple lookup) and in
+    /// the shared <see cref="ILFrontendCache.Pdb"/> when one was supplied.
+    /// On a warm compile in the same <see cref="ILGPUC.KernelCompiler"/>
+    /// session, the shared cache returns an existing <see cref="Lazy{T}"/>
+    /// and zero PDB I/O is performed.
+    /// </remarks>
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     private void LoadDebugSymbols(Assembly assembly)
     {
         lock (_referencedAssemblies)
             if (!_referencedAssemblies.TryAdd(assembly, null)) return;
 
-        // Load debug symbols for the given assembly
+        AssemblyDebugInformation? debugInformation;
+        if (_cache is not null)
+        {
+            // Shared cache path: GetOrAdd-with-Lazy ensures concurrent
+            // first-time loads of the same assembly only open and parse
+            // the PDB once across all frontends in this KernelCompiler.
+            var lazy = _cache.Pdb.GetOrAdd(
+                assembly,
+                a => new Lazy<AssemblyDebugInformation?>(
+                    () => LoadDebugInformationFromDisk(a),
+                    LazyThreadSafetyMode.ExecutionAndPublication));
+            debugInformation = lazy.Value;
+        }
+        else
+        {
+            debugInformation = LoadDebugInformationFromDisk(assembly);
+        }
+
+        if (debugInformation is null)
+            return;
+
+        lock (_referencedAssemblies)
+            _referencedAssemblies[assembly] = debugInformation;
+    }
+
+    /// <summary>
+    /// Performs the actual on-disk PDB lookup and metadata parse for
+    /// <paramref name="assembly"/>. Returns <see langword="null"/> when no
+    /// PDB is available — matching the legacy behaviour of leaving
+    /// <c>_referencedAssemblies[assembly]</c> at <see langword="null"/>.
+    /// </summary>
+    private AssemblyDebugInformation? LoadDebugInformationFromDisk(Assembly assembly)
+    {
         if (assembly.IsDynamic ||
             string.IsNullOrEmpty(assembly.Location) ||
             !TryFindPdbFile(assembly, out var pdbFilePath))
         {
-            // Skip this entry and avoid loading further symbols in the future
-            return;
+            return null;
         }
 
-        // Try find pdb source file
-        using var stream = new FileStream(
-            pdbFilePath,
-            FileMode.Open,
-            FileAccess.Read,
-            FileShare.Read);
-
-        // Load assembly debug information
-        var debugInformation = AssemblyDebugInformation.Load(assembly, stream);
-
-        // Register result
-        lock (_referencedAssemblies)
-            _referencedAssemblies[assembly] = debugInformation;
+        try
+        {
+            using var stream = new FileStream(
+                pdbFilePath,
+                FileMode.Open,
+                FileAccess.Read,
+                FileShare.Read);
+            return AssemblyDebugInformation.Load(assembly, stream);
+        }
+        catch (Exception)
+        {
+            // Locked file, corrupt PDB, etc. — fall back to "no debug info"
+            // and let downstream code use Location.Unknown.
+            return null;
+        }
     }
 
     /// <summary>
@@ -414,8 +671,16 @@ sealed class ILFrontend
             // devirtualization or intrinsic handler reflection during code
             // generation that were never in the initial DisassembleMethods
             // queue (e.g., IRadixSortOperation.ExtractRadixBits resolved
-            // via reflection in the RadixSort intrinsic handler).
+            // via reflection in the RadixSort intrinsic handler). Consult
+            // the shared cache before parsing IL so warm compiles skip the
+            // re-disassembly.
             var disassembled = GetDisassembledMethod(method);
+            if (disassembled is null && _cache is not null &&
+                _cache.Disassembly.TryGetValue(method, out var ondemandCached) &&
+                ondemandCached.Status == DisassembleStatus.Disassembled)
+            {
+                disassembled = ondemandCached.Body;
+            }
             if (disassembled is null)
             {
                 try
@@ -429,6 +694,10 @@ sealed class ILFrontend
 
                 if (disassembled is not null)
                 {
+                    _cache?.Disassembly.TryAdd(
+                        method,
+                        new DisassemblyCacheEntry(
+                            disassembled, DisassembleStatus.Disassembled));
                     lock (_methods) _methods[method] = disassembled;
 
                     // Enqueue transitive dependencies so they also get

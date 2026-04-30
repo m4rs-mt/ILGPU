@@ -95,6 +95,15 @@ sealed class KernelCompiler
     private readonly Transformer _optimizationTransformer;
 
     /// <summary>
+    /// Cross-compilation cache shared by every <see cref="ILFrontend"/>
+    /// instantiated by this compiler. Disassembled IL bodies and parsed
+    /// PDBs are computed once on the first kernel compile and reused on
+    /// every subsequent compile in this session, eliminating the bulk
+    /// of the frontend cost in multi-kernel builds.
+    /// </summary>
+    private readonly ILFrontendCache _frontendCache = new();
+
+    /// <summary>
     /// The compilation properties used by this compiler instance.
     /// </summary>
     public CompilationProperties Properties => _properties;
@@ -249,7 +258,7 @@ sealed class KernelCompiler
         IRDumpSettings dump = default)
     {
         var assemblyDir = Path.GetDirectoryName(method.DeclaringType?.Assembly.Location);
-        var frontend = new ILFrontend(backendType, assemblyDir);
+        var frontend = new ILFrontend(backendType, _frontendCache, assemblyDir);
         frontend.LoadMethods([method]);
 
         var moduleBuilder = new ModuleBuilder(
