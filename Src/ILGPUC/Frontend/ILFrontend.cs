@@ -281,6 +281,12 @@ sealed class ILFrontend
     {
         if (assembly is null) return false;
         var name = assembly.GetName().Name;
+        // Test-only override (production sets are empty): assemblies
+        // explicitly listed as forced-non-walkable bypass every other
+        // rule. Used by round-3 derisking tests.
+        if (name is not null && _cache is not null
+            && _cache.ForcedNonWalkableAssemblyNames.Contains(name))
+            return false;
         if (name is not null && _entryWalkableNames is not null
             && _entryWalkableNames.Contains(name))
             return true;
