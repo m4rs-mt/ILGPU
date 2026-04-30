@@ -340,7 +340,10 @@ static unsafe partial class Intrinsics
         // If this method has a remapping (e.g., int.Abs -> XMath.Abs), follow it.
         // Normally remappings are resolved upfront in ProcessMethod, but constrained
         // virtual calls (e.g., INumber<T>.Abs resolved to int.Abs at code-gen time)
-        // may arrive here with the remapping still pending.
+        // may arrive here with the remapping still pending. Round-3 lazy walk also
+        // routes here for any method that wasn't visited by the eager BFS — the
+        // remap is still applied correctly because this check uses the same
+        // (Module, MetadataToken) registry as ProcessMethod.
         if (TryGetIntrinsicRemapping(method, out var remapped))
         {
             // Apply generic specialization if the remapped target needs it
