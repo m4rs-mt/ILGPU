@@ -1,0 +1,152 @@
+<Project>
+
+  <!-- ===================================================================
+       ILGPU Kernel Pre-Compile Pass
+
+       Runs the ilgpuc tool before CoreCompile to:
+       1. Find stream.Launch() call sites in user source
+       2. Compile kernels via ILGPUC (IL frontend → IR → optimizer → backend)
+       3. Generate real CompiledKernel classes
+       4. Rewrite launch sites → compiled launcher calls
+       5. Swap affected source files so csc sees the rewritten code
+
+       User source files are never modified on disk.
+       Debugging maps back to original source via #line directives.
+       =================================================================== -->
+
+  <PropertyGroup>
+    <ILGPUOutputDir>$(IntermediateOutputPath)ilgpu/</ILGPUOutputDir>
+    <ILGPUManifest>$(ILGPUOutputDir)manifest.txt</ILGPUManifest>
+    <ILGPUResponseFile>$(ILGPUOutputDir)args.rsp</ILGPUResponseFile>
+
+    <!-- User-configurable: which backend to compile for -->
+    <ILGPUBackend Condition="'$(ILGPUBackend)' == ''">CPU</ILGPUBackend>
+
+    <!-- User-configurable: extra backend options (e.g., - -simd-width 16) -->
+    <ILGPUBackendOptions Condition="'$(ILGPUBackendOptions)' == ''"></ILGPUBackendOptions>
+
+    <!-- User-configurable: compilation options (e.g., -opt O2) -->
+    <ILGPUCompilationOptions Condition="'$(ILGPUCompilationOptions)' == ''"></ILGPUCompilationOptions>
+
+    <!-- User-configurable: when true, ILGPUC invokes the native toolchain
+         (nvcc/hipcc/ocloc/xcrun) at build time and embeds the binary
+         instead of source. Off by default — most local builds embed source
+         and let the GPU runtime JIT. -->
+    <ILGPUCompile Condition="'$(ILGPUCompile)' == ''">false</ILGPUCompile>
+
+    <!-- User-configurable: semicolon-delimited list of remote
+         ILGPUC.CompilerService base URLs. Each URL is probed for
+         capabilities; the first URL to advertise a backend wins. Only
+         consulted when ILGPUCompile=true. May be combined with the
+         ILGPU_*_SERVICE_URL environment variables — explicit URLs win. -->
+    <ILGPUCompilerServices Condition="'$(ILGPUCompilerServices)' == ''"></ILGPUCompilerServices>
+
+    <!-- Tool path — override for local dev builds -->
+    <ILGPUCompilerTool Condition="'$(ILGPUCompilerTool)' == ''">ilgpuc</ILGPUCompilerTool>
+  </PropertyGroup>
+
+  <!-- =================================================================
+       Target: ILGPUKernelCompile
+       Runs after assembly references are resolved, before CoreCompile.
+       Writes a response file, invokes the ILGPUC build command.
+       ================================================================= -->
+  <Target Name="ILGPUKernelCompile"
+          BeforeTargets="CoreCompile"
+          DependsOnTargets="ResolveAssemblyReferences"
+          Inputs="@(Compile)"
+          Outputs="$(ILGPUManifest)">
+
+    <!-- Ensure output dir exists -->
+    <MakeDir Directories="$(ILGPUOutputDir)" />
+
+    <!-- Split ILGPUBackend on semicolons (e.g. "CPU;Metal" → two items) -->
+    <ItemGroup>
+      <_ILGPUBackendItem Include="$(ILGPUBackend)" />
+    </ItemGroup>
+
+    <!-- Split ILGPUCompilerServices on semicolons; each URL becomes its own
+         response-file argument so the CLI's repeatable
+         &quot;compiler-service&quot; option picks them up. -->
+    <ItemGroup>
+      <_ILGPUCompilerServiceItem Include="$(ILGPUCompilerServices)" />
+    </ItemGroup>
+
+    <!-- Write response file -->
+    <ItemGroup>
+      <_ILGPURspLines Include="build" />
+      <_ILGPURspLines Include="--compile-items" />
+      <_ILGPURspLines Include="%(Compile.FullPath)" />
+      <_ILGPURspLines Include="--references" />
+      <_ILGPURspLines Include="%(ReferencePath.FullPath)" />
+      <_ILGPURspLines Include="--output-dir" />
+      <_ILGPURspLines Include="$(ILGPUOutputDir)" />
+      <_ILGPURspLines Include="--project-dir" />
+      <_ILGPURspLines Include="$(MSBuildProjectDirectory)" />
+      <_ILGPURspLines Include="-b" />
+      <_ILGPURspLines Include="@(_ILGPUBackendItem)" />
+      <_ILGPURspLines Include="--compile" Condition="'$(ILGPUCompile)' == 'true'" />
+      <!-- Emit a &quot;compiler-service&quot; flag plus each URI; the CLI accepts
+           multiple URIs after a single flag thanks to AllowMultipleArgumentsPerToken. -->
+      <_ILGPURspLines Include="--compiler-service"
+                      Condition="'@(_ILGPUCompilerServiceItem)' != ''" />
+      <_ILGPURspLines Include="@(_ILGPUCompilerServiceItem)"
+                      Condition="'@(_ILGPUCompilerServiceItem)' != ''" />
+    </ItemGroup>
+
+    <WriteLinesToFile
+      File="$(ILGPUResponseFile)"
+      Lines="@(_ILGPURspLines)"
+      Overwrite="true" />
+
+    <!-- Run the ILGPUC build command -->
+    <Exec Command="$(ILGPUCompilerTool) @&quot;$(ILGPUResponseFile)&quot; $(ILGPUBackendOptions) $(ILGPUCompilationOptions)"
+          ConsoleToMsBuild="true" />
+
+  </Target>
+
+  <!-- =================================================================
+       Target: ILGPUSwapSources
+       After the tool runs, read the manifest to know which originals
+       were rewritten, remove them from @(Compile), and add the
+       rewritten + generated files.
+       ================================================================= -->
+  <Target Name="ILGPUSwapSources"
+          AfterTargets="ILGPUKernelCompile"
+          BeforeTargets="CoreCompile"
+          Condition="Exists('$(ILGPUManifest)')">
+
+    <!-- Read manifest: one absolute original file path per line -->
+    <ReadLinesFromFile File="$(ILGPUManifest)">
+      <Output TaskParameter="Lines" ItemName="_ILGPURewrittenOriginals" />
+    </ReadLinesFromFile>
+
+    <!-- Remove originals that were rewritten. Use MatchOnMetadata="FullPath"
+         so the comparison is path-based: the manifest contains absolute paths
+         while @(Compile) items added by the SDK glob have relative item-specs.
+         A plain Remove would do an identity (string) comparison and never
+         match, leaving the original .cs file in @(Compile) alongside the
+         rewritten copy and producing CS0101 duplicate-definition errors. -->
+    <ItemGroup>
+      <Compile Remove="@(_ILGPURewrittenOriginals)"
+               MatchOnMetadata="FullPath"
+               MatchOnMetadataOptions="PathLike" />
+    </ItemGroup>
+
+    <!-- Add rewritten + generated files -->
+    <ItemGroup>
+      <Compile Include="$(ILGPUOutputDir)rewritten/**/*.cs" />
+      <Compile Include="$(ILGPUOutputDir)generated/**/*.cs" />
+    </ItemGroup>
+
+  </Target>
+
+  <!-- =================================================================
+       Target: ILGPUClean
+       Clean up generated files on dotnet clean.
+       ================================================================= -->
+  <Target Name="ILGPUClean"
+          AfterTargets="Clean">
+    <RemoveDir Directories="$(ILGPUOutputDir)" />
+  </Target>
+
+</Project>

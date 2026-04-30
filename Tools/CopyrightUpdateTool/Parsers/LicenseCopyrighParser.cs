@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                           Copyright (c) 2022 ILGPU Project
+//                        Copyright (c) 2022-2026 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: LicenseCopyrighParser.cs
@@ -42,18 +42,23 @@ namespace CopyrightUpdateTool.Parsers
         /// <inheritdoc cref="BaseCopyrightParser.CanParseAsync(
         ///     FileInfo,
         ///     CancellationToken)" />
-        public async override Task<bool> CanParseAsync(
+        public override Task<bool> CanParseAsync(
             FileInfo file,
-            CancellationToken cancellationToken)
-        {
-            var relativePath = await VersionControlService.GetRelativePathAsync(file);
-            if (relativePath != null)
-            {
-                var parts = relativePath.DecomposePath();
-                return parts[0].Equals("LICENSE.txt", StringComparison.OrdinalIgnoreCase);
-            }
+            CancellationToken cancellationToken) =>
+            Task.FromResult(
+                file.Name.Equals("LICENSE.txt", StringComparison.OrdinalIgnoreCase) &&
+                IsAtRepositoryRoot(file));
 
-            return false;
+        private bool IsAtRepositoryRoot(FileInfo file)
+        {
+            var workdir = VersionControlService.WorkingDirectory;
+            if (workdir == null || file.Directory == null)
+                return false;
+            var fileDir = file.Directory.FullName
+                .TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+            var rootDir = workdir
+                .TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+            return string.Equals(fileDir, rootDir, StringComparison.OrdinalIgnoreCase);
         }
 
         /// <inheritdoc cref="BaseCopyrightParser.ParseAsync(

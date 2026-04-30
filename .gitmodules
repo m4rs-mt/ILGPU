@@ -1,0 +1,3 @@
+[submodule "Src/ILGPUC.Tests/Snapshots"]
+	path = Src/ILGPUC.Tests/Snapshots
+	url = https://github.com/m4rs-mt/ILGPU-Snapshots.git
