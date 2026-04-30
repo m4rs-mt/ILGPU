@@ -679,11 +679,63 @@ jobs:
           exit $fail
 
   # ===========================================================================
-  # Tier 3: compile-only jobs (parallel after test-cpu)
+  # Tier 2.5: end-to-end NuGet consumer gate
   # ===========================================================================
   #
-  # All four `*-compile` jobs declare `needs: test-cpu`. They run in
-  # parallel with each other; a CPU regression cascade-skips them all.
+  # Slots between `test-cpu` and the four `test-*-compile` jobs as a
+  # fail-fast gate on packaging breakage. EndToEndTest/run.sh packs
+  # ILGPU + ILGPUC into a local NuGet feed, restores + builds + runs a
+  # real consumer project (EndToEndTest/HelloKernel/), and asserts the
+  # CPU runtime produces the expected output.
+  #
+  # Catching packaging issues here means a red gate prevents the four
+  # GPU-compile and four sample-compile jobs (8 expensive runners
+  # including macOS for Metal and three Linux Docker pulls for CUDA /
+  # ROCm / OpenCL) from spinning up.
+  #
+  # Single ubuntu-latest runner — cross-RID coverage at the gate
+  # position would burn macOS / Windows minutes for a fail-fast role.
+  # `package-library` later packs all three RIDs anyway.
+
+  e2e-test:
+    name: NuGet end-to-end consumer test
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule' || github.event_name == 'push' || github.event.pull_request.head.repo.id != github.event.pull_request.base.repo.id
+    needs: test-cpu
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Run EndToEndTest
+        run: EndToEndTest/run.sh
+
+      - name: Upload run state on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-test-failure
+          path: |
+            EndToEndTest/feed
+            EndToEndTest/HelloKernel/obj
+            EndToEndTest/HelloKernel/NuGet.config
+          if-no-files-found: ignore
+
+  # ===========================================================================
+  # Tier 3: compile-only jobs (parallel after e2e-test)
+  # ===========================================================================
+  #
+  # All four `*-compile` jobs declare `needs: e2e-test`. They run in
+  # parallel with each other; a CPU regression or NuGet packaging
+  # regression cascade-skips them all (test-cpu gates e2e-test, which
+  # in turn gates these).
   #
   # The three Linux compile jobs `docker run` the GHCR-published images
   # (built by .github/workflows/docker-publish.yml) and execute
@@ -700,7 +752,7 @@ jobs:
   test-metal-compile:
     name: Metal compile-only tests
     if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule' || github.event_name == 'push' || github.event.pull_request.head.repo.id != github.event.pull_request.base.repo.id
-    needs: test-cpu
+    needs: e2e-test
     runs-on: macos-latest
     timeout-minutes: 30
     steps:
@@ -753,7 +805,7 @@ jobs:
     # PR events. Fork contributors still get CPU + Metal coverage via the
     # other test jobs.
     if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule' || github.event_name == 'push'
-    needs: test-cpu
+    needs: e2e-test
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
@@ -818,7 +870,7 @@ jobs:
     name: ROCm compile-only tests
     # Fork PRs skip this job — same reason as test-cuda-compile above.
     if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule' || github.event_name == 'push'
-    needs: test-cpu
+    needs: e2e-test
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
@@ -893,7 +945,7 @@ jobs:
     name: OpenCL compile-only tests
     # Fork PRs skip this job — same reason as test-cuda-compile above.
     if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule' || github.event_name == 'push'
-    needs: test-cpu
+    needs: e2e-test
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
@@ -989,6 +1041,7 @@ jobs:
       - build-test-binaries
       - build-samples
       - test-cpu
+      - e2e-test
       - test-metal-compile
       - build-samples-metal
       - test-cuda-compile
@@ -1015,6 +1068,7 @@ jobs:
           RESULT_BUILD_TEST_BINARIES: ${{ needs.build-test-binaries.result }}
           RESULT_BUILD_SAMPLES: ${{ needs.build-samples.result }}
           RESULT_TEST_CPU: ${{ needs.test-cpu.result }}
+          RESULT_E2E_TEST: ${{ needs.e2e-test.result }}
           RESULT_TEST_METAL: ${{ needs.test-metal-compile.result }}
           RESULT_BUILD_SAMPLES_METAL: ${{ needs.build-samples-metal.result }}
           RESULT_TEST_CUDA: ${{ needs.test-cuda-compile.result }}
@@ -1055,6 +1109,7 @@ jobs:
           check_required  build-test-binaries  "$RESULT_BUILD_TEST_BINARIES"
           check_required  build-samples        "$RESULT_BUILD_SAMPLES"
           check_required  test-cpu             "$RESULT_TEST_CPU"
+          check_required  e2e-test             "$RESULT_E2E_TEST"
           check_required  test-metal-compile   "$RESULT_TEST_METAL"
           check_required  build-samples-metal  "$RESULT_BUILD_SAMPLES_METAL"
           check_gpu_private test-cuda-compile    "$RESULT_TEST_CUDA"
