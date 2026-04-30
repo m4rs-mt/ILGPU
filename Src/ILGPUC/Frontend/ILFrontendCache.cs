@@ -9,9 +9,11 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
+using ILGPU;
 using ILGPUC.Frontend.DebugInformation;
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Reflection;
 
 namespace ILGPUC.Frontend;
@@ -96,6 +98,86 @@ internal sealed class ILFrontendCache
     { get; } = new(concurrencyLevel: Environment.ProcessorCount, capacity: 32);
 
     /// <summary>
+    /// Absolute walkability decisions per assembly — depends only on the
+    /// assembly itself (rules c and d in the round-3 design): explicit
+    /// <see cref="KernelLibraryAttribute"/> opt-in or membership in the
+    /// hard-coded compiler-runtime list. Rules a and b (entry-assembly
+    /// identity and direct references) are evaluated per-frontend in
+    /// <see cref="ILFrontend"/> because they vary by entry method.
+    /// </summary>
+    public ConcurrentDictionary<Assembly, bool> AssemblyWalkability
+    { get; } = new(concurrencyLevel: Environment.ProcessorCount, capacity: 32);
+
+    /// <summary>
+    /// Names of the BCL / runtime / SDK assembly families that are never
+    /// walked eagerly. Used by <see cref="ILFrontend"/>'s entry-relative
+    /// check to prevent <c>System.Runtime</c> etc. from being auto-walked
+    /// just because the user's SDK references them.
+    /// </summary>
+    public static readonly string[] BclAssemblyPrefixes =
+    [
+        "System",
+        "Microsoft",
+        "mscorlib",
+        "netstandard",
+        "runtime",
+    ];
+
+    /// <summary>
+    /// Hard-coded always-walkable assemblies — the compiler's own runtime and
+    /// algorithms libraries. Belt-and-braces for the case where the
+    /// <see cref="KernelLibraryAttribute"/> is stripped by tooling.
+    /// </summary>
+    public static readonly HashSet<string> AlwaysWalkableNames = new(
+        StringComparer.Ordinal)
+    {
+        "ILGPU",
+        "ILGPU.Algorithms",
+        "ILGPUC",
+    };
+
+    /// <summary>
+    /// Returns the absolute walkability of <paramref name="assembly"/> —
+    /// <see langword="true"/> iff it carries <see cref="KernelLibraryAttribute"/>
+    /// or is in the always-walkable list. Cached for the lifetime of this
+    /// cache. Does not consider entry-relative direct-reference rules; those
+    /// are evaluated in <see cref="ILFrontend"/>.
+    /// </summary>
+    public bool IsAbsolutelyWalkable(Assembly assembly) =>
+        assembly is not null && AssemblyWalkability.GetOrAdd(
+            assembly,
+            ComputeAbsoluteWalkability);
+
+    private static bool ComputeAbsoluteWalkability(Assembly assembly)
+    {
+        var name = assembly.GetName().Name;
+        if (string.IsNullOrEmpty(name))
+            return false;
+        if (AlwaysWalkableNames.Contains(name))
+            return true;
+        return assembly.GetCustomAttribute<KernelLibraryAttribute>() is not null;
+    }
+
+    /// <summary>
+    /// Returns <see langword="true"/> if <paramref name="name"/> matches one of
+    /// the BCL / runtime / SDK family prefixes. Used by callers that have
+    /// already resolved an assembly name and want to short-circuit
+    /// direct-reference walkability for SDK-included references.
+    /// </summary>
+    public static bool IsBclAssemblyName(string? name)
+    {
+        if (string.IsNullOrEmpty(name))
+            return false;
+        foreach (var prefix in BclAssemblyPrefixes)
+        {
+            if (name == prefix ||
+                name.StartsWith(prefix + ".", StringComparison.Ordinal))
+                return true;
+        }
+        return false;
+    }
+
+    /// <summary>
     /// Drops every cached entry. Intended for tests and benchmarking only —
     /// production callers should let the cache live as long as the owning
     /// <see cref="ILGPUC.KernelCompiler"/>.
@@ -104,5 +186,6 @@ internal sealed class ILFrontendCache
     {
         Disassembly.Clear();
         Pdb.Clear();
+        AssemblyWalkability.Clear();
     }
 }

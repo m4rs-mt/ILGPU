@@ -89,6 +89,16 @@ sealed class ILFrontend
     private readonly Stack<HashSet<MethodBase>> _methodsStack = new(2);
 
     /// <summary>
+    /// Set of assembly names that are walkable for the current entry-method
+    /// graph because of round-3 lazy-walk rules (a) — the entry method's
+    /// declaring assembly itself — and (b) — direct, non-BCL references of
+    /// the entry assembly. Populated by <see cref="LoadMethods"/> /
+    /// <see cref="GenerateCode"/> at the start of each call. Rules (c) and
+    /// (d) are handled by <see cref="ILFrontendCache.IsAbsolutelyWalkable"/>.
+    /// </summary>
+    private HashSet<string>? _entryWalkableNames;
+
+    /// <summary>
     /// Optional cross-compilation cache shared across all <see cref="ILFrontend"/>
     /// instances created by a single <see cref="ILGPUC.KernelCompiler"/>. When
     /// non-null, disassembled bodies and loaded PDBs are looked up here first
@@ -232,11 +242,61 @@ sealed class ILFrontend
         : SequencePointEnumerator.Empty;
 
     /// <summary>
+    /// Computes the entry-relative walkable name set (round-3 rules a and b)
+    /// for the given entry methods: the entry assemblies' own names plus the
+    /// names of every directly-referenced assembly that isn't part of a BCL
+    /// family. Stored in <see cref="_entryWalkableNames"/> for
+    /// <see cref="ProcessMethod"/> to consult.
+    /// </summary>
+    private void ComputeEntryWalkableNames(IReadOnlyCollection<MethodBase> methods)
+    {
+        var names = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var m in methods)
+        {
+            var asm = m.DeclaringType?.Assembly;
+            if (asm is null) continue;
+            var asmName = asm.GetName().Name;
+            if (asmName is null) continue;
+            names.Add(asmName);
+
+            // Rule (b): direct references, minus BCL families.
+            foreach (var refName in asm.GetReferencedAssemblies())
+            {
+                var n = refName.Name;
+                if (n is null) continue;
+                if (ILFrontendCache.IsBclAssemblyName(n)) continue;
+                names.Add(n);
+            }
+        }
+        _entryWalkableNames = names;
+    }
+
+    /// <summary>
+    /// Returns whether the round-3 eager BFS should walk into
+    /// <paramref name="assembly"/>. Combines entry-relative rules (a/b) with
+    /// the cache's absolute rules (c/d).
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private bool IsAssemblyWalkable(Assembly? assembly)
+    {
+        if (assembly is null) return false;
+        var name = assembly.GetName().Name;
+        if (name is not null && _entryWalkableNames is not null
+            && _entryWalkableNames.Contains(name))
+            return true;
+        return _cache?.IsAbsolutelyWalkable(assembly)
+            ?? (name is not null
+                && ILFrontendCache.AlwaysWalkableNames.Contains(name));
+    }
+
+    /// <summary>
     /// Loads all methods while fully disassembling all methods and all called methods.
     /// </summary>
     /// <param name="methods">methods to load.</param>
     public void LoadMethods(IReadOnlyCollection<MethodBase> methods)
     {
+        ComputeEntryWalkableNames(methods);
+
         // Disassemble all methods
         DisassembleMethods(methods);
 
@@ -274,6 +334,8 @@ sealed class ILFrontend
         IReadOnlyCollection<MethodBase> methods,
         out LoadMethodsTimings timings)
     {
+        ComputeEntryWalkableNames(methods);
+
         timings = default;
         var sw = Stopwatch.StartNew();
 
@@ -441,6 +503,11 @@ sealed class ILFrontend
         }
         else
         {
+            // Round-3 lazy walk: skip non-walkable assemblies. Correctness
+            // is preserved by Intrinsics.TryGenerateCode at codegen time.
+            if (!IsAssemblyWalkable(method.Module.Assembly))
+                return;
+
             // Disassemble our new method. Transitively discovered methods
             // (e.g. BCL internals) may contain unsupported IL instructions or
             // unresolvable tokens — treat them as non-disassemblable.
@@ -700,13 +767,18 @@ sealed class ILFrontend
                             disassembled, DisassembleStatus.Disassembled));
                     lock (_methods) _methods[method] = disassembled;
 
-                    // Enqueue transitive dependencies so they also get
-                    // disassembled and compiled.
-                    foreach (var instruction in disassembled.Instructions)
-                    {
-                        if (instruction.Argument is MethodBase calledMethod)
-                            queue.Enqueue(calledMethod);
-                    }
+                    // Skip the pre-emptive transitive operand walk: under
+                    // round-3 lazy walk this path fires for many BCL methods
+                    // (sbyte.Abs, OverflowException..ctor, ...). Pre-emptively
+                    // enqueueing their operands pulls in deep BCL helpers
+                    // (typeof() → Type.GetTypeFromHandle, etc.) that the
+                    // CodeGenerator would never have reached because exception-
+                    // throwing constructors abort codegen of the calling method
+                    // (caught by the try/catch a few lines below, which marks
+                    // the method External and stops propagation). Letting
+                    // CodeGenerator drive operand discovery via
+                    // OnNewMethodCalled (line 789) preserves the same pruning
+                    // behaviour as the pre-round-3 eager-walk path.
                 }
                 else
                 {
@@ -717,7 +789,8 @@ sealed class ILFrontend
 
             try
             {
-                var codeGenerator = new CodeGenerator(methodBuilder, disassembled);
+                var codeGenerator = new CodeGenerator(
+                    methodBuilder, disassembled, BackendType);
                 codeGenerator.OnNewMethodCalled += (_, e) => queue.Enqueue(e);
 
                 codeGenerator.GenerateCode();
