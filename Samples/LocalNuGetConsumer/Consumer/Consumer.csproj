@@ -1,0 +1,52 @@
+<Project>
+
+  <Import Project="Sdk.props" Sdk="Microsoft.NET.Sdk" />
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>$(SamplesTargetFramework)</TargetFramework>
+    <RootNamespace>Consumer</RootNamespace>
+    <AssemblyName>Consumer</AssemblyName>
+
+    <!-- Per-sample isolated NuGet packages folder. Without this, restoring
+         the locally-built ILGPUC.0.0.0-local.nupkg would land in the dev's
+         global ~/.nuget cache and stick there with the bumped version
+         number. RestoreNoCache forces a fresh resolution against the local
+         feed every time, so iterating on the compiler doesn't require
+         manually clearing the cache between iterations. -->
+    <RestorePackagesPath>$(MSBuildThisFileDirectory)packages/</RestorePackagesPath>
+    <RestoreNoCache>true</RestoreNoCache>
+
+    <!-- ILGPUBackend is normally inherited from Samples/Directory.Build.props
+         (default "CPU") and that's fine here. Leave it alone. -->
+
+    <!-- IMPORTANT: blank out $(ILGPUCompilerTool) to undo Samples/
+         Directory.Build.props's local-DLL override. Other samples in this
+         directory point ILGPUCompilerTool at $(ILGPUBinDir)/ILGPUC.dll
+         (the local repo build). For *this* sample we want the NuGet
+         package's targets file to auto-resolve the tool against the
+         package's bundled tools/<rid>/ layout — that's the whole point.
+         The package's resolution gates on `ILGPUCompilerTool == ''`, so
+         setting it empty here re-enables auto-resolve. -->
+    <ILGPUCompilerTool></ILGPUCompilerTool>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- A single PackageReference brings in:
+         (a) the ILGPUC build-time tooling (build/ILGPUC.targets is
+             auto-imported, tools/<rid>/ ships the ilgpuc binary),
+         (b) ILGPU.dll as a transitive runtime reference (declared in
+             ILGPUC's published .nuspec dependencies).
+         No <Reference Include="ILGPU"/> with HintPath here — that's the
+         local-DLL pattern other samples use; this sample exercises the
+         NuGet path instead. -->
+    <PackageReference Include="ILGPUC" Version="$(ILGPUC_PACKAGE_VERSION)" />
+  </ItemGroup>
+
+  <Import Project="Sdk.targets" Sdk="Microsoft.NET.Sdk" />
+
+  <!-- Note: no <Import Project=".../ILGPU.Kernels.targets"/> either.
+       NuGet auto-imports build/ILGPUC.targets from the package; that
+       file in turn imports ILGPU.Kernels.targets. -->
+
+</Project>
