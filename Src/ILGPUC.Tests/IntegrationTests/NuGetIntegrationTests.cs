@@ -14,6 +14,7 @@ using ILGPUC.Tests.Framework;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using Xunit;
 using Xunit.Abstractions;
@@ -52,9 +53,6 @@ public sealed class NuGetIntegrationTests
 
         var srcRoot = Path.Combine(IntegrationProjectFixture.RepoRoot, "Src");
         var ilgpucCsproj = Path.Combine(srcRoot, "ILGPUC", "ILGPUC.csproj");
-        var ilgpuCsproj = Path.Combine(srcRoot, "ILGPU", "ILGPU.csproj");
-        var compilersCsproj = Path.Combine(
-            srcRoot, "ILGPUC.Compilers", "ILGPUC.Compilers.csproj");
         Assert.True(File.Exists(ilgpucCsproj),
             $"ILGPUC.csproj not found at {ilgpucCsproj}");
 
@@ -64,43 +62,83 @@ public sealed class NuGetIntegrationTests
             Path.GetTempPath(), $"ilgpuc_feed_{Guid.NewGuid():N}");
         Directory.CreateDirectory(feedDir);
         var version = $"0.0.0-msbuildtest-{DateTime.UtcNow:yyyyMMddHHmmssfff}";
+        var stagingDir = Path.Combine(
+            Path.GetTempPath(), $"ilgpuc_stage_{Guid.NewGuid():N}");
+        var hostRid = RuntimeInformation.RuntimeIdentifier;
+        // RuntimeIdentifier may be version-qualified (e.g. "osx.14-arm64").
+        // Collapse to portable form; pack-ilgpuc.sh uses portable RIDs.
+        hostRid = CollapsePortableRid(hostRid);
         _output.WriteLine($"NuGet feed: {feedDir}");
         _output.WriteLine($"Package version: {version}");
+        _output.WriteLine($"Staging dir: {stagingDir}");
+        _output.WriteLine($"Host RID: {hostRid}");
 
         try
         {
-            // 1. Pack ILGPUC AND its sibling project references (ILGPU,
-            //    ILGPUC.Compilers) into the temp feed using the SAME version
-            //    so the inter-package dependency constraints resolve. Without
-            //    these companion packs, the consumer's restore fails with
-            //    NU1101 because ILGPUC's .nuspec lists ILGPU/ILGPUC.Compilers
-            //    as dependencies but they only exist as project references.
-            //    Use --no-build because the test setup already built
-            //    everything into Bin/Debug/net10.0/.
+            // 1. Mirror the publish + pack flow that Src/scripts/pack-ilgpuc.sh
+            //    runs in CI. Doing it inline here (instead of shelling out to
+            //    the bash script) keeps this test cross-platform — Windows CI
+            //    can't run a .sh file directly.
+            //
+            //    Step 1a: per-RID R2R publish into staging/tools/<tfm>/<rid>/.
+            //    Single RID is fine for the test — its goal is to verify the
+            //    targets-file resolution path, not to test cross-RID R2R.
+            var ridStaging = Path.Combine(
+                stagingDir, "tools", "net10.0", hostRid);
+            var publishR2R = await MsBuildRunner.PublishAsync(
+                ilgpucCsproj,
+                outputDir: ridStaging,
+                configuration: "Debug",
+                framework: "net10.0",
+                runtime: hostRid,
+                selfContained: false,
+                properties: new Dictionary<string, string>
+                {
+                    ["PublishReadyToRun"] = "true",
+                    ["PublishReadyToRunComposite"] = "false",
+                    ["DebugType"] = "none",
+                    ["DebugSymbols"] = "false",
+                });
+            Assert.True(publishR2R.Succeeded,
+                $"dotnet publish (R2R, {hostRid}) failed (exit {publishR2R.ExitCode}). " +
+                $"Stderr: {publishR2R.StdErr}\nStdout:\n{publishR2R.FullStdOut}");
+
+            // Step 1b: JIT fallback into staging/tools/<tfm>/.
+            var jitStaging = Path.Combine(stagingDir, "tools", "net10.0");
+            var publishJit = await MsBuildRunner.PublishAsync(
+                ilgpucCsproj,
+                outputDir: jitStaging,
+                configuration: "Debug",
+                framework: "net10.0",
+                runtime: null,
+                selfContained: false,
+                properties: new Dictionary<string, string>
+                {
+                    ["DebugType"] = "none",
+                    ["DebugSymbols"] = "false",
+                });
+            Assert.True(publishJit.Succeeded,
+                $"dotnet publish (JIT) failed (exit {publishJit.ExitCode}). " +
+                $"Stderr: {publishJit.StdErr}\nStdout:\n{publishJit.FullStdOut}");
+
+            // Step 1c: pack with the staging dir feeding the tools/ glob.
+            //   --no-build avoids re-running compile (publish already built).
             var packProps = new Dictionary<string, string>
             {
                 ["Version"] = version,
                 ["PackageVersion"] = version,
                 ["IncludeSymbols"] = "false",
+                ["ILGPUCPackStagingDir"] = stagingDir,
             };
-
-            foreach (var (label, csproj) in new[]
-            {
-                ("ILGPU", ilgpuCsproj),
-                ("ILGPUC.Compilers", compilersCsproj),
-                ("ILGPUC", ilgpucCsproj),
-            })
-            {
-                var pack = await MsBuildRunner.PackAsync(
-                    csproj,
-                    outputDir: feedDir,
-                    configuration: "Debug",
-                    noBuild: true,
-                    properties: packProps);
-                Assert.True(pack.Succeeded,
-                    $"dotnet pack {label} failed (exit {pack.ExitCode}). " +
-                    $"Stderr: {pack.StdErr}\nStdout:\n{pack.FullStdOut}");
-            }
+            var pack = await MsBuildRunner.PackAsync(
+                ilgpucCsproj,
+                outputDir: feedDir,
+                configuration: "Debug",
+                noBuild: true,
+                properties: packProps);
+            Assert.True(pack.Succeeded,
+                $"dotnet pack ILGPUC failed (exit {pack.ExitCode}). " +
+                $"Stderr: {pack.StdErr}\nStdout:\n{pack.FullStdOut}");
 
             var nupkgPath = Path.Combine(feedDir, $"ILGPUC.{version}.nupkg");
             Assert.True(File.Exists(nupkgPath),
@@ -164,16 +202,36 @@ public sealed class NuGetIntegrationTests
         }
         finally
         {
-            try
+            foreach (var dir in new[] { feedDir, stagingDir })
             {
-                if (Directory.Exists(feedDir))
-                    Directory.Delete(feedDir, recursive: true);
-            }
-            catch (Exception ex)
-            {
-                _output.WriteLine(
-                    $"Warning: failed to delete feed dir {feedDir}: {ex.Message}");
+                try
+                {
+                    if (Directory.Exists(dir))
+                        Directory.Delete(dir, recursive: true);
+                }
+                catch (Exception ex)
+                {
+                    _output.WriteLine(
+                        $"Warning: failed to delete {dir}: {ex.Message}");
+                }
             }
         }
+    }
+
+    /// <summary>
+    /// Strips the OS-version qualifier from a runtime identifier
+    /// (e.g. <c>osx.14-arm64</c> → <c>osx-arm64</c>). The package's tools/
+    /// layout uses portable RIDs so the consumer's per-RID resolution can
+    /// match across different OS versions.
+    /// </summary>
+    private static string CollapsePortableRid(string rid)
+    {
+        var dash = rid.LastIndexOf('-');
+        if (dash <= 0) return rid;
+        var os = rid[..dash];
+        var arch = rid[(dash + 1)..];
+        var dot = os.IndexOf('.');
+        if (dot > 0) os = os[..dot];
+        return $"{os}-{arch}";
     }
 }

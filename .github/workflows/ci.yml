@@ -1096,7 +1096,12 @@ jobs:
           cache-dependency-path: |
             Src/**/*.csproj
 
-      - name: Create NuGet packages
+      - name: Create NuGet packages (ILGPU + friends)
+        # Packs ILGPU itself plus ILGPUC.Compilers etc. ILGPUC is intentionally
+        # skipped here — it's an MSBuild-task package whose tools/ payload
+        # comes from per-RID `dotnet publish` runs that plain `dotnet pack`
+        # can't produce. ILGPUC's IsPackable defaults to false unless
+        # ILGPUCPackStagingDir is set; pack-ilgpuc.sh below handles that.
         shell: pwsh
         run: |
           $suffix = "${{ needs.check-version.outputs.suffix }}"
@@ -1107,11 +1112,32 @@ jobs:
 
           dotnet pack Src --configuration=Release @params
 
+      - name: Create ILGPUC NuGet package (R2R native, multi-RID)
+        # pack-ilgpuc.sh runs `dotnet publish` per RID with PublishReadyToRun
+        # and assembles a single ILGPUC.<version>.nupkg containing R2R
+        # native binaries for osx-arm64, linux-x64, win-x64 plus a JIT
+        # fallback DLL. Crossgen2 cross-publishes from windows-latest fine.
+        # Bash is available on windows-latest via Git for Windows.
+        shell: bash
+        run: |
+          set -euo pipefail
+          VERSION="${{ needs.check-version.outputs.version }}"
+          SUFFIX="${{ needs.check-version.outputs.suffix }}"
+          if [[ -n "$SUFFIX" ]]; then
+              PKG_VERSION="$VERSION-$SUFFIX"
+          else
+              PKG_VERSION="$VERSION"
+          fi
+          ./Src/scripts/pack-ilgpuc.sh \
+              --version "$PKG_VERSION" \
+              --output ./Bin/Release \
+              --config Release
+
       - name: Upload NuGet package artifacts
         uses: actions/upload-artifact@v4
         with:
           name: nuget-packages
-          path: ./Bin/Release/ILGPU*.${{ needs.check-version.outputs.version }}.*nupkg
+          path: ./Bin/Release/ILGPU*.${{ needs.check-version.outputs.version }}*.*nupkg
           if-no-files-found: error
 
   # ===========================================================================

@@ -60,6 +60,67 @@
     <None Include="build/**" Pack="true" PackagePath="build/" />
   </ItemGroup>
 
+  <!-- Packaging: ILGPUC ships as an MSBuild-task package (build/ILGPUC.targets
+       auto-imports ILGPU.Kernels.targets, which invokes the ilgpuc tool from
+       tools/<tfm>/). The actual tool binaries are staged into tools/ by
+       Src/scripts/pack-ilgpuc.sh and globbed in via $(ILGPUCPackStagingDir)
+       below. lib/<tfm>/ stays empty: the package is not consumed as an
+       assembly reference. -->
+  <PropertyGroup>
+    <!-- IsPackable gates on the staging dir so plain `dotnet pack Src` skips
+         ILGPUC entirely (a metadata-only nupkg without tools/ is broken).
+         Src/scripts/pack-ilgpuc.sh sets ILGPUCPackStagingDir which flips
+         this on. The NuGetIntegrationTests test does the same. -->
+    <IsPackable Condition="'$(ILGPUCPackStagingDir)' != ''">true</IsPackable>
+    <IsPackable Condition="'$(ILGPUCPackStagingDir)' == ''">false</IsPackable>
+    <PackageId>ILGPUC</PackageId>
+    <Title>ILGPUC</Title>
+    <Authors>Marcel Koester</Authors>
+    <Copyright>Copyright (c) 2016-2026 ILGPU Project. All rights reserved.</Copyright>
+    <Description>ILGPU AOT compiler toolchain. Compiles GPU kernels at build time via the ILGPU.Kernels.targets MSBuild integration.</Description>
+    <PackageDescription>
+      ILGPU AOT compiler. Add a &lt;PackageReference&gt; and the bundled MSBuild
+      targets file rewrites stream.Launch() call sites and emits CompiledKernel
+      classes for the configured backend(s) before csc runs. Ships R2R-accelerated
+      native binaries for osx-arm64, linux-x64, and win-x64 with a JIT fallback
+      for other RIDs.
+    </PackageDescription>
+    <PackageProjectUrl>http://www.ilgpu.net</PackageProjectUrl>
+    <PackageReleaseNotes>http://www.ilgpu.net/releases</PackageReleaseNotes>
+    <PackageTags>ilgpu gpu cuda metal opencl rocm aot compiler msbuild</PackageTags>
+    <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
+    <PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
+    <PackageReadmeFile>PACKAGE.md</PackageReadmeFile>
+    <!-- Suppress the default lib/<tfm>/ILGPUC.dll payload — the package is
+         not consumed as an assembly reference; the tool lives in tools/. -->
+    <IncludeBuildOutput>false</IncludeBuildOutput>
+    <!-- We bundle Roslyn DLLs inside tools/. Don't also force consumers to
+         pull them as transitive package deps. -->
+    <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
+    <!-- Source Link / symbols: keep parity with ILGPU.nuspec.targets. -->
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <IncludeSymbols>false</IncludeSymbols>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="..\..\LICENSE.txt" Link="LICENSE.txt" Pack="true"
+          PackagePath="$(PackageLicenseFile)" />
+    <None Include="PACKAGE.md" Pack="true" PackagePath="$(PackageReadmeFile)" />
+  </ItemGroup>
+
+  <!-- $(ILGPUCPackStagingDir) is set by pack-ilgpuc.sh to a directory
+       containing the tools/<tfm>/[<rid>/] tree produced by per-RID
+       `dotnet publish`. This glob feeds those staged binaries into the
+       resulting nupkg under tools/. Without the staging dir set, pack
+       produces a metadata-only package (intentionally — bare `dotnet pack`
+       won't ship a usable tool, see the script). -->
+  <ItemGroup Condition="'$(ILGPUCPackStagingDir)' != ''">
+    <None Include="$(ILGPUCPackStagingDir)\tools\**\*"
+          Pack="true"
+          PackagePath="tools\" />
+  </ItemGroup>
+
   <ItemGroup>
     <EmbeddedResource Update="Resources\ErrorMessages.resx">
       <Generator>ResXFileCodeGenerator</Generator>
