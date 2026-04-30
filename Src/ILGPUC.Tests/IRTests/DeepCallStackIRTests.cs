@@ -131,8 +131,31 @@ public sealed class DeepCallStackIRTests : CompilationTestBase
 
         var ir = DumpAfterFrontendWithCache(kernel, cache);
 
-        Assert.Contains(
-            "llvm.abs.i32",
-            ir);
+        // (1) Depth assertion: every layer must appear as a distinct IR
+        // method. If `OnNewMethodCalled`-driven operand discovery
+        // skipped any layer, or if the inliner collapsed the chain at
+        // frontend time, this would catch it. AfterFrontend dumps come
+        // before optimization so all 8 layers must be present as
+        // separate `define` blocks.
+        for (int i = 1; i <= 8; i++)
+        {
+            Assert.Contains($"define i32 @Layer{i}(", ir);
+        }
+
+        // (2) The intrinsic emission itself is the load-bearing
+        // assertion: codegen for Layer8 emitted `@llvm.abs.i32`, which
+        // can only happen via Path B redirecting `Math.Abs(int)` to
+        // `XMath.Abs(int)`.
+        Assert.Contains("llvm.abs.i32", ir);
+
+        // (3) Negative assertion: the redirect must have happened.
+        // If `Intrinsics.TryGenerateCode`'s remap check at line 344 of
+        // `Intrinsics.cs` failed to fire, codegen would fall through to
+        // `GetMethod(Math.Abs)` and emit a real call to BCL `Math.Abs`,
+        // and the IR would contain a call site referencing it. Asserting
+        // its absence proves Path B redirected the call before any
+        // codegen for the BCL method ran.
+        Assert.DoesNotContain("@System.Math.Abs", ir);
+        Assert.DoesNotContain("call i32 @Abs(", ir);
     }
 }
