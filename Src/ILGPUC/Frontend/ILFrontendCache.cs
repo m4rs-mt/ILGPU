@@ -109,6 +109,23 @@ internal sealed class ILFrontendCache
     { get; } = new(concurrencyLevel: Environment.ProcessorCount, capacity: 32);
 
     /// <summary>
+    /// Test-only override: assembly names listed here are treated as
+    /// non-walkable regardless of all other walkability rules (a–d).
+    /// Used by round-3 derisking tests to force kernels and their
+    /// helpers down the codegen-time intrinsic-resolution path
+    /// (<see cref="ILGPUC.Frontend.Intrinsic.Intrinsics.TryGenerateCode"/>)
+    /// without needing a separate non-referenced helper assembly.
+    /// </summary>
+    /// <remarks>
+    /// Production callers must leave this empty. Forcing the entry
+    /// assembly non-walkable is supported — the entry method falls back
+    /// to the on-the-fly disassembly path in <c>GenerateCode</c>, which
+    /// is exactly the scenario the test wants to exercise.
+    /// </remarks>
+    public HashSet<string> ForcedNonWalkableAssemblyNames { get; } =
+        new(StringComparer.Ordinal);
+
+    /// <summary>
     /// Names of the BCL / runtime / SDK assembly families that are never
     /// walked eagerly. Used by <see cref="ILFrontend"/>'s entry-relative
     /// check to prevent <c>System.Runtime</c> etc. from being auto-walked
