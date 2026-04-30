@@ -1,0 +1,7 @@
+# Local NuGet feed produced by pack-local.sh.
+feed/
+
+# Build / restore state for the Consumer project.
+Consumer/packages/
+Consumer/bin/
+Consumer/obj/

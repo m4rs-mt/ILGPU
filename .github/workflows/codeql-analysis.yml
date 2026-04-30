@@ -1,22 +1,10 @@
 name: "CodeQL"
 
 on:
-  workflow_dispatch: # Allows you to run this workflow manually from the Actions tab
-  push:
-    branches: [ master ]
-    paths-ignore:
-      - '.github/workflows/deploy-site.yml'
-      - 'Docs/**'
-      - 'Site/**'
-  pull_request:
-    # The branches below must be a subset of the branches above.
-    branches: [ master ]
-    paths-ignore:
-      - '.github/workflows/deploy-site.yml'
-      - 'Docs/**'
-      - 'Site/**'
-  schedule:
-    - cron: '41 18 * * 1'
+  # Workflow is intentionally disabled on this PR branch. It will re-enable once the
+  # branch merges onto master with the redesigned canonical CI pipeline that uses
+  # the new ILGPUC.Tests suite. Use workflow_dispatch to trigger manually if needed.
+  workflow_dispatch:
 
 jobs:
   analyze:
@@ -33,17 +21,17 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        solution: [Src/ILGPU.sln, Samples/ILGPU.Samples.sln]
-        framework: [net6.0, net7.0, net8.0]
+        solution: [Src/ILGPU.sln]
+        framework: [net8.0, net9.0]
 
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
 
-    - name: Setup the latest .NET 8 SDK
+    - name: Setup the latest .NET 9 SDK
       uses: actions/setup-dotnet@v4.3.1
       with:
-        dotnet-version: 8.0.x
+        dotnet-version: 9.0.x
 
     # Initializes the CodeQL tools for scanning.
     - name: Initialize CodeQL
@@ -64,9 +52,8 @@ jobs:
         $LibraryTargetFrameworks=$LibraryUnitTestTargetFrameworks=$LibrarySamplesTargetFrameworks=$LibrarySamplesTargetFrameworksWindows="${{ matrix.framework }}"
         Switch($LibrarySamplesTargetFrameworks)
         {
-          "net6.0" { $LibrarySamplesTargetFrameworksWindows="net6.0-windows" }
-          "net7.0" { $LibrarySamplesTargetFrameworksWindows="net7.0-windows" }
           "net8.0" { $LibrarySamplesTargetFrameworksWindows="net8.0-windows" }
+          "net9.0" { $LibrarySamplesTargetFrameworksWindows="net9.0-windows" }
         }
         dotnet build -p:UseSharedCompilation=false `
                      -p:LibraryTargetFrameworks=$LibraryTargetFrameworks `

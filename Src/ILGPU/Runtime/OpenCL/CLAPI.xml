@@ -95,6 +95,13 @@
         <Parameter Name="lengths" Type="IntPtr" Flags="Ref" />
         <Parameter Name="errorCode" Type="CLError" Flags="Out" />
     </Import>
+    <Import Name="clCreateProgramWithIL"
+            ReturnType="IntPtr">
+        <Parameter Name="context" Type="IntPtr" />
+        <Parameter Name="il" Type="void*" />
+        <Parameter Name="length" Type="IntPtr" />
+        <Parameter Name="errorCode" Type="CLError" Flags="Out" />
+    </Import>
     <Import Name="clBuildProgram"
             StringMarshalling="Utf8">
         <Parameter Name="program" Type="IntPtr" />

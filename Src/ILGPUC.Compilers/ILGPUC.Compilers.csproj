@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>$(LibraryTargetFrameworks)</TargetFrameworks>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <VersionPrefix>$(LibraryVersionPrefix)</VersionPrefix>
+    <AssemblyVersion>$(LibraryAssemblyVersion)</AssemblyVersion>
+    <FileVersion>$(LibraryFileVersion)</FileVersion>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <NeutralLanguage>en-US</NeutralLanguage>
+    <LangVersion>13.0</LangVersion>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <OutputPath>../../Bin/$(Configuration)/</OutputPath>
+    <Configurations>Debug;Release</Configurations>
+  </PropertyGroup>
+
+</Project>
