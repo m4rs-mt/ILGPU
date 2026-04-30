@@ -41,8 +41,45 @@
          ILGPU_*_SERVICE_URL environment variables — explicit URLs win. -->
     <ILGPUCompilerServices Condition="'$(ILGPUCompilerServices)' == ''"></ILGPUCompilerServices>
 
-    <!-- Tool path — override for local dev builds -->
-    <ILGPUCompilerTool Condition="'$(ILGPUCompilerTool)' == ''">ilgpuc</ILGPUCompilerTool>
+    <!-- Tool path. When unset (default), auto-resolve against the package's
+         tools/ layout below. Override for local dev builds, e.g.:
+           <ILGPUCompilerTool>dotnet "$(ILGPU_REPO)/Bin/Debug/net10.0/ILGPUC.dll" </ILGPUCompilerTool>
+    -->
+  </PropertyGroup>
+
+  <!-- =================================================================
+       Auto-resolve $(ILGPUCompilerTool) against the package's tools/
+       layout when the user hasn't overridden it. Layout:
+
+         tools/net10.0/ILGPUC.dll          ← JIT fallback for any RID
+         tools/net10.0/<rid>/ILGPUC[.exe]  ← R2R native exe per shipped RID
+
+       Resolution order:
+         1. user override (already set above) — leave it alone
+         2. R2R native exe for the host RID, if shipped
+         3. JIT fallback via `dotnet ILGPUC.dll`
+
+       In the local-development path (consumer <Import>s this targets
+       file directly without a NuGet package), tools/ doesn't exist —
+       step 3 also misses, $(ILGPUCompilerTool) stays empty, and the
+       ILGPUKernelCompile target's <Exec Command="$(ILGPUCompilerTool) ..."/>
+       fails with a clear error. Local-dev consumers must set the
+       property explicitly (see Samples/ for examples).
+       ================================================================= -->
+  <PropertyGroup Condition="'$(ILGPUCompilerTool)' == ''">
+    <!-- $(NETCoreSdkPortableRuntimeIdentifier) is set by the .NET SDK to
+         the portable host RID (e.g. "osx-arm64", "linux-x64", "win-x64") —
+         the same form pack-ilgpuc.sh uses for the per-RID tools/<rid>/
+         layout. Avoids the ".Substring" gymnastics required to collapse
+         the version-qualified RID returned by RuntimeInformation. -->
+    <_ILGPUToolsRoot>$(MSBuildThisFileDirectory)..\tools\net10.0\</_ILGPUToolsRoot>
+    <_ILGPUNativeExeName Condition="'$(OS)' == 'Windows_NT'">ILGPUC.exe</_ILGPUNativeExeName>
+    <_ILGPUNativeExeName Condition="'$(OS)' != 'Windows_NT'">ILGPUC</_ILGPUNativeExeName>
+    <_ILGPUNativeExe>$(_ILGPUToolsRoot)$(NETCoreSdkPortableRuntimeIdentifier)\$(_ILGPUNativeExeName)</_ILGPUNativeExe>
+    <_ILGPUJitDll>$(_ILGPUToolsRoot)ILGPUC.dll</_ILGPUJitDll>
+
+    <ILGPUCompilerTool Condition="Exists('$(_ILGPUNativeExe)')">"$(_ILGPUNativeExe)"</ILGPUCompilerTool>
+    <ILGPUCompilerTool Condition="'$(ILGPUCompilerTool)' == '' And Exists('$(_ILGPUJitDll)')">dotnet "$(_ILGPUJitDll)"</ILGPUCompilerTool>
   </PropertyGroup>
 
   <!-- =================================================================

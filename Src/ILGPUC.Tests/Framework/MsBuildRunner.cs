@@ -97,6 +97,41 @@ static class MsBuildRunner
         return RunDotnetAsync(args, projectPath, timeout, ct);
     }
 
+    public static Task<MsBuildResult> PublishAsync(
+        string projectPath,
+        string outputDir,
+        string configuration = "Release",
+        string? framework = null,
+        string? runtime = null,
+        bool selfContained = false,
+        IDictionary<string, string>? properties = null,
+        TimeSpan timeout = default,
+        CancellationToken ct = default)
+    {
+        var args = new List<string>
+        {
+            "publish",
+            $"\"{projectPath}\"",
+            "-c", configuration,
+            "-o", $"\"{outputDir}\"",
+            "--nologo",
+        };
+        if (framework is not null)
+        {
+            args.Add("-f");
+            args.Add(framework);
+        }
+        if (runtime is not null)
+        {
+            args.Add("-r");
+            args.Add(runtime);
+        }
+        args.Add("--self-contained");
+        args.Add(selfContained ? "true" : "false");
+        AppendProperties(args, properties);
+        return RunDotnetAsync(args, projectPath, timeout, ct);
+    }
+
     public static Task<MsBuildResult> PackAsync(
         string projectPath,
         string outputDir,

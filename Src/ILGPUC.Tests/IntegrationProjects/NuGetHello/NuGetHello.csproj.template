@@ -14,11 +14,11 @@
     <RestorePackagesPath>$(MSBuildThisFileDirectory)packages/</RestorePackagesPath>
     <RestoreNoCache>true</RestoreNoCache>
 
-    <!-- The .targets file is auto-imported from the package's build/ dir.
-         The tool path is still overridden to point at the locally built
-         ILGPUC.dll because the package doesn't yet ship the executable. -->
+    <!-- The .targets file is auto-imported from the package's build/ dir,
+         which auto-resolves $(ILGPUCompilerTool) against the package's
+         tools/ layout (per-RID R2R exe or JIT fallback). No override
+         needed — that path *is* the test's point. -->
     <ILGPUBackend>$(ILGPU_BACKEND)</ILGPUBackend>
-    <ILGPUCompilerTool>dotnet "$(ILGPU_REPO_ROOT)/Bin/Debug/net10.0/ILGPUC.dll" </ILGPUCompilerTool>
   </PropertyGroup>
 
   <ItemGroup>
