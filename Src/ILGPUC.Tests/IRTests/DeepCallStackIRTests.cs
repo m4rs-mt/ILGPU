@@ -105,9 +105,10 @@ public sealed class DeepCallStackIRTests : CompilationTestBase
     /// codegen reaches <c>Math.Abs(int)</c>. Since
     /// <c>System.Private.CoreLib</c> is non-walkable, the BFS never
     /// visited it, so the <c>_methods[Math.Abs]</c> alias to
-    /// <c>XMath.Abs</c>'s body never got set. <see cref="ILGPUC.Frontend.Intrinsic.Intrinsics.TryGenerateCode"/>
-    /// (Path B) catches it via <c>TryGetIntrinsicRemapping</c>,
-    /// redirects to <c>XMath.Abs(int)</c>, and the generator emits
+    /// <c>XMath.Abs</c>'s body never got set.
+    /// <c>Intrinsics.TryGenerateCode</c> (Path B) catches it via
+    /// <c>TryGetIntrinsicRemapping</c>, redirects to
+    /// <c>XMath.Abs(int)</c>, and the generator emits
     /// <c>@llvm.abs.i32</c>.
     /// </description></item>
     /// </list>

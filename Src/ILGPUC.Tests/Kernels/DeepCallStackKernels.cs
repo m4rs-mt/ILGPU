@@ -39,14 +39,19 @@ namespace ILGPUC.Tests.Kernels;
 /// </summary>
 static class DeepCallStackKernels
 {
-    public static int Layer8(int x) => Math.Abs(x);
-    public static int Layer7(int x) => Layer8(x) ^ 0;
-    public static int Layer6(int x) => Layer7(x) + 0;
-    public static int Layer5(int x) => Layer6(x) - 0;
-    public static int Layer4(int x) => Layer5(x) | 0;
-    public static int Layer3(int x) => Layer4(x) & ~0;
-    public static int Layer2(int x) => Layer3(x) << 0;
-    public static int Layer1(int x) => Layer2(x) >> 0;
+    // Helpers are `internal` so KernelRegistry's auto-discovery
+    // (Public | Static methods of any *Kernels class) does NOT register
+    // them as standalone kernels — only DeepChainAbsKernel below is a
+    // kernel. Reflection-based disassembly in ILFrontend works on
+    // internal methods just fine.
+    internal static int Layer8(int x) => Math.Abs(x);
+    internal static int Layer7(int x) => Layer8(x) ^ 0;
+    internal static int Layer6(int x) => Layer7(x) + 0;
+    internal static int Layer5(int x) => Layer6(x) - 0;
+    internal static int Layer4(int x) => Layer5(x) | 0;
+    internal static int Layer3(int x) => Layer4(x) & ~0;
+    internal static int Layer2(int x) => Layer3(x) << 0;
+    internal static int Layer1(int x) => Layer2(x) >> 0;
 
     /// <summary>
     /// Kernel that drives the 8-deep helper chain. Each kernel invocation
