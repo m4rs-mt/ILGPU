@@ -47,13 +47,45 @@
     <InternalsVisibleTo Include="ILGPUC.CompilerService.Tests" />
   </ItemGroup>
 
+  <!-- Pack/publish dual-mode for tool-internal references.
+       PrivateAssets="all" keeps a dep off the consumer-facing .nuspec
+       <dependencies> list, but the .NET SDK *also* drops PrivateAssets="all"
+       packages from the current project's `dotnet publish` output. That's
+       a problem for runtime-needed deps like Roslyn / System.CommandLine /
+       ILGPUC.Compilers — the staged tools/<rid>/ layout would be missing
+       DLLs the ilgpuc binary needs to start.
+       Solution: make PrivateAssets a property. Default = "all" (pack-mode
+       semantics: not in nuspec, not in consumer's bin). Src/scripts/
+       pack-ilgpuc.sh overrides it to empty for the publish runs that
+       produce the staging dir, so runtime DLLs land in tools/<rid>/.
+       The subsequent `dotnet pack` step restores with the default again,
+       so the final .nuspec deps stay clean. -->
+  <PropertyGroup>
+    <_ILGPUCToolDepPrivateAssets Condition="'$(_ILGPUCToolDepPrivateAssets)' == ''">all</_ILGPUCToolDepPrivateAssets>
+  </PropertyGroup>
+
   <ItemGroup>
+    <!-- ILGPU is the runtime library every consumer of ILGPUC also needs
+         (ArrayView<T>, Index1D, Stream.Launch, ...). Default asset flow,
+         so it propagates as a transitive NuGet dependency on the published
+         ILGPUC package — installing ILGPUC alone gives the consumer both
+         the build-time tooling and the runtime reference. -->
     <ProjectReference Include="..\ILGPU\ILGPU.csproj" />
-    <ProjectReference Include="..\ILGPUC.Compilers\ILGPUC.Compilers.csproj" />
-    <PackageReference Include="System.CommandLine" Version="2.0.0-beta5.25306.1" />
-    <PackageReference Include="T4.Build" Version="0.2.5" PrivateAssets="All" />
-    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.12.0" />
-    <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="4.12.0" />
+
+    <!-- The remaining references are tool-internal: bundled inside
+         tools/<tfm>/ during publish, but the consumer's compile graph
+         must NOT see them. PrivateAssets="all" keeps them on the build
+         side of the NuGet asset boundary so they don't appear as deps in
+         the produced ILGPUC.nuspec. -->
+    <ProjectReference Include="..\ILGPUC.Compilers\ILGPUC.Compilers.csproj"
+                      PrivateAssets="$(_ILGPUCToolDepPrivateAssets)" />
+    <PackageReference Include="System.CommandLine" Version="2.0.0-beta5.25306.1"
+                      PrivateAssets="$(_ILGPUCToolDepPrivateAssets)" />
+    <PackageReference Include="T4.Build" Version="0.2.5" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.12.0"
+                      PrivateAssets="$(_ILGPUCToolDepPrivateAssets)" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="4.12.0"
+                      PrivateAssets="$(_ILGPUCToolDepPrivateAssets)" />
   </ItemGroup>
 
   <ItemGroup>
@@ -94,9 +126,13 @@
     <!-- Suppress the default lib/<tfm>/ILGPUC.dll payload — the package is
          not consumed as an assembly reference; the tool lives in tools/. -->
     <IncludeBuildOutput>false</IncludeBuildOutput>
-    <!-- We bundle Roslyn DLLs inside tools/. Don't also force consumers to
-         pull them as transitive package deps. -->
-    <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
+    <!-- Note: do NOT set SuppressDependenciesWhenPacking. We *want* ILGPU
+         to flow through as a transitive NuGet dependency so installing
+         ILGPUC alone gives the consumer the runtime reference too. The
+         tool-internal deps (Roslyn, System.CommandLine, ILGPUC.Compilers)
+         are kept off that flow individually via PrivateAssets="all" on
+         each one above. -->
+    <DevelopmentDependency>false</DevelopmentDependency>
     <!-- Source Link / symbols: keep parity with ILGPU.nuspec.targets. -->
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
     <EmbedUntrackedSources>true</EmbedUntrackedSources>

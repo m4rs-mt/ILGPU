@@ -22,14 +22,14 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- The point of this test: the ILGPUC NuGet package's
-         build/ILGPU.Kernels.targets must be auto-imported. -->
+    <!-- A single PackageReference must give the consumer:
+         (a) the ILGPUC build-time tooling (build/ + tools/ in this nupkg),
+         (b) a runtime reference to ILGPU.dll for ArrayView<T>, Index1D, etc.
+         (b) flows in via NuGet's transitive dependency resolution because
+         ILGPUC's published .nuspec lists ILGPU as a public dependency. The
+         test asserts both — if the transitive flow is broken, the consumer's
+         compile fails with CS0246 (type ArrayView not found). -->
     <PackageReference Include="ILGPUC" Version="$(ILGPUC_PACKAGE_VERSION)" />
-
-    <Reference Include="ILGPU">
-      <HintPath>$(ILGPU_REPO_ROOT)/Bin/Debug/net10.0/ILGPU.dll</HintPath>
-      <Private>true</Private>
-    </Reference>
   </ItemGroup>
 
 </Project>
