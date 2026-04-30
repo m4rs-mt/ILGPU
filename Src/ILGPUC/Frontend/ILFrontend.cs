@@ -92,9 +92,9 @@ sealed class ILFrontend
     /// Set of assembly names that are walkable for the current entry-method
     /// graph because of round-3 lazy-walk rules (a) — the entry method's
     /// declaring assembly itself — and (b) — direct, non-BCL references of
-    /// the entry assembly. Populated by <see cref="LoadMethods"/> /
-    /// <see cref="GenerateCode"/> at the start of each call. Rules (c) and
-    /// (d) are handled by <see cref="ILFrontendCache.IsAbsolutelyWalkable"/>.
+    /// the entry assembly. Populated by <c>LoadMethods</c> / <c>GenerateCode</c>
+    /// at the start of each call. Rules (c) and (d) are handled by
+    /// <see cref="ILFrontendCache.IsAbsolutelyWalkable"/>.
     /// </summary>
     private HashSet<string>? _entryWalkableNames;
 
