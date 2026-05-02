@@ -1,6 +1,6 @@
-﻿// ---------------------------------------------------------------------------------------
+// ---------------------------------------------------------------------------------------
 //                                    ILGPU Samples
-//                           Copyright (c) 2021 ILGPU Project
+//                           Copyright (c) 2026 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Program.cs
@@ -9,102 +9,63 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
+using System;
+using System.Linq;
 using ILGPU;
 using ILGPU.Runtime;
-using System;
 
-namespace ImplicitlyGroupedKernels
+namespace ImplicitlyGroupedKernels;
+
+static class Kernels
 {
-    class Program
+    public static void AddConstantKernel(
+        Index1D index,
+        ArrayView1D<int, Stride1D.Dense> data,
+        int constant)
     {
-        /// <summary>
-        /// Implicitly-grouped kernels receive an index type (first parameter) of type:
-        /// <see cref="Index"/>, <see cref="Index2"/> or <see cref="Index3"/>. 
-        /// These kernel types hide the underlying blocking/grouping semantics of a GPU 
-        /// and allow convenient kernel programming without having take grouping details into account. 
-        /// The block or group size can be defined while loading a kernel via:
-        /// - LoadImplicitlyGroupedStreamKernel (default accelerator stream)
-        /// - LoadImplicitlyGroupedKernel (custom accelerator stream - 1st parameter)
-        /// - LoadAutoGroupedStreamKernel (default accelerator stream)
-        /// - LoadAutoGroupedKernel (custom accelerator stream - 1st parameter)
-        /// 
-        /// Note that you must not use warp-shuffle functionality within implicitly grouped
-        /// kernels since not all lanes of a warp are guaranteed to participate in the warp shuffle.
-        /// </summary>
-        /// <param name="index">The current thread index.</param>
-        /// <param name="dataView">The view pointing to our memory buffer.</param>
-        /// <param name="constant">A nice uniform constant.</param>
-        static void MyKernel(
-            Index1D index,             // The global thread index (1D in this case)
-            ArrayView<int> dataView,   // A view to a chunk of memory (1D in this case)
-            int constant)              // A sample uniform constant
-        {
-            dataView[index] = index + constant;
-        }
+        data[index] = index + constant;
+    }
+}
 
-        static void LaunchKernel(
-            Accelerator accelerator,
-            Action<Index1D, ArrayView<int>, int> launcher)
-        {
-            using var buffer = accelerator.Allocate1D<int>(1024);
+static class Program
+{
+    static void Main()
+    {
+        using var context = Context.CreateDefault();
 
-            // Launch buffer.Length many threads and pass a view to buffer
-            launcher((int)buffer.Length, buffer.View, 42);
-
-            // Reads data from the GPU buffer into a new CPU array.
-            // Implicitly calls accelerator.DefaultStream.Synchronize() to ensure
-            // that the kernel and memory copy are completed first.
-            var data = buffer.GetAsArray1D();
-            for (int i = 0, e = data.Length; i < e; ++i)
+        var device = context.Devices
+            .OrderByDescending(d => d.AcceleratorType switch
             {
-                if (data[i] != 42 + i)
-                    Console.WriteLine($"Error at element location {i}: {data[i]} found");
-            }
+                AcceleratorType.Metal  => 5,
+                AcceleratorType.Cuda   => 4,
+                AcceleratorType.ROCm   => 3,
+                AcceleratorType.OpenCL => 2,
+                AcceleratorType.CPU    => 1,
+                _                      => 0,
+            })
+            .First();
 
-        }
+        using var accelerator = device.CreateAccelerator(context);
+        Console.WriteLine($"Using {accelerator}");
+        var stream = accelerator.DefaultStream;
 
-        /// <summary>
-        /// Launches a simple 1D kernel using implicit and auto-grouping functionality.
-        /// </summary>
-        static void Main()
+        const int Length = 1024;
+        using var buffer = stream.Allocate1D<int>(Length);
+
+        // Launch an implicitly grouped kernel. The runtime automatically
+        // determines grid/group dimensions from the extent.
+        stream.Launch(
+            (Index1D)Length,
+            index => Kernels.AddConstantKernel(index, buffer.View, 42));
+        stream.Synchronize();
+
+        var data = buffer.GetAsArray1D();
+        for (int i = 0; i < data.Length; i++)
         {
-            // Create main context
-            using var context = Context.CreateDefault();
-
-            // For each available device...
-            foreach (var device in context)
-            {
-                // Create accelerator for the given device
-                using var accelerator = device.CreateAccelerator(context);
-                Console.WriteLine($"Performing operations on {accelerator}");
-
-                // Compiles and launches an implicitly-grouped kernel with an automatically
-                // determined group size. The latter is determined either by ILGPU or
-                // the GPU driver. This is the most convenient way to launch kernels using ILGPU.
-
-                // Accelerator.LoadAutoGroupedStreamKernel creates a typed launcher
-                // that implicitly uses the default accelerator stream.
-                // In order to create a launcher that receives a custom accelerator stream
-                // use: accelerator.LoadAutoGroupedKernel<Index, ArrayView<int>, int>(...)
-                var myAutoGroupedKernel = accelerator.LoadAutoGroupedStreamKernel<
-                    Index1D, ArrayView<int>, int>(MyKernel);
-
-                LaunchKernel(accelerator, myAutoGroupedKernel);
-
-                // Compiles and launches an implicitly-grouped kernel with a custom group
-                // size. Note that a group size less than the warp size can cause
-                // dramatic performance decreases since many lanes of a warp might remain
-                // unused.
-
-                // Accelerator.LoadImplicitlyGroupedStreamKernel creates a typed launcher
-                // that implicitly uses the default accelerator stream.
-                // In order to create a launcher that receives a custom accelerator stream
-                // use: accelerator.LoadImplicitlyGroupedKernel<Index, ArrayView<int>, int>(...)
-                var myImplicitlyGroupedKernel = accelerator.LoadImplicitlyGroupedStreamKernel<
-                    Index1D, ArrayView<int>, int>(MyKernel, accelerator.WarpSize);
-
-                LaunchKernel(accelerator, myImplicitlyGroupedKernel);
-            }
+            if (data[i] != 42 + i)
+                Console.WriteLine($"Error at element {i}: {data[i]} found");
         }
+
+        Console.WriteLine("Done.");
     }
 }

@@ -1,6 +1,6 @@
-﻿// ---------------------------------------------------------------------------------------
+// ---------------------------------------------------------------------------------------
 //                                    ILGPU Samples
-//                           Copyright (c) 2021 ILGPU Project
+//                           Copyright (c) 2026 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Program.cs
@@ -9,153 +9,91 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
-using ILGPU;
-using ILGPU.AtomicOperations;
-using ILGPU.Runtime;
 using System;
+using System.Linq;
+using ILGPU;
+using ILGPU.Runtime;
 
-namespace AdvancedAtomics
+namespace AdvancedAtomics;
+
+static class Kernels
 {
-    /// <summary>
-    /// Adds two doubles. This implementation can be used in the context of:
-    /// Atomic.MakeAtomic, in order to realize custom atomic operations.
-    /// </summary>
-    struct AddDoubleOperation : IAtomicOperation<double>
+    // Custom atomic add for doubles using MakeAtomic with delegate operations
+    public static void AddDoubleAtomicKernel(
+        Index1D index,
+        ArrayView<double> dataView,
+        double value)
     {
-        public double Operation(double current, double value) => current + value;
+        Atomic.MakeAtomic(
+            ref dataView[0],
+            value,
+            (current, val) => current + val,
+            (ref double target, double compare, double val) =>
+                Atomic.CompareExchange(ref target, compare, val));
     }
 
-    /// <summary>
-    /// Implements an atomic CAS operation for doubles.
-    /// Note that this implementation here duplicates functionality from:
-    /// ILGPU.AtomicOperations.CompareExchangeDouble.
-    /// </summary>
-    struct DoubleCompareExchangeOperation : ICompareExchangeOperation<double>
+    // Using built-in Atomic.Add for doubles
+    public static void AddDoubleBuiltInKernel(
+        Index1D index,
+        ArrayView<double> dataView,
+        double value)
     {
-        /// <summary>
-        /// Realizes an atomic compare-exchange operation.
-        /// </summary>
-        /// <param name="target">The target location.</param>
-        /// <param name="compare">The expected comparison value.</param>
-        /// <param name="value">The target value.</param>
-        /// <returns>The old value.</returns>
-        public double CompareExchange(ref double target, double compare, double value)
-        {
-            return Atomic.CompareExchange(ref target, compare, value);
-        }
-
-        /// <summary>
-        /// Returns true if both operands represent the same value.
-        /// </summary>
-        /// <param name="left">The left operand.</param>
-        /// <param name="right">The right operand.</param>
-        /// <returns>True, if both operands represent the same value.</returns>
-        public bool IsSame(double first, double second)
-        {
-            return first == second;
-        }
+        Atomic.Add(ref dataView[0], value);
     }
+}
 
-    /// <summary>
-    /// Demonstrates custom atomics using Atomic.MakeAtomic.
-    /// CAUTION: This sample might not run on some GPUs due to missing support for atomic functions.
-    /// </summary>
-    class Program
+static class Program
+{
+    static void Main()
     {
-        /// <summary>
-        /// A simple 1D kernel using a custom atomic implementation
-        /// of Atomic.Add(ArrayView<double>, double)
-        /// <param name="index">The current thread index.</param>
-        /// <param name="dataView">The view pointing to our memory buffer.</param>
-        /// <param name="value">The value to add.</param>
-        static void AddDoubleAtomicKernel(
-            Index1D index,
-            ArrayView<double> dataView,
-            double value)
-        {
-            // atomic add: dataView[0] += value;
-            Atomic.MakeAtomic(
-                ref dataView[0],
-                value,
-                new AddDoubleOperation(),
-                new DoubleCompareExchangeOperation());
-        }
+        using var context = Context.CreateDefault();
 
-        /// <summary>
-        /// A simple 1D kernel using a custom atomic implementation
-        /// of Atomic.Add(ArrayView<double>, double) that leverages pre-defined
-        /// compare-exchange functionality for doubles.
-        /// <param name="index">The current thread index.</param>
-        /// <param name="dataView">The view pointing to our memory buffer.</param>
-        /// <param name="value">The value to add.</param>
-        static void AddDoubleAtomicILGPUFunctionsKernel(
-            Index1D index,
-            ArrayView<double> dataView,
-            double value)
-        {
-            // atomic add: dataView[0] += value;
-            Atomic.MakeAtomic(
-                ref dataView[0],
-                value,
-                new AddDoubleOperation(),
-                new CompareExchangeDouble());
-        }
+        var device = context.Devices
+            .OrderByDescending(d => d.AcceleratorType switch
+            {
+                AcceleratorType.Metal  => 5,
+                AcceleratorType.Cuda   => 4,
+                AcceleratorType.ROCm   => 3,
+                AcceleratorType.OpenCL => 2,
+                AcceleratorType.CPU    => 1,
+                _                      => 0,
+            })
+            .First();
 
-        /// <summary>
-        /// A simple 1D kernel using a pre-defined implementation
-        /// of atomic add for doubles.
-        /// <param name="index">The current thread index.</param>
-        /// <param name="dataView">The view pointing to our memory buffer.</param>
-        /// <param name="value">The value to add.</param>
-        static void AddDoubleBuiltInKernel(
-            Index1D index,
-            ArrayView<double> dataView,
-            double value)
-        {
-            // atomic add: dataView[0] += value;
-            Atomic.Add(ref dataView[0], value);
-        }
+        using var accelerator = device.CreateAccelerator(context);
+        Console.WriteLine($"Using {accelerator}");
+        var stream = accelerator.DefaultStream;
 
-        static void LaunchKernel(
-            Accelerator accelerator,
-            Action<Index1D, ArrayView<double>, double> method)
+        // Custom MakeAtomic kernel
         {
-            Console.WriteLine("Launching: " + method.Method.Name);
-
-            var kernel = accelerator.LoadAutoGroupedStreamKernel(method);
-            using var buffer = accelerator.Allocate1D<double>(1);
+            Console.WriteLine("Launching: AddDoubleAtomicKernel");
+            using var buffer = stream.Allocate1D<double>(1);
             buffer.MemSetToZero();
 
-            kernel(1024, buffer.View, 2.0);
+            stream.Launch(
+                (Index1D)1024,
+                index => Kernels.AddDoubleAtomicKernel(index, buffer.View, 2.0));
+            stream.Synchronize();
 
-            // Reads data from the GPU buffer into a new CPU array.
-            // Implicitly calls accelerator.DefaultStream.Synchronize() to ensure
-            // that the kernel and memory copy are completed first.
             var data = buffer.GetAsArray1D();
             for (int i = 0, e = data.Length; i < e; ++i)
                 Console.WriteLine($"Data[{i}] = {data[i]}");
         }
 
-        /// <summary>
-        /// This sample demonstates the use of the Atomic.MakeAtomic
-        /// functionality to user defined atomics.
-        /// </summary>
-        static void Main()
+        // Built-in Atomic.Add kernel
         {
-            // Create main context
-            using var context = Context.CreateDefault();
+            Console.WriteLine("Launching: AddDoubleBuiltInKernel");
+            using var buffer = stream.Allocate1D<double>(1);
+            buffer.MemSetToZero();
 
-            // For each available device...
-            foreach (var device in context)
-            {
-                // Create accelerator for the given device
-                using var accelerator = device.CreateAccelerator(context);
-                Console.WriteLine($"Performing operations on {accelerator}");
+            stream.Launch(
+                (Index1D)1024,
+                index => Kernels.AddDoubleBuiltInKernel(index, buffer.View, 2.0));
+            stream.Synchronize();
 
-                LaunchKernel(accelerator, AddDoubleAtomicKernel);
-                LaunchKernel(accelerator, AddDoubleAtomicILGPUFunctionsKernel);
-                LaunchKernel(accelerator, AddDoubleBuiltInKernel);
-            }
+            var data = buffer.GetAsArray1D();
+            for (int i = 0, e = data.Length; i < e; ++i)
+                Console.WriteLine($"Data[{i}] = {data[i]}");
         }
     }
 }
