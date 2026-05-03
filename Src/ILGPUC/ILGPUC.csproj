@@ -1,0 +1,170 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFrameworks>$(LibraryTargetFrameworks)</TargetFrameworks>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <VersionPrefix>$(LibraryVersionPrefix)</VersionPrefix>
+    <AssemblyVersion>$(LibraryAssemblyVersion)</AssemblyVersion>
+    <FileVersion>$(LibraryFileVersion)</FileVersion>
+  </PropertyGroup>
+
+  <!-- Enable Nullable Reference Types, but only check for warnings on the latest framework -->
+  <PropertyGroup>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(TargetFramework)' != '$(LibraryLatestTargetFramework)'">
+    <NoWarn>$(NoWarn);nullable</NoWarn>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <NeutralLanguage>en-US</NeutralLanguage>
+    <LangVersion>13.0</LangVersion>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <OutputPath>../../Bin/$(Configuration)/</OutputPath>
+    <DocumentationFile>../../Bin/$(Configuration)/$(TargetFramework)/ILGPUC.xml</DocumentationFile>
+    <Configurations>Debug;Release</Configurations>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+    <AnalysisMode>AllEnabledByDefault</AnalysisMode>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <!-- Turn off package validation for now to avoid checks against non-supported frameworks -->
+    <EnablePackageValidation>false</EnablePackageValidation>
+    <PackageValidationBaselineVersion>$(LibraryPackageValidationBaselineVersion)</PackageValidationBaselineVersion>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="ILGPUC.Tests" />
+    <InternalsVisibleTo Include="ILGPUC.CompilerService.Tests" />
+  </ItemGroup>
+
+  <!-- Pack/publish dual-mode for tool-internal references.
+       PrivateAssets="all" keeps a dep off the consumer-facing .nuspec
+       <dependencies> list, but the .NET SDK *also* drops PrivateAssets="all"
+       packages from the current project's `dotnet publish` output. That's
+       a problem for runtime-needed deps like Roslyn / System.CommandLine /
+       ILGPUC.Compilers — the staged tools/<rid>/ layout would be missing
+       DLLs the ilgpuc binary needs to start.
+       Solution: make PrivateAssets a property. Default = "all" (pack-mode
+       semantics: not in nuspec, not in consumer's bin). Src/scripts/
+       pack-ilgpuc.sh overrides it to empty for the publish runs that
+       produce the staging dir, so runtime DLLs land in tools/<rid>/.
+       The subsequent `dotnet pack` step restores with the default again,
+       so the final .nuspec deps stay clean. -->
+  <PropertyGroup>
+    <_ILGPUCToolDepPrivateAssets Condition="'$(_ILGPUCToolDepPrivateAssets)' == ''">all</_ILGPUCToolDepPrivateAssets>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- ILGPU is the runtime library every consumer of ILGPUC also needs
+         (ArrayView<T>, Index1D, Stream.Launch, ...). Default asset flow,
+         so it propagates as a transitive NuGet dependency on the published
+         ILGPUC package — installing ILGPUC alone gives the consumer both
+         the build-time tooling and the runtime reference. -->
+    <ProjectReference Include="..\ILGPU\ILGPU.csproj" />
+
+    <!-- The remaining references are tool-internal: bundled inside
+         tools/<tfm>/ during publish, but the consumer's compile graph
+         must NOT see them. PrivateAssets="all" keeps them on the build
+         side of the NuGet asset boundary so they don't appear as deps in
+         the produced ILGPUC.nuspec. -->
+    <ProjectReference Include="..\ILGPUC.Compilers\ILGPUC.Compilers.csproj"
+                      PrivateAssets="$(_ILGPUCToolDepPrivateAssets)" />
+    <PackageReference Include="System.CommandLine" Version="2.0.0-beta5.25306.1"
+                      PrivateAssets="$(_ILGPUCToolDepPrivateAssets)" />
+    <PackageReference Include="T4.Build" Version="0.2.5" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.12.0"
+                      PrivateAssets="$(_ILGPUCToolDepPrivateAssets)" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="4.12.0"
+                      PrivateAssets="$(_ILGPUCToolDepPrivateAssets)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="build/**" Pack="true" PackagePath="build/" />
+  </ItemGroup>
+
+  <!-- Packaging: ILGPUC ships as an MSBuild-task package (build/ILGPUC.targets
+       auto-imports ILGPU.Kernels.targets, which invokes the ilgpuc tool from
+       tools/<tfm>/). The actual tool binaries are staged into tools/ by
+       Src/scripts/pack-ilgpuc.sh and globbed in via $(ILGPUCPackStagingDir)
+       below. lib/<tfm>/ stays empty: the package is not consumed as an
+       assembly reference. -->
+  <PropertyGroup>
+    <!-- IsPackable gates on the staging dir so plain `dotnet pack Src` skips
+         ILGPUC entirely (a metadata-only nupkg without tools/ is broken).
+         Src/scripts/pack-ilgpuc.sh sets ILGPUCPackStagingDir which flips
+         this on. The NuGetIntegrationTests test does the same. -->
+    <IsPackable Condition="'$(ILGPUCPackStagingDir)' != ''">true</IsPackable>
+    <IsPackable Condition="'$(ILGPUCPackStagingDir)' == ''">false</IsPackable>
+    <PackageId>ILGPUC</PackageId>
+    <Title>ILGPUC</Title>
+    <Authors>Marcel Koester</Authors>
+    <Copyright>Copyright (c) 2016-2026 ILGPU Project. All rights reserved.</Copyright>
+    <Description>ILGPU AOT compiler toolchain. Compiles GPU kernels at build time via the ILGPU.Kernels.targets MSBuild integration.</Description>
+    <PackageDescription>
+      ILGPU AOT compiler. Add a &lt;PackageReference&gt; and the bundled MSBuild
+      targets file rewrites stream.Launch() call sites and emits CompiledKernel
+      classes for the configured backend(s) before csc runs. Ships R2R-accelerated
+      native binaries for osx-arm64, linux-x64, and win-x64 with a JIT fallback
+      for other RIDs.
+    </PackageDescription>
+    <PackageProjectUrl>http://www.ilgpu.net</PackageProjectUrl>
+    <PackageReleaseNotes>http://www.ilgpu.net/releases</PackageReleaseNotes>
+    <PackageTags>ilgpu gpu cuda metal opencl rocm aot compiler msbuild</PackageTags>
+    <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
+    <PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
+    <PackageReadmeFile>PACKAGE.md</PackageReadmeFile>
+    <!-- Suppress the default lib/<tfm>/ILGPUC.dll payload — the package is
+         not consumed as an assembly reference; the tool lives in tools/. -->
+    <IncludeBuildOutput>false</IncludeBuildOutput>
+    <!-- Note: do NOT set SuppressDependenciesWhenPacking. We *want* ILGPU
+         to flow through as a transitive NuGet dependency so installing
+         ILGPUC alone gives the consumer the runtime reference too. The
+         tool-internal deps (Roslyn, System.CommandLine, ILGPUC.Compilers)
+         are kept off that flow individually via PrivateAssets="all" on
+         each one above. -->
+    <DevelopmentDependency>false</DevelopmentDependency>
+    <!-- Source Link / symbols: keep parity with ILGPU.nuspec.targets. -->
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <IncludeSymbols>false</IncludeSymbols>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="..\..\LICENSE.txt" Link="LICENSE.txt" Pack="true"
+          PackagePath="$(PackageLicenseFile)" />
+    <None Include="PACKAGE.md" Pack="true" PackagePath="$(PackageReadmeFile)" />
+  </ItemGroup>
+
+  <!-- $(ILGPUCPackStagingDir) is set by pack-ilgpuc.sh to a directory
+       containing the tools/<tfm>/[<rid>/] tree produced by per-RID
+       `dotnet publish`. This glob feeds those staged binaries into the
+       resulting nupkg under tools/. Without the staging dir set, pack
+       produces a metadata-only package (intentionally — bare `dotnet pack`
+       won't ship a usable tool, see the script). -->
+  <ItemGroup Condition="'$(ILGPUCPackStagingDir)' != ''">
+    <None Include="$(ILGPUCPackStagingDir)\tools\**\*"
+          Pack="true"
+          PackagePath="tools\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Update="Resources\ErrorMessages.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>ErrorMessages.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+    <EmbeddedResource Update="Resources\RuntimeErrorMessages.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>RuntimeErrorMessages.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+  </ItemGroup>
+</Project>

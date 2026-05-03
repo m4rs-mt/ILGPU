@@ -1,0 +1,93 @@
+// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                           Copyright (c) 2026 ILGPU Project
+//                                    www.ilgpu.net
+//
+// File: Backends.Generated.tt/Backends.Generated.cs
+//
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details.
+// ---------------------------------------------------------------------------------------
+
+
+// disable: max_line_length
+<#@ template debug="false" hostspecific="false" language="C#" #>
+<#@ assembly name="System.Core" #>
+<#@ import namespace="System.Linq" #>
+<#@ output extension=".cs" #>
+<#
+var testClasses = new[]
+{
+    "ArrayExecutionTests",
+    "LambdaExecutionTests",
+    "InlineLambdaExecutionTests",
+    "BasicSwitchExecutionTests",
+    "BasicPhiExecutionTests",
+    "BasicCallExecutionTests",
+    "MemoryBufferExecutionTests",
+    "AtomicExecutionTests",
+    "BasicIfExecutionTests",
+    "KernelEntryPointExecutionTests",
+    "ConvertExecutionTests",
+    "ReinterpretCastExecutionTests",
+    "LocalArrayExecutionTests",
+    "GridExecutionTests",
+    "CompareExecutionTests",
+    "DebugExecutionTests",
+    "StructureExecutionTests",
+    "GroupExecutionTests",
+    "BasicMovementExecutionTests",
+    "BasicJumpExecutionTests",
+    "SharedMemoryExecutionTests",
+    "BinaryIntOpExecutionTests",
+    "ValueTupleExecutionTests",
+    "FixedBufferExecutionTests",
+    "UnaryIntOpExecutionTests",
+    "BasicLoopExecutionTests",
+    "EnumExecutionTests",
+    "WarpExecutionTests",
+    "WarpReduceExecutionTests",
+    "StaticLambdaExecutionTests",
+    "ArrayViewExecutionTests",
+    "ThreadBuiltinExecutionTests",
+    "WarpReduceRuntimeExecutionTests",
+    "GroupReduceRuntimeExecutionTests",
+    "GroupScanRuntimeExecutionTests",
+    "WarpRadixSortRuntimeExecutionTests",
+    "GroupRadixSortRuntimeExecutionTests",
+    "AdvancedViewsExecutionTests",
+    "GenericKernelExecutionTests",
+    "AtomicsFloat64ExecutionTests",
+};
+
+var backends = new[] { "CPU", "Metal", "Cuda", "ROCm", "OpenCL" };
+#>
+// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2025-2026 ILGPU Project
+//                                    www.ilgpu.net
+//
+// File: Backends.Generated.tt/Backends.Generated.cs
+//
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details.
+// ---------------------------------------------------------------------------------------
+
+using ILGPUC.Backends;
+using Xunit.Abstractions;
+
+namespace ILGPUC.Tests.ExecutionTests;
+
+<# foreach (var backend in backends) { #>
+// ============================================================
+// <#= backend #> backend
+// ============================================================
+<#  foreach (var cls in testClasses) { #>
+public sealed class <#= backend #>_<#= cls #> : <#= cls #>
+{
+    public <#= backend #>_<#= cls #>(ITestOutputHelper output)
+        : base(output, BackendType.<#= backend #>) { }
+}
+
+<#  } #>
+<# } #>
