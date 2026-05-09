@@ -9,6 +9,55 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
+// =====================================================================================
+// ArrayView2D layout cheat sheet (read this if you came here from #1464!)
+// -------------------------------------------------------------------------------------
+// In ILGPU, 2D extents are always built as Index2D(X, Y) — *never* (Y, X). The X axis
+// is a logical "column" coordinate; the Y axis is a logical "row" coordinate. A buffer
+// allocated as
+//
+//     using var buffer = stream.Allocate2DDenseX<T>(new Index2D(W, H));
+//
+// has buffer.Extent.X == W (number of columns) and buffer.Extent.Y == H (number of
+// rows), and its 2D view is addressed as view[new Index2D(x, y)] — same X-then-Y
+// argument order everywhere.
+//
+// The stride flavour decides which axis is contiguous in memory:
+//
+//   * Stride2D.DenseX → XStride = 1, YStride = W
+//                      view[Index2D(x, y)] → element at linear offset y * W + x
+//                      X varies fastest. This is column-major-by-row, equivalent to
+//                      a flat row-major layout where x is the "column index" and y
+//                      is the "row index" — i.e. the same memory order as a typical
+//                      C bitmap or `T[Y, X]` array, but with the *index arguments*
+//                      flipped: ILGPU spells it Index2D(x, y), not (y, x).
+//   * Stride2D.DenseY → XStride = H, YStride = 1
+//                      view[Index2D(x, y)] → element at linear offset x * H + y
+//                      Y varies fastest. Useful for column-major numerics.
+//
+// Round-tripping to the host:
+//
+//     var arr = buffer.GetAsArray2D();   // returns T[buffer.Extent.X, buffer.Extent.Y]
+//
+// `arr` is indexed as arr[x, y] — *not* arr[y, x]. The first dimension of the returned
+// `T[,]` is the X axis, matching the kernel-side view[Index2D(x, y)]. This is the
+// opposite convention to the everyday C# bitmap idiom (`pixels[y, x]`), and is the
+// single most common source of confusion when porting CPU image-processing code.
+//
+// Common pitfall (the #1464 bug): allocating with the dimensions swapped, e.g.
+//
+//     // WRONG: width and height transposed
+//     var bad = stream.Allocate2DDenseX<byte>(new Index2D(height, width * 4));
+//     stream.Launch(new Index2D(width, height), …);
+//
+// The kernel iterates over Index2D(width, height) but writes into a buffer whose
+// Extent.X is `height` and Extent.Y is `width * 4` — every store lands in the wrong
+// place and the read-back image is rotated/garbled. The correct shape is to make the
+// allocation extent match the launch extent (or, for byte-per-pixel buffers,
+// Index2D(width * 4, height)) so that the contiguous X axis matches your row stride.
+// See `UsingBitmapStride` below for the padded-row pattern.
+// =====================================================================================
+
 using System;
 using System.Linq;
 using ILGPU;
