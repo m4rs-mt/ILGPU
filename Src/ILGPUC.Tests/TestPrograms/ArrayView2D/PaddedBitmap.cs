@@ -59,6 +59,10 @@ static class Program
         var stream = accelerator.DefaultStream;
 
         using var buffer = stream.Allocate1D<int>(PaddedRowWidth * H);
+        // Allocate1D does not zero-initialize; the padding slots between rows
+        // would otherwise hold heap garbage and make the read-back below
+        // non-deterministic (CI hit this — see PR #1592 build).
+        buffer.View.MemSetToZero(stream);
         var view2d = buffer.View.As2DView(
             new LongIndex2D(W, H),
             new Stride2D.General(new Index2D(1, PaddedRowWidth)));
