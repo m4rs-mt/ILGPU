@@ -1045,8 +1045,50 @@ sealed class ExpressionEmitter(GenerationContext context, TypeEmitter typeEmitte
         }
 
         var source = Emit(getField.Source);
-        var fieldName = StructureType.GetFieldName(getField.FieldSpan.Index);
         var target = Parenthesize(source, Prec.Postfix);
+
+        // Multi-field span: the IR is extracting an N-primitive-field sub-struct
+        // (e.g. ArrayView3D's Stride wrapper, two int slots) out of an
+        // already-flattened parent struct. A single source.Field{Index} would
+        // load just one primitive but the GetField's declared Type is the
+        // sub-struct — emit a struct literal that copies every constituent
+        // field so the expression type matches the IR Value type.
+        // Triggers on Stride3D wrappers; the 2D analogue collapses to Span==1
+        // because Stride2D has only one non-unit field.
+        if (getField.FieldSpan.Span > 1
+            && getField.Type is StructureType subStruct)
+        {
+            var subTypeName = typeEmitter.GetTypeName(subStruct);
+            var sb = new StringBuilder();
+            if (context.LanguageConfig.UsesCStyleStructLiterals)
+            {
+                sb.Append($"({subTypeName}){{ ");
+                for (int i = 0; i < getField.FieldSpan.Span; i++)
+                {
+                    if (i > 0) sb.Append(", ");
+                    var srcName = StructureType.GetFieldName(
+                        getField.FieldSpan.Index + i);
+                    sb.Append($"{target}.{srcName}");
+                }
+                sb.Append(" }");
+            }
+            else
+            {
+                sb.Append($"new {subTypeName} {{ ");
+                for (int i = 0; i < getField.FieldSpan.Span; i++)
+                {
+                    if (i > 0) sb.Append(", ");
+                    var dstName = StructureType.GetFieldName(i);
+                    var srcName = StructureType.GetFieldName(
+                        getField.FieldSpan.Index + i);
+                    sb.Append($"{dstName} = {target}.{srcName}");
+                }
+                sb.Append(" }");
+            }
+            return new Emitted(sb.ToString(), Prec.Postfix);
+        }
+
+        var fieldName = StructureType.GetFieldName(getField.FieldSpan.Index);
         return new Emitted($"{target}.{fieldName}", Prec.Postfix);
     }
 
