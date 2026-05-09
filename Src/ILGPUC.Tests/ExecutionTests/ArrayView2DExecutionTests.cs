@@ -110,3 +110,76 @@ public abstract class ArrayView2DExecutionTests : ExecutionTestBase
             ]);
     }
 }
+
+/// <summary>
+/// 3D analogue of <see cref="ArrayView2DExecutionTests"/>: pins the Index3D-launch
+/// + ArrayView3D round-trip for both stride flavours. The kernel encodes
+/// <c>X * 100 + Y * 10 + Z</c> so each axis is digit-identifiable; the host
+/// reads back through the underlying 1D buffer to verify both the indexer
+/// (<c>view[Index3D(x, y, z)]</c>) and the linear memory order
+/// (<c>z * W * H + y * W + x</c> for DenseXY, <c>x * H * D + y * D + z</c> for
+/// DenseZY). DenseXY is the more common "X-fast / row-major-like" layout;
+/// DenseZY swaps to "Z-fast" and is useful for column-major numerics or when
+/// porting Fortran-style kernels.
+/// </summary>
+/// <remarks>
+/// Bringing these tests up exposed a second emitter bug — the 3D indexer
+/// dispatch leaves a <c>GetField</c> with <c>FieldSpan.Span &gt; 1</c> in the
+/// IR (extracting the <c>Stride3D.*</c> wrapper, two int slots, from the
+/// flattened parameter struct). <c>ExpressionEmitter.EmitGetField</c> used
+/// to emit that as a single <c>source.Field{N}</c> access, which yields a
+/// primitive while the IR Value's declared type is still the sub-struct —
+/// the resulting <c>tmp_0 = source.Field4;</c> failed Roslyn with CS0029
+/// (int → struct). Fixed in <c>EmitGetField</c> by emitting a struct literal
+/// that copies each constituent flat field when <c>Span &gt; 1</c>. The 2D
+/// path never tripped because <c>Stride2D.DenseX/Y</c> has only one non-unit
+/// stride field, so the multi-field load collapses to <c>Span == 1</c>.
+/// </remarks>
+public abstract class ArrayView3DExecutionTests : ExecutionTestBase
+{
+    protected ArrayView3DExecutionTests(ITestOutputHelper output, BackendType backend)
+        : base(output, backend) { }
+
+    private static readonly string[] ExpectedRoundTripOutput =
+    [
+        "x=0,y=0,z=0:0",
+        "x=0,y=0,z=1:1",
+        "x=0,y=1,z=0:10",
+        "x=0,y=1,z=1:11",
+        "x=1,y=0,z=0:100",
+        "x=1,y=0,z=1:101",
+        "x=1,y=1,z=0:110",
+        "x=1,y=1,z=1:111",
+    ];
+
+    [SkippableFact]
+    public async Task DenseXYRoundTrip_ProducesCorrectOutput()
+    {
+        await VerifyProgramOutputAsync(
+            "TestPrograms/ArrayView3D/DenseXYRoundTrip.cs",
+            ["Kernels.DenseXYKernel"],
+            ExpectedRoundTripOutput);
+    }
+
+    [SkippableFact]
+    public async Task DenseZYRoundTrip_ProducesCorrectOutput()
+    {
+        await VerifyProgramOutputAsync(
+            "TestPrograms/ArrayView3D/DenseZYRoundTrip.cs",
+            ["Kernels.DenseZYKernel"],
+            ExpectedRoundTripOutput);
+    }
+
+    [SkippableFact]
+    public async Task GeneralRoundTrip_ProducesCorrectOutput()
+    {
+        // Stride3D.General stresses the deeper nested StrideExtent auto-property
+        // (Index3D, three int leaves) plus the multi-field GetField path in the
+        // kernel body. Strides chosen to produce a DenseXY-equivalent layout
+        // so expected output matches DenseXYRoundTrip.
+        await VerifyProgramOutputAsync(
+            "TestPrograms/ArrayView3D/GeneralRoundTrip.cs",
+            ["Kernels.GeneralKernel"],
+            ExpectedRoundTripOutput);
+    }
+}
