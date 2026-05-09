@@ -7,11 +7,11 @@ name: CI
 #
 #   ┌─ check-style-line-lengths ─┐                ┌─ build (Windows verification, matrix) ─────────────────────────────────────────────────┐
 #   ├─ check-style-line-endings  ┼─→ check-style ─┤                                                                                        │
-#   └─ check-style-copyright-h.  ┘                └─ build-test-binaries ─→ build-samples (CPU) ────────→ test-cpu ─┬─ test-metal-compile  ─→ build-samples-metal  ─┐
-#                                                                                                                   ├─ test-cuda-compile   ─→ build-samples-cuda   ─┤
-#   check-version (parallel) ───────────────────────────────────────────────────────────────────────────────────► │ ├─ test-rocm-compile   ─→ build-samples-rocm   ─┤
-#                                                                                                                   └─ test-opencl-compile ─→ build-samples-opencl ─┤
-#                                                                                                                                                                   ▼
+#   └─ check-style-copyright-h.  ┘                └─ build-test-binaries ─→ build-samples (CPU) ────────→ test-cpu ─┬─ test-metal-compile  ─→ build-samples-metal   ┬─→ test-metal-execution  ─┐
+#                                                                                                                   ├─ test-cuda-compile   ─→ build-samples-cuda    ┼─→ test-cuda-execution   ─┤
+#   check-version (parallel) ───────────────────────────────────────────────────────────────────────────────────► │ ├─ test-rocm-compile   ─→ build-samples-rocm    ┼─→ test-rocm-execution   ─┤
+#                                                                                                                   └─ test-opencl-compile ─→ build-samples-opencl  ┴─→ test-opencl-execution ─┤
+#                                                                                                                                                                                              ▼
 #                                                                                          ┌──→ checks-completed ◄─ all leaves
 #                                                                                          │   (display name: "All required checks done"
 #                                                                                          │    — keeps check-required.yml working)
@@ -36,6 +36,10 @@ name: CI
 #  - the four compile-only jobs run inside the GHCR-published Docker images
 #    that bundle the .NET 10 SDK + the native GPU compiler (see
 #    .github/workflows/docker-publish.yml and Src/docker/)
+#  - the four `*-execution` jobs run the `Metal_*`/`Cuda_*`/`ROCm_*`/`OpenCL_*`
+#    execution test classes; Metal is required and adds a hard preflight that
+#    asserts a Metal device is enumerable, the three Linux execution jobs are
+#    advisory and pass-through-skip when no GPU device is present
 #
 # See plans/ci_redesign.md for the full design rationale.
 # ---------------------------------------------------------------------------
@@ -746,8 +750,14 @@ jobs:
   # false (no real GPU device) so ExecutionTests skip cleanly.
   #
   # Metal runs on macos-latest (Apple Silicon) where xcrun is preinstalled.
-  # No Docker needed and no Metal device passthrough on hosted runners
-  # either — Metal is also a compile-only check.
+  # No Docker needed for the compile-only check.
+  #
+  # The Tier 3.5 `*-execution` jobs (defined further down) run the actual
+  # `dotnet test` for the per-platform `Metal_*` / `Cuda_*` / `ROCm_*` /
+  # `OpenCL_*` execution test classes. Metal execution is mandatory; the
+  # three Linux execution jobs cleanly skip every test on hosted runners
+  # without a GPU and only block CI when a real device is present and a
+  # test fails.
 
   test-metal-compile:
     name: Metal compile-only tests
@@ -1001,6 +1011,312 @@ jobs:
           if-no-files-found: ignore
 
   # ===========================================================================
+  # Tier 3.5: GPU execution tests (gated by the matching compile-only job)
+  # ===========================================================================
+  #
+  # Compile-only tests prove the toolchain produces artifacts; execution tests
+  # actually launch the compiled kernel against a real device and assert its
+  # output. The four jobs below are clones of the matching `test-*-compile`
+  # jobs but with two differences:
+  #
+  #   1. `needs:` points at the matching compile-only job — there is no point
+  #      paying for a runner if codegen is already broken.
+  #   2. `dotnet test --filter` selects the per-platform execution prefixes
+  #      (`Metal_`, `Cuda_`, `ROCm_`, `OpenCL_`) emitted by
+  #      `Src/ILGPUC.Tests/ExecutionTests/Backends.Generated.tt`, not the
+  #      `*BackendTests` classes.
+  #
+  # Required vs. advisory contract (see Tier 4 aggregator):
+  #
+  #   - test-metal-execution is REQUIRED: macos-latest runners on Apple
+  #     Silicon expose Metal-capable GPUs, so execution tests must really run.
+  #     The job adds a hard preflight that fails immediately if
+  #     `MTLCopyAllDevices()` returns empty, closing the silent-skip loophole
+  #     where all per-test `Skip.IfNot(IsRuntimeAvailable)` gates fire and the
+  #     job goes green without exercising real Metal code.
+  #
+  #   - test-{cuda,rocm,opencl}-execution are ADVISORY: hosted ubuntu-latest
+  #     runners have no GPU passthrough, so `XxxDevice.GetDevices()` returns
+  #     empty, every test reports `Skipped`, `dotnet test` exits 0, and the
+  #     job is `success`. They never block CI when no hardware is present.
+  #     The same job code automatically starts exercising real hardware the
+  #     moment a self-hosted runner with the matching device is wired up
+  #     under the same label — no further workflow changes required. If a
+  #     real GPU is present and a test fails, the job fails and blocks CI.
+  #
+  # All four execution jobs reuse the existing `test-binaries` artifact
+  # (built once by `build-test-binaries`) and, on Linux, the existing GHCR
+  # Docker images that bundle the .NET 10 SDK and the native compiler.
+
+  test-metal-execution:
+    name: Metal execution tests
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule' || github.event_name == 'push' || github.event.pull_request.head.repo.id != github.event.pull_request.base.repo.id
+    needs: test-metal-compile
+    runs-on: macos-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Download test binaries
+        uses: actions/download-artifact@v4
+        with:
+          name: test-binaries
+
+      - name: Verify Metal toolchain
+        run: |
+          xcrun --find metal
+          xcrun -sdk macosx metal --version
+
+      # Belt-and-braces preflight: assert at least one Metal device is
+      # enumerable on this runner BEFORE running the tests. Without this,
+      # a runner-image regression that drops GPU access would leave every
+      # `Skip.IfNot(Availability.IsRuntimeAvailable(Backend.Metal))` gate
+      # firing — `dotnet test` would exit 0, the job would go green, and
+      # the "Metal execution is mandatory" contract would silently lie.
+      # `swift -e` calls into the same `MTLCopyAllDevices()` API that
+      # `MetalDevice.GetDevices()` uses internally, so the preflight and
+      # the per-test gate cannot disagree.
+      - name: Preflight — assert a Metal device is available
+        run: |
+          swift -e '
+            import Metal
+            let devices = MTLCopyAllDevices()
+            if devices.isEmpty {
+              FileHandle.standardError.write(Data(
+                "::error::No Metal device enumerable on this runner — refusing to silently pass.\n".utf8))
+              exit(1)
+            }
+            for d in devices { print("Metal device: \(d.name)") }
+          '
+
+      # See the identical comment on test-cpu — restore rewrites the stale
+      # absolute paths in obj/*.nuget.g.props to point at this runner's cache.
+      - name: Restore NuGet packages
+        run: dotnet restore Src/ILGPUC.Tests/ILGPUC.Tests.csproj
+
+      - name: Run Metal_*ExecutionTests
+        run: |
+          dotnet test Src/ILGPUC.Tests/ILGPUC.Tests.csproj \
+            --no-build --no-restore \
+            --blame-hang-timeout 900s \
+            --logger "trx;LogFileName=metal-execution.trx" \
+            --filter "FullyQualifiedName~Metal_"
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-metal-execution
+          path: '**/TestResults/*.trx'
+          if-no-files-found: ignore
+
+  test-cuda-execution:
+    name: Cuda execution tests
+    # Fork PRs skip this job — same GHCR private-image reason as
+    # test-cuda-compile. Aggregator's `check_gpu_private` tolerates
+    # `skipped` only on fork PR events.
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule' || github.event_name == 'push'
+    needs: test-cuda-compile
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Download test binaries
+        uses: actions/download-artifact@v4
+        with:
+          name: test-binaries
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Pull Cuda compiler image
+        run: |
+          docker pull ghcr.io/${{ github.repository_owner }}/ilgpuc-compiler-service-cuda:latest
+
+      # Same HOME + bash-c restore-then-test pattern as test-cuda-compile.
+      # On hosted ubuntu-latest there is no NVIDIA GPU, so
+      # `Availability.IsRuntimeAvailable(BackendType.Cuda)` returns false,
+      # every Cuda_*ExecutionTests case calls `Skip.IfNot(...)`, and the
+      # process exits 0 with all tests reported as Skipped. If the runner
+      # is replaced with one that exposes `--gpus all` and a real device,
+      # the same job will start exercising that hardware automatically.
+      - name: Run Cuda_*ExecutionTests inside the container
+        run: |
+          docker run --rm \
+            --user "$(id -u):$(id -g)" \
+            -v "$GITHUB_WORKSPACE:/workspace" -w /workspace \
+            -e HOME=/tmp \
+            -e DOTNET_NOLOGO=1 \
+            -e DOTNET_CLI_TELEMETRY_OPTOUT=1 \
+            ghcr.io/${{ github.repository_owner }}/ilgpuc-compiler-service-cuda:latest \
+            bash -c '
+              dotnet restore Src/ILGPUC.Tests/ILGPUC.Tests.csproj \
+              && dotnet test Src/ILGPUC.Tests/ILGPUC.Tests.csproj \
+                   --no-build --no-restore \
+                   --blame-hang-timeout 900s \
+                   --logger "trx;LogFileName=cuda-execution.trx" \
+                   --filter "FullyQualifiedName~Cuda_"
+            '
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-cuda-execution
+          path: '**/TestResults/*.trx'
+          if-no-files-found: ignore
+
+  test-rocm-execution:
+    name: ROCm execution tests
+    # Fork PRs skip this job — same GHCR private-image reason as test-rocm-compile.
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule' || github.event_name == 'push'
+    needs: test-rocm-compile
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      # Same disk-pressure mitigation as test-rocm-compile —
+      # rocm/dev-ubuntu-24.04:7.1.1-complete needs ~30 GB free before pull.
+      - name: Free disk space for the ROCm devel image
+        run: |
+          df -h /
+          sudo rm -rf \
+            /opt/hostedtoolcache \
+            /usr/share/dotnet/sdk \
+            /usr/local/lib/android \
+            /opt/ghc \
+            /usr/local/share/boost
+          df -h /
+
+      - name: Download test binaries
+        uses: actions/download-artifact@v4
+        with:
+          name: test-binaries
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Pull ROCm compiler image
+        run: |
+          docker pull ghcr.io/${{ github.repository_owner }}/ilgpuc-compiler-service-rocm:latest
+
+      # See matching comments on test-cuda-execution and test-rocm-compile.
+      - name: Run ROCm_*ExecutionTests inside the container
+        run: |
+          docker run --rm \
+            --user "$(id -u):$(id -g)" \
+            -v "$GITHUB_WORKSPACE:/workspace" -w /workspace \
+            -e HOME=/tmp \
+            -e DOTNET_NOLOGO=1 \
+            -e DOTNET_CLI_TELEMETRY_OPTOUT=1 \
+            ghcr.io/${{ github.repository_owner }}/ilgpuc-compiler-service-rocm:latest \
+            bash -c '
+              dotnet restore Src/ILGPUC.Tests/ILGPUC.Tests.csproj \
+              && dotnet test Src/ILGPUC.Tests/ILGPUC.Tests.csproj \
+                   --no-build --no-restore \
+                   --blame-hang-timeout 900s \
+                   --logger "trx;LogFileName=rocm-execution.trx" \
+                   --filter "FullyQualifiedName~ROCm_"
+            '
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-rocm-execution
+          path: '**/TestResults/*.trx'
+          if-no-files-found: ignore
+
+  test-opencl-execution:
+    name: OpenCL execution tests
+    # Fork PRs skip this job — same GHCR private-image reason as test-opencl-compile.
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule' || github.event_name == 'push'
+    needs: test-opencl-compile
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Download test binaries
+        uses: actions/download-artifact@v4
+        with:
+          name: test-binaries
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Pull OpenCL compiler image
+        run: |
+          docker pull ghcr.io/${{ github.repository_owner }}/ilgpuc-compiler-service-opencl:latest
+
+      # See matching comments on test-cuda-execution and test-opencl-compile.
+      - name: Run OpenCL_*ExecutionTests inside the container
+        run: |
+          docker run --rm \
+            --user "$(id -u):$(id -g)" \
+            -v "$GITHUB_WORKSPACE:/workspace" -w /workspace \
+            -e HOME=/tmp \
+            -e DOTNET_NOLOGO=1 \
+            -e DOTNET_CLI_TELEMETRY_OPTOUT=1 \
+            ghcr.io/${{ github.repository_owner }}/ilgpuc-compiler-service-opencl:latest \
+            bash -c '
+              dotnet restore Src/ILGPUC.Tests/ILGPUC.Tests.csproj \
+              && dotnet test Src/ILGPUC.Tests/ILGPUC.Tests.csproj \
+                   --no-build --no-restore \
+                   --blame-hang-timeout 900s \
+                   --logger "trx;LogFileName=opencl-execution.trx" \
+                   --filter "FullyQualifiedName~OpenCL_"
+            '
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-opencl-execution
+          path: '**/TestResults/*.trx'
+          if-no-files-found: ignore
+
+  # ===========================================================================
   # Tier 4: Aggregator
   # ===========================================================================
   #
@@ -1034,6 +1350,16 @@ jobs:
     # `skipped` on fork PRs, so they're checked via `check_gpu_private`
     # (allows skipped only on fork PRs). build-samples-metal runs on macOS
     # without Docker and is fork-safe, so it's a hard `check_required`.
+    #
+    # The four `test-*-execution` jobs follow the same split as the
+    # compile-only jobs: Metal is `check_required` (with an in-job preflight
+    # that fails the job if no Metal device is enumerable, so a green run
+    # provably exercised real Metal), the three Linux execution jobs are
+    # `check_gpu_private`. On hosted ubuntu-latest there is no GPU
+    # passthrough, so each test cleanly skips via
+    # `Skip.IfNot(Availability.IsRuntimeAvailable(...))` and the job exits
+    # `success` — only a real-device failure (or a fork-PR `skipped`)
+    # matters for the aggregator.
     needs:
       - check-style
       - check-version
@@ -1050,6 +1376,10 @@ jobs:
       - build-samples-cuda
       - build-samples-rocm
       - build-samples-opencl
+      - test-metal-execution
+      - test-cuda-execution
+      - test-rocm-execution
+      - test-opencl-execution
     if: |
       always() &&
       (github.event_name == 'workflow_dispatch' ||
@@ -1077,6 +1407,10 @@ jobs:
           RESULT_BUILD_SAMPLES_CUDA: ${{ needs.build-samples-cuda.result }}
           RESULT_BUILD_SAMPLES_ROCM: ${{ needs.build-samples-rocm.result }}
           RESULT_BUILD_SAMPLES_OPENCL: ${{ needs.build-samples-opencl.result }}
+          RESULT_TEST_METAL_EXECUTION: ${{ needs.test-metal-execution.result }}
+          RESULT_TEST_CUDA_EXECUTION: ${{ needs.test-cuda-execution.result }}
+          RESULT_TEST_ROCM_EXECUTION: ${{ needs.test-rocm-execution.result }}
+          RESULT_TEST_OPENCL_EXECUTION: ${{ needs.test-opencl-execution.result }}
         run: |
           fail=0
 
@@ -1118,6 +1452,10 @@ jobs:
           check_gpu_private build-samples-cuda   "$RESULT_BUILD_SAMPLES_CUDA"
           check_gpu_private build-samples-rocm   "$RESULT_BUILD_SAMPLES_ROCM"
           check_gpu_private build-samples-opencl "$RESULT_BUILD_SAMPLES_OPENCL"
+          check_required    test-metal-execution   "$RESULT_TEST_METAL_EXECUTION"
+          check_gpu_private test-cuda-execution    "$RESULT_TEST_CUDA_EXECUTION"
+          check_gpu_private test-rocm-execution    "$RESULT_TEST_ROCM_EXECUTION"
+          check_gpu_private test-opencl-execution  "$RESULT_TEST_OPENCL_EXECUTION"
 
           if [[ "$fail" -eq 0 ]]; then
             echo "All upstream jobs OK for event '${{ github.event_name }}' (fork PR: $IS_FORK_PR)."
