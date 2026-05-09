@@ -74,6 +74,19 @@ public abstract class ArrayView2DExecutionTests : ExecutionTestBase
     }
 
     [SkippableFact]
+    public async Task Allocate2DDenseXRoundTrip_ProducesCorrectOutput()
+    {
+        // The exact #1464 user pattern: native Allocate2DDenseX +
+        // Index2D launch + GetAsArray2D readback. Same expected output as
+        // DenseXRoundTrip — the difference is the allocator and readback
+        // path, which the reinterpret-based tests don't cover.
+        await VerifyProgramOutputAsync(
+            "TestPrograms/ArrayView2D/Allocate2DDenseXRoundTrip.cs",
+            ["Kernels.Allocate2DDenseXKernel"],
+            ExpectedRoundTripOutput);
+    }
+
+    [SkippableFact]
     public async Task GeneralRoundTrip_ProducesCorrectOutput()
     {
         // General stride with XStride=1, YStride=W → DenseX-equivalent layout.
@@ -167,6 +180,18 @@ public abstract class ArrayView3DExecutionTests : ExecutionTestBase
         await VerifyProgramOutputAsync(
             "TestPrograms/ArrayView3D/DenseZYRoundTrip.cs",
             ["Kernels.DenseZYKernel"],
+            ExpectedRoundTripOutput);
+    }
+
+    [SkippableFact]
+    public async Task Allocate3DDenseXYRoundTrip_ProducesCorrectOutput()
+    {
+        // 3D analogue of Allocate2DDenseXRoundTrip: native MemoryBuffer3D
+        // path with GetAsArray3D readback. Same expected output as
+        // DenseXYRoundTrip — pins the allocator and readback surface.
+        await VerifyProgramOutputAsync(
+            "TestPrograms/ArrayView3D/Allocate3DDenseXYRoundTrip.cs",
+            ["Kernels.Allocate3DDenseXYKernel"],
             ExpectedRoundTripOutput);
     }
 
