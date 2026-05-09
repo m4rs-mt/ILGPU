@@ -195,6 +195,19 @@ public static class TestTypes
         }
     }
 
+    public static TheoryData<OptimizationLevel, CompilationMode> OptLevelsO1PlusAndModes
+    {
+        get
+        {
+            var data = new TheoryData<OptimizationLevel, CompilationMode>();
+            foreach (var opt in new[] { OptimizationLevel.O1, OptimizationLevel.O2 })
+            foreach (var mode in new[]
+                { CompilationMode.Debug, CompilationMode.Release })
+                data.Add(opt, mode);
+            return data;
+        }
+    }
+
     public static readonly BackendType[] AllBackendTypes =
     [
         BackendType.CPU,
@@ -213,6 +226,21 @@ public static class TestTypes
             foreach (var backend in AllBackendTypes)
             foreach (var opt in new[]
                 { OptimizationLevel.O0, OptimizationLevel.O1, OptimizationLevel.O2 })
+            foreach (var mode in new[]
+                { CompilationMode.Debug, CompilationMode.Release })
+                data.Add(backend, opt, mode);
+            return data;
+        }
+    }
+
+    public static TheoryData<BackendType, OptimizationLevel, CompilationMode>
+        BackendTypesAndOptLevelsO1PlusAndModes
+    {
+        get
+        {
+            var data = new TheoryData<BackendType, OptimizationLevel, CompilationMode>();
+            foreach (var backend in AllBackendTypes)
+            foreach (var opt in new[] { OptimizationLevel.O1, OptimizationLevel.O2 })
             foreach (var mode in new[]
                 { CompilationMode.Debug, CompilationMode.Release })
                 data.Add(backend, opt, mode);
