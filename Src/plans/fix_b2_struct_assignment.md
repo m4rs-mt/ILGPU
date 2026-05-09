@@ -2,11 +2,18 @@
 
 ## Status
 
-**Empirically green on CUDA.** During investigation for this plan, I removed the
-`[KnownFailingOn]` attributes from both kernels currently gated for B.2 and ran
-`BackendTests.NativeCompilation` against the local Cuda Docker compiler service
-(`ghcr.io/m4rs-mt/ilgpuc-compiler-service-cuda` on port 5001). Both tests
-**passed**:
+**RESOLVED on CUDA; ROCm and OpenCL delegated to CI.** Phases 1, 3, and 4 of
+the original plan have landed in this branch; Phase 2 was a contingency for
+per-backend failures that didn't materialise on the verified path. See
+`fix_samples.md` "B.2 fix detail" for the canonical write-up.
+
+## Original empirical finding
+
+During investigation for this plan, I removed the `[KnownFailingOn]`
+attributes from both kernels currently gated for B.2 and ran
+`BackendTests.NativeCompilation` against the local Cuda Docker compiler
+service (`ghcr.io/m4rs-mt/ilgpuc-compiler-service-cuda` on port 5001). Both
+tests **passed**:
 
 | Test | Backend | Result |
 |---|---|---|

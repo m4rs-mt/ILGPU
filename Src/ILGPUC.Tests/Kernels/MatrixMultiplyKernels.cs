@@ -36,13 +36,12 @@ static class MatrixMultiplyKernels
     /// index reconstruction. Inner dot product is unrolled (TileSize == 2)
     /// to dodge a frontend SSA-construction bug noted in
     /// <c>Samples/MatrixMultiply/Program.cs</c>; preserved here so the
-    /// regression test exercises the same shape as the sample.
-    /// Native compilation hits the same B.2 cross-type struct-assignment
-    /// bug as <c>InterleaveFields</c> — gated via <see cref="KnownFailingOnAttribute"/>.
+    /// regression test exercises the same shape as the sample. Also pins
+    /// the multi-field <c>GetField</c> struct-literal lowering (formerly
+    /// B.2 in <c>Src/plans/fix_samples.md</c>) — the same Stride2D-extract
+    /// shape that broke <c>InterleaveFields</c> native compile prior to
+    /// the <c>ExpressionEmitter.EmitGetField</c> fix.
     /// </summary>
-    [KnownFailingOn(
-        BackendType.Cuda, BackendType.ROCm, BackendType.OpenCL,
-        Reason = "B.2 cross-type struct assignment — see Src/plans/fix_samples.md")]
     public static void MatrixMultiplyTiledKernel(
         KernelIndex index,
         ArrayView2D<float, Stride2D.DenseX> aView,

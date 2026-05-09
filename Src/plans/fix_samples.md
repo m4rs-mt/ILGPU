@@ -7,7 +7,67 @@
 | AdvancedViews | A.1 (launcher view-of-struct) | ✅ `5deeb4d2d` | ✅ unblocked by B.1 fix | Fully fixed |
 | GenericKernel | A.2 (launcher closure) | ✅ `e1a4d00ab` | ✅ `e1a4d00ab` | Fully fixed |
 | AdvancedAtomics | B.1 (Float64 atomic) | ✅ already passed | ✅ CUDA + ROCm verified | Fully fixed |
-| InterleaveFields | B.2 (cross-type struct assign) | ✅ already passed | ❌ pending | Open |
+| InterleaveFields | B.2 (cross-type struct assign) | ✅ already passed | ✅ `aa5598c0` (Cuda verified locally) | Fully fixed |
+
+### B.2 fix detail — multi-field GetField span emission
+
+Symptom: `error: no operator "=" matches these operands` from nvcc / hipcc /
+clang on the generated source. Root cause: the IR contains `GetField` values
+with `FieldSpan.Span > 1` that extract a sub-struct (e.g. an
+`[InlineArray(N)]` channel of `InterleavedPoint4`, or a `Stride2D/3D` wrapper
+on a multi-dim view) from an already-flattened parent. The shared
+`ExpressionEmitter.EmitGetField` path emitted these as a single
+`source.Field{Index}` — yielding one primitive while the IR Value's declared
+type was the multi-field sub-struct. The downstream variable-assignment site
+declared the variable with the sub-struct type, so the assignment expression
+type-mismatched its destination.
+
+Fix in `aa5598c0` (`Emit struct literal for multi-field GetField span`): when
+`Span > 1` and `getField.Type is StructureType`, emit a struct literal that
+copies each constituent flat field individually. Both literal forms covered
+via `LanguageConfig.UsesCStyleStructLiterals` — C# `new T { Field0 = src.Fi,
+Field1 = src.F(i+1) }` for the CPU emit, C-style `(T){ src.Fi, src.F(i+1) }`
+for CUDA / Metal / OpenCL.
+
+The 2D launcher fix (`1d5207eb`, `Route test framework field accessors
+through LauncherStubGenerator`) is a sibling fix in the same family — it
+threads the parameter-flattening contract through the test framework's
+`ProgramBuilder` so it matches the production AOT path. Without that, the
+test framework's launcher emit also produced cross-type assignments at the
+parameter-marshal boundary; with it, every `ArrayView{1,2,3}D<T, TStride>`
+parameter marshals correctly across all five backends.
+
+### Verification (B.2)
+
+- `dotnet test ILGPUC.Tests/ILGPUC.Tests.csproj --filter "FullyQualifiedName~CudaBackendTests"`
+  with `ILGPU_CUDA_SERVICE_URL=http://localhost:5001` (Docker compiler service):
+  **480 / 480 passed**, including
+  `BackendTests.CudaBackendTests.NativeCompilation(InterleaveFieldsKernel)` and
+  `…NativeCompilation(MatrixMultiplyTiledKernel)`. The previous
+  `[KnownFailingOn(Cuda, ROCm, OpenCL)]` attributes are removed.
+- ROCm and OpenCL toolchains weren't available on the planning host (host
+  compiler service reported `hipcc` and `ocloc` unavailable), so the matching
+  verification rides on CI's `test-rocm-compile` and `test-opencl-compile`
+  jobs, which run BackendTests inside the GHCR ROCm / OpenCL images that
+  bundle the toolchains. Source emit is structurally identical to the
+  Cuda case across all three backends (verified via
+  `BackendTests.SourceGeneration_Release` for both kernels — pointer-arith
+  field stores throughout, no struct copies; OpenCL adds the correct
+  `global` address-space qualifiers on every cast). High confidence both
+  pass; CI is the authoritative check.
+
+### Files touched (B.2)
+
+- `Src/ILGPUC/Backends/ExpressionEmitter.cs` — multi-field GetField span
+  branch (commit `aa5598c0`).
+- `Src/ILGPUC.Tests/Framework/ProgramBuilder.cs` — accessor flattening
+  (sibling fix, commit `1d5207eb`).
+- `Src/ILGPUC.Tests/Kernels/InterleaveFieldsKernels.cs` /
+  `Kernels/MatrixMultiplyKernels.cs` — `[KnownFailingOn]` removed; docstrings
+  rewritten to point at the lowering path the kernel now pins.
+- `Src/ILGPUC.Tests/KnownIssues/InterleaveFieldsKnownFailureTests.cs` —
+  deleted (the holding-pen tests are subsumed by `BackendTests.NativeCompilation`
+  on the kernel side and `build-samples-{cuda,rocm,opencl}` on the sample side).
 
 ### B.1 fix detail — three distinct defects in the C-like emitter pipeline
 
