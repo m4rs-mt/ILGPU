@@ -1,6 +1,6 @@
-﻿// ---------------------------------------------------------------------------------------
+// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                           Copyright (c) 2022 ILGPU Project
+//                        Copyright (c) 2022-2026 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: VersionControlService.cs
@@ -12,114 +12,149 @@
 using CopyrightUpdateTool.Abstractions;
 using LibGit2Sharp;
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Threading.Tasks;
 
 namespace CopyrightUpdateTool.Util
 {
     /// <summary>
     /// Provides information from Git repositories. Can be used by plugin parsers to
-    /// determine the ending copyright year.
+    /// determine the ending copyright year. The service holds a single shared
+    /// <see cref="Repository"/> handle and amortizes per-file commit lookups by
+    /// walking history once and caching the latest year that touched each path.
     /// </summary>
     class VersionControlService : IVersionControlService
     {
-        #region Static
+        #region Instance
 
-        /// <summary>
-        /// Return the git repository for the file.
-        /// </summary>
-        private static Repository? GetRepositoryFromFile(FileInfo file)
+        private readonly Repository? _repository;
+        private readonly int _fallbackYear = DateTime.Now.Year;
+        private readonly int _headTipYear;
+        private readonly object _buildLock = new();
+
+        // Built lazily on first LastCommitToFile lookup. Keyed by repo-relative
+        // POSIX path; value is max(author, committer) year over all commits that
+        // touched the path (matching the original per-file QueryBy semantics).
+        private Dictionary<string, int>? _lastYearByPath;
+
+        public VersionControlService(Repository? repository)
         {
-            var repositoryPath = Repository.Discover(file.FullName);
-            if (repositoryPath != null)
-                return new Repository(repositoryPath);
+            _repository = repository;
+            if (repository?.Head?.Tip is { } tip)
+            {
+                WorkingDirectory = repository.Info.WorkingDirectory;
+                _headTipYear = Math.Max(
+                    tip.Author.When.Year,
+                    tip.Committer.When.Year);
+            }
             else
-                return default;
+            {
+                _headTipYear = _fallbackYear;
+            }
         }
 
-        /// <summary>
-        /// Returns the relative path of the file to the repository.
-        /// </summary>
-        private static string GetRelativePath(Repository repository, FileInfo file)
-        {
-            return Path.GetRelativePath(
-                repository.Info.WorkingDirectory,
-                file.FullName);
-        }
+        #endregion
 
-        /// <summary>
-        /// Returns the ending copyright year from the list of commits.
-        /// </summary>
-        private static int GetCopyrightYearEndFromCommits(
-            IEnumerable<Commit> commits) =>
-                commits
-                .Select(commit =>
-                {
-                    return Math.Max(commit.Author.When.Year, commit.Committer.When.Year);
-                })
-                .Max();
+        #region Properties
+
+        public string? WorkingDirectory { get; }
 
         #endregion
 
         #region Methods
 
-        /// <inheritdoc cref="IVersionControlService.GetRelativePathAsync(string?)" />
         public Task<string?> GetRelativePathAsync(FileInfo file)
         {
-            var repository = GetRepositoryFromFile(file);
-            if (repository != null)
-            {
-                return Task.FromResult<string?>(GetRelativePath(repository, file));
-            }
+            if (WorkingDirectory == null)
+                return Task.FromResult<string?>(null);
 
-            return Task.FromResult<string?>(default);
+            return Task.FromResult<string?>(
+                Path.GetRelativePath(WorkingDirectory, file.FullName));
         }
 
-        /// <inheritdoc cref="IVersionControlService.GetCopyrightYearEndAsync(
-        ///     FileInfo,
-        ///     CopyrightYearEndType)" />
         public Task<int> GetCopyrightYearEndAsync(
             FileInfo file,
             CopyrightYearEndType type)
         {
-            int fallbackYear = DateTime.Now.Year;
-            int copyrightYear;
+            if (_repository == null || WorkingDirectory == null)
+                return Task.FromResult(_fallbackYear);
 
-            var repository = GetRepositoryFromFile(file);
-            if (repository != null)
+            if (type == CopyrightYearEndType.LastCommitToRepostory)
+                return Task.FromResult(_headTipYear);
+
+            var relative = Path.GetRelativePath(WorkingDirectory, file.FullName);
+            var gitPath = relative.Replace('\\', '/');
+
+            var byPath = EnsureLastYearByPathBuilt();
+            return Task.FromResult(
+                byPath.TryGetValue(gitPath, out var year) ? year : _headTipYear);
+        }
+
+        /// <summary>
+        /// Walks the repository's commit history once, building a path → max-year
+        /// dictionary. Subsequent <see cref="CopyrightYearEndType.LastCommitToFile"/>
+        /// queries are O(1) lookups. Thread-safe under double-checked lock; LibGit2Sharp
+        /// <see cref="Repository"/> is not safe for concurrent use, so we serialize
+        /// the walk and let the post-build read-only Dictionary be consumed in parallel.
+        /// </summary>
+        private Dictionary<string, int> EnsureLastYearByPathBuilt()
+        {
+            if (_lastYearByPath is { } cached)
+                return cached;
+
+            lock (_buildLock)
             {
-                var fileRelativePath = GetRelativePath(repository, file);
-                var fileGitPath = fileRelativePath.Replace('\\', '/');
-                IEnumerable<Commit>? commits = null;
+                if (_lastYearByPath is { } cached2)
+                    return cached2;
 
-                if (type == CopyrightYearEndType.LastCommitToFile)
+                var dict = new Dictionary<string, int>(StringComparer.Ordinal);
+                foreach (var commit in _repository!.Commits.QueryBy(
+                    new CommitFilter { SortBy = CommitSortStrategies.Topological }))
                 {
-                    var logEntries = repository.Commits.QueryBy(
-                        fileGitPath,
-                        new CommitFilter()
+                    int year = Math.Max(
+                        commit.Author.When.Year,
+                        commit.Committer.When.Year);
+                    var parent = commit.Parents.FirstOrDefaultCommit();
+                    var changes = _repository.Diff.Compare<TreeChanges>(
+                        parent?.Tree,
+                        commit.Tree);
+                    foreach (var change in changes)
+                    {
+                        Update(dict, change.Path, year);
+                        if (!string.IsNullOrEmpty(change.OldPath) &&
+                            !string.Equals(
+                                change.OldPath,
+                                change.Path,
+                                StringComparison.Ordinal))
                         {
-                            SortBy = CommitSortStrategies.Topological
-                        });
-                    if (logEntries != null)
-                        commits = logEntries.Select(logEntry => logEntry.Commit);
+                            Update(dict, change.OldPath, year);
+                        }
+                    }
                 }
-
-                if (commits == null || !commits.Any())
-                    commits = new[] { repository.Head.Tip };
-
-                copyrightYear = GetCopyrightYearEndFromCommits(commits);
+                _lastYearByPath = dict;
+                return dict;
             }
-            else
+
+            static void Update(Dictionary<string, int> d, string path, int y)
             {
-                copyrightYear = fallbackYear;
+                d[path] = d.TryGetValue(path, out var cur) ? Math.Max(cur, y) : y;
             }
-
-            return Task.FromResult(copyrightYear);
         }
 
         #endregion
+    }
+
+    internal static class CommitParentsExtensions
+    {
+        /// <summary>
+        /// Returns the first parent of a commit, or null for the root commit.
+        /// </summary>
+        public static Commit? FirstOrDefaultCommit(this IEnumerable<Commit> parents)
+        {
+            foreach (var parent in parents)
+                return parent;
+            return null;
+        }
     }
 }

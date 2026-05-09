@@ -1,6 +1,6 @@
-﻿// ---------------------------------------------------------------------------------------
+// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2017-2023 ILGPU Project
+//                           Copyright (c) 2026 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CPUKernel.cs
@@ -9,77 +9,35 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
-using ILGPU.Backends;
 using ILGPU.Util;
-using System;
-using System.Reflection;
 
-namespace ILGPU.Runtime.CPU
+namespace ILGPU.Runtime.CPU;
+
+/// <summary>
+/// Represents a loaded CPU kernel for vectorized CPU execution.
+/// </summary>
+/// <remarks>
+/// CPU kernels execute via static <c>Launch()</c> methods on the compiled kernel
+/// class — no native module loading is needed. This wrapper satisfies the
+/// <see cref="Accelerator.LoadKernel"/> contract.
+/// </remarks>
+public sealed class CPUKernel : Kernel
 {
     /// <summary>
-    /// Represents a single CPU kernel.
+    /// Creates a new CPU kernel wrapper.
     /// </summary>
-    public sealed class CPUKernel : Kernel
-    {
-        #region Static
+    /// <param name="accelerator">The parent CPU accelerator.</param>
+    /// <param name="compiledKernel">The compiled kernel metadata.</param>
+    internal CPUKernel(CPUAccelerator accelerator, CPUCompiledKernel compiledKernel)
+        : base(accelerator, compiledKernel)
+    { }
 
-        /// <summary>
-        /// Represents the <see cref="KernelExecutionDelegate"/> property getter.
-        /// </summary>
-        internal static readonly MethodInfo GetKernelExecutionDelegate =
-            typeof(CPUKernel).GetProperty(
-                nameof(KernelExecutionDelegate),
-                BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance)
-            .ThrowIfNull()
-            .GetGetMethod(true)
-            .ThrowIfNull();
+    /// <summary>
+    /// Returns the underlying CPU compiled kernel.
+    /// </summary>
+    public new CPUCompiledKernel CompiledKernel =>
+        base.CompiledKernel.AsNotNullCast<CPUCompiledKernel>();
 
-        #endregion
-
-        #region Instance
-
-        /// <summary>
-        /// Loads a compiled kernel into the given Cuda context as kernel program.
-        /// </summary>
-        /// <param name="accelerator">The associated accelerator.</param>
-        /// <param name="kernel">The source kernel.</param>
-        /// <param name="launcher">The launcher method for the given kernel.</param>
-        /// <param name="kernelExecutionDelegate">The execution method.</param>
-        internal CPUKernel(
-            CPUAccelerator accelerator,
-            CompiledKernel kernel,
-            MethodInfo launcher,
-            CPUKernelExecutionHandler kernelExecutionDelegate)
-            : base(accelerator, kernel, launcher)
-        {
-            KernelExecutionDelegate = kernelExecutionDelegate
-                ?? throw new ArgumentNullException(nameof(kernelExecutionDelegate));
-        }
-
-        #endregion
-
-        #region Properties
-
-        /// <summary>
-        /// Returns the associated CPU runtime.
-        /// </summary>
-        public CPUAccelerator CPUAccelerator =>
-            Accelerator.AsNotNullCast<CPUAccelerator>();
-
-        /// <summary>
-        /// Returns the associated kernel-execution delegate.
-        /// </summary>
-        internal CPUKernelExecutionHandler KernelExecutionDelegate { get; }
-
-        #endregion
-
-        #region IDisposable
-
-        /// <summary>
-        /// Does not perform any operation.
-        /// </summary>
-        protected override void DisposeAcceleratorObject(bool disposing) { }
-
-        #endregion
-    }
+    /// <inheritdoc/>
+    protected override void DisposeAcceleratorObject(bool disposing) { }
 }
