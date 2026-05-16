@@ -14,6 +14,7 @@
 // Expected output: 1.5 2.5 3.5 4.5
 
 using System;
+using System.Globalization;
 using ILGPU;
 using ILGPU.Runtime;
 
@@ -43,6 +44,6 @@ static class Program
 
         var data = output.GetAsArray1D();
         foreach (var v in data)
-            Console.WriteLine(v);
+            Console.WriteLine(v.ToString(CultureInfo.InvariantCulture));
     }
 }
