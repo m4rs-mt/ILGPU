@@ -13,12 +13,12 @@
 
     <!-- ILGPU MSBuild integration -->
     <ILGPUBackend>$(ILGPU_BACKEND)</ILGPUBackend>
-    <ILGPUCompilerTool>dotnet "$(ILGPU_REPO_ROOT)/Bin/Debug/net10.0/ILGPUC.dll" </ILGPUCompilerTool>
+    <ILGPUCompilerTool>dotnet "$(ILGPUC_DLL_DIR)/ILGPUC.dll" </ILGPUCompilerTool>
   </PropertyGroup>
 
   <ItemGroup>
     <Reference Include="ILGPU">
-      <HintPath>$(ILGPU_REPO_ROOT)/Bin/Debug/net10.0/ILGPU.dll</HintPath>
+      <HintPath>$(ILGPUC_DLL_DIR)/ILGPU.dll</HintPath>
       <Private>true</Private>
     </Reference>
   </ItemGroup>
