@@ -10,7 +10,6 @@
 // ---------------------------------------------------------------------------------------
 
 
-// disable: max_line_length
 using ILGPUC.Backends;
 using ILGPUC.Tests.Framework;
 using System;
@@ -186,7 +185,8 @@ public sealed class MsBuildIntegrationTests
             // Both kernels must produce a CompiledKernel class file.
             Assert.True(compiledKernelFiles.Length >= 2,
                 $"Expected >=2 _CompiledKernel.cs files, got " +
-                $"{compiledKernelFiles.Length}: {string.Join(", ", compiledKernelFiles)}");
+                $"{compiledKernelFiles.Length}: " +
+                $"{string.Join(", ", compiledKernelFiles)}");
 
             // Both kernel names should appear among the generated files.
             Assert.Contains(compiledKernelFiles,
