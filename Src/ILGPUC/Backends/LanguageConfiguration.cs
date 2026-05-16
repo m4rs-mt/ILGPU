@@ -85,6 +85,27 @@ abstract class LanguageConfiguration
             : $"{addressSpaceKeyword} {elementTypeName}*";
 
     /// <summary>
+    /// Returns the type name for a pointer type given its element type name
+    /// and address-space keyword (possibly empty). Default implementation
+    /// prefixes the keyword as a pointee qualifier (Metal/OpenCL semantics:
+    /// <c>threadgroup int*</c> is a pointer-to-threadgroup-int).
+    /// </summary>
+    /// <remarks>
+    /// CUDA / HIP must override to drop the keyword: in CUDA C++ pointer
+    /// types do not carry an address-space qualifier. Emitting
+    /// <c>__shared__ int* p;</c> for a local pointer variable would place
+    /// the variable <c>p</c> itself in shared memory (single shared cell,
+    /// races on assignment), instead of declaring a per-thread pointer
+    /// that happens to point into shared memory.
+    /// </remarks>
+    public virtual string GetPointerTypeName(
+        string elementTypeName,
+        string addressSpaceKeyword) =>
+        string.IsNullOrEmpty(addressSpaceKeyword)
+            ? elementTypeName + "*"
+            : $"{addressSpaceKeyword} {elementTypeName}*";
+
+    /// <summary>
     /// Returns the keyword for a pointer type.
     /// </summary>
     public abstract string PointerSyntax { get; }

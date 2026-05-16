@@ -10,7 +10,9 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPUC.IR;
+using ILGPUC.IR.ModuleValues;
 using System.Collections.Generic;
+using System.Text;
 
 namespace ILGPUC.Backends.Cuda;
 
@@ -60,7 +62,7 @@ class CudaLanguageConfiguration : LanguageConfiguration
         basicType switch
         {
             BasicValueType.Int1 => "bool",
-            BasicValueType.Int8 => "char",
+            BasicValueType.Int8 => "signed char",
             BasicValueType.Int16 => "short",
             BasicValueType.Int32 => "int",
             BasicValueType.Int64 => "long long",
@@ -75,7 +77,7 @@ class CudaLanguageConfiguration : LanguageConfiguration
         basicType switch
         {
             ArithmeticBasicValueType.UInt1 => "bool",
-            ArithmeticBasicValueType.Int8 => "char",
+            ArithmeticBasicValueType.Int8 => "signed char",
             ArithmeticBasicValueType.Int16 => "short",
             ArithmeticBasicValueType.Int32 => "int",
             ArithmeticBasicValueType.Int64 => "long long",
@@ -91,6 +93,37 @@ class CudaLanguageConfiguration : LanguageConfiguration
 
     /// <inheritdoc/>
     public override string PointerSyntax => "*";
+
+    /// <inheritdoc/>
+    /// <remarks>
+    /// CUDA / HIP pointer types do not take a pointee address-space
+    /// qualifier (unlike Metal's <c>threadgroup T*</c> or OpenCL's
+    /// <c>__local T*</c>). Prepending <c>__shared__</c> to a pointer
+    /// variable declaration places the variable itself in shared memory,
+    /// turning a per-thread pointer into a single shared cell that races
+    /// on assignment from every thread. Always emit pointer types as the
+    /// bare element-type + <c>*</c>; the address space is carried by
+    /// the storage of the pointee (file-scope <c>__shared__</c> globals,
+    /// kernel arguments, etc.) and tracked by nvcc automatically.
+    /// </remarks>
+    public override string GetPointerTypeName(
+        string elementTypeName,
+        string addressSpaceKeyword) =>
+        elementTypeName + "*";
+
+    /// <inheritdoc/>
+    /// <remarks>
+    /// Same rationale as <see cref="GetPointerTypeName"/>: view types are
+    /// lowered to plain pointers on CUDA / HIP, so the local view variable
+    /// must NOT inherit the pointee's address-space qualifier — that
+    /// keyword would attach to the variable itself and turn the local
+    /// pointer into a single shared cell. The pointee's storage already
+    /// carries the address space; the local just holds an address.
+    /// </remarks>
+    public override string GetViewTypeName(
+        string elementTypeName,
+        string addressSpaceKeyword) =>
+        elementTypeName + "*";
 
     /// <inheritdoc/>
     public override bool UsesCStyleStructLiterals => true;
@@ -117,7 +150,14 @@ class CudaLanguageConfiguration : LanguageConfiguration
     }
 
     /// <inheritdoc/>
-    public override string KernelAttribute => "__global__";
+    /// <remarks>
+    /// Apply <c>extern "C"</c> so the entry point keeps its plain C
+    /// identifier. Without it the C++ front-end of <c>nvcc</c> mangles the
+    /// symbol (e.g. <c>_Z29method_…i</c>), and the runtime kernel loader
+    /// looks up the unmangled name passed via <c>KernelName</c> and fails
+    /// with <c>named symbol not found</c>.
+    /// </remarks>
+    public override string KernelAttribute => "extern \"C\" __global__";
 
     /// <inheritdoc/>
     /// <remarks>
@@ -126,6 +166,76 @@ class CudaLanguageConfiguration : LanguageConfiguration
     /// nvcc treats them as host-only and rejects the call site.
     /// </remarks>
     public override string DeviceFunctionAttribute => "__device__";
+
+    /// <summary>
+    /// Returns the CUDA / HIP built-in identifier for the block index
+    /// along the given dimension axis (e.g. <c>blockIdx.x</c>).
+    /// </summary>
+    /// <remarks>
+    /// Overridden by <c>ROCmLanguageConfiguration</c> to emit
+    /// <c>hipBlockIdx_x</c> / <c>hipBlockIdx_y</c> / <c>hipBlockIdx_z</c>
+    /// instead, matching the per-axis form HIP exposes.
+    /// </remarks>
+    protected virtual string GetBlockIndexExpr(char axis) =>
+        $"blockIdx.{axis}";
+
+    /// <summary>
+    /// Returns the CUDA / HIP built-in identifier for the block dimension
+    /// (group size) along the given dimension axis.
+    /// </summary>
+    protected virtual string GetBlockDimExpr(char axis) =>
+        $"blockDim.{axis}";
+
+    /// <summary>
+    /// Returns the CUDA / HIP built-in identifier for the thread index
+    /// within the block along the given dimension axis.
+    /// </summary>
+    protected virtual string GetThreadIndexExpr(char axis) =>
+        $"threadIdx.{axis}";
+
+    /// <inheritdoc/>
+    /// <remarks>
+    /// The IL frontend declares an explicit thread-index parameter on every
+    /// kernel entry point (e.g. <c>Index1D index</c>). CUDA / HIP kernels
+    /// receive the index via the <c>blockIdx</c> / <c>blockDim</c> /
+    /// <c>threadIdx</c> built-ins instead, so we strip that parameter
+    /// from the emitted C++ signature and reconstruct it at the top of
+    /// the kernel body via <see cref="EmitIndexComputation"/>. Without
+    /// this the kernel signature has one more parameter than the
+    /// launcher passes, the kernel reads the views from garbage stack
+    /// space, and the first device access produces
+    /// <c>an illegal memory access was encountered</c>.
+    /// </remarks>
+    public override bool SkipsIndexParameter => true;
+
+    /// <inheritdoc/>
+    public override string? EmitIndexComputation(
+        string typeName, string paramName, TypeValue indexType)
+    {
+        // Multi-dim index (Index2D / Index3D) — derive each field from the
+        // corresponding axis built-ins.
+        if (indexType is StructureType structType)
+        {
+            string[] axes = ["x", "y", "z"];
+            var lines = new System.Text.StringBuilder();
+            lines.AppendLine($"  {typeName} {paramName};");
+            for (int i = 0; i < structType.NumFields && i < 3; i++)
+            {
+                char a = axes[i][0];
+                lines.AppendLine(
+                    $"  {paramName}.Field{i} = (int)(" +
+                    $"{GetBlockIndexExpr(a)} * {GetBlockDimExpr(a)} + " +
+                    $"{GetThreadIndexExpr(a)});");
+            }
+            return lines.ToString().TrimEnd();
+        }
+
+        // 1D scalar index — compute a linear thread id on the x axis.
+        const char xAxis = 'x';
+        return $"  {typeName} {paramName} = ({typeName})(" +
+            $"{GetBlockIndexExpr(xAxis)} * {GetBlockDimExpr(xAxis)} + " +
+            $"{GetThreadIndexExpr(xAxis)});";
+    }
 
     /// <inheritdoc/>
     public override IntrinsicEmitter CreateIntrinsicEmitter() => new

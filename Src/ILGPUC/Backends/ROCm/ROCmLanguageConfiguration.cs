@@ -82,4 +82,25 @@ sealed class ROCmLanguageConfiguration : CudaLanguageConfiguration
     /// </remarks>
     public override IntrinsicEmitter CreateIntrinsicEmitter() =>
         new ROCmIntrinsicEmitter();
+
+    /// <inheritdoc/>
+    /// <remarks>HIP exposes block index built-ins as
+    /// <c>hipBlockIdx_x</c> / <c>hipBlockIdx_y</c> / <c>hipBlockIdx_z</c>
+    /// rather than the CUDA member-access form <c>blockIdx.x</c>.</remarks>
+    protected override string GetBlockIndexExpr(char axis) =>
+        $"hipBlockIdx_{axis}";
+
+    /// <inheritdoc/>
+    /// <remarks>HIP exposes block dimension built-ins as
+    /// <c>hipBlockDim_x</c> / <c>hipBlockDim_y</c> / <c>hipBlockDim_z</c>.
+    /// </remarks>
+    protected override string GetBlockDimExpr(char axis) =>
+        $"hipBlockDim_{axis}";
+
+    /// <inheritdoc/>
+    /// <remarks>HIP exposes thread-within-block built-ins as
+    /// <c>hipThreadIdx_x</c> / <c>hipThreadIdx_y</c> / <c>hipThreadIdx_z</c>.
+    /// </remarks>
+    protected override string GetThreadIndexExpr(char axis) =>
+        $"hipThreadIdx_{axis}";
 }

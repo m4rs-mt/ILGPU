@@ -336,7 +336,11 @@ sealed class CudaIntrinsicEmitter : IntrinsicEmitter
             _ => throw new ArgumentException($"Unknown shuffle kind: {kind}")
         };
 
-        return $"{intrinsic}(0xffffffff, {variable}, {origin})";
+        // Use __activemask() so partial-warp blocks (block size <
+        // warpSize, common with auto-grouped launches at small extents)
+        // do not get garbage from inactive lanes. __shfl_sync with a
+        // mask containing inactive lanes is undefined behaviour.
+        return $"{intrinsic}(__activemask(), {variable}, {origin})";
     }
 
     /// <inheritdoc/>
@@ -350,7 +354,7 @@ sealed class CudaIntrinsicEmitter : IntrinsicEmitter
         // For warp-level: use __shfl_sync
         // For group-level: would need shared memory (not commonly supported as intrinsic)
         if (kind == BroadcastKind.WarpLevel)
-            return $"__shfl_sync(0xffffffff, {variable}, {origin})";
+            return $"__shfl_sync(__activemask(), {variable}, {origin})";
 
         // Group-level broadcast not directly supported in CUDA
         throw new NotSupportedException(
