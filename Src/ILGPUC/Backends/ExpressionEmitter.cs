@@ -10,15 +10,15 @@
 // ---------------------------------------------------------------------------------------
 
 
-// disable: max_line_length
+using System;
+using System.Globalization;
+using System.Text;
 using ILGPUC.IR;
 using ILGPUC.IR.BasicBlockValues;
 using ILGPUC.IR.MethodValues;
 using ILGPUC.IR.ModuleValues;
 using ILGPUC.IR.PureValues;
 using ILGPUC.Util;
-using System;
-using System.Text;
 using Half = ILGPU.Half;
 
 namespace ILGPUC.Backends;
@@ -508,7 +508,7 @@ sealed class ExpressionEmitter(GenerationContext context, TypeEmitter typeEmitte
         if (float.IsNaN(value)) return "NAN";
         if (float.IsPositiveInfinity(value)) return "INFINITY";
         if (float.IsNegativeInfinity(value)) return "-INFINITY";
-        return value.ToString("F6");
+        return value.ToString("F6", CultureInfo.InvariantCulture);
     }
 
     /// <summary>
@@ -519,7 +519,7 @@ sealed class ExpressionEmitter(GenerationContext context, TypeEmitter typeEmitte
         if (double.IsNaN(value)) return "NAN";
         if (double.IsPositiveInfinity(value)) return "INFINITY";
         if (double.IsNegativeInfinity(value)) return "-INFINITY";
-        return value.ToString("F6");
+        return value.ToString("F6", CultureInfo.InvariantCulture);
     }
 
     #endregion
@@ -599,7 +599,8 @@ sealed class ExpressionEmitter(GenerationContext context, TypeEmitter typeEmitte
     }
 
     /// <summary>
-    /// Returns the infix operator string for a binary arithmetic kind, or null if not a simple operator.
+    /// Returns the infix operator string for a binary arithmetic kind, or null if not
+    /// a simple operator.
     /// </summary>
     private static string? GetBinaryOperator(BinaryArithmeticKind kind) => kind switch
     {
@@ -720,7 +721,8 @@ sealed class ExpressionEmitter(GenerationContext context, TypeEmitter typeEmitte
     }
 
     /// <summary>
-    /// Returns the prefix operator string for a unary arithmetic kind, or null if not a simple operator.
+    /// Returns the prefix operator string for a unary arithmetic kind, or null if not
+    /// a simple operator.
     /// </summary>
     private static string? GetUnaryOperator(UnaryArithmeticKind kind) => kind switch
     {
