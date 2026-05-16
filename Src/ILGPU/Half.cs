@@ -12,6 +12,7 @@
 using ILGPU.Intrinsic;
 using ILGPU.Util;
 using System;
+using System.Globalization;
 #if !DEBUG
 using System.Diagnostics;
 #endif
@@ -157,7 +158,8 @@ public readonly partial struct Half : IEquatable<Half>, IComparable<Half>
     /// Returns the string representation of this half.
     /// </summary>
     /// <returns>The string representation of this half.</returns>
-    public override string ToString() => ((float)this).ToString();
+    public override string ToString() =>
+        ((float)this).ToString(CultureInfo.InvariantCulture);
 
     #endregion
 
