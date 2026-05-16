@@ -35,7 +35,7 @@ public sealed class ROCmAccelerator : Accelerator
 
         // HIP uses per-device thread-local state, not explicit context handles.
         // Use the device id as a pseudo-native pointer for identification.
-        NativePtr = new IntPtr(device.DeviceId);
+        NativePtr = new IntPtr(device.DeviceId + 1);
 
         Bind();
         DefaultStream = new ROCmStream(this, IntPtr.Zero, false);
