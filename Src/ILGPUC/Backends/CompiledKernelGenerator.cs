@@ -626,6 +626,19 @@ sealed class CompiledKernelGenerator : DisposeBase
 
     /// <summary>
     /// Emits the flat KernelArgs struct used by FlatStructLauncherEmitter backends.
+    /// Also emits a <c>KernelArgsSize</c> constant whose value is the exact
+    /// CUDA / HIP parameter-buffer size required by the generated device-side
+    /// kernel signature. This is NOT the same as <c>sizeof(KernelArgs)</c>:
+    /// the C# struct may include trailing padding (e.g. an <c>int</c>
+    /// following an 8-byte-aligned struct rounds the C# struct size up to
+    /// the next 8-byte boundary), but CUDA's <c>cuLaunchKernel</c> requires
+    /// the user buffer size to match the kernel's parameter list size
+    /// exactly -- supplying a larger buffer returns
+    /// CUDA_ERROR_LAUNCH_OUT_OF_RESOURCES (701). The constant is computed
+    /// at codegen time by replaying the marshaled-field layout (views ->
+    /// 16-byte ViewImplementation, pointers -> 8-byte IntPtr, structs ->
+    /// recursive flat size with C-style internal padding) and stopping at
+    /// the end of the final field with no trailing alignment pad.
     /// </summary>
     private void EmitKernelArgsStruct(List<ParameterInfo> parameters)
     {
@@ -640,7 +653,112 @@ sealed class CompiledKernelGenerator : DisposeBase
 
         CloseScope();
         WriteLine();
+
+        // Emit the exact CUDA-side parameter-buffer size (no trailing pad)
+        int argsSize = ComputeKernelArgsSize(parameters);
+        WriteLine($"private const int KernelArgsSize = {argsSize};");
+        WriteLine();
     }
+
+    /// <summary>
+    /// Computes the total CUDA / HIP parameter-buffer size for the given
+    /// parameter list. Each field is placed at its natural marshaled
+    /// alignment with C-style internal padding; no trailing alignment pad
+    /// is added at the end of the buffer (CUDA's parameter list is a
+    /// concatenation of params, not a struct).
+    /// </summary>
+    private static int ComputeKernelArgsSize(List<ParameterInfo> parameters)
+    {
+        int offset = 0;
+        foreach (var param in parameters)
+        {
+            var (size, align) = ComputeMarshaledLayout(param.Type, param.Kind);
+            offset = AlignUp(offset, align);
+            offset += size;
+        }
+        return offset;
+    }
+
+    /// <summary>
+    /// Returns (size, align) of a parameter as it appears in the CUDA
+    /// parameter buffer. Mirrors <see cref="GetMarshaledTypeName"/>:
+    /// views -> 16/8 (ViewImplementation), pointers -> 8/8 (IntPtr),
+    /// view-dependent structs -> recursive flat layout, plain structs ->
+    /// IR struct layout, primitives -> IR type size/align.
+    /// </summary>
+    private static (int Size, int Align) ComputeMarshaledLayout(
+        TypeValue type,
+        ParameterKind kind)
+    {
+        switch (kind)
+        {
+            case ParameterKind.View:
+                // ViewImplementation<T>: void* Ptr (8) + long Length (8) = 16
+                return (16, 8);
+            case ParameterKind.Pointer:
+                // IntPtr on a 64-bit host -- ILGPUC only targets 64-bit
+                // CUDA / ROCm devices today.
+                return (8, 8);
+            case ParameterKind.StructWithViews:
+                return ComputeMarshaledStructLayout((StructureType)type);
+            case ParameterKind.StructPlain:
+                // Plain structs already lay out identically in C# and in
+                // the emitted CUDA C++ struct (no view substitution).
+                var plain = (StructureType)type;
+                return (plain.Size, plain.Alignment);
+            default:
+                // Primitives -- TypeValue.Size matches both sizeof(T)
+                // in C# and the natural CUDA scalar size.
+                return (type.Size, type.Alignment);
+        }
+    }
+
+    /// <summary>
+    /// Recursively computes the (size, align) of a view-dependent
+    /// marshaled struct. Each field uses
+    /// <see cref="ComputeMarshaledLayout"/>; struct size is rounded up to
+    /// its overall alignment (C-style trailing pad) so that the struct
+    /// can be placed in arrays / outer structs naturally.
+    /// </summary>
+    private static (int Size, int Align) ComputeMarshaledStructLayout(
+        StructureType st)
+    {
+        int offset = 0;
+        int maxAlign = 1;
+        for (int i = 0; i < st.NumFields; i++)
+        {
+            var fieldType = st.Fields[i];
+            ParameterKind fieldKind;
+            if (fieldType is ViewType)
+                fieldKind = ParameterKind.View;
+            else if (fieldType is PointerType)
+                fieldKind = ParameterKind.Pointer;
+            else if (fieldType is StructureType nested &&
+                nested.HasFlags(TypeFlags.ViewDependent))
+                fieldKind = ParameterKind.StructWithViews;
+            else if (fieldType is StructureType)
+                fieldKind = ParameterKind.StructPlain;
+            else
+                fieldKind = ParameterKind.Primitive;
+
+            var (fsize, falign) = ComputeMarshaledLayout(fieldType, fieldKind);
+            offset = AlignUp(offset, falign);
+            offset += fsize;
+            if (falign > maxAlign) maxAlign = falign;
+        }
+        // Internal struct trailing pad to its own alignment so the type
+        // tiles cleanly -- matches both C# Sequential and CUDA C++ rules.
+        int size = AlignUp(offset, maxAlign);
+        return (size, maxAlign);
+    }
+
+    /// <summary>
+    /// Returns <paramref name="value"/> rounded up to the next multiple
+    /// of <paramref name="alignment"/>. Returns the input unchanged for
+    /// non-positive alignment.
+    /// </summary>
+    private static int AlignUp(int value, int alignment) =>
+        alignment <= 1 ? value : (value + alignment - 1) / alignment * alignment;
 
     #endregion
 
