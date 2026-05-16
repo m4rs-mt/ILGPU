@@ -73,17 +73,25 @@ public sealed class NvccCompiler : CompilerBase
                     outputFlag = "-ptx";
                     break;
                 default:
-                    outputFile = Path.Combine(tempDir, "output.cubin");
-                    outputFlag = "-cubin";
+                    // Emit a fatbin that embeds PTX (rather than a SASS-only
+                    // cubin). When the consumer pairs this with
+                    // "-gencode=arch=compute_X,code=compute_X" via ExtraFlags
+                    // the result is a device-architecture-agnostic binary that
+                    // the CUDA driver JITs to the actual device at module-load
+                    // time. Plain -cubin produces SASS for a single
+                    // architecture and refuses to load on any newer device.
+                    outputFile = Path.Combine(tempDir, "output.fatbin");
+                    outputFlag = "-fatbin";
                     break;
             }
 
-            var cudaFlags = SanitizeCompilerFlags(request.CudaFlags);
+            var optFlag = $"-O{(int)request.OptimizationLevel}";
+            var extraFlags = SanitizeCompilerFlags(request.ExtraFlags);
             var includes = BuildIncludeArgs(request);
             var directives = BuildDirectiveArgs(request);
             var args =
                 $"{outputFlag} -o \"{outputFile}\" \"{inputFile}\"" +
-                $" {cudaFlags}{includes}{directives}";
+                $" {optFlag} {extraFlags}{includes}{directives}";
 
             var (exitCode, stdout, stderr) = await RunProcessAsync(
                 ExecutablePath,

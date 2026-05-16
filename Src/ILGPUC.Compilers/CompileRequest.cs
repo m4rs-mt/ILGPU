@@ -14,6 +14,28 @@ using System.Text.Json.Serialization;
 namespace ILGPUC.Compilers;
 
 /// <summary>
+/// The optimization level passed to the underlying native compiler. Values map
+/// directly to the <c>-O0</c>..<c>-O3</c> flags used by the gcc/clang/nvcc/hipcc
+/// family. ILGPU backends translate the IR-level optimization level into a value
+/// of this enum before submitting a request.
+/// </summary>
+[JsonConverter(typeof(JsonStringEnumConverter))]
+public enum NativeOptimizationLevel
+{
+    /// <summary>No native optimization (<c>-O0</c>).</summary>
+    O0 = 0,
+
+    /// <summary>Basic native optimization (<c>-O1</c>).</summary>
+    O1 = 1,
+
+    /// <summary>Default release-quality native optimization (<c>-O2</c>).</summary>
+    O2 = 2,
+
+    /// <summary>Maximum native optimization (<c>-O3</c>).</summary>
+    O3 = 3,
+}
+
+/// <summary>
 /// A request to compile GPU source code.
 /// </summary>
 public sealed class CompileRequest
@@ -37,6 +59,14 @@ public sealed class CompileRequest
     public OutputType OutputType { get; init; } = OutputType.Binary;
 
     /// <summary>
+    /// Gets the optimization level to pass to the native compiler. Defaults to
+    /// <see cref="NativeOptimizationLevel.O2"/>.
+    /// </summary>
+    [JsonPropertyName("optimizationLevel")]
+    public NativeOptimizationLevel OptimizationLevel { get; init; } =
+        NativeOptimizationLevel.O2;
+
+    /// <summary>
     /// Gets an optional set of additional include-search paths to pass to the compiler.
     /// </summary>
     [JsonPropertyName("includePaths")]
@@ -49,11 +79,13 @@ public sealed class CompileRequest
     public string[]? CompilerDirectives { get; init; }
 
     /// <summary>
-    /// Gets optional extra flags forwarded verbatim to the underlying compiler after
-    /// sanitization.
+    /// Gets optional extra backend-specific flags forwarded verbatim to the underlying
+    /// compiler after sanitization. Used for things like nvcc's
+    /// <c>-gencode=arch=...,code=...</c>. <see cref="OptimizationLevel"/> is handled
+    /// separately and should not be specified here.
     /// </summary>
-    [JsonPropertyName("cudaFlags")]
-    public string? CudaFlags { get; init; }
+    [JsonPropertyName("extraFlags")]
+    public string? ExtraFlags { get; init; }
 
     /// <summary>
     /// Gets a value indicating whether the compilation should be dispatched

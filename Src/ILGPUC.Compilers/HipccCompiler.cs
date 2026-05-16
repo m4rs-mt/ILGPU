@@ -51,12 +51,13 @@ public sealed class HipccCompiler : CompilerBase
                 .ConfigureAwait(false);
 
             var outputFile = Path.Combine(tempDir, "output.o");
+            var optFlag = $"-O{(int)request.OptimizationLevel}";
             var includes = BuildIncludeArgs(request);
             var directives = BuildDirectiveArgs(request);
-            var compilerFlags = SanitizeCompilerFlags(request.CudaFlags);
+            var extraFlags = SanitizeCompilerFlags(request.ExtraFlags);
             var args =
                 $"-c -o \"{outputFile}\" \"{inputFile}\"" +
-                $" {compilerFlags}{includes}{directives}";
+                $" {optFlag} {extraFlags}{includes}{directives}";
 
             var (exitCode, stdout, stderr) = await RunProcessAsync(
                 ExecutablePath,

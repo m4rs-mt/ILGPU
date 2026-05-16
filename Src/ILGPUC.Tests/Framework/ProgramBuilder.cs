@@ -470,7 +470,7 @@ sealed class ProgramBuilder : DisposeBase
                     .ResolveAsync(target)
                     .GetAwaiter().GetResult();
                 var nativeResult = backend
-                    .CompileSourceAsync(compiled, compilerManager)
+                    .CompileSourceAsync(compiled, compilerManager, properties)
                     .GetAwaiter().GetResult();
                 if (nativeResult is { Success: true, Output: not null })
                 {

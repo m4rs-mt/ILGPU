@@ -200,6 +200,11 @@ abstract class Backend(
     /// </typeparam>
     /// <param name="source">The code generation result containing source code.</param>
     /// <param name="manager">The compiler manager to use.</param>
+    /// <param name="properties">
+    /// The compilation properties driving this compile. Used by backends to map the
+    /// ILGPU <see cref="CompilationProperties.OptimizationLevel"/> to a native
+    /// compiler optimization flag.
+    /// </param>
     /// <param name="ct">Cancellation token.</param>
     /// <returns>
     /// The compilation result, or null if this backend does not support compilation.
@@ -207,9 +212,30 @@ abstract class Backend(
     public virtual Task<CompilationResult?> CompileSourceAsync<TManager>(
         CodeGenerationResult source,
         TManager manager,
+        CompilationProperties properties,
         CancellationToken ct = default)
         where TManager : ICompilerManager =>
         Task.FromResult<CompilationResult?>(null);
+
+    /// <summary>
+    /// Translates an ILGPU <see cref="OptimizationLevel"/> to the corresponding
+    /// <see cref="NativeOptimizationLevel"/>. ILGPU exposes O0..O2; we offset by one
+    /// (O0 → native O1, O1 → native O2, O2 → native O3) so even an "unoptimized" IR
+    /// build still gets basic register allocation and inlining from the native
+    /// toolchain.
+    /// </summary>
+    /// <param name="level">The IR optimization level.</param>
+    /// <returns>
+    /// The native optimization level, never <see cref="NativeOptimizationLevel.O0"/>.
+    /// </returns>
+    protected static NativeOptimizationLevel GetNativeOptLevel(OptimizationLevel level)
+        => level switch
+        {
+            OptimizationLevel.O0 => NativeOptimizationLevel.O1,
+            OptimizationLevel.O1 => NativeOptimizationLevel.O2,
+            OptimizationLevel.O2 => NativeOptimizationLevel.O3,
+            _ => NativeOptimizationLevel.O2,
+        };
 }
 
 #pragma warning restore CA1515

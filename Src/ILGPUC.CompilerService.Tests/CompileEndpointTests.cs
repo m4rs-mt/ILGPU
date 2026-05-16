@@ -75,7 +75,7 @@ public class CompileEndpointTests : IClassFixture<MockServiceFixture>
         {
             SourceCode = "// kernel with flags",
             Target = CompilationTarget.Cuda,
-            CudaFlags = "-arch=sm_80",
+            ExtraFlags = "-arch=sm_80",
             IncludePaths = ["/usr/local/include"],
             CompilerDirectives = ["DEBUG", "NDEBUG"],
         };

@@ -362,7 +362,7 @@ sealed class KernelCompiler
         if (compilerManager is not null)
         {
             var compilationResult = await backend
-                .CompileSourceAsync(compiled, compilerManager, ct)
+                .CompileSourceAsync(compiled, compilerManager, _properties, ct)
                 .ConfigureAwait(false);
             if (compilationResult is { Success: true, Output: not null })
             {
