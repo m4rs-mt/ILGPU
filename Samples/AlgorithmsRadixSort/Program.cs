@@ -1,6 +1,6 @@
-﻿// ---------------------------------------------------------------------------------------
+// ---------------------------------------------------------------------------------------
 //                                    ILGPU Samples
-//                        Copyright (c) 2021-2022 ILGPU Project
+//                           Copyright (c) 2026 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Program.cs
@@ -9,109 +9,59 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
-using ILGPU;
-using ILGPU.Algorithms;
-using ILGPU.Algorithms.RadixSortOperations;
-using ILGPU.Algorithms.Sequencers;
-using ILGPU.Runtime;
 using System;
+using System.Linq;
+using ILGPU;
+using ILGPU.Initialization;
+using ILGPU.RadixSort;
+using ILGPU.Runtime;
 
-namespace AlgorithmsRadixSort
+namespace AlgorithmsRadixSort;
+
+static class Program
 {
-    /// <summary>
-    /// A custom sequencer to create inverse sequences from N-1 to 0.
-    /// </summary>
-    struct InverseInt32Sequencer : ISequencer<int>
+    static void Main()
     {
-        /// <summary>
-        /// Constructs a new inverse int32 sequencer
-        /// </summary>
-        /// <param name="maxValue">The maximum value to start with.</param>
-        public InverseInt32Sequencer(int maxValue)
-        {
-            MaxValue = maxValue;
-        }
+        using var context = Context.CreateDefault();
 
-        /// <summary>
-        /// Returns the maximum (first) value.
-        /// </summary>
-        public int MaxValue { get; }
-
-        /// <summary cref="ISequencer{T}.ComputeSequenceElement(Index1)"/>
-        public int ComputeSequenceElement(LongIndex1D sequenceIndex) => MaxValue - sequenceIndex.ToIntIndex();
-    }
-
-    class Program
-    {
-        static void Main()
-        {
-            // Create default context and enable algorithms library
-            using var context = Context.Create(builder => builder.Default().EnableAlgorithms());
-
-            // For each available device...
-            foreach (var device in context)
+        var device = context.Devices
+            .OrderByDescending(d => d.AcceleratorType switch
             {
-                // Create the associated accelerator
-                using var accelerator = device.CreateAccelerator(context);
-                Console.WriteLine($"Performing operations on {accelerator}");
+                AcceleratorType.Metal  => 5,
+                AcceleratorType.Cuda   => 4,
+                AcceleratorType.ROCm   => 3,
+                AcceleratorType.OpenCL => 2,
+                AcceleratorType.CPU    => 1,
+                _                      => 0,
+            })
+            .First();
 
-                // Allocate the source buffer that will be sorted later on.
-                using var sourceBuffer = accelerator.Allocate1D<int>(32);
-                accelerator.Sequence(
-                    accelerator.DefaultStream,
-                    sourceBuffer.View,
-                    new InverseInt32Sequencer((int)sourceBuffer.Length));
+        using var accelerator = device.CreateAccelerator(context);
+        Console.WriteLine($"Using {accelerator}");
+        var stream = accelerator.DefaultStream;
 
-                // The parallel scan implementation needs temporary storage.
-                // By default, every accelerator hosts a memory-buffer cache
-                // for operations that require a temporary cache.
+        const int N = 32;
+        using var buffer = stream.Allocate1D<int>(N);
 
-                // Create a new radix sort instance using a descending int sorting.
-                var radixSort = accelerator.CreateRadixSort<int, Stride1D.Dense, AscendingInt32>();
+        // Fill with a descending sequence: N-1, N-2, ..., 1, 0
+        stream.Sequence(buffer.View, i => (int)(N - 1 - i));
 
-                // Compute the required amount of temporary memory
-                var tempMemSize = accelerator.ComputeRadixSortTempStorageSize<int, AscendingInt32>((Index1D)sourceBuffer.Length);
-                using (var tempBuffer = accelerator.Allocate1D<int>(tempMemSize))
-                {
-                    // Performs a descending radix-sort operation
-                    radixSort(
-                        accelerator.DefaultStream,
-                        sourceBuffer.View,
-                        tempBuffer.View);
-                }
+        // Ascending radix sort
+        stream.RadixSort<int, AscendingInt32>(buffer.View);
+        stream.Synchronize();
 
-                Console.WriteLine("Ascending RadixSort:");
+        Console.WriteLine("Ascending RadixSort:");
+        var data = buffer.GetAsArray1D();
+        for (int i = 0, e = data.Length; i < e; ++i)
+            Console.WriteLine($"Data[{i}] = {data[i]}");
 
-                // Reads data from the GPU buffer into a new CPU array.
-                // Implicitly calls accelerator.DefaultStream.Synchronize() to ensure
-                // that the kernel and memory copy are completed first.
-                var data = sourceBuffer.GetAsArray1D();
-                for (int i = 0, e = data.Length; i < e; ++i)
-                    Console.WriteLine($"Data[{i}] = {data[i]}");
+        // Descending radix sort
+        stream.RadixSort<int, DescendingInt32>(buffer.View);
+        stream.Synchronize();
 
-                // Creates a RadixSortProvider that hosts its own memory-buffer cache to allow
-                // for parallel invocations of different operations that require
-                // an extra cache.
-                using (var radixSortProvider = accelerator.CreateRadixSortProvider<int, DescendingInt32>((Index1D)sourceBuffer.Length))
-                {
-                    // Create a new radix sort instance using an ascending int sorting.
-                    var radixSortUsingSortProvider = radixSortProvider.CreateRadixSort<int, Stride1D.Dense, DescendingInt32>();
-
-                    // Performs an ascending radix-sort operation
-                    radixSortUsingSortProvider(
-                        accelerator.DefaultStream,
-                        sourceBuffer.View);
-
-                    Console.WriteLine("Descending RadixSort:");
-
-                    // Reads data from the GPU buffer into a new CPU array.
-                    // Implicitly calls accelerator.DefaultStream.Synchronize() to ensure
-                    // that the kernel and memory copy are completed first.
-                    data = sourceBuffer.GetAsArray1D();
-                    for (int i = 0, e = data.Length; i < e; ++i)
-                        Console.WriteLine($"Data[{i}] = {data[i]}");
-                }
-            }
-        }
+        Console.WriteLine("Descending RadixSort:");
+        data = buffer.GetAsArray1D();
+        for (int i = 0, e = data.Length; i < e; ++i)
+            Console.WriteLine($"Data[{i}] = {data[i]}");
     }
 }

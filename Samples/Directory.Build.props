@@ -1,20 +1,46 @@
-﻿<Project>
-  <PropertyGroup Condition="'$(MSBuildVersion)' &gt;= '17.8'">
-    <LibrarySamplesTargetFrameworks>net8.0</LibrarySamplesTargetFrameworks>
-    <LibrarySamplesTargetFrameworksWindows>net8.0-windows</LibrarySamplesTargetFrameworksWindows>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(MSBuildVersion)' &gt;= '17.4' AND '$(MSBuildVersion)' &lt; '17.8' ">
-    <LibrarySamplesTargetFrameworks>net7.0</LibrarySamplesTargetFrameworks>
-    <LibrarySamplesTargetFrameworksWindows>net7.0-windows</LibrarySamplesTargetFrameworksWindows>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(MSBuildVersion)' &lt; '17.4'">
-    <LibrarySamplesTargetFrameworks>net6.0</LibrarySamplesTargetFrameworks>
-    <LibrarySamplesTargetFrameworksWindows>net6.0-windows</LibrarySamplesTargetFrameworksWindows>
+<Project>
+
+  <PropertyGroup>
+    <SamplesTargetFramework>net10.0</SamplesTargetFramework>
+    <LangVersion>13.0</LangVersion>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <Nullable>enable</Nullable>
+
+    <!-- Path to pre-built ILGPU + ILGPUC artifacts.
+         Build Src/ILGPU.sln first: dotnet build Src/ILGPU.sln -->
+    <ILGPUBinDir>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)../Bin/$(Configuration)/net10.0'))</ILGPUBinDir>
+
+    <!-- Backend(s) to compile for. Semicolon-delimited for multi-backend.
+         Override: dotnet build -p:ILGPUBackend=Metal
+         Multi:    dotnet build -p:ILGPUBackend="CPU;Metal" -->
+    <!-- Multi-backend (e.g. CPU;Metal) requires codegen fix for unique class names.
+         Default to CPU for now; override with: dotnet build -p:ILGPUBackend=Metal -->
+    <ILGPUBackend Condition="'$(ILGPUBackend)' == ''">CPU</ILGPUBackend>
+
+    <!-- ILGPUC compiler tool invocation -->
+    <ILGPUCompilerTool>dotnet "$(ILGPUBinDir)/ILGPUC.dll"</ILGPUCompilerTool>
+
+    <!-- Native compilation: when true, ILGPUC invokes nvcc / hipcc / ocloc /
+         xcrun at build time and embeds the resulting binary instead of
+         source. Default off; the GPU runtime JIT-compiles source when this
+         is false, which works without any toolchain on the build host.
+
+         Examples:
+           # Embed source (default — no toolchain required, runtime JITs):
+           dotnet build -p:ILGPUBackend=Cuda
+
+           # Embed binary, picking up local nvcc / hipcc / ocloc / xcrun:
+           dotnet build -p:ILGPUBackend=Cuda -p:ILGPUCompile=true
+
+           # Embed binary via remote ILGPUC.CompilerService instances. The
+           # CLI walks: explicit URLs > ILGPU_*_SERVICE_URL env vars >
+           # ILGPU_COMPILER_SERVICE_URL > Docker default ports (5001/5002/
+           # 5003) > local toolchain. First URL to advertise a backend wins.
+           dotnet build -p:ILGPUBackend=Cuda -p:ILGPUCompile=true \
+             '-p:ILGPUCompilerServices="http://gpu1:5001;http://gpu2:5002"'
+
+           # Diagnostic: print the routing table the build would use:
+           dotnet "$(ILGPUBinDir)/ILGPUC.dll" probe-services -->
   </PropertyGroup>
 
-  <PropertyGroup Condition="'$(GITHUB_ACTIONS)' == 'true'">
-    <LibrarySamplesTargetFrameworks>net6.0;net7.0;net8.0</LibrarySamplesTargetFrameworks>
-    <LibrarySamplesTargetFrameworksWindows>net6.0-windows;net7.0-windows;net8.0-windows</LibrarySamplesTargetFrameworksWindows>
-    <CheckEolTargetFramework>false</CheckEolTargetFramework>
-  </PropertyGroup>
 </Project>
