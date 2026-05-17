@@ -69,6 +69,9 @@ sealed class ROCmBackend(string arch) :
             Target = CompilationTarget.Hip,
             OutputType = OutputType.Binary,
             OptimizationLevel = GetNativeOptLevel(properties.OptimizationLevel),
+            // AMD GPUs have no PTX-style JIT fallback: the code object must
+            // be built for the exact gfx target it will run on.
+            ExtraFlags = $"--offload-arch={arch}",
         }, ct).ConfigureAwait(false);
     }
 }

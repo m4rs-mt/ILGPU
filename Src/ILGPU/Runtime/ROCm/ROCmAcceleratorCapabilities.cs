@@ -50,10 +50,14 @@ public record class ROCmAcceleratorCapabilities : AcceleratorCapabilities
     /// <returns>The capability set for the given architecture.</returns>
     public static ROCmAcceleratorCapabilities FromArchitectureString(string arch)
     {
-        if (string.IsNullOrEmpty(arch) ||
-            !arch.StartsWith("gfx", StringComparison.OrdinalIgnoreCase) ||
+        // The HIP runtime may append target features (e.g.
+        // "gfx90a:sramecc+:xnack-"); only the processor name selects
+        // the capabilities.
+        var processor = GetProcessorName(arch);
+        if (string.IsNullOrEmpty(processor) ||
+            !processor.StartsWith("gfx", StringComparison.OrdinalIgnoreCase) ||
             !int.TryParse(
-                arch.AsSpan(3),
+                processor.AsSpan(3),
                 NumberStyles.HexNumber,
                 CultureInfo.InvariantCulture,
                 out int gfxNum))
@@ -259,9 +263,10 @@ public record class ROCmAcceleratorCapabilities : AcceleratorCapabilities
         get
         {
             // Parse gfx number from architecture string for ordering
-            if (ArchitectureString.Length > 3 &&
+            var processor = GetProcessorName(ArchitectureString);
+            if (processor.Length > 3 &&
                 int.TryParse(
-                    ArchitectureString.AsSpan(3),
+                    processor.AsSpan(3),
                     System.Globalization.NumberStyles.HexNumber,
                     System.Globalization.CultureInfo.InvariantCulture,
                     out int gfxNum))
@@ -274,6 +279,8 @@ public record class ROCmAcceleratorCapabilities : AcceleratorCapabilities
     public override bool IsCompatible(AcceleratorCapabilities kernelRequirements)
     {
         if (kernelRequirements is not ROCmAcceleratorCapabilities req)
+            return false;
+        if (!IsSameProcessor(req))
             return false;
         if (ArchitectureFamily != req.ArchitectureFamily && req.CDNAMatrixCores)
         {
@@ -300,6 +307,13 @@ public record class ROCmAcceleratorCapabilities : AcceleratorCapabilities
                 + " but device is ROCm.");
         }
 
+        if (!IsSameProcessor(req))
+        {
+            throw new CapabilityNotSupportedException(
+                $"Kernel was compiled for {req.ArchitectureString} but device is"
+                + $" {ArchitectureString}.");
+        }
+
         if (ArchitectureFamily != req.ArchitectureFamily && req.CDNAMatrixCores)
             CheckFlag(nameof(CDNAMatrixCores), CDNAMatrixCores, req.CDNAMatrixCores);
 
@@ -316,6 +330,37 @@ public record class ROCmAcceleratorCapabilities : AcceleratorCapabilities
         CheckFlag(nameof(FP4), FP4, req.FP4);
         CheckFlag(nameof(CDNAMatrixCores), CDNAMatrixCores, req.CDNAMatrixCores);
         CheckFlag(nameof(RDNAMatrixCores), RDNAMatrixCores, req.RDNAMatrixCores);
+    }
+
+    #endregion
+
+    #region Helpers
+
+    /// <summary>
+    /// Returns the processor part of a ROCm target ID, e.g. "gfx90a" for
+    /// "gfx90a:sramecc+:xnack-".
+    /// </summary>
+    /// <param name="arch">The architecture string or target ID.</param>
+    /// <returns>The processor name, or an empty string.</returns>
+    public static string GetProcessorName(string? arch)
+    {
+        if (string.IsNullOrEmpty(arch))
+            return string.Empty;
+        int separator = arch.IndexOf(':', StringComparison.Ordinal);
+        return separator < 0 ? arch : arch[..separator];
+    }
+
+    /// <summary>
+    /// Returns true if a kernel built for the given target can run on this
+    /// device's processor. AMD code objects are built for one exact gfx
+    /// processor, unlike PTX, which the CUDA driver can JIT for newer devices.
+    /// </summary>
+    private bool IsSameProcessor(ROCmAcceleratorCapabilities req)
+    {
+        var required = GetProcessorName(req.ArchitectureString);
+        var actual = GetProcessorName(ArchitectureString);
+        return required.Length == 0 || actual.Length == 0 ||
+            string.Equals(required, actual, StringComparison.OrdinalIgnoreCase);
     }
 
     #endregion

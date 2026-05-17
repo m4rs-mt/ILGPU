@@ -50,13 +50,17 @@ public sealed class HipccCompiler : CompilerBase
             await File.WriteAllTextAsync(inputFile, request.SourceCode, ct)
                 .ConfigureAwait(false);
 
-            var outputFile = Path.Combine(tempDir, "output.o");
+            // --genco emits a device code object that hipModuleLoadData can
+            // load directly; "-c" would produce a host object with the device
+            // code embedded, which the module loader rejects. The target GPU
+            // architecture (--offload-arch) is passed via ExtraFlags.
+            var outputFile = Path.Combine(tempDir, "output.hsaco");
             var optFlag = $"-O{(int)request.OptimizationLevel}";
             var includes = BuildIncludeArgs(request);
             var directives = BuildDirectiveArgs(request);
             var extraFlags = SanitizeCompilerFlags(request.ExtraFlags);
             var args =
-                $"-c -o \"{outputFile}\" \"{inputFile}\"" +
+                $"--genco -o \"{outputFile}\" \"{inputFile}\"" +
                 $" {optFlag} {extraFlags}{includes}{directives}";
 
             var (exitCode, stdout, stderr) = await RunProcessAsync(

@@ -248,7 +248,7 @@ unsafe partial class ROCmAPI
             launchConfig[1] = pArgs;
             launchConfig[2] = (void*)2; // HIP_LAUNCH_PARAM_BUFFER_SIZE
             launchConfig[3] = &size;
-            launchConfig[4] = (void*)0; // HIP_LAUNCH_PARAM_END
+            launchConfig[4] = (void*)3; // HIP_LAUNCH_PARAM_END
 
             return hipModuleLaunchKernel(
                 kernel.FunctionHandle,
@@ -311,7 +311,7 @@ unsafe partial class ROCmAPI
             launchConfig[1] = pArgs;
             launchConfig[2] = (void*)2; // HIP_LAUNCH_PARAM_BUFFER_SIZE
             launchConfig[3] = &size;
-            launchConfig[4] = (void*)0; // HIP_LAUNCH_PARAM_END
+            launchConfig[4] = (void*)3; // HIP_LAUNCH_PARAM_END
 
             return hipModuleLaunchKernel(
                 kernel.FunctionHandle,
