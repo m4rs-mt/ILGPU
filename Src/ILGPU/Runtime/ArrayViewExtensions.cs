@@ -1769,25 +1769,14 @@ public static partial class ArrayViewExtensions
                 ArrayView1D<T, Stride1D.Dense>.Empty);
         }
 
-        // Allocate the raw buffer
+        // Allocate the raw buffer and copy via the accelerator's
+        // device-aware copy path. The previous implementation called
+        // Buffer.MemoryCopy directly on buffer.NativePtr, which is only
+        // valid for accelerators whose NativePtr is a host pointer (CPU).
+        // On Cuda/ROCm/Metal/OpenCL the NativePtr is a device pointer and
+        // dereferencing it from the host raises AccessViolationException.
         var buffer = stream.Allocate1D<T>(data.Length);
-
-        // Copy the data directly to the buffer's native memory.
-        // ArrayView1D<T, Stride1D.Dense> doesn't implement IContiguousArrayView
-        // so the typed CopyFromCPU extensions don't resolve on it.
-        unsafe
-        {
-            long byteCount = (long)data.Length * Unsafe.SizeOf<T>();
-            fixed (T* src = data)
-            {
-                System.Buffer.MemoryCopy(
-                    src,
-                    buffer.NativePtr.ToPointer(),
-                    byteCount,
-                    byteCount);
-            }
-        }
-
+        buffer.AsContiguous().CopyFromCPU(stream, data);
         return buffer;
     }
 

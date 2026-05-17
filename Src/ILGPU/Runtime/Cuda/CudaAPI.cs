@@ -814,6 +814,110 @@ unsafe partial class CudaAPI
             kernelArgs);
 
     /// <summary>
+    /// Launches the given kernel function using explicit 3-D grid and
+    /// block dimensions. Forwards directly to <c>cuLaunchKernel</c>.
+    /// </summary>
+    /// <param name="kernelFunction">The function to launch.</param>
+    /// <param name="gridDimX">Grid dimension along X.</param>
+    /// <param name="gridDimY">Grid dimension along Y.</param>
+    /// <param name="gridDimZ">Grid dimension along Z.</param>
+    /// <param name="blockDimX">Block (group) dimension along X.</param>
+    /// <param name="blockDimY">Block (group) dimension along Y.</param>
+    /// <param name="blockDimZ">Block (group) dimension along Z.</param>
+    /// <param name="sharedMemSizeInBytes">Dynamic shared-memory size in bytes.</param>
+    /// <param name="stream">The associated accelerator stream.</param>
+    /// <param name="args">The legacy kernel arguments pointer (unused).</param>
+    /// <param name="kernelArgs">The CU_LAUNCH_PARAM_* config buffer.</param>
+    /// <returns>The error status.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public CudaError LaunchKernel3D(
+        IntPtr kernelFunction,
+        int gridDimX,
+        int gridDimY,
+        int gridDimZ,
+        int blockDimX,
+        int blockDimY,
+        int blockDimZ,
+        int sharedMemSizeInBytes,
+        IntPtr stream,
+        IntPtr args,
+        IntPtr kernelArgs) =>
+        cuLaunchKernel(
+            kernelFunction,
+            gridDimX, gridDimY, gridDimZ,
+            blockDimX, blockDimY, blockDimZ,
+            sharedMemSizeInBytes,
+            stream,
+            args,
+            kernelArgs);
+
+    /// <summary>
+    /// Launches a kernel using a flat KernelArgs buffer and explicit 3-D
+    /// grid / block dimensions. The auto-grouping path in
+    /// <see cref="LaunchKernelWithStruct{T}"/> assumes 1-D dispatch (with
+    /// gridDimY/Z = blockDimY/Z = 1), which produces a constant zero for
+    /// the Y / Z axes inside the kernel. The launcher emits a call to
+    /// this overload instead for Index2D / Index3D kernels so that
+    /// <c>blockIdx.y</c> / <c>blockIdx.z</c> map to the user's
+    /// <c>index.Y</c> / <c>index.Z</c>.
+    /// </summary>
+    /// <typeparam name="T">The args struct type.</typeparam>
+    /// <param name="stream">The current stream.</param>
+    /// <param name="kernel">The current kernel.</param>
+    /// <param name="gridDimX">Grid dimension along X.</param>
+    /// <param name="gridDimY">Grid dimension along Y.</param>
+    /// <param name="gridDimZ">Grid dimension along Z.</param>
+    /// <param name="blockDimX">Block dimension along X.</param>
+    /// <param name="blockDimY">Block dimension along Y.</param>
+    /// <param name="blockDimZ">Block dimension along Z.</param>
+    /// <param name="sharedMemoryBytes">Dynamic shared-memory size in bytes.</param>
+    /// <param name="args">Reference to the launch-args struct.</param>
+    /// <param name="argsSizeInBytes">The argument-buffer size in bytes.</param>
+    /// <returns>The error status.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public CudaError LaunchKernelWithStruct3D<T>(
+        CudaStream stream,
+        CudaKernel kernel,
+        int gridDimX,
+        int gridDimY,
+        int gridDimZ,
+        int blockDimX,
+        int blockDimY,
+        int blockDimZ,
+        int sharedMemoryBytes,
+        ref T args,
+        int argsSizeInBytes)
+        where T : unmanaged
+    {
+        var size = new IntPtr(argsSizeInBytes);
+        Debug.Assert(
+            argsSizeInBytes <= Interop.SizeOf<T>(),
+            "Invalid argument size");
+
+        fixed (T* pArgs = &args)
+        {
+            var launchConfig = stackalloc void*[5];
+            launchConfig[0] = (void*)1; // CU_LAUNCH_PARAM_BUFFER_POINTER
+            launchConfig[1] = pArgs;
+            launchConfig[2] = (void*)2; // CU_LAUNCH_PARAM_BUFFER_SIZE
+            launchConfig[3] = &size;
+            launchConfig[4] = (void*)0; // CU_LAUNCH_PARAM_END
+
+            var binding = stream.BindScoped();
+            var result = cuLaunchKernel(
+                kernel.FunctionPtr,
+                gridDimX, gridDimY, gridDimZ,
+                blockDimX, blockDimY, blockDimZ,
+                sharedMemoryBytes,
+                stream.StreamPtr,
+                IntPtr.Zero,
+                new IntPtr(launchConfig));
+            binding.Recover();
+            return result;
+        }
+    }
+
+    /// <summary>
     /// Computes the maximum number of blocks for maximum occupancy.
     /// </summary>
     /// <param name="numBlocks">The number of blocks.</param>

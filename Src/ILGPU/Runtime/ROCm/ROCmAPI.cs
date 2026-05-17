@@ -261,6 +261,69 @@ unsafe partial class ROCmAPI
         }
     }
 
+    /// <summary>
+    /// Launches a kernel using a flat KernelArgs buffer and explicit 3-D
+    /// grid / block dimensions. The 1-D
+    /// <see cref="LaunchKernelWithStruct{T}"/> forces gridY/Z and blockY/Z
+    /// to 1, which makes <c>hipBlockIdx_y</c> / <c>hipBlockIdx_z</c> a
+    /// constant zero inside the device kernel even when the IL kernel
+    /// was generated for an Index2D / Index3D entry. The HIP / ROCm
+    /// launcher emits a call to this overload instead for those
+    /// kernels so each thread maps to a unique 3-D thread id.
+    /// </summary>
+    /// <typeparam name="T">The kernel arguments struct type.</typeparam>
+    /// <param name="stream">The HIP stream.</param>
+    /// <param name="kernel">The HIP kernel.</param>
+    /// <param name="gridDimX">Grid dimension along X.</param>
+    /// <param name="gridDimY">Grid dimension along Y.</param>
+    /// <param name="gridDimZ">Grid dimension along Z.</param>
+    /// <param name="blockDimX">Block dimension along X.</param>
+    /// <param name="blockDimY">Block dimension along Y.</param>
+    /// <param name="blockDimZ">Block dimension along Z.</param>
+    /// <param name="sharedMemoryBytes">Dynamic shared-memory size in bytes.</param>
+    /// <param name="args">Reference to the launch-args struct.</param>
+    /// <param name="argsSizeInBytes">The argument-buffer size in bytes.</param>
+    /// <returns>The error status.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public ROCmError LaunchKernelWithStruct3D<T>(
+        ROCmStream stream,
+        ROCmKernel kernel,
+        int gridDimX,
+        int gridDimY,
+        int gridDimZ,
+        int blockDimX,
+        int blockDimY,
+        int blockDimZ,
+        int sharedMemoryBytes,
+        ref T args,
+        int argsSizeInBytes)
+        where T : unmanaged
+    {
+        var size = new IntPtr(argsSizeInBytes);
+        Debug.Assert(
+            argsSizeInBytes <= Interop.SizeOf<T>(),
+            "Invalid argument size");
+
+        fixed (T* pArgs = &args)
+        {
+            var launchConfig = stackalloc void*[5];
+            launchConfig[0] = (void*)1; // HIP_LAUNCH_PARAM_BUFFER_POINTER
+            launchConfig[1] = pArgs;
+            launchConfig[2] = (void*)2; // HIP_LAUNCH_PARAM_BUFFER_SIZE
+            launchConfig[3] = &size;
+            launchConfig[4] = (void*)0; // HIP_LAUNCH_PARAM_END
+
+            return hipModuleLaunchKernel(
+                kernel.FunctionHandle,
+                (uint)gridDimX, (uint)gridDimY, (uint)gridDimZ,
+                (uint)blockDimX, (uint)blockDimY, (uint)blockDimZ,
+                (uint)sharedMemoryBytes,
+                stream.StreamHandle,
+                IntPtr.Zero,
+                new IntPtr(launchConfig));
+        }
+    }
+
     #endregion
 
     #region Memory Management
