@@ -133,12 +133,22 @@ abstract class Backend(
     /// <param name="properties">Compilation properties to use.</param>
     /// <param name="typeInformationManager">Shared type manager to use.</param>
     /// <param name="module">The module to generate code for.</param>
+    /// <param name="launch">
+    /// How the entry point is launched; derived from the entry point's first
+    /// parameter when <see langword="null"/>.
+    /// </param>
     /// <returns>The generated code.</returns>
     public CodeGenerationResult GenerateCode(
         CompilationProperties properties,
         TypeInformationManager typeInformationManager,
-        Module module) =>
-        GenerateCode(properties, typeInformationManager, module, dumpWriter: null);
+        Module module,
+        EntryPointLaunch? launch = null) =>
+        GenerateCode(
+            properties,
+            typeInformationManager,
+            module,
+            dumpWriter: null,
+            launch: launch);
 
     /// <summary>
     /// Generates code for the given module, optionally dumping the post-backend-
@@ -155,13 +165,18 @@ abstract class Backend(
     /// The IR printer format to use when writing the dump.
     /// Defaults to <see cref="IRPrinterFormat.ILGPU"/>.
     /// </param>
+    /// <param name="launch">
+    /// How the entry point is launched; derived from the entry point's first
+    /// parameter when <see langword="null"/>.
+    /// </param>
     /// <returns>The generated code.</returns>
     public CodeGenerationResult GenerateCode(
         CompilationProperties properties,
         TypeInformationManager typeInformationManager,
         Module module,
         TextWriter? dumpWriter,
-        IRPrinterFormat dumpFormat = IRPrinterFormat.ILGPU)
+        IRPrinterFormat dumpFormat = IRPrinterFormat.ILGPU,
+        EntryPointLaunch? launch = null)
     {
         var transformer = CreateBackendTransformer(properties);
         var finalModule = transformer.Apply(properties, typeInformationManager, module);
@@ -177,17 +192,20 @@ abstract class Backend(
                 $"opt: {properties.OptimizationLevel}");
         }
 
-        return GenerateCode(finalModule);
+        return GenerateCode(finalModule, EntryPointLaunch.Resolve(module, launch));
     }
 
     /// <summary>
     /// Generates code for the given module.
     /// </summary>
     /// <param name="module">The module to generate code for.</param>
+    /// <param name="launch">How the entry point is launched.</param>
     /// <returns>The generated code.</returns>
-    protected virtual CodeGenerationResult GenerateCode(Module module)
+    protected virtual CodeGenerationResult GenerateCode(
+        Module module,
+        EntryPointLaunch launch)
     {
-        var codeGenerator = new CodeGenerator(module, LanguageConfiguration);
+        var codeGenerator = new CodeGenerator(module, LanguageConfiguration, launch);
         return codeGenerator.GenerateCode();
     }
 

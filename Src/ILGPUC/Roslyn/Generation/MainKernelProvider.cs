@@ -129,42 +129,12 @@ sealed class MainKernelProvider : ICompiledKernelProvider
                 .Select(p => LauncherStubGenerator.ExtractFieldAccessors(p.Type))
                 .ToArray();
 
-            // Compute index dimensions from the launch variant — must match
-            // the stub generator and call-site rewriter so the generated
-            // Launch method signature agrees with the rewritten call site.
-            // Determine index dimensions. For grouped launches, check if
-            // the kernel method's first parameter is an index type — if so,
-            // it receives the index (dim=1); if not, it's a grouped kernel
-            // without an index parameter (dim=0).
-            int indexDimOverride;
-            if (kernel.Variant == LaunchVariant.Grouped)
-            {
-                var firstParam = kernel.KernelMethod?.Parameters
-                    .FirstOrDefault();
-                indexDimOverride = firstParam is not null
-                    && firstParam.Type.Name is "Index1D" or "LongIndex1D"
-                        or "Index2D" or "LongIndex2D"
-                        or "Index3D" or "LongIndex3D"
-                        or "KernelIndex"
-                    ? 1 : 0;
-            }
-            else
-            {
-                indexDimOverride = kernel.Variant switch
-                {
-                    LaunchVariant.Auto2D or LaunchVariant.AutoLong2D
-                        or LaunchVariant.Auto2DStride
-                        or LaunchVariant.AutoLong2DStride => 2,
-                    LaunchVariant.Auto3D or LaunchVariant.AutoLong3D
-                        or LaunchVariant.Auto3DStride
-                        or LaunchVariant.AutoLong3DStride => 3,
-                    _ => 1,
-                };
-            }
-
+            // The launch must match the stub generator and call-site
+            // rewriter so the generated Launch signature agrees with the
+            // rewritten call site.
             kernelsToCompile.Add(new KernelCompileJob(
                 kernel.KernelName, method, paramTypeNames, fieldAccessors,
-                indexDimOverride));
+                kernel.GetEntryPointLaunch()));
         }
 
         if (parallel)
@@ -199,7 +169,7 @@ sealed class MainKernelProvider : ICompiledKernelProvider
         MethodInfo Method,
         string[]? LaunchParamTypeNames,
         string[]?[]? LaunchParamFieldAccessors,
-        int IndexDimOverride);
+        EntryPointLaunch Launch);
 
     /// <summary>
     /// Returns the pre-compiled C# source for <paramref name="kernel"/>.
@@ -242,7 +212,7 @@ sealed class MainKernelProvider : ICompiledKernelProvider
                     job.LaunchParamTypeNames,
                     job.LaunchParamFieldAccessors,
                     job.Name,
-                    job.IndexDimOverride,
+                    job.Launch,
                     ct)
                 .ConfigureAwait(false);
             sb.AppendLine(result.SourceCode);

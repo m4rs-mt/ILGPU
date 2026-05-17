@@ -133,17 +133,26 @@ sealed class MetalLanguageConfiguration : LanguageConfiguration
     public override bool SkipsIndexParameter => true;
 
     /// <inheritdoc/>
+    /// <remarks>
+    /// Metal dispatches exactly the requested number of threads
+    /// (<c>dispatchThreads</c> with non-uniform threadgroups), so the global
+    /// position comes from <c>thread_position_in_grid</c>. Deriving it from
+    /// the threadgroup position and <c>threads_per_threadgroup</c> is wrong
+    /// for the last, smaller threadgroup.
+    /// </remarks>
     public override string? EmitIndexComputation(
-        string typeName, string paramName, TypeValue indexType)
+        string typeName,
+        string paramName,
+        TypeValue indexType,
+        EntryPointLaunch launch)
     {
         // KernelIndex (grouped launch) carries {long GridIndex, int GroupIndex}
         // rather than a multi-dimensional thread index. Map the fields
         // directly to Metal's threadgroup / thread-within-threadgroup
         // builtins instead of deriving a global thread coordinate.
-        if (indexType is StructureType kernelIdx
-            && IsKernelIndexStructShape(kernelIdx))
+        if (launch.HasKernelIndex)
         {
-            var lines = new System.Text.StringBuilder();
+            var lines = new StringBuilder();
             lines.AppendLine($"  {typeName} {paramName};");
             lines.AppendLine(
                 $"  {paramName}.Field0 = (long)threadgroup_position_in_grid.x;");
@@ -152,49 +161,32 @@ sealed class MetalLanguageConfiguration : LanguageConfiguration
             return lines.ToString().TrimEnd();
         }
 
-        // For struct index types (Index2D/Index3D), compute each field from
-        // the corresponding dimension's built-in thread attributes
+        // For struct index types (Index2D/Index3D), take each field from
+        // the corresponding axis of the grid position
         if (indexType is StructureType structType)
         {
             string[] axes = ["x", "y", "z"];
-            var lines = new System.Text.StringBuilder();
+            var lines = new StringBuilder();
             lines.AppendLine($"  {typeName} {paramName};");
             for (int i = 0; i < structType.NumFields && i < 3; i++)
             {
-                var axis = axes[i];
-                lines.AppendLine($"  {paramName}.Field{i} = (int)(" +
-                    $"threadgroup_position_in_grid.{axis} * " +
-                    $"threads_per_threadgroup.{axis} + " +
-                    $"thread_position_in_threadgroup.{axis});");
+                lines.AppendLine(
+                    $"  {paramName}.Field{i} = (int)thread_position_in_grid.{axes[i]};");
             }
             return lines.ToString().TrimEnd();
         }
 
-        // 1D: compute a linear index
-        return $"  {typeName} {paramName} = " +
-            $"({typeName})(threadgroup_position_in_grid.x * " +
-            $"threads_per_threadgroup.x + thread_position_in_threadgroup.x);";
+        // 1D: the linear grid position
+        return $"  {typeName} {paramName} = ({typeName})thread_position_in_grid.x;";
     }
-
-    /// <summary>
-    /// Matches the flat field layout of <c>ILGPU.KernelIndex</c> —
-    /// <c>{i64 GridIndex, i32 GroupIndex}</c>. Used to decide whether the
-    /// first kernel parameter should be filled from Metal's group / thread
-    /// builtins or treated as a multi-dim thread coordinate.
-    /// </summary>
-    private static bool IsKernelIndexStructShape(StructureType st) =>
-        st.NumFields == 2
-        && !st.HasFlags(TypeFlags.PointerDependent | TypeFlags.ViewDependent)
-        && st.Fields[0] is PrimitiveType
-            { BasicValueType: BasicValueType.Int64 }
-        && st.Fields[1] is PrimitiveType
-            { BasicValueType: BasicValueType.Int32 };
 
     public override bool IsFileScopeAddressSpace(MemoryAddressSpace addressSpace) =>
         addressSpace == MemoryAddressSpace.Constant;
 
     public override IEnumerable<string> GetKernelBuiltInParameters()
     {
+        yield return
+            "uint3 thread_position_in_grid [[thread_position_in_grid]]";
         yield return
             "uint3 thread_position_in_threadgroup [[thread_position_in_threadgroup]]";
         yield return

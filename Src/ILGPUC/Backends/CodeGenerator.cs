@@ -68,7 +68,11 @@ readonly record struct CodeGenerationResult(
 /// </remarks>
 /// <param name="module">The module to generate code for.</param>
 /// <param name="languageConfig">Language-specific configuration.</param>
-sealed class CodeGenerator(Module module, LanguageConfiguration languageConfig)
+/// <param name="launch">How the entry point is launched.</param>
+sealed class CodeGenerator(
+    Module module,
+    LanguageConfiguration languageConfig,
+    EntryPointLaunch launch)
 {
     /// <summary>
     /// Generates source code for the entire module.
@@ -79,7 +83,7 @@ sealed class CodeGenerator(Module module, LanguageConfiguration languageConfig)
     {
         var builder = new StringBuilder(16 * 1024);
         using var writer = new StringWriter(builder);
-        var context = new GenerationContext(module, languageConfig, writer);
+        var context = new GenerationContext(module, languageConfig, writer, launch);
         var typeEmitter = new TypeEmitter(context);
 
         // Generate code in the proper order

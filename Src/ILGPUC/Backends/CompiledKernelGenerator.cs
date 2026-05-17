@@ -70,7 +70,7 @@ sealed class CompiledKernelGenerator : DisposeBase
     /// ensure the generated Launch signature matches the stub and call-site
     /// rewriter (which both derive dimensions from <c>LaunchVariant</c>).
     /// </summary>
-    private readonly int? _indexDimOverride;
+    private readonly EntryPointLaunch _launch;
     /// <summary>The string builder accumulating the generated source code.</summary>
     private readonly StringBuilder _builder;
     /// <summary>The text writer wrapping the string builder.</summary>
@@ -114,11 +114,12 @@ sealed class CompiledKernelGenerator : DisposeBase
     /// original names instead of the synthetic <c>Field0</c>/<c>Field1</c>
     /// fallback.
     /// </param>
-    /// <param name="indexDimOverride">
-    /// When set, overrides the heuristic index-dimension detection. The
-    /// Roslyn pipeline passes the value derived from
-    /// <c>LaunchVariant</c> so the generated Launch signature matches
-    /// the stub and the rewritten call site.
+    /// <param name="launch">
+    /// How the entry point is launched. The Roslyn pipeline passes the
+    /// launch derived from <c>LaunchVariant</c> so the generated Launch
+    /// signature matches the stub and the rewritten call site; when
+    /// <see langword="null"/>, it is derived from the entry point's first
+    /// parameter.
     /// </param>
     public CompiledKernelGenerator(
         CompiledKernelEmitter compiledKernelEmitter,
@@ -132,7 +133,7 @@ sealed class CompiledKernelGenerator : DisposeBase
         string? kernelName = null,
         string[]? launchParamTypeNames = null,
         string[]?[]? launchParamFieldAccessors = null,
-        int? indexDimOverride = null)
+        EntryPointLaunch? launch = null)
     {
         _compiledKernelEmitter = compiledKernelEmitter;
         _launcherEmitter = launcherEmitter;
@@ -145,7 +146,7 @@ sealed class CompiledKernelGenerator : DisposeBase
         _kernelName = kernelName;
         _launchParamTypeNames = launchParamTypeNames;
         _launchParamFieldAccessors = launchParamFieldAccessors;
-        _indexDimOverride = indexDimOverride;
+        _launch = EntryPointLaunch.Resolve(module, launch);
         _builder = new StringBuilder(16 * 1024);
         _writer = new StringWriter(_builder);
 
@@ -366,10 +367,9 @@ sealed class CompiledKernelGenerator : DisposeBase
     {
         var result = new List<ParameterInfo>();
 
-        // For auto-sized launches, skip parameter 0 (the implicit thread
-        // index). For grouped launches (_indexDimOverride == 0), there is
-        // no index parameter — all IR parameters are real kernel params.
-        int startParam = _indexDimOverride == 0 ? 0 : 1;
+        // Skip parameter 0 if it is the thread index. Grouped kernels
+        // without a KernelIndex parameter take only real kernel params.
+        int startParam = _launch.HasIndexParameter ? 1 : 0;
         for (int i = startParam; i < entryPoint.NumParameters; i++)
         {
             var param = entryPoint.Parameters[i];
@@ -651,14 +651,30 @@ sealed class CompiledKernelGenerator : DisposeBase
             WriteLine($"public {param.MarshaledTypeName} {param.Name};");
         }
 
+        // Hidden launch-extent arguments (appended after the kernel's own
+        // parameters, matching the device signature).
+        int numExtents = GetNumLaunchExtents();
+        for (int i = 0; i < numExtents; ++i)
+            WriteLine($"public long {EntryPointLaunch.GetExtentParameterName(i)};");
+
         CloseScope();
         WriteLine();
 
         // Emit the exact CUDA-side parameter-buffer size (no trailing pad)
         int argsSize = ComputeKernelArgsSize(parameters);
+        for (int i = 0; i < numExtents; ++i)
+            argsSize = AlignUp(argsSize, sizeof(long)) + sizeof(long);
         WriteLine($"private const int KernelArgsSize = {argsSize};");
         WriteLine();
     }
+
+    /// <summary>
+    /// Returns the number of hidden launch-extent arguments the kernel takes.
+    /// </summary>
+    private int GetNumLaunchExtents() =>
+        _launcherEmitter.PassesLaunchExtents && _launch.IsImplicit
+            ? _launch.IndexDimensions
+            : 0;
 
     /// <summary>
     /// Computes the total CUDA / HIP parameter-buffer size for the given
@@ -771,22 +787,9 @@ sealed class CompiledKernelGenerator : DisposeBase
         string className,
         List<ParameterInfo> parameters)
     {
-        // Detect multi-dim index from entry point's first parameter type.
-        // StructureType with 2 fields = Index2D, 3 fields = Index3D.
-        // When the Roslyn pipeline provides an override (derived from
-        // LaunchVariant), use it — this prevents grouped kernels whose
-        // first user parameter happens to be a struct from being
-        // misidentified as multi-dim index kernels.
-        // Fallback heuristic: only treat as multi-dim index if the struct
-        // has no pointer/view dependencies (index types are pure numeric
-        // structs; ArrayView and other user structs carry pointer/view
-        // flags).
-        int indexDims = _indexDimOverride
-            ?? (_module.EntryPoint?.Parameters[0].Type is
-                StructureType st
-                && !st.HasFlags(TypeFlags.PointerDependent
-                    | TypeFlags.ViewDependent)
-                    ? st.NumFields : 1);
+        // Multi-dim implicit launches pass the extent per dimension so the
+        // launcher can reconstruct Index2D / Index3D.
+        int indexDims = _launch.IsImplicit ? _launch.IndexDimensions : 1;
 
         var sigParams = new List<string>
         {
@@ -829,7 +832,10 @@ sealed class CompiledKernelGenerator : DisposeBase
         OpenScope();
 
         var ctx = CreateEmissionContext();
-        ctx.IndexDimensions = indexDims;
+        ctx.IndexDimensions = _launch.IsGrouped
+            ? _launch.IndexDimensions
+            : indexDims;
+        ctx.Launch = _launch;
 
         // Grouped kernels that take a KernelIndex as their first parameter
         // need the launcher to construct a per-thread KernelIndex struct

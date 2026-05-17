@@ -209,9 +209,35 @@ class CudaLanguageConfiguration : LanguageConfiguration
     public override bool SkipsIndexParameter => true;
 
     /// <inheritdoc/>
+    /// <remarks>
+    /// Implicitly grouped launches round the thread count up to whole
+    /// blocks; the extra threads are skipped by the guard against the hidden
+    /// extent parameters.
+    /// </remarks>
+    public override string? LaunchExtentTypeName => "long long";
+
+    /// <inheritdoc/>
     public override string? EmitIndexComputation(
-        string typeName, string paramName, TypeValue indexType)
+        string typeName,
+        string paramName,
+        TypeValue indexType,
+        EntryPointLaunch launch)
     {
+        const char xAxis = 'x';
+
+        // Grouped launch: KernelIndex {long GridIndex, int GroupIndex} is
+        // the block id and the thread id within the block.
+        if (launch.HasKernelIndex)
+        {
+            var kernelIndex = new System.Text.StringBuilder();
+            kernelIndex.AppendLine($"  {typeName} {paramName};");
+            kernelIndex.AppendLine(
+                $"  {paramName}.Field0 = (long long){GetBlockIndexExpr(xAxis)};");
+            kernelIndex.AppendLine(
+                $"  {paramName}.Field1 = (int){GetThreadIndexExpr(xAxis)};");
+            return kernelIndex.ToString().TrimEnd();
+        }
+
         // Multi-dim index (Index2D / Index3D) — derive each field from the
         // corresponding axis built-ins.
         if (indexType is StructureType structType)
@@ -230,10 +256,10 @@ class CudaLanguageConfiguration : LanguageConfiguration
             return lines.ToString().TrimEnd();
         }
 
-        // 1D scalar index — compute a linear thread id on the x axis.
-        const char xAxis = 'x';
+        // 1D scalar index — compute a linear thread id on the x axis in 64
+        // bits so long indices do not wrap.
         return $"  {typeName} {paramName} = ({typeName})(" +
-            $"{GetBlockIndexExpr(xAxis)} * {GetBlockDimExpr(xAxis)} + " +
+            $"(long long){GetBlockIndexExpr(xAxis)} * {GetBlockDimExpr(xAxis)} + " +
             $"{GetThreadIndexExpr(xAxis)});";
     }
 

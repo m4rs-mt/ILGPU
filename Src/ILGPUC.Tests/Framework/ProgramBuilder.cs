@@ -215,7 +215,8 @@ sealed class ProgramBuilder : DisposeBase
 
                 var result = GenerateWrapper(
                     method, properties, typeManager, kernel.KernelName,
-                    paramTypeNames, fieldAccessors);
+                    paramTypeNames, fieldAccessors,
+                    kernel.GetEntryPointLaunch());
                 compiledSources[kernel.KernelName] = result.SourceCode;
                 _output?.WriteLine(
                     $"Compiled kernel: {kernel.KernelName} → {result.ClassName}");
@@ -418,7 +419,8 @@ sealed class ProgramBuilder : DisposeBase
         TypeInformationManager typeManager,
         string? kernelName = null,
         string[]? launchParamTypeNames = null,
-        string[][]? launchParamFieldAccessors = null)
+        string[][]? launchParamFieldAccessors = null,
+        EntryPointLaunch? launch = null)
     {
         // Frontend: MethodInfo → Module
         var frontend = new ILFrontend(_backend, _tempDir);
@@ -440,7 +442,8 @@ sealed class ProgramBuilder : DisposeBase
 
         // Backend codegen (applies backend transforms internally)
         var backend = CompilationHelper.CreateBackend(_backend);
-        var compiled = backend.GenerateCode(properties, typeManager, optimizedModule);
+        var compiled = backend.GenerateCode(
+            properties, typeManager, optimizedModule, launch);
 
         // Debug: dump generated GPU source
         {
@@ -503,7 +506,8 @@ sealed class ProgramBuilder : DisposeBase
             compiledBinary: compiledBinary,
             kernelName: kernelName,
             launchParamTypeNames: launchParamTypeNames,
-            launchParamFieldAccessors: launchParamFieldAccessors);
+            launchParamFieldAccessors: launchParamFieldAccessors,
+            launch: launch);
 
         var genResult = kernelGen.Generate();
 

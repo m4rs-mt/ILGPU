@@ -27,10 +27,12 @@ namespace ILGPUC.Backends;
 /// <param name="module">The module being compiled.</param>
 /// <param name="languageConfig">The language configuration.</param>
 /// <param name="writer">The text writer for output.</param>
+/// <param name="launch">How the entry point is launched.</param>
 sealed partial class GenerationContext(
     Module module,
     LanguageConfiguration languageConfig,
-    TextWriter writer)
+    TextWriter writer,
+    EntryPointLaunch launch)
 {
     private readonly Stack<int> _indentStack = new();
     private int _currentIndent;
@@ -48,6 +50,11 @@ sealed partial class GenerationContext(
     /// Returns the language-specific configuration.
     /// </summary>
     public LanguageConfiguration LanguageConfig { get; } = languageConfig;
+
+    /// <summary>
+    /// Returns how the entry point is launched.
+    /// </summary>
+    public EntryPointLaunch Launch { get; } = launch;
 
     /// <summary>
     /// Gets the intrinsic emitter for generating language-specific intrinsic calls.

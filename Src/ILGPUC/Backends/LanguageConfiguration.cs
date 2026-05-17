@@ -242,17 +242,35 @@ abstract class LanguageConfiguration
     /// <summary>
     /// Returns the code to compute the thread index from built-in
     /// thread attributes. Called at the start of the entry point body when
-    /// <see cref="SkipsIndexParameter"/> is true.
+    /// <see cref="SkipsIndexParameter"/> is true and the entry point takes
+    /// an index parameter.
     /// For 1D indices, computes a linear index. For 2D/3D struct indices,
-    /// computes each component separately.
+    /// computes each component separately. For grouped launches, fills the
+    /// <c>KernelIndex</c> from the group and thread-in-group ids.
     /// </summary>
     /// <param name="typeName">The target-language type name for the index.</param>
     /// <param name="paramName">The generated parameter name.</param>
     /// <param name="indexType">The IR type of the index parameter.</param>
+    /// <param name="launch">How the entry point is launched.</param>
     /// <returns>Statement(s) to emit, or null if not applicable.</returns>
     public virtual string? EmitIndexComputation(
-        string typeName, string paramName, TypeValue indexType) =>
+        string typeName,
+        string paramName,
+        TypeValue indexType,
+        EntryPointLaunch launch) =>
         null;
+
+    /// <summary>
+    /// The target-language type of the hidden launch-extent parameters, or
+    /// <see langword="null"/> if the backend launches exactly the requested
+    /// number of threads. When set, the entry points of implicitly grouped
+    /// launches receive one extra trailing parameter per index dimension
+    /// (named by <see cref="EntryPointLaunch.GetExtentParameterName"/>) and
+    /// return early for threads outside the extent. The launch rounds the
+    /// thread count up to whole groups, so these threads exist whenever the
+    /// extent is not a multiple of the group size.
+    /// </summary>
+    public virtual string? LaunchExtentTypeName => null;
 
     /// <summary>
     /// Returns true if struct literals should use C-style compound literal syntax:

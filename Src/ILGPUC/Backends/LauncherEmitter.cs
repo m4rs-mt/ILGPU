@@ -211,6 +211,11 @@ sealed class LauncherEmissionContext
     /// <c>KernelIndex</c> struct before calling KernelEntryPoint.
     /// </summary>
     public string? KernelIndexTypeName { get; set; }
+
+    /// <summary>
+    /// How the entry point is launched.
+    /// </summary>
+    public EntryPointLaunch Launch { get; set; }
 }
 
 /// <summary>
@@ -229,9 +234,115 @@ abstract class LauncherEmitter
     public abstract bool NeedsKernelArgsStruct { get; }
 
     /// <summary>
+    /// Whether implicitly grouped launches pass the launch extent to the
+    /// kernel as hidden trailing arguments. Must match
+    /// <see cref="LanguageConfiguration.LaunchExtentTypeName"/> of the
+    /// backend's language configuration.
+    /// </summary>
+    public virtual bool PassesLaunchExtents => false;
+
+    /// <summary>
     /// Emits the platform-specific launch body inside the Launch method.
     /// </summary>
     public abstract void EmitLaunchBody(
         LauncherEmissionContext ctx,
         List<ParameterInfo> parameters);
+
+    /// <summary>
+    /// Returns the C# expressions for the hidden launch-extent arguments of
+    /// implicitly grouped launches, one per index dimension (empty for
+    /// grouped launches).
+    /// </summary>
+    protected static string[] GetLaunchExtentExpressions(LauncherEmissionContext ctx)
+    {
+        if (!ctx.Launch.IsImplicit)
+            return [];
+        return ctx.Launch.IndexDimensions switch
+        {
+            3 => ["(long)_dimX", "(long)_dimY", "(long)_dimZ"],
+            2 => ["(long)_dimX", "(long)_dimY"],
+            _ => ["userExtent"],
+        };
+    }
+
+    /// <summary>
+    /// Emits a small block of C# that derives explicit 3-D grid and block
+    /// dimensions (<c>_ilgpuc_gX/Y/Z</c> / <c>_ilgpuc_bX/Y/Z</c>). Grouped
+    /// launches use the user's <c>KernelConfig</c> as is. Implicitly grouped
+    /// launches distribute the auto group size (<c>launchConfig.GroupSize</c>)
+    /// across the dimensions of the user extent (<c>userExtent</c>, or
+    /// <c>_dimX</c>/<c>_dimY</c>/<c>_dimZ</c> for 2D/3D) and round the grid up
+    /// to whole groups; the kernel skips the extra threads.
+    /// </summary>
+    protected static void EmitLaunchDimensions(LauncherEmissionContext ctx)
+    {
+        ctx.WriteLine(
+            "int _ilgpuc_groupSize = launchConfig.GroupSize > 0 " +
+            "? launchConfig.GroupSize : 1;");
+        ctx.WriteLine("int _ilgpuc_bX, _ilgpuc_bY, _ilgpuc_bZ;");
+        ctx.WriteLine("int _ilgpuc_gX, _ilgpuc_gY, _ilgpuc_gZ;");
+        if (ctx.Launch.IsGrouped)
+        {
+            ctx.WriteLine("_ilgpuc_bX = _ilgpuc_groupSize;");
+            ctx.WriteLine("_ilgpuc_gX = (int)launchConfig.GridSize;");
+            ctx.WriteLine("_ilgpuc_bY = _ilgpuc_bZ = _ilgpuc_gY = _ilgpuc_gZ = 1;");
+            return;
+        }
+
+        switch (ctx.Launch.IndexDimensions)
+        {
+            case 3:
+                ctx.WriteLine(
+                    "_ilgpuc_bX = System.Math.Max(1, " +
+                    "System.Math.Min(_dimX, _ilgpuc_groupSize));");
+                ctx.WriteLine(
+                    "_ilgpuc_bY = System.Math.Max(1, System.Math.Min(_dimY, " +
+                    "_ilgpuc_groupSize / _ilgpuc_bX));");
+                ctx.WriteLine(
+                    "_ilgpuc_bZ = System.Math.Max(1, System.Math.Min(_dimZ, " +
+                    "_ilgpuc_groupSize / (_ilgpuc_bX * _ilgpuc_bY)));");
+                ctx.WriteLine(
+                    "_ilgpuc_gX = (_dimX + _ilgpuc_bX - 1) / _ilgpuc_bX;");
+                ctx.WriteLine(
+                    "_ilgpuc_gY = (_dimY + _ilgpuc_bY - 1) / _ilgpuc_bY;");
+                ctx.WriteLine(
+                    "_ilgpuc_gZ = (_dimZ + _ilgpuc_bZ - 1) / _ilgpuc_bZ;");
+                break;
+            case 2:
+                ctx.WriteLine(
+                    "_ilgpuc_bX = System.Math.Max(1, " +
+                    "System.Math.Min(_dimX, _ilgpuc_groupSize));");
+                ctx.WriteLine(
+                    "_ilgpuc_bY = System.Math.Max(1, System.Math.Min(_dimY, " +
+                    "_ilgpuc_groupSize / _ilgpuc_bX));");
+                ctx.WriteLine("_ilgpuc_bZ = 1;");
+                ctx.WriteLine(
+                    "_ilgpuc_gX = (_dimX + _ilgpuc_bX - 1) / _ilgpuc_bX;");
+                ctx.WriteLine(
+                    "_ilgpuc_gY = (_dimY + _ilgpuc_bY - 1) / _ilgpuc_bY;");
+                ctx.WriteLine("_ilgpuc_gZ = 1;");
+                break;
+            default:
+                // A single block of exactly userExtent threads when it fits,
+                // otherwise auto-sized blocks rounded up to cover the extent.
+                ctx.WriteLine(
+                    "long _ilgpuc_extent = userExtent > 0 ? userExtent " +
+                    ": (long)launchConfig.GridSize * _ilgpuc_groupSize;");
+                ctx.WriteLine(
+                    "int _ilgpuc_maxBlock = " +
+                    "stream.Accelerator?.MaxNumThreadsPerGroup ?? " +
+                    "_ilgpuc_groupSize;");
+                ctx.WriteLine(
+                    "_ilgpuc_bX = _ilgpuc_extent <= _ilgpuc_maxBlock " +
+                    "? (int)_ilgpuc_extent " +
+                    ": _ilgpuc_groupSize;");
+                ctx.WriteLine("if (_ilgpuc_bX < 1) _ilgpuc_bX = 1;");
+                ctx.WriteLine(
+                    "_ilgpuc_gX = (int)" +
+                    "((_ilgpuc_extent + _ilgpuc_bX - 1) / _ilgpuc_bX);");
+                ctx.WriteLine("if (_ilgpuc_gX < 1) _ilgpuc_gX = 1;");
+                ctx.WriteLine("_ilgpuc_bY = _ilgpuc_bZ = _ilgpuc_gY = _ilgpuc_gZ = 1;");
+                break;
+        }
+    }
 }

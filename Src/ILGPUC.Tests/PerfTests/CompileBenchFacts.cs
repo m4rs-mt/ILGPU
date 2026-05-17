@@ -265,7 +265,7 @@ public sealed class CompileBenchFacts(ITestOutputHelper output)
             kernelName: null,
             launchParamTypeNames: null,
             launchParamFieldAccessors: null,
-            indexDimOverride: null);
+            launch: null);
         var wrapperResult = wrapperGen.Generate();
         sw.Stop();
         Record(recordTo, iteration, backendType,
