@@ -20,7 +20,10 @@ sealed class OpenCLLauncherEmitter : PerArgumentLauncherEmitter
 
     protected override void EmitPreamble(LauncherEmissionContext ctx)
     {
-        ctx.WriteLine("var clKernel = (CLKernel)_runtimeKernel!;");
+        ctx.WriteLine("var clKernel = (CLKernel)(_runtimeKernel" +
+            " ?? throw new System.InvalidOperationException(" +
+            "\"The kernel is not loaded on this accelerator: it is not " +
+            "compatible with the device or failed to build for it.\"));");
         ctx.WriteLine("var clStream = (CLStream)stream;");
         ctx.WriteLine(
             "var launchConfig = stream.PrepareKernelLaunch(" +
@@ -38,8 +41,8 @@ sealed class OpenCLLauncherEmitter : PerArgumentLauncherEmitter
         int argIndex)
     {
         ctx.WriteLine(
-            $"CLAPI.CurrentAPI.SetKernelArgument(" +
-            $"clKernel.KernelPtr, {argIndex}, {expression});");
+            $"CLException.ThrowIfFailed(CLAPI.CurrentAPI.SetKernelArgument(" +
+            $"clKernel.KernelPtr, {argIndex}, {expression}));");
     }
 
     protected override int EmitViewArg(
@@ -48,25 +51,45 @@ sealed class OpenCLLauncherEmitter : PerArgumentLauncherEmitter
         string viewSourceExpr,
         int argIndex)
     {
+        // cl_mem handle and byte offset (see
+        // CLLanguageConfiguration.EmitNonFlattenedKernelParam), then length.
+        var memory = $"_clMem_{argIndex}";
+        var offset = $"_clOffset_{argIndex}";
         ctx.WriteLine(
-            $"CLAPI.CurrentAPI.SetKernelArgument(" +
-            $"clKernel.KernelPtr, {argIndex}, (IntPtr){viewImplVar}.Ptr);");
-        argIndex++;
+            $"CLMemoryBuffer.ResolveView((IArrayView){viewSourceExpr}, " +
+            $"(IntPtr){viewImplVar}.Ptr, out var {memory}, out var {offset});");
+        argIndex = EmitBufferArgs(ctx, memory, offset, argIndex);
         ctx.WriteLine(
-            $"CLAPI.CurrentAPI.SetKernelArgument(" +
-            $"clKernel.KernelPtr, {argIndex}, {viewImplVar}.Length);");
+            $"CLException.ThrowIfFailed(CLAPI.CurrentAPI.SetKernelArgument(" +
+            $"clKernel.KernelPtr, {argIndex}, {viewImplVar}.Length));");
         argIndex++;
         return argIndex;
     }
 
-    protected override void EmitPointerArg(
+    protected override int EmitPointerArg(
         LauncherEmissionContext ctx,
         string expression,
+        int argIndex) =>
+        EmitBufferArgs(ctx, $"(IntPtr){expression}", "0L", argIndex);
+
+    /// <summary>
+    /// Sets a buffer pointer argument and the byte-offset argument that
+    /// follows it.
+    /// </summary>
+    /// <returns>The next argument index.</returns>
+    private static int EmitBufferArgs(
+        LauncherEmissionContext ctx,
+        string memory,
+        string offset,
         int argIndex)
     {
         ctx.WriteLine(
-            $"CLAPI.CurrentAPI.SetKernelArgument(" +
-            $"clKernel.KernelPtr, {argIndex}, (IntPtr){expression});");
+            $"CLException.ThrowIfFailed(CLAPI.CurrentAPI.SetKernelArgument(" +
+            $"clKernel.KernelPtr, {argIndex}, {memory}));");
+        ctx.WriteLine(
+            $"CLException.ThrowIfFailed(CLAPI.CurrentAPI.SetKernelArgument(" +
+            $"clKernel.KernelPtr, {argIndex + 1}, {offset}));");
+        return argIndex + 2;
     }
 
     /// <inheritdoc/>
@@ -83,8 +106,8 @@ sealed class OpenCLLauncherEmitter : PerArgumentLauncherEmitter
         for (int i = 0; i < extents.Length; ++i)
         {
             ctx.WriteLine(
-                $"CLAPI.CurrentAPI.SetKernelArgument(" +
-                $"clKernel.KernelPtr, {nextArgIndex + i}, {extents[i]});");
+                $"CLException.ThrowIfFailed(CLAPI.CurrentAPI.SetKernelArgument(" +
+                $"clKernel.KernelPtr, {nextArgIndex + i}, {extents[i]}));");
         }
 
         ctx.WriteLine("");

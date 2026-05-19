@@ -233,6 +233,17 @@ abstract class LanguageConfiguration
         $"{typeName} {paramName}";
 
     /// <summary>
+    /// Returns a statement to emit at the start of the kernel entry point for
+    /// the given entry point parameter (as declared by
+    /// <see cref="EmitNonFlattenedKernelParam"/>), or <see langword="null"/>.
+    /// </summary>
+    public virtual string? EmitKernelParamPrologue(
+        TypeValue type,
+        string typeName,
+        string paramName) =>
+        null;
+
+    /// <summary>
     /// Returns true if the kernel entry point's first parameter (the thread index)
     /// should NOT be emitted as a buffer parameter. GPU backends return true and
     /// compute the index from built-in thread attributes instead.

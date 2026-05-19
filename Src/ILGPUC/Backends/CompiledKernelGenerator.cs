@@ -1050,6 +1050,7 @@ sealed class CompiledKernelGenerator : DisposeBase
             SimdWidth = _simdWidth,
             BufferPool = _compiled.BufferPool,
             ActiveEmbedMode = _effectiveEmbedMode,
+            KernelSourceCode = _compiled.SourceCode,
         };
 
     #endregion

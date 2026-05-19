@@ -144,6 +144,37 @@ sealed class CLLanguageConfiguration(CLVendor vendor = CLVendor.Intel) : Languag
     /// <inheritdoc/>
     public override string KernelAttribute => "__kernel";
 
+    /// <summary>
+    /// The suffix of the byte-offset parameter that follows every buffer
+    /// pointer parameter of a kernel entry point.
+    /// </summary>
+    public const string BufferOffsetSuffix = "_offset";
+
+    /// <inheritdoc/>
+    /// <remarks>
+    /// A buffer argument is a <c>cl_mem</c> handle, which cannot point into
+    /// the middle of a buffer, so every buffer pointer is followed by the
+    /// byte offset of the view within its buffer.
+    /// </remarks>
+    public override string EmitNonFlattenedKernelParam(
+        TypeValue type,
+        string typeName,
+        string paramName,
+        int bufferIndex) =>
+        type is AddressSpaceType
+            ? $"{typeName} {paramName}, long {paramName}{BufferOffsetSuffix}"
+            : $"{typeName} {paramName}";
+
+    /// <inheritdoc/>
+    public override string? EmitKernelParamPrologue(
+        TypeValue type,
+        string typeName,
+        string paramName) =>
+        type is AddressSpaceType
+            ? $"  {paramName} = ({typeName})" +
+                $"((global char*){paramName} + {paramName}{BufferOffsetSuffix});"
+            : null;
+
     /// <inheritdoc/>
     /// <remarks>
     /// The launcher only passes the kernel's own arguments; the thread index

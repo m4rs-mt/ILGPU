@@ -231,6 +231,24 @@ sealed class MethodEmitter(
     /// </summary>
     private void EmitMethodBody(Method method)
     {
+        // Entry point parameter set-up (e.g. applying OpenCL buffer offsets).
+        if (method == context.Module.EntryPoint)
+        {
+            bool skipsIndex = context.LanguageConfig.SkipsIndexParameter
+                && context.Launch.HasIndexParameter;
+            foreach (var param in method.Parameters)
+            {
+                if (skipsIndex && param.Index == 0)
+                    continue;
+                var prologue = context.LanguageConfig.EmitKernelParamPrologue(
+                    param.Type,
+                    typeEmitter.GetTypeName(param.Type),
+                    context.GetValueName(param));
+                if (prologue is not null)
+                    context.WriteLine(prologue);
+            }
+        }
+
         // GPU backends: compute the thread index from built-in attributes
         // instead of receiving it as a buffer parameter.
         if (method == context.Module.EntryPoint

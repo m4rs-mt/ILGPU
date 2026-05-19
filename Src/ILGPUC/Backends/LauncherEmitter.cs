@@ -216,6 +216,11 @@ sealed class LauncherEmissionContext
     /// How the entry point is launched.
     /// </summary>
     public EntryPointLaunch Launch { get; set; }
+
+    /// <summary>
+    /// The generated device source code of the kernel.
+    /// </summary>
+    public string? KernelSourceCode { get; init; }
 }
 
 /// <summary>
