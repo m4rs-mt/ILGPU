@@ -64,50 +64,52 @@ public enum HipMemcpyKind
 }
 
 /// <summary>
-/// Represents HIP device attribute kinds.
+/// Represents HIP device attribute kinds. The values are HIP's
+/// <c>hipDeviceAttribute_t</c> numbers (ROCm 6.0 and later), which differ
+/// from CUDA's <c>CUdevice_attribute</c>.
 /// </summary>
 public enum HipDeviceAttributeKind
 {
     /// <summary>Maximum threads per block.</summary>
-    MaxThreadsPerBlock = 1,
+    MaxThreadsPerBlock = 56,
     /// <summary>Maximum block dimension X.</summary>
-    MaxBlockDimX = 2,
+    MaxBlockDimX = 26,
     /// <summary>Maximum block dimension Y.</summary>
-    MaxBlockDimY = 3,
+    MaxBlockDimY = 27,
     /// <summary>Maximum block dimension Z.</summary>
-    MaxBlockDimZ = 4,
+    MaxBlockDimZ = 28,
     /// <summary>Maximum grid dimension X.</summary>
-    MaxGridDimX = 5,
+    MaxGridDimX = 29,
     /// <summary>Maximum grid dimension Y.</summary>
-    MaxGridDimY = 6,
+    MaxGridDimY = 30,
     /// <summary>Maximum grid dimension Z.</summary>
-    MaxGridDimZ = 7,
+    MaxGridDimZ = 31,
     /// <summary>Maximum shared memory per block in bytes.</summary>
-    MaxSharedMemoryPerBlock = 8,
+    MaxSharedMemoryPerBlock = 74,
     /// <summary>Total constant memory in bytes.</summary>
-    TotalConstantMemory = 9,
+    TotalConstantMemory = 83,
     /// <summary>Warp size in threads.</summary>
-    WarpSize = 10,
+    WarpSize = 87,
     /// <summary>Maximum registers per block.</summary>
-    MaxRegistersPerBlock = 12,
+    MaxRegistersPerBlock = 71,
     /// <summary>Clock rate in kHz.</summary>
-    ClockRate = 13,
+    ClockRate = 5,
     /// <summary>Multiprocessor count.</summary>
-    MultiprocessorCount = 16,
+    MultiprocessorCount = 63,
     /// <summary>Whether the device is integrated.</summary>
-    Integrated = 18,
+    Integrated = 16,
     /// <summary>Whether the device can map host memory.</summary>
-    CanMapHostMemory = 19,
+    CanMapHostMemory = 3,
     /// <summary>Compute mode.</summary>
-    ComputeMode = 20,
+    ComputeMode = 6,
     /// <summary>Maximum threads per multiprocessor.</summary>
-    MaxThreadsPerMultiprocessor = 39,
+    MaxThreadsPerMultiprocessor = 57,
     /// <summary>Whether the device supports managed memory.</summary>
-    ManagedMemory = 83,
+    ManagedMemory = 24,
     /// <summary>L2 cache size in bytes.</summary>
-    L2CacheSize = 44,
+    L2CacheSize = 19,
     /// <summary>Max shared memory per multiprocessor.</summary>
-    MaxSharedMemoryPerMultiprocessor = 81,
+    MaxSharedMemoryPerMultiprocessor = 10002,
 }
 
 /// <summary>
@@ -416,9 +418,26 @@ unsafe partial class ROCmAPI
         hipSetDevice(device);
 
     /// <summary>
-    /// Returns the name of the specified device.
+    /// Returns the AMD target ID of the specified device (e.g. "gfx1100" or
+    /// "gfx90a:sramecc+:xnack-"), which selects the code object to load.
     /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public ROCmError GetDeviceArchitecture(out string architecture, int device)
+    {
+        // hipDeviceProp_tR0600: 1472 bytes, gcnArchName (char[256]) at offset
+        // 1160 on all 64-bit platforms (unchanged since ROCm 6.0).
+        const int propertiesSize = 1472;
+        const int gcnArchNameOffset = 1160;
+        var buffer = stackalloc byte[propertiesSize];
+        var error = hipGetDevicePropertiesR0600(buffer, device);
+        architecture = error == ROCmError.Success
+            ? new string((sbyte*)(buffer + gcnArchNameOffset))
+            : string.Empty;
+        return error;
+    }
+
+    /// <summary>
+    /// Returns the marketing name of the given device.
+    /// </summary>
     public ROCmError GetDeviceName(out string name, int device)
     {
         const int maxNameLength = 256;
@@ -489,7 +508,7 @@ unsafe partial class ROCmAPI
         IntPtr function,
         int blockSize,
         int dynamicSharedMemorySize) =>
-        hipOccupancyMaxActiveBlocksPerMultiprocessor(
+        hipModuleOccupancyMaxActiveBlocksPerMultiprocessor(
             out numBlocks,
             function,
             blockSize,
@@ -505,7 +524,7 @@ unsafe partial class ROCmAPI
         IntPtr function,
         int dynamicSharedMemorySize,
         int blockSizeLimit) =>
-        hipOccupancyMaxPotentialBlockSize(
+        hipModuleOccupancyMaxPotentialBlockSize(
             out gridSize,
             out blockSize,
             function,
