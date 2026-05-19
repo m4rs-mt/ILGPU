@@ -86,6 +86,28 @@ sealed class CudaIntrinsicEmitter : IntrinsicEmitter
         type == ArithmeticBasicValueType.Float64 ? $"pow({x}, {y})" : $"powf({x}, {y})";
 
     /// <inheritdoc/>
+    public override string EmitPopCount(string arg, ArithmeticBasicValueType type) =>
+        Is64BitInteger(type) ? $"__popcll({arg})" : $"__popc({arg})";
+
+    /// <inheritdoc/>
+    public override string EmitLeadingZeroCount(
+        string arg,
+        ArithmeticBasicValueType type) =>
+        Is64BitInteger(type) ? $"__clzll({arg})" : $"__clz({arg})";
+
+    /// <inheritdoc/>
+    /// <remarks>
+    /// There is no trailing-zero intrinsic; <c>__ffs</c> returns the 1-based
+    /// position of the lowest set bit, or 0 for zero.
+    /// </remarks>
+    public override string EmitTrailingZeroCount(
+        string arg,
+        ArithmeticBasicValueType type) =>
+        Is64BitInteger(type)
+            ? $"({arg} == 0 ? 64 : __ffsll({arg}) - 1)"
+            : $"({arg} == 0 ? 32 : __ffs({arg}) - 1)";
+
+    /// <inheritdoc/>
     public override string EmitAbs(string arg, ArithmeticBasicValueType type) => type switch
     {
         ArithmeticBasicValueType.Float64 => $"fabs({arg})",
@@ -214,7 +236,7 @@ sealed class CudaIntrinsicEmitter : IntrinsicEmitter
         type switch
         {
             ArithmeticBasicValueType.Int32 => $"atomicMin({ptr}, {value})",
-            ArithmeticBasicValueType.Int64 => $"atomicMin((unsigned long long*){ptr}, {value})",
+            ArithmeticBasicValueType.Int64 => $"atomicMin((long long*){ptr}, {value})",
             _ => throw new NotSupportedException(
                 $"Atomic min not supported for type {type}")
         };
@@ -228,7 +250,7 @@ sealed class CudaIntrinsicEmitter : IntrinsicEmitter
         type switch
         {
             ArithmeticBasicValueType.Int32 => $"atomicMax({ptr}, {value})",
-            ArithmeticBasicValueType.Int64 => $"atomicMax((unsigned long long*){ptr}, {value})",
+            ArithmeticBasicValueType.Int64 => $"atomicMax((long long*){ptr}, {value})",
             _ => throw new NotSupportedException(
                 $"Atomic max not supported for type {type}")
         };

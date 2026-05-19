@@ -90,6 +90,22 @@ sealed class MetalIntrinsicEmitter : IntrinsicEmitter
         $"metal::pow({x}, {y})";
 
     /// <inheritdoc/>
+    public override string EmitPopCount(string arg, ArithmeticBasicValueType type) =>
+        $"(int)popcount({arg})";
+
+    /// <inheritdoc/>
+    public override string EmitLeadingZeroCount(
+        string arg,
+        ArithmeticBasicValueType type) =>
+        $"(int)clz({arg})";
+
+    /// <inheritdoc/>
+    public override string EmitTrailingZeroCount(
+        string arg,
+        ArithmeticBasicValueType type) =>
+        $"(int)ctz({arg})";
+
+    /// <inheritdoc/>
     public override string EmitAbs(string arg, ArithmeticBasicValueType type) =>
         type switch
         {

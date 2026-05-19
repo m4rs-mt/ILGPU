@@ -50,6 +50,16 @@ public abstract class AtomicExecutionTests : ExecutionTestBase
     }
 
     [SkippableFact]
+    public async Task AtomicMinMaxLong_ProducesCorrectOutput()
+    {
+        RequireCapability(Backend, BackendCapability.Int64AtomicMinMax);
+        await VerifyProgramOutputAsync(
+            "TestPrograms/Atomics/AtomicMinMaxLong.cs",
+            ["Kernels.AtomicMinMaxLongKernel"],
+            ["-2000", "1000"]);
+    }
+
+    [SkippableFact]
     public async Task AtomicExchange_ProducesCorrectOutput()
     {
         await VerifyProgramOutputAsync(

@@ -61,8 +61,8 @@ sealed class ROCmLanguageConfiguration : CudaLanguageConfiguration
     /// <inheritdoc/>
     /// <remarks>
     /// The <c>hipcc</c> wrapper auto-includes <c>hip_runtime.h</c>, but
-    /// the compiler service invokes <c>clang++ -x hip</c> directly so
-    /// the header must be requested explicitly. Without it, none of HIP's
+    /// the header is requested explicitly so the source also compiles with
+    /// a plain <c>clang++ -x hip</c>. Without it, none of HIP's
     /// kernel-side identifiers are declared (<c>__global__</c>'s macro
     /// expansion needs <c>hipLaunchKernel</c>, plus <c>hipThreadIdx_x</c>,
     /// <c>hipBlockIdx_x</c>, <c>hipBlockDim_x</c>, <c>hipGridDim_x</c>,
@@ -72,6 +72,8 @@ sealed class ROCmLanguageConfiguration : CudaLanguageConfiguration
     public override IEnumerable<string> GetHeaderIncludes()
     {
         yield return "#include <hip/hip_runtime.h>";
+        // __half and its conversions; hip_runtime.h does not include it.
+        yield return "#include <hip/hip_fp16.h>";
     }
 
     /// <inheritdoc/>

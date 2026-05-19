@@ -61,6 +61,15 @@ public abstract class UnaryIntOpExecutionTests : ExecutionTestBase
     }
 
     [SkippableFact]
+    public async Task BitCount_ProducesCorrectOutput()
+    {
+        await VerifyProgramOutputAsync(
+            "TestPrograms/UnaryIntOp/BitCount.cs",
+            ["Kernels.BitCountKernel"],
+            ["mismatches 0"]);
+    }
+
+    [SkippableFact]
     public async Task NegLong_ProducesCorrectOutput()
     {
         await VerifyProgramOutputAsync(
