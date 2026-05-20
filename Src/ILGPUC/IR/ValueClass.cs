@@ -57,5 +57,5 @@ static partial class ValueKinds
     /// <summary>
     /// Returns the number of different value classes.
     /// </summary>
-    public const int NumValueClasses = 5;
+    public const int NumValueClasses = 6;
 }

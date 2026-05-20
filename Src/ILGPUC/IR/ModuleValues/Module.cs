@@ -130,7 +130,7 @@ sealed class Module : IGenerationObject, IValueScope, IDumpable
 
     #region Instance
 
-    private readonly BasicValueTypeMap<PrimitiveType> _basicValueTypes = [];
+    private BasicValueTypeMap<PrimitiveType> _basicValueTypes = [];
     private readonly Lazy<Dictionary<MethodHandle, int>> _methodLookup;
     private ReadOnlyMemory<Method> _methods;
     private ReadOnlyMemory<Global> _globals;

@@ -942,6 +942,20 @@ sealed class CPUMethodEmitter(
     }
 
     /// <summary>
+    /// Returns the text to reference a branch/loop condition. Scalar pure
+    /// conditions with exactly one use have no variable allocated (the
+    /// SSAVariableAllocator inlines them), so asking the context for a name
+    /// would mint an undeclared temporary; inline the expression instead.
+    /// </summary>
+    private string EmitConditionExpression(
+        Value condition,
+        VectorizationAnalysis analysis,
+        CPUExpressionEmitter expressionEmitter) =>
+        analysis.IsScalar(condition) && !context.NeedsVariable(condition)
+            ? expressionEmitter.ResolveOperand(condition)
+            : context.GetValueName(condition);
+
+    /// <summary>
     /// Emits non-phi values of a basic block split into two parts:
     /// values that the <paramref name="condition"/> transitively depends on
     /// (emitted first), and all remaining values (emitted second).
@@ -1348,7 +1362,8 @@ sealed class CPUMethodEmitter(
         // ReconstructBlock adds it both as an element AND via the
         // IfStatement — we only emit it once (the standalone one).
 
-        var condition = context.GetValueName(ifStmt.Condition);
+        var condition = EmitConditionExpression(
+            ifStmt.Condition, analysis, expressionEmitter);
 
         // Scalar-condition fast path: emit a native C# if/else, no masking needed
         if (analysis.IsScalar(ifStmt.Condition))
@@ -1492,7 +1507,8 @@ sealed class CPUMethodEmitter(
             headerBlock, placement, analysis, expressionEmitter);
 
         // Pre-loop condition check
-        var condition = context.GetValueName(whileLoop.Condition);
+        var condition = EmitConditionExpression(
+            whileLoop.Condition, analysis, expressionEmitter);
         if (analysis.IsScalar(whileLoop.Condition))
         {
             context.WriteLine($"while ({condition})");
@@ -1636,7 +1652,8 @@ sealed class CPUMethodEmitter(
             headerBlock, placement, analysis, expressionEmitter);
 
         // Pre-loop condition check — skip the loop entirely if false
-        var condition = context.GetValueName(forLoop.Condition);
+        var condition = EmitConditionExpression(
+            forLoop.Condition, analysis, expressionEmitter);
         if (analysis.IsScalar(forLoop.Condition))
         {
             context.WriteLine($"while ({condition})");
@@ -1792,7 +1809,8 @@ sealed class CPUMethodEmitter(
         }
 
         // Evaluate condition and combine with mask
-        var condition = context.GetValueName(doWhileLoop.Condition);
+        var condition = EmitConditionExpression(
+            doWhileLoop.Condition, analysis, expressionEmitter);
         if (analysis.IsScalar(doWhileLoop.Condition))
         {
             // Scalar condition: all lanes agree — use the condition directly
@@ -1831,7 +1849,8 @@ sealed class CPUMethodEmitter(
         // NOTE: The switch condition block was already emitted by
         // EmitControlFlow as a standalone BasicBlock element.
 
-        var condition = context.GetValueName(switchStmt.Condition);
+        var condition = EmitConditionExpression(
+            switchStmt.Condition, analysis, expressionEmitter);
 
         // Scalar switch: emit plain C# switch with phi assignments
         if (analysis.IsScalar(switchStmt.Condition))

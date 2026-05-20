@@ -216,7 +216,7 @@ sealed class PointerAliasAnalysis(Module module)
                     {
                         // Connect call-site arguments to formal parameters
                         var parameters = target.Parameters;
-                        var arguments = call.Values;
+                        var arguments = call.Arguments;
                         int length = Math.Min(parameters.Count, arguments.Length);
                         for (int i = 0; i < length; ++i)
                         {

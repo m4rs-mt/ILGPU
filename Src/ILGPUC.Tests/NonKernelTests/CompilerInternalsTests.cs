@@ -1,0 +1,118 @@
+// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                           Copyright (c) 2026 ILGPU Project
+//                                    www.ilgpu.net
+//
+// File: CompilerInternalsTests.cs
+//
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details.
+// ---------------------------------------------------------------------------------------
+
+using ILGPU;
+using ILGPU.Runtime;
+using ILGPUC.IR;
+using ILGPUC.IR.Analyses;
+using ILGPUC.Tests.Framework;
+using System;
+using System.Reflection;
+using Xunit;
+
+namespace ILGPUC.Tests.NonKernelTests;
+
+/// <summary>
+/// Unit-level regression tests for small compiler-internal helpers that have
+/// no kernel-level seam.
+/// </summary>
+public sealed class CompilerInternalsTests
+{
+    #region UseCollection.TryGetSingleUse
+
+    [Fact]
+    public void TryGetSingleUse_Empty_ReturnsFalse()
+    {
+        var collection = new UseCollection(null!, []);
+        Assert.False(collection.TryGetSingleUse(out _));
+    }
+
+    [Fact]
+    public void TryGetSingleUse_SingleUse_ReturnsTrueAndAssignsUse()
+    {
+        var uses = new Use[] { new(null!, 3) };
+        var collection = new UseCollection(null!, uses);
+
+        Assert.True(collection.TryGetSingleUse(out var use));
+        Assert.Equal(3, use.Index);
+    }
+
+    [Fact]
+    public void TryGetSingleUse_MultipleUses_ReturnsFalse()
+    {
+        var uses = new Use[] { new(null!, 0), new(null!, 1) };
+        var collection = new UseCollection(null!, uses);
+
+        Assert.False(collection.TryGetSingleUse(out _));
+    }
+
+    [Fact]
+    public void TryGetSingleUse_PredicateFiltersToSingleUse_ReturnsTrue()
+    {
+        var uses = new Use[] { new(null!, 0), new(null!, 1), new(null!, 2) };
+        var collection = new UseCollection(null!, uses, use => use.Index == 1);
+
+        Assert.True(collection.TryGetSingleUse(out var use));
+        Assert.Equal(1, use.Index);
+    }
+
+    #endregion
+
+    #region AnalysisValue.ToString
+
+    [Fact]
+    public void AnalysisValue_ToString_Scalar_PrintsDataOnly()
+    {
+        var value = new AnalysisValue<int>(42);
+        Assert.Equal("42", value.ToString());
+    }
+
+    [Fact]
+    public void AnalysisValue_ToString_Structure_PrintsDataAndFields()
+    {
+        var value = new AnalysisValue<int>(42, new[] { 1, 2, 3 });
+        Assert.Equal("42 [1, 2, 3]", value.ToString());
+    }
+
+    #endregion
+
+    #region Module.GetPrimitiveType
+
+    /// <summary>
+    /// A minimal kernel to obtain a sealed module.
+    /// </summary>
+    private static void PrimitiveTypeKernel(
+        Index1D index, ArrayView1D<int, Stride1D.Dense> data) =>
+        data[index] = index;
+
+    private static ILGPUC.IR.ModuleValues.Module CompilePrimitiveTypeKernel(
+        CompilationProperties properties)
+    {
+        using var helper = new CompilationHelper();
+        var kernel = typeof(CompilerInternalsTests).GetMethod(
+            nameof(PrimitiveTypeKernel),
+            BindingFlags.NonPublic | BindingFlags.Static)!;
+        return helper.CompileToModule(kernel, properties);
+    }
+
+    [Fact]
+    public void Module_GetPrimitiveType_ResolvesEveryBasicValueType()
+    {
+        var module = CompilePrimitiveTypeKernel(new CompilationProperties());
+        foreach (var type in Enum.GetValues<BasicValueType>())
+        {
+            var primitiveType = module.GetPrimitiveType(type);
+            Assert.Equal(type, primitiveType.BasicValueType);
+        }
+    }
+
+    #endregion
+}

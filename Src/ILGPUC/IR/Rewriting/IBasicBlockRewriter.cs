@@ -105,7 +105,7 @@ sealed class BasicBlockRewriter(BasicBlockBuilder target, BasicBlock oldBlock) :
             return newValue;
 
         // Check whether this value type is out of scope
-        if (oldValue is not BasicBlockValue or PureValue)
+        if (oldValue is not (BasicBlockValue or PureValue))
             return oldValue;
 
         // Check whether we can rewrite a pure value

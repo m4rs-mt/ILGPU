@@ -192,12 +192,13 @@ sealed partial class BasicBlock(in MethodValueInitializer initializer, string? n
         public BasicBlock BasicBlock => basicBlock;
 
         /// <summary>
-        /// Returns the number of all directly associated values.
+        /// Returns the number of all directly associated values. A termination
+        /// value that is part of the phi or value chain is counted once.
         /// </summary>
         public int Count =>
             basicBlock.NumValues
             + basicBlock.NumPhiValues
-            + (basicBlock.TerminationValue is not null ? 1 : 0);
+            + (basicBlock.HasSeparateTerminationValue ? 1 : 0);
 
         /// <summary>
         /// Returns the first value of this block (if any).
@@ -219,6 +220,7 @@ sealed partial class BasicBlock(in MethodValueInitializer initializer, string? n
     internal ref struct ValueCollectionEnumerator(BasicBlock basicBlock)
     {
         private BasicBlockValueCollectionEnumerator _enumerator = new(basicBlock);
+        private bool _terminationVisited;
 
         /// <summary>
         /// Returns the current node.
@@ -235,11 +237,12 @@ sealed partial class BasicBlock(in MethodValueInitializer initializer, string? n
                 return true;
             }
 
-            // Check for the termination value
-            if (basicBlock.TerminationValue is not null &&
-                Current != basicBlock.TerminationValue)
+            // Check for a termination value that has not been enumerated as part
+            // of the phi or value chain
+            if (!_terminationVisited && basicBlock.HasSeparateTerminationValue)
             {
-                Current = basicBlock.TerminationValue;
+                _terminationVisited = true;
+                Current = basicBlock.TerminationValue.AsNotNull();
                 return true;
             }
 
@@ -385,6 +388,12 @@ sealed partial class BasicBlock(in MethodValueInitializer initializer, string? n
     /// Returns the number of values.
     /// </summary>
     public int NumValues { get; private set; }
+
+    /// <summary>
+    /// Returns true if this block has a termination value that is not part of
+    /// its phi or value chain (e.g. a pure condition or a value of another block).
+    /// </summary>
+    public bool HasSeparateTerminationValue { get; private set; }
 
     /// <summary>
     /// Returns all values without the termination value (for iteration during
@@ -701,7 +710,8 @@ sealed partial class BasicBlock(in MethodValueInitializer initializer, string? n
         foreach (var (bbValue, _) in BasicBlockValues)
             bbValue.ComputeUses(visited);
 
-        TerminationValue?.AddUseInternal(new Use(this, Index: 0));
+        // The termination value is operand 0 of this block, so
+        // base.ComputeUses has already registered its use.
 
         return true;
     }
@@ -715,6 +725,9 @@ sealed partial class BasicBlock(in MethodValueInitializer initializer, string? n
     /// <param name="firstValue">The first basic block value (if any).</param>
     /// <param name="lastValue">The last basic block value (if any).</param>
     /// <param name="terminationValue">The termination value (if any).</param>
+    /// <param name="terminationValueInChain">
+    /// True if the termination value is part of the phi or value chain.
+    /// </param>
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     internal void SealBlock(
         int numPhiValues,
@@ -722,7 +735,8 @@ sealed partial class BasicBlock(in MethodValueInitializer initializer, string? n
         int numValues,
         BasicBlockValue? firstValue,
         BasicBlockValue? lastValue,
-        Value? terminationValue)
+        Value? terminationValue,
+        bool terminationValueInChain)
     {
         this.Assert(TerminationKind > BlockTerminationKind.Pending,
             $"Block '{Name}' is being sealed without a termination " +
@@ -738,6 +752,8 @@ sealed partial class BasicBlock(in MethodValueInitializer initializer, string? n
         NumValues = numValues;
         FirstValue = firstValue;
         LastValue = lastValue;
+        HasSeparateTerminationValue =
+            terminationValue is not null && !terminationValueInChain;
 
         if (terminationValue is not null)
             Seal(terminationValue);

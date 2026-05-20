@@ -213,8 +213,6 @@ On Apple Silicon, enable Rosetta in Docker Desktop (`Settings → General`) for 
 
 **`MethodCall` layout:** `_values[0]` is the target method, `[1..]` are arguments. Use `call.Arguments` not `call.Values` for argument iteration.
 
-**`Module.GetPrimitiveType` broken with readonly struct** — `Module._basicValueTypes` is a readonly struct, calling methods creates defensive copies. Use `transform.GetPrimitiveType()` inside transforms instead.
-
 **After editing files, `touch` them before `dotnet build`** — the Edit tool doesn't update mtime, so MSBuild may skip recompilation.
 
 ## Commit Messages

@@ -23,7 +23,10 @@ namespace ILGPUC.IR.Transformations;
 /// <summary>
 /// Lowers <see cref="WarpReduce"/> and <see cref="WarpScan"/> nodes into unrolled
 /// shuffle-based sequences for backends without native warp collective support.
-/// Runs after <see cref="AcceleratorSpecializer"/> so the warp size is known.
+/// Runs before <see cref="AcceleratorSpecializer"/> — twice, around
+/// <see cref="LowerGroupCollectives"/> (which emits fresh warp collective nodes) —
+/// with the warp size provided by the injected
+/// <see cref="ArchitectureSpecification"/>.
 /// </summary>
 /// <param name="args">The transformation args.</param>
 /// <param name="specification">The target architecture specification.</param>

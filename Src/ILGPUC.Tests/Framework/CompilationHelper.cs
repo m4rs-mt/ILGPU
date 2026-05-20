@@ -63,6 +63,13 @@ sealed class CompilationHelper : DisposeBase
     }
 
     /// <summary>
+    /// Returns the shared type information manager. Intended for tests that
+    /// apply individual transformations to a module produced by
+    /// <see cref="CompileToModule"/>.
+    /// </summary>
+    public TypeInformationManager TypeManager => _typeManager;
+
+    /// <summary>
     /// Initializes the intrinsic registry exactly once across all test instances.
     /// </summary>
     private static void EnsureIntrinsicsInitialized()

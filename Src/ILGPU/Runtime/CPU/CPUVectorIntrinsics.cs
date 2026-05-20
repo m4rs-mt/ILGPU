@@ -328,6 +328,16 @@ public static class CPUVectorIntrinsics
         return res;
     }
 
+    /// <summary>
+    /// Computes element-wise NOT, writing the result into target in-place.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void NotMask(bool[] target, ReadOnlySpan<bool> a)
+    {
+        for (int i = 0; i < a.Length; i++)
+            target[i] = !a[i];
+    }
+
     #endregion
 
     #region Warp Reduce Operations (masked)

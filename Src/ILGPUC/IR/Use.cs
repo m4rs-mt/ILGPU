@@ -130,7 +130,8 @@ readonly ref struct UseCollection(
         use = default;
         var enumerator = GetEnumerator();
         if (!enumerator.MoveNext())
-            use = enumerator.Current;
+            return false;
+        use = enumerator.Current;
         return !enumerator.MoveNext();
     }
 

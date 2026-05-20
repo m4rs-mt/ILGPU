@@ -33,6 +33,12 @@ sealed class CPUExpressionEmitter(
         new(context, new TypeEmitter(context));
 
     /// <summary>
+    /// Returns the name prefixed with "var " on its first declaration and
+    /// bare afterwards (see <see cref="GenerationContext.DeclarePrefix"/>).
+    /// </summary>
+    private string Declare(string name) => context.DeclarePrefix(name) + name;
+
+    /// <summary>
     /// Optional overrides for broadcast temp variable names.
     /// Maps the default name (e.g., <c>"_bcast_pool_long_1"</c>) to the
     /// actual pool parameter name (e.g., <c>"pool_long_2"</c>).
@@ -62,7 +68,7 @@ sealed class CPUExpressionEmitter(
     /// pre-allocated variable (e.g. GroupIndexValue → laneIdx) are inlined
     /// via the shared expression emitter; others use the variable name.
     /// </summary>
-    private string ResolveOperand(Value operand) =>
+    public string ResolveOperand(Value operand) =>
         analysis.IsScalar(operand) || !context.NeedsVariable(operand)
             ? _sharedEmitter.EmitExpression(operand)
             : context.GetValueName(operand);
@@ -106,7 +112,7 @@ sealed class CPUExpressionEmitter(
                 if (context.NeedsVariable(load))
                     context.WriteLine($"{result} = {view}[{index}];");
                 else
-                    context.WriteLine($"var {result} = {view}[{index}];");
+                    context.WriteLine($"{Declare(result)} = {view}[{index}];");
             }
             else
             {
@@ -283,7 +289,7 @@ sealed class CPUExpressionEmitter(
             };
             if (op is not null)
             {
-                context.WriteLine($"var {result} = {left} {op} {right};");
+                context.WriteLine($"{Declare(result)} = {left} {op} {right};");
                 return;
             }
 
@@ -297,7 +303,7 @@ sealed class CPUExpressionEmitter(
             if (scalarMethod is not null)
             {
                 context.WriteLine(
-                    $"var {result} = {scalarMethod}({left}, {right});");
+                    $"{Declare(result)} = {scalarMethod}({left}, {right});");
                 return;
             }
 
@@ -463,7 +469,11 @@ sealed class CPUExpressionEmitter(
             var expr = unary.Kind switch
             {
                 UnaryArithmeticKind.Neg => $"-{operand}",
-                UnaryArithmeticKind.Not => $"~{operand}",
+                // `~` does not compile on C# bool; logical Not must use `!`.
+                UnaryArithmeticKind.Not =>
+                    unary.BasicValueType == BasicValueType.Int1
+                        ? $"!{operand}"
+                        : $"~{operand}",
                 UnaryArithmeticKind.Abs => $"Math.Abs({operand})",
                 UnaryArithmeticKind.Sqrt => $"Math.Sqrt({operand})",
                 UnaryArithmeticKind.Sin => $"Math.Sin({operand})",
@@ -490,7 +500,7 @@ sealed class CPUExpressionEmitter(
             };
             if (expr != null)
             {
-                context.WriteLine($"var {result} = {expr};");
+                context.WriteLine($"{Declare(result)} = {expr};");
                 return;
             }
             // Unknown kind — fall through to shared emitter via return false
@@ -500,6 +510,17 @@ sealed class CPUExpressionEmitter(
         var config = (CPULanguageConfiguration)context.LanguageConfig;
         var elemType = (unary.Type is PrimitiveType pt)
             ? config.GetPrimitiveTypeName(pt.BasicValueType) : "int";
+
+        // Bool masks: bool does not implement IBitwiseOperators, and a
+        // bitwise complement would be wrong anyway — use the dedicated
+        // mask intrinsic (mirrors the AndMask/OrMask binary handling).
+        if (unary.Kind == UnaryArithmeticKind.Not &&
+            unary.BasicValueType == BasicValueType.Int1)
+        {
+            context.WriteLine(
+                $"CPUVectorIntrinsics.NotMask({result}, {operand});");
+            return;
+        }
 
         string? method = unary.Kind switch
         {
@@ -570,7 +591,7 @@ sealed class CPUExpressionEmitter(
                 _ => throw new System.NotSupportedException(
                     $"Compare {compare.Kind} not supported")
             };
-            context.WriteLine($"var {result} = {left} {op} {right};");
+            context.WriteLine($"{Declare(result)} = {left} {op} {right};");
             return;
         }
 
@@ -742,7 +763,7 @@ sealed class CPUExpressionEmitter(
         // loop without `var`.
         if (analysis.IsScalar(cast))
         {
-            context.WriteLine($"var {result} = {scalarHelper}({operand});");
+            context.WriteLine($"{Declare(result)} = {scalarHelper}({operand});");
             return;
         }
 
@@ -783,7 +804,7 @@ sealed class CPUExpressionEmitter(
         // loop without `var`.
         if (analysis.IsScalar(cast))
         {
-            context.WriteLine($"var {result} = {scalarHelper}({operand});");
+            context.WriteLine($"{Declare(result)} = {scalarHelper}({operand});");
             return;
         }
 
@@ -822,13 +843,13 @@ sealed class CPUExpressionEmitter(
                 // (e.g., Int8→sbyte but the var is byte). Cast through
                 // the signed type to get proper sign extension.
                 context.WriteLine(
-                    $"var {result} = ({targetType})({signedSourceType})" +
+                    $"{Declare(result)} = ({targetType})({signedSourceType})" +
                     $"{operand};");
             }
             else
             {
                 context.WriteLine(
-                    $"var {result} = ({targetType}){operand};");
+                    $"{Declare(result)} = ({targetType}){operand};");
             }
         }
         else
@@ -857,7 +878,7 @@ sealed class CPUExpressionEmitter(
         {
             // Scalar condition — plain ternary
             context.WriteLine(
-                $"var {result} = {condition} ? {trueVal} : {falseVal};");
+                $"{Declare(result)} = {condition} ? {trueVal} : {falseVal};");
             return;
         }
 

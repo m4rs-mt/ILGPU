@@ -114,8 +114,8 @@ readonly struct AnalysisValue<T>(T data, ReadOnlyMemory<T>? fieldData = null) :
     /// <returns>The string representation of this value.</returns>
     public override string? ToString() =>
         IsScalar
-        ? $"{Data} [{string.Join(", ", _fieldData)}]"
-        : Data.ToString();
+        ? Data.ToString()
+        : $"{Data} [{string.Join(", ", _fieldData.ToArray())}]";
 
     /// <summary>
     /// Returns true if the first and second value are the same.

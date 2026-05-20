@@ -291,12 +291,16 @@ partial class BasicBlockBuilder : PureValueBuilder, IDumpable
         // SetNextInternal sets both Next and BasicBlock on the previous
         // node, but the tail (LastPhiValue) is never the 'previous' in
         // the pair — fix its BasicBlock explicitly.
+        var terminationValue = TerminationValue;
+        bool terminationValueInChain = false;
         var currentPhiValue = LastPhiValue;
         if (currentPhiValue is not null)
             currentPhiValue.BasicBlock = BasicBlock;
-        int numPhiValues = 0;
+        int numPhiValues = currentPhiValue is not null ? 1 : 0;
         while (currentPhiValue is not null)
         {
+            terminationValueInChain |=
+                ReferenceEquals(currentPhiValue, terminationValue);
             var previous = currentPhiValue.Previous as PhiValue;
             previous?.SetNextInternal(currentPhiValue, BasicBlock);
             if (previous is null) break;
@@ -312,9 +316,10 @@ partial class BasicBlockBuilder : PureValueBuilder, IDumpable
         var current = Last;
         if (current is not null)
             current.BasicBlock = BasicBlock;
-        int numValues = 0;
+        int numValues = current is not null ? 1 : 0;
         while (current is not null)
         {
+            terminationValueInChain |= ReferenceEquals(current, terminationValue);
             var previous = current.Previous;
             previous?.SetNextInternal(current, BasicBlock);
             if (previous is null) break;
@@ -332,7 +337,8 @@ partial class BasicBlockBuilder : PureValueBuilder, IDumpable
             numValues,
             current,
             Last,
-            TerminationValue);
+            terminationValue,
+            terminationValueInChain);
         return BasicBlock;
     }
 

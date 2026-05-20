@@ -1067,8 +1067,8 @@ partial class ModuleBuilder : IGenerationObject
 
         // Seal the parent module
         Module.Seal(
-            totalNumValues,
             _numValues,
+            totalNumValues,
             orderedMethods.AsReadOnlyMemory(),
             usedGlobals.AsReadOnlyMemory(),
             usedTypes.AsReadOnlyMemory(),
