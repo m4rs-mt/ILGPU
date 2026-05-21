@@ -60,6 +60,32 @@ public abstract class ConvertExecutionTests : ExecutionTestBase
             ["7", "7", "7", "7"]);
     }
 
+    /// <summary>
+    /// conv.r.un resolves its target type from the operand on the stack.
+    /// </summary>
+    [SkippableFact]
+    public async Task UIntToFloat_ProducesCorrectOutput()
+    {
+        await VerifyProgramOutputAsync(
+            "TestPrograms/ConvertFloat/UIntToFloat.cs",
+            ["Kernels.UIntToFloatKernel"],
+            ["4000000000", "4000000000", "4000000000", "4000000000"]);
+    }
+
+    /// <summary>
+    /// conv.r.un of a 32-bit operand converts to double without rounding
+    /// through float first.
+    /// </summary>
+    [SkippableFact]
+    public async Task UIntToDouble_ProducesCorrectOutput()
+    {
+        RequireCapability(Backend, BackendCapability.Float64);
+        await VerifyProgramOutputAsync(
+            "TestPrograms/ConvertFloat/UIntToDouble.cs",
+            ["Kernels.UIntToDoubleKernel"],
+            ["4000000001", "4000000001", "4000000001", "4000000001"]);
+    }
+
     [SkippableFact]
     public async Task FloatToDouble_ProducesCorrectOutput()
     {

@@ -9,9 +9,11 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
+using ILGPUC.IR;
 using ILGPUC.IR.MethodValues;
 using ILGPUC.IR.ModuleValues;
 using ILGPUC.IR.PureValues;
+using System.Collections.Generic;
 
 namespace ILGPUC.Frontend;
 
@@ -51,10 +53,7 @@ partial class CodeGenerator
         var successors = Block.GetPendingSuccessors(2);
 
         var condition = CreateCompare(compareKind, instructionFlags);
-        Builder.CreateConditionalTermination(
-            condition,
-            successors[0],
-            successors[1]);
+        CreateConditionalBranch(condition, successors[0], successors[1]);
     }
 
     /// <summary>
@@ -103,10 +102,36 @@ partial class CodeGenerator
             rightValue,
             kind,
             CompareFlags.None);
-        Builder.CreateConditionalTermination(
-            condition,
-            successors[0],
-            successors[1]);
+        CreateConditionalBranch(condition, successors[0], successors[1]);
+    }
+
+    /// <summary>
+    /// Creates a conditional branch. A constant condition (e.g. the
+    /// <c>ldc.i4.1; brtrue</c> sequences that debug builds emit around switch
+    /// expressions) is folded to an unconditional branch, and the dead edge is
+    /// removed so that the dead target no longer counts as a predecessor.
+    /// Otherwise SSA construction would still feed phis from the unreachable
+    /// block, which is never sealed.
+    /// </summary>
+    /// <param name="condition">The branch condition.</param>
+    /// <param name="trueTarget">The target if the condition holds.</param>
+    /// <param name="falseTarget">The target otherwise.</param>
+    private void CreateConditionalBranch(
+        Value condition,
+        BasicBlock trueTarget,
+        BasicBlock falseTarget)
+    {
+        if (condition is PrimitiveValue primitive && trueTarget != falseTarget)
+        {
+            bool isTrue = primitive.Int1Value;
+            var liveTarget = isTrue ? trueTarget : falseTarget;
+            var deadTarget = isTrue ? falseTarget : trueTarget;
+            Builder.CreateUnconditionalTermination(liveTarget);
+            CleanupDeadPredecessorEdge(Block.BasicBlock, deadTarget);
+            return;
+        }
+
+        Builder.CreateConditionalTermination(condition, trueTarget, falseTarget);
     }
 
     /// <summary>
@@ -122,17 +147,30 @@ partial class CodeGenerator
         BasicBlock source,
         BasicBlock deadTarget)
     {
-        deadTarget.RemovePredecessor(source);
+        // Iterative worklist with a visited set: cycles of dead blocks
+        // (e.g. an unreachable loop) would otherwise recurse without bound.
+        var visited = new HashSet<BasicBlock>(ReferenceEqualityComparer.Instance);
+        var workList = new Stack<(BasicBlock Source, BasicBlock Target)>();
+        workList.Push((source, deadTarget));
 
-        // If the dead target still has other predecessors it's reachable
-        // through another path — nothing more to do.
-        if (deadTarget.Predecessors.Length > 0)
-            return;
+        while (workList.Count > 0)
+        {
+            var (currentSource, target) = workList.Pop();
+            target.RemovePredecessor(currentSource);
 
-        // The block is now unreachable. Remove it as a predecessor from
-        // all of its successors (propagate transitively).
-        foreach (var successor in deadTarget.Successors)
-            CleanupDeadPredecessorEdge(deadTarget, successor);
+            // If the dead target still has other predecessors it's reachable
+            // through another path — nothing more to do.
+            if (target.Predecessors.Length > 0)
+                continue;
+
+            // The block is now unreachable. Remove it as a predecessor from
+            // all of its successors (propagate transitively), expanding each
+            // dead block at most once.
+            if (!visited.Add(target))
+                continue;
+            foreach (var successor in target.Successors)
+                workList.Push((target, successor));
+        }
     }
 
     /// <summary>

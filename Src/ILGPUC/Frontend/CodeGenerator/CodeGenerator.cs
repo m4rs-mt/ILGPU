@@ -329,6 +329,10 @@ sealed partial class CodeGenerator
             GenerateCodeForBlock();
         }
 
+        // Close any remaining back edges (no-op if the RPO walk already
+        // sealed every block); Release builds would otherwise silently keep
+        // incomplete phis, as AssertAllSealed is DEBUG-only.
+        SSABuilder.SealRemainingBlocks();
         SSABuilder.AssertAllSealed();
 
         return MethodBuilder.Method;
@@ -427,6 +431,8 @@ sealed partial class CodeGenerator
                 $"body of {methodBase.Name}");
         }
 
+        // See GenerateCode: close any remaining back edges before asserting.
+        SSABuilder.SealRemainingBlocks();
         SSABuilder.AssertAllSealed();
     }
 

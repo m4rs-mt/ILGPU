@@ -225,7 +225,7 @@ sealed class ILInstruction(
         (BasicValueType.Int1, typeof(float)),
         (BasicValueType.Int8, typeof(float)),
         (BasicValueType.Int16, typeof(float)),
-        (BasicValueType.Int32, typeof(float)),
+        (BasicValueType.Int32, typeof(double)),
         (BasicValueType.Int64, typeof(double)));
 
     #endregion

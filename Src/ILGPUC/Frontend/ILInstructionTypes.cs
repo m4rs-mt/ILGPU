@@ -547,6 +547,9 @@ static class ILInstructionTypes
 
             // Exceptions
             { ILInstructionType.Throw, (1, 0) },
+            // rethrow re-raises the in-flight exception; it neither pops nor
+            // pushes evaluation-stack entries (ECMA-335 III.4.24)
+            { ILInstructionType.Rethrow, (0, 0) },
             { ILInstructionType.Leave, (0, 0) },
             { ILInstructionType.EndFinally, (0, 0) },
         };

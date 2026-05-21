@@ -153,6 +153,16 @@ partial class PureValueBuilder
                     innerBasicType > sourceBasicType &&
                     targetBasicType < sourceBasicType;
             }
+            else if (
+                sourceBasicType == BasicValueType.Float64 &&
+                targetBasicType == BasicValueType.Float32)
+            {
+                // Integers of up to 32 bits convert to double exactly, so
+                // rounding the double to float equals a direct conversion.
+                var innerBasicType = convert.Value.BasicValueType;
+                canSimplify = innerBasicType.IsInt() &&
+                    innerBasicType <= BasicValueType.Int32;
+            }
 
             // If the existing conversion produces an unsigned result, mark that
             // the source of the new conversion is unsigned.

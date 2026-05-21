@@ -11,6 +11,7 @@
 
 using ILGPU;
 using ILGPU.Runtime;
+using ILGPUC.Frontend;
 using ILGPUC.IR;
 using ILGPUC.IR.Analyses;
 using ILGPUC.Tests.Framework;
@@ -62,6 +63,81 @@ public sealed class CompilerInternalsTests
 
         Assert.True(collection.TryGetSingleUse(out var use));
         Assert.Equal(1, use.Index);
+    }
+
+    #endregion
+
+    #region ILInstruction stack behavior
+
+    [Fact]
+    public void GetPushPopBehavior_Rethrow_PopsAndPushesNothing()
+    {
+        var instruction = new ILInstruction(
+            offset: 0,
+            ILInstructionType.Rethrow,
+            default,
+            argument: null);
+
+        var (popCount, pushCount) = instruction.GetPushPopBehavior();
+        Assert.Equal(0, popCount);
+        Assert.Equal(0, pushCount);
+    }
+
+    [Fact]
+    public void GetPushPopBehavior_Throw_PopsException()
+    {
+        var instruction = new ILInstruction(
+            offset: 0,
+            ILInstructionType.Throw,
+            default,
+            argument: null);
+
+        var (popCount, pushCount) = instruction.GetPushPopBehavior();
+        Assert.Equal(1, popCount);
+        Assert.Equal(0, pushCount);
+    }
+
+    /// <summary>
+    /// The leave at the end of the try block is directly followed by the
+    /// catch handler, which starts by popping the exception object.
+    /// </summary>
+    private static int CatchAndDiscard(int[] values)
+    {
+        int result = 0;
+        try
+        {
+            result = values[0];
+        }
+        catch (IndexOutOfRangeException)
+        {
+        }
+        return result;
+    }
+
+    /// <summary>
+    /// A leave is an unconditional branch: treating the next instruction
+    /// (the catch handler) as a successor entered it with the exception
+    /// object missing and failed the "Invalid stack counter" assertion.
+    /// </summary>
+    [Fact]
+    public void Disassemble_Leave_HasSingleTarget()
+    {
+        var method = typeof(CompilerInternalsTests).GetMethod(
+            nameof(CatchAndDiscard),
+            BindingFlags.NonPublic | BindingFlags.Static)!;
+        var disassembled = Disassembler.TryDisassemble(method);
+        Assert.NotNull(disassembled);
+
+        int numLeaves = 0;
+        foreach (var instruction in disassembled.Instructions)
+        {
+            if (instruction.InstructionType != ILInstructionType.Leave)
+                continue;
+            var targets = instruction.GetArgumentAs<ILInstructionBranchTargets>();
+            Assert.Equal(1, targets.Count);
+            ++numLeaves;
+        }
+        Assert.True(numLeaves >= 2);
     }
 
     #endregion
