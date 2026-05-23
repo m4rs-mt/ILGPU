@@ -10,6 +10,7 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.Util;
+using ILGPUC.Util;
 using ILGPUC.IR.BasicBlockValues;
 using ILGPUC.IR.MethodValues;
 using ILGPUC.IR.ModuleValues;
@@ -387,47 +388,86 @@ sealed class CodePlacement
         PureValue pureValue,
         BasicBlock earliestBlock)
     {
-        // Get the common dominator of all use sites
-        var latestBlock = earliestBlock;
+        // General policy: hoist pure values to their earliest (deepest
+        // operand) block — cheap ALU is best hoisted (loop invariance).
+        // Potentially faulting operations must NOT be hoisted above the
+        // blocks that actually use them: hoisting a guarded integer
+        // division above its zero-check turns it into an unconditional
+        // fault on the CPU backend. Those are placed at the immediate
+        // common dominator of their (transitive) anchored uses instead.
+        if (!CanFault(pureValue))
+            return earliestBlock;
 
-        foreach (Use use in pureValue.Uses)
+        BasicBlock? latestBlock = null;
+        var visited = new HashSet<PureValue> { pureValue };
+        var pending = new Stack<PureValue>();
+        pending.Push(pureValue);
+
+        void AddUseBlock(BasicBlock useBlock)
         {
-            BasicBlock useBlock;
-            if (use.Target is BasicBlockValue bbValue)
-            {
-                // Skip uses whose block is not in this method's CFG (e.g.,
-                // references from External methods' entry blocks).
-                if (bbValue.BasicBlock.Method != Method)
-                    continue;
+            latestBlock = latestBlock is null
+                ? useBlock
+                : Dominators.GetImmediateCommonDominator(latestBlock, useBlock);
+        }
 
-                // Handle phi values specially - the use is in the predecessor block
-                if (use.Target is PhiValue phiValue)
-                    useBlock = phiValue.Sources[use.Index];
-                else
-                    useBlock = bbValue.BasicBlock;
-            }
-            else if (use.Target is PureValue pureUse)
+        // Collects the anchored (block/block-value) uses of the value,
+        // following pure-value consumer chains — consumer placements are
+        // not available yet during the operand-first recursion, but their
+        // own anchored uses determine a block that every consumer's
+        // placement will dominate. Iterative DFS: consumer chains can be
+        // deep enough to overflow the thread stack.
+        while (pending.Count > 0)
+        {
+            var value = pending.Pop();
+            foreach (Use use in value.Uses)
             {
-                // For pure value uses, get the computed placement of the user
-                if (_pureValuePlacements.TryGetValue(pureUse, out var pureUsePlacement))
-                    useBlock = pureUsePlacement;
-                else
-                    useBlock = earliestBlock;
-            }
-            else
-            {
-                continue;
-            }
+                if (use.Target is BasicBlockValue bbValue)
+                {
+                    // Skip uses whose block is not in this method's CFG
+                    // (e.g., references from External methods' entry blocks).
+                    if (bbValue.BasicBlock.Method != Method)
+                        continue;
 
-            latestBlock = Dominators.GetImmediateCommonDominator(latestBlock, useBlock);
+                    // Phi value uses live in the incoming source block.
+                    AddUseBlock(use.Target is PhiValue phiValue
+                        ? phiValue.Sources[use.Index]
+                        : bbValue.BasicBlock);
+                }
+                else if (use.Target is BasicBlock blockTarget)
+                {
+                    // Termination conditions/values are operands of the
+                    // block itself.
+                    if (blockTarget.Method != Method)
+                        continue;
+                    AddUseBlock(blockTarget);
+                }
+                else if (use.Target is PureValue pureUse && visited.Add(pureUse))
+                {
+                    pending.Push(pureUse);
+                }
+            }
         }
 
         // Ensure we don't place before the earliest valid block
-        if (!Dominators.Dominates(earliestBlock, latestBlock))
+        if (latestBlock is null ||
+            !Dominators.Dominates(earliestBlock, latestBlock))
+        {
             return earliestBlock;
+        }
 
         return latestBlock;
     }
+
+    /// <summary>
+    /// Returns true if evaluating the given pure value can fault at runtime:
+    /// an integer div/rem whose divisor is not a non-zero constant.
+    /// </summary>
+    private static bool CanFault(PureValue pureValue) =>
+        pureValue is BinaryArithmeticValue binary &&
+        (binary.Kind == BinaryArithmeticKind.Div ||
+         binary.Kind == BinaryArithmeticKind.Rem) &&
+        binary.BasicValueType.IsInt() &&
+        !(binary.Right is PrimitiveValue divisor && divisor.RawValue != 0);
 
     /// <summary>
     /// Places all values in their respective blocks in the correct order.

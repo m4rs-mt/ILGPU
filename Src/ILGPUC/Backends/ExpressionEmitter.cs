@@ -708,6 +708,16 @@ sealed class ExpressionEmitter(GenerationContext context, TypeEmitter typeEmitte
     {
         var operand = Emit(unary.Value);
 
+        // Boolean negation: `~` on a bool promotes to int and yields a
+        // non-zero value for both true and false (e.g. ~true == -2), so a
+        // logical Not on i1 must be emitted as `!`.
+        if (unary.Kind == UnaryArithmeticKind.Not &&
+            unary.BasicValueType == BasicValueType.Int1)
+        {
+            var negated = Parenthesize(operand, Prec.Unary);
+            return new Emitted($"!{negated}", Prec.Unary);
+        }
+
         // Simple operators (-, ~)
         var simpleOp = GetUnaryOperator(unary.Kind);
         if (simpleOp is not null)

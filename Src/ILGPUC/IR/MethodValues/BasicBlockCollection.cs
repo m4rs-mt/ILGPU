@@ -224,19 +224,6 @@ readonly struct BasicBlockCollection<TOrder, TDirection> :
     }
 
     /// <summary>
-    /// Changes the order of this collection.
-    /// </summary>
-    /// <typeparam name="TOtherOrder">The collection order.</typeparam>
-    /// <returns>The newly ordered collection.</returns>
-    public BasicBlockCollection<TOtherOrder, TDirection>
-        AsOrder<TOtherOrder>()
-        where TOtherOrder :
-            struct,
-            ITraversalOrder<BasicBlock>,
-            ICompatibleTraversalOrder<BasicBlock, TOrder> =>
-        new(EntryBlock, _blocks);
-
-    /// <summary>
     /// Changes the direction of this collection.
     /// </summary>
     /// <typeparam name="TOtherDirection">The other direction.</typeparam>

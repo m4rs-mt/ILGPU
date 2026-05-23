@@ -99,6 +99,11 @@ static class Optimizer
     /// <param name="builder">The transformation manager to populate.</param>
     public static void AddConditionalOptimizations(this Transformer.Builder builder)
     {
+        // Fold side-effect-free conditional regions (short-circuit branch
+        // chains, internal diamonds) into compound conditions and branch
+        // ladders BEFORE IfConversion — the fold produces the single-branch
+        // diamonds that IfConversion then predicates.
+        builder.Add(static args => new IfConditionConversion(args));
         builder.Add(static args => new IfConversion(args));
         builder.Add(static args => new SimplifyControlFlow(args));
     }
@@ -205,7 +210,8 @@ static class Optimizer
                 args,
                 specification));
 
-        // Perform an second inlining pass to specialize specialized functions
+        // Clean up control flow and eliminate loads made dead by the
+        // accelerator specialization above.
         builder.Add(static args => new SimplifyControlFlow(args));
         builder.Add(static args => new DeadLoadElimination(args));
     }

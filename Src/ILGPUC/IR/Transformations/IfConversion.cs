@@ -12,6 +12,7 @@
 
 // disable: max_line_length
 using ILGPU.Util;
+using ILGPUC.Util;
 using ILGPUC.IR.Analyses;
 using ILGPUC.IR.BasicBlockValues;
 using ILGPUC.IR.MethodValues;
@@ -19,7 +20,6 @@ using ILGPUC.IR.ModuleValues;
 using ILGPUC.IR.PureValues;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Runtime.CompilerServices;
 using PostDominators = ILGPUC.IR.Analyses.Dominators<
     ILGPUC.IR.MethodValues.Backwards>;
@@ -136,6 +136,12 @@ sealed class IfConversion(
         if (phisToConvert is null)
             return null;
 
+        // Predication makes both phi arms unconditionally evaluated — never
+        // speculate a potentially faulting integer division above its guard
+        // (hard legality rule, same as in IfConditionConversion).
+        if (!CheckSpeculationSafety(block, phisToConvert.Value))
+            return null;
+
         return new ConversionInfo(
             block,
             postDominator,
@@ -242,8 +248,8 @@ sealed class IfConversion(
         var result = InlineList<PhiValue>.Create(2);
 
         // Find all phi values in the post-dominator that reference our regions.
-        // Note: block.Values excludes phi values (ValueCollectionEnumerator starts at
-        // FirstValue, not FirstPhiValue). Use PhiValues instead.
+        // Note: block.Values includes phi values, regular values, AND the
+        // termination value; PhiValues is the collection restricted to phis.
         foreach (PhiValue phi in postDominator.PhiValues)
         {
             // Check if this phi references blocks from our regions
@@ -297,6 +303,89 @@ sealed class IfConversion(
         }
 
         return result;
+    }
+
+    /// <summary>
+    /// Rejects the conversion if predicating the phis would make an integer
+    /// div/rem with a divisor that is not a non-zero constant unconditionally
+    /// evaluated (speculating a division above its zero-guard faults on the
+    /// CPU backend — a miscompile, never a budget question). Pure values
+    /// reachable from the branch condition itself were already unconditional
+    /// and are exempt.
+    /// </summary>
+    private static bool CheckSpeculationSafety(
+        BasicBlock branchBlock,
+        in InlineList<PhiValue> phisToConvert)
+    {
+        if (phisToConvert.Count == 0)
+            return true;
+
+        var alreadyUnconditional = new HashSet<Value>();
+        CollectPureValues(branchBlock.TerminationCondition, alreadyUnconditional);
+
+        var visited = new HashSet<Value>();
+        foreach (var phi in phisToConvert)
+        {
+            foreach (var argument in phi.Arguments)
+            {
+                if (!IsSpeculationSafe(argument, alreadyUnconditional, visited))
+                    return false;
+            }
+        }
+        return true;
+    }
+
+    /// <summary>
+    /// Walks the pure DAG rooted at the given value and returns false iff it
+    /// contains an integer div/rem whose divisor is not a non-zero constant.
+    /// Iterative (deep pure DAGs must not overflow the thread stack).
+    /// </summary>
+    private static bool IsSpeculationSafe(
+        Value? value,
+        HashSet<Value> alreadyUnconditional,
+        HashSet<Value> visited)
+    {
+        var pending = new Stack<Value>();
+        if (value is not null)
+            pending.Push(value);
+        while (pending.Count > 0)
+        {
+            if (pending.Pop() is not PureValue pureValue)
+                continue;
+            if (alreadyUnconditional.Contains(pureValue) || !visited.Add(pureValue))
+                continue;
+
+            if (pureValue is BinaryArithmeticValue binary &&
+                (binary.Kind == BinaryArithmeticKind.Div ||
+                 binary.Kind == BinaryArithmeticKind.Rem) &&
+                binary.BasicValueType.IsInt() &&
+                !(binary.Right is PrimitiveValue divisor && divisor.RawValue != 0))
+            {
+                return false;
+            }
+
+            foreach (var operand in pureValue.Values)
+                pending.Push(operand);
+        }
+        return true;
+    }
+
+    /// <summary>
+    /// Collects all pure values reachable from the given root into the set.
+    /// Iterative (deep pure DAGs must not overflow the thread stack).
+    /// </summary>
+    private static void CollectPureValues(Value? root, HashSet<Value> target)
+    {
+        var pending = new Stack<Value>();
+        if (root is not null)
+            pending.Push(root);
+        while (pending.Count > 0)
+        {
+            if (pending.Pop() is not PureValue pureValue || !target.Add(pureValue))
+                continue;
+            foreach (var operand in pureValue.Values)
+                pending.Push(operand);
+        }
     }
 
     /// <summary>
@@ -363,9 +452,8 @@ sealed class IfConversion(
         base.OnTransform(transform);
 
         // Invoke ConvertPhi for phi values in each block.
-        // base.OnTransform iterates block.Values (ValueCollectionEnumerator), which
-        // starts at FirstValue (non-phi) and therefore excludes phi values entirely.
-        // We must iterate phi values explicitly here.
+        // This pass registers no OnMap converters, so base.OnTransform's converter
+        // walk has nothing to do — phi values must be converted explicitly here.
         foreach (var block in transform.OldMethod.Blocks)
         {
             if (transform.TryGetReplaced(block, out var newBlock) &&
@@ -394,548 +482,5 @@ sealed class IfConversion(
             blockTransform.CreateUnconditionalTermination(
                 blockTransform.RewriteAs<BasicBlock>(info.PostDominator));
         }
-    }
-}
-
-/// <summary>
-/// Transforms and-also and or-else branch chains into efficient logical operations.
-/// </summary>
-/// <remarks>
-/// This transformation identifies chains of conditional branches connected by simple
-/// boolean logic (e.g., "if (a) if (b) if (c) then X else Y") and converts them into
-/// compound boolean expressions. This reduces the number of basic blocks and enables
-/// better optimization opportunities.
-/// </remarks>
-/// <param name="args">The transformation arguments.</param>
-/// <param name="maxBlockSize">
-/// The maximum number of instructions in an inner block.
-/// </param>
-sealed class IfConditionConversion(TransformationArgs args, int maxBlockSize = 4) :
-    Transformation<ValueMap<Method, BasicBlock, IfConditionConversion.ChainInfo>>(args)
-{
-    /// <summary>
-    /// Information about a convertible if-chain.
-    /// </summary>
-    /// <param name="EntryBlock">The entry block of the chain.</param>
-    /// <param name="InnerBlocks">All inner blocks in the chain.</param>
-    /// <param name="TrueExit">The true exit block.</param>
-    /// <param name="FalseExit">The false exit block.</param>
-    /// <param name="PhisToRemap">Phi values that need remapping.</param>
-    internal readonly record struct ChainInfo(
-        BasicBlock EntryBlock,
-        HashSet<BasicBlock> InnerBlocks,
-        BasicBlock TrueExit,
-        BasicBlock FalseExit,
-        InlineList<PhiValue> PhisToRemap);
-
-    /// <summary>
-    /// Analyzes the given method to find convertible branches.
-    /// </summary>
-    protected override ValueMap<Method, BasicBlock, ChainInfo> CreateIntermediate(
-        ModuleTransform transform,
-        Method method)
-    {
-        var blocks = method.Blocks;
-        var dominators = blocks.CreateDominators();
-        var phiSources = blocks.ComputePhiSources();
-
-        // Process in post order to find chains from leaves upward
-        var result = method.CreateMap<BasicBlock, ChainInfo>();
-        foreach (var block in blocks.AsOrder<PostOrder<BasicBlock>>())
-        {
-            var info = TryAnalyzeChain(block, dominators, phiSources, blocks.Count);
-            if (info.HasValue)
-                result.Add(block, info.Value);
-        }
-        return result;
-    }
-
-    /// <summary>
-    /// Attempts to analyze a block as the start of an if-chain.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    private ChainInfo? TryAnalyzeChain(
-        BasicBlock entryBlock,
-        in Dominators<Forwards> dominators,
-        ValueSet<Method, BasicBlock> phiSources,
-        int maxBlocks)
-    {
-        // Must start with an if-branch
-        if (entryBlock.TerminationKind != BlockTerminationKind.Conditional)
-            return null;
-
-        // Traverse to find all blocks in the chain
-        var innerBlocks = new HashSet<BasicBlock>();
-        var exitBlocks = new HashSet<BasicBlock>();
-        if (!TraverseChain(
-            entryBlock,
-            dominators,
-            phiSources,
-            innerBlocks,
-            exitBlocks,
-            maxBlocks))
-        {
-            return null;
-        }
-
-        // Need at least 4 blocks and exactly 2 exits
-        if (innerBlocks.Count < 3 || exitBlocks.Count != 2)
-            return null;
-
-        // Find the true and false exit blocks
-        var trueExit = FindTrueExit(entryBlock, innerBlocks, exitBlocks);
-        if (trueExit is null)
-            return null;
-
-        var falseExit = exitBlocks.First(b => b != trueExit);
-
-        // Check for local phis in inner blocks (not allowed)
-        if (HasLocalPhis(innerBlocks))
-            return null;
-
-        // Find phis that need remapping
-        var phisToRemap = FindPhisToRemap(innerBlocks, exitBlocks, trueExit);
-        if (phisToRemap is null)
-            return null;
-
-        return new ChainInfo(
-            entryBlock,
-            innerBlocks,
-            trueExit,
-            falseExit,
-            phisToRemap.Value);
-    }
-
-    /// <summary>
-    /// Traverses the control flow to find all blocks in the chain.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    private bool TraverseChain(
-        BasicBlock entryBlock,
-        in Dominators<Forwards> dominators,
-        ValueSet<Method, BasicBlock> phiSources,
-        HashSet<BasicBlock> innerBlocks,
-        HashSet<BasicBlock> exitBlocks,
-        int maxBlocks)
-    {
-        var queue = new Queue<BasicBlock>(4);
-        queue.Enqueue(entryBlock);
-        innerBlocks.Add(entryBlock);
-
-        int exitCount = 0;
-
-        while (queue.Count > 0)
-        {
-            if (innerBlocks.Count + exitBlocks.Count > maxBlocks)
-                return false;
-
-            var current = queue.Dequeue();
-
-            if (IsConvertibleBlock(current, entryBlock, dominators, phiSources))
-            {
-                // This is an inner block - process successors
-                foreach (var successor in current.Successors)
-                {
-                    if (!innerBlocks.Contains(successor) &&
-                        !exitBlocks.Contains(successor))
-                    {
-                        innerBlocks.Add(successor);
-                        queue.Enqueue(successor);
-                    }
-                }
-            }
-            else
-            {
-                // This is an exit block
-                exitBlocks.Add(current);
-                exitCount++;
-            }
-        }
-
-        return exitCount == 2;
-    }
-
-    /// <summary>
-    /// Checks if a block can be converted as part of the chain.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private bool IsConvertibleBlock(
-        BasicBlock block,
-        BasicBlock entryBlock,
-        in Dominators<Forwards> dominators,
-        ValueSet<Method, BasicBlock> phiSources)
-    {
-        return block.TerminationKind == BlockTerminationKind.Conditional &&
-               dominators.Dominates(entryBlock, block) &&
-               block.Count <= maxBlockSize &&
-               !HasSideEffects(block) &&
-               !phiSources.Contains(block);
-    }
-
-    /// <summary>
-    /// Checks if a block has side effects.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static bool HasSideEffects(BasicBlock block)
-    {
-        foreach (var value in block.Values)
-        {
-            if (value is MemoryValue or MethodCall)
-                return true;
-        }
-        return false;
-    }
-
-    /// <summary>
-    /// Finds the true exit block by following true branches.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    private static BasicBlock? FindTrueExit(
-        BasicBlock entryBlock,
-        HashSet<BasicBlock> innerBlocks,
-        HashSet<BasicBlock> exitBlocks)
-    {
-        var current = entryBlock;
-        var visited = new HashSet<BasicBlock>();
-
-        while (innerBlocks.Contains(current) && visited.Add(current))
-        {
-            if (!current.TryGetConditionalView(out var conditionalValue))
-                break;
-
-            current = conditionalValue.TrueTarget;
-            if (exitBlocks.Contains(current))
-                return current;
-        }
-
-        return null;
-    }
-
-    /// <summary>
-    /// Checks if there are any local phi values in inner blocks.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static bool HasLocalPhis(HashSet<BasicBlock> innerBlocks)
-    {
-        // block.Values excludes phi values (see ValueCollectionEnumerator);
-        // check NumPhiValues directly instead.
-        foreach (var block in innerBlocks)
-        {
-            if (block.NumPhiValues > 0)
-                return true;
-        }
-        return false;
-    }
-
-    /// <summary>
-    /// Finds phi values in exit blocks that reference the chain.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    private static InlineList<PhiValue>? FindPhisToRemap(
-        HashSet<BasicBlock> innerBlocks,
-        HashSet<BasicBlock> exitBlocks,
-        BasicBlock trueExit)
-    {
-        var result = InlineList<PhiValue>.Create(2);
-
-        foreach (var exitBlock in exitBlocks)
-        {
-            // exitBlock.Values excludes phi values; use PhiValues instead.
-            foreach (PhiValue phi in exitBlock.PhiValues)
-            {
-                // Check if this phi references blocks from the chain
-                bool hasChainSource = false;
-                foreach (var source in phi.Sources)
-                {
-                    if (innerBlocks.Contains(source))
-                    {
-                        hasChainSource = true;
-                        break;
-                    }
-                }
-
-                if (!hasChainSource)
-                    continue;
-
-                // Verify all inner sources have the same value
-                Value? trueValue = null;
-                Value? falseValue = null;
-                bool isTrueExit = exitBlock == trueExit;
-
-                for (int i = 0; i < phi.NumArguments; i++)
-                {
-                    var source = phi.Sources[i];
-                    if (!innerBlocks.Contains(source))
-                        continue;
-
-                    var phiValue = phi.GetValue<Value>(i);
-                    if (isTrueExit)
-                    {
-                        if (trueValue is not null && trueValue != phiValue)
-                            return null;
-                        trueValue = phiValue;
-                    }
-                    else
-                    {
-                        if (falseValue is not null && falseValue != phiValue)
-                            return null;
-                        falseValue = phiValue;
-                    }
-                }
-
-                result.Add(phi);
-            }
-        }
-
-        return result;
-    }
-
-    /// <summary>
-    /// Performs the transformation by merging chains and creating compound conditions.
-    /// </summary>
-    protected override void OnTransform(MethodTransform transform)
-    {
-        base.OnTransform(transform);
-
-        // Transform all identified chains
-        foreach (var (entryBlock, chainInfo) in GetIntermediate(transform))
-            TransformChain(transform, entryBlock, chainInfo);
-    }
-
-    /// <summary>
-    /// Transforms a single if-chain into a compound boolean expression.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    private static void TransformChain(
-        MethodTransform transform,
-        BasicBlock entryBlock,
-        ChainInfo chainInfo)
-    {
-        // Get the entry block transform
-        var entryTransform = transform.GetBasicBlockTransform(entryBlock);
-
-        // Move all values from inner blocks to the entry block
-        var last = entryBlock.LastValue;
-        foreach (var block in chainInfo.InnerBlocks)
-        {
-            if (block == entryBlock)
-                continue;
-
-            if (block.FirstValue is not null)
-            {
-                transform.AppendTo(last, block.FirstValue);
-                last = block.LastValue;
-            }
-        }
-
-        // Build the compound condition recursively
-        if (!entryBlock.TryGetConditionalView(out var conditionalView))
-            return;
-
-        var condition = BuildCompoundCondition(
-            entryTransform,
-            entryBlock,
-            conditionalView,
-            chainInfo.InnerBlocks,
-            chainInfo.TrueExit,
-            chainInfo.FalseExit);
-
-        if (condition is null)
-            return;
-
-        // Set new conditional termination with compound condition
-        entryTransform.CreateConditionalTermination(
-            condition,
-            entryTransform.RewriteAs<BasicBlock>(chainInfo.TrueExit),
-            entryTransform.RewriteAs<BasicBlock>(chainInfo.FalseExit));
-
-        // Remap phi values - consolidate all inner block sources to entry block
-        // Since we verified in FindPhisToRemap that all inner sources have the same value,
-        // we can replace the phi with a simpler version that only has the entry block as source
-        RemapPhiValues(transform, chainInfo);
-    }
-
-    /// <summary>
-    /// Remaps phi values to consolidate inner block sources into the entry block.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    private static void RemapPhiValues(
-        MethodTransform transform,
-        ChainInfo chainInfo)
-    {
-        foreach (var phi in chainInfo.PhisToRemap)
-        {
-            // Find the value from inner blocks and external sources
-            Value? innerValue = null;
-            var externalSources = InlineList<(BasicBlock, Value)>.Create(phi.NumArguments);
-
-            for (int i = 0; i < phi.NumArguments; i++)
-            {
-                var source = phi.Sources[i];
-                var value = phi.GetValue<Value>(i);
-
-                if (chainInfo.InnerBlocks.Contains(source))
-                {
-                    // All inner sources have the same value (verified in FindPhisToRemap)
-                    innerValue ??= value;
-                }
-                else
-                {
-                    // Keep external sources as-is
-                    externalSources.Add((source, value));
-                }
-            }
-
-            // If we have inner sources, we need to create a new phi or replace it
-            if (innerValue is not null)
-            {
-                var exitTransform = transform.GetBasicBlockTransform(phi.BasicBlock);
-
-                // Create new phi with consolidated sources:
-                // - One source from the entry block (for all inner blocks)
-                // - Keep all external sources
-                var phiBuilder = exitTransform.CreatePhi(phi.Location, phi.Type);
-
-                // Add the consolidated inner source
-                var newEntryBlock = transform.GetBasicBlockTransform(chainInfo.EntryBlock).BasicBlock;
-                phiBuilder.AddArgument(
-                    newEntryBlock,
-                    transform.Rewrite(innerValue).AsNotNull());
-
-                // Add all external sources
-                foreach (var (source, value) in externalSources)
-                {
-                    var newSourceBlock = transform.GetBasicBlockTransform(source).BasicBlock;
-                    phiBuilder.AddArgument(
-                        newSourceBlock,
-                        transform.Rewrite(value).AsNotNull());
-                }
-
-                // Seal and replace the old phi
-                var newPhi = phiBuilder.Seal();
-                transform.Replace(phi, newPhi);
-            }
-        }
-    }
-
-    /// <summary>
-    /// Recursively builds a compound boolean condition from an if-chain.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    private static Value? BuildCompoundCondition(
-        BasicBlockTransform blockTransform,
-        BasicBlock entryBlock,
-        ConditionalView conditionalView,
-        HashSet<BasicBlock> innerBlocks,
-        BasicBlock trueExit,
-        BasicBlock falseExit)
-    {
-        // Build condition recursively following the if-chain structure
-        // The old implementation built: (a & b & c) | (d & e & f)
-        return BuildConditionRecursive(
-            blockTransform,
-            conditionalView.TrueTarget,
-            conditionalView.FalseTarget,
-            blockTransform.Rewrite(entryBlock.TerminationCondition!),
-            null,
-            innerBlocks,
-            trueExit,
-            falseExit,
-            out _);
-    }
-
-    /// <summary>
-    /// Recursively builds conditions for the if-chain.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    private static Value? BuildConditionRecursive(
-        BasicBlockTransform blockTransform,
-        BasicBlock trueTarget,
-        BasicBlock falseTarget,
-        Value? currentCondition,
-        Value? accumulatedExitCondition,
-        HashSet<BasicBlock> innerBlocks,
-        BasicBlock trueExit,
-        BasicBlock falseExit,
-        out Value? exitCondition)
-    {
-        exitCondition = accumulatedExitCondition;
-
-        // Check if we've reached an exit block
-        if (trueTarget == trueExit || trueTarget == falseExit)
-        {
-            // Update exit condition if we reached the true exit
-            if (trueTarget == trueExit && currentCondition is not null)
-            {
-                exitCondition = accumulatedExitCondition is null
-                    ? currentCondition
-                    : blockTransform.CreateArithmetic(
-                        currentCondition.Location,
-                        accumulatedExitCondition,
-                        currentCondition,
-                        BinaryArithmeticKind.Or);
-            }
-            return exitCondition;
-        }
-
-        // Continue traversing if this is an inner block
-        if (innerBlocks.Contains(trueTarget) &&
-            trueTarget.TryGetConditionalView(out var trueConditionalView))
-        {
-            var trueCondition = blockTransform.Rewrite(trueConditionalView.Condition);
-            var mergedTrue = currentCondition is not null && trueCondition is not null
-                ? blockTransform.CreateArithmetic(
-                    currentCondition.Location,
-                    currentCondition,
-                    trueCondition,
-                    BinaryArithmeticKind.And)
-                : trueCondition;
-
-            BuildConditionRecursive(
-                blockTransform,
-                trueConditionalView.TrueTarget,
-                trueConditionalView.FalseTarget,
-                mergedTrue,
-                exitCondition,
-                innerBlocks,
-                trueExit,
-                falseExit,
-                out exitCondition);
-        }
-
-        // Handle false target if needed
-        if (falseTarget != falseExit &&
-            innerBlocks.Contains(falseTarget) &&
-            falseTarget.TryGetConditionalView(out var falseConditionalView))
-        {
-            var falseCondition = blockTransform.Rewrite(falseConditionalView.Condition);
-            var notCondition = currentCondition is not null
-                ? blockTransform.CreateArithmetic(
-                    currentCondition.Location,
-                    currentCondition,
-                    UnaryArithmeticKind.Not)
-                : null;
-
-            var mergedFalse = notCondition is not null && falseCondition is not null
-                ? blockTransform.CreateArithmetic(
-                    notCondition.Location,
-                    notCondition,
-                    falseCondition,
-                    BinaryArithmeticKind.And)
-                : falseCondition;
-
-            BuildConditionRecursive(
-                blockTransform,
-                falseConditionalView.TrueTarget,
-                falseConditionalView.FalseTarget,
-                mergedFalse,
-                exitCondition,
-                innerBlocks,
-                trueExit,
-                falseExit,
-                out exitCondition);
-        }
-
-        return exitCondition;
     }
 }
