@@ -155,8 +155,7 @@ static class Optimizer
         // explicit CAS loops before further lowering. Follow with an Inliner
         // pass to inline the operation lambda that LowerCustomAtomic inserts
         // as a MethodCall in the loop body. A later SSAConstruction pass
-        // (after ClosureElimination) promotes the loop's currentVar alloca
-        // into a proper phi.
+        // promotes the loop's currentVar alloca into a proper phi.
         builder.Add(static args => new LowerCustomAtomic(args));
         builder.Add(static args => new Inliner(args));
         builder.Add(static args => new SimplifyControlFlow(args));
@@ -182,10 +181,9 @@ static class Optimizer
         builder.Add(args =>
             new LowerWarpCollectives(args, specification));
 
-        // Eliminate closure allocations by decomposing closure struct Globals
-        // into per-field allocas. SSA construction then promotes them to direct
-        // SSA values, ensuring no closures survive to backend code generation.
-        builder.Add(static args => new ClosureElimination(args));
+        // Promote closure and array storage to SSA values, so no closure
+        // survives to backend code generation. SSAConstruction's
+        // SSAGlobalAllocations analysis promotes the backing Globals directly.
         builder.Add(static args => new SSAConstruction(args));
         builder.Add(static args => new SSACleanup(args));
         builder.Add(static args => new DeadLoadElimination(args));

@@ -46,8 +46,8 @@ namespace ILGPUC.IR.Transformations;
 /// This pass is registered in <see cref="Optimizer.AddAcceleratorSpecializer"/>
 /// directly after <see cref="LowerViews"/> — so the preceding lowering passes
 /// (Inliner, LowerArrays, LowerViews, …) have already run — and before
-/// <see cref="ClosureElimination"/> and the subsequent
-/// <see cref="SSAConstruction"/>, which promote the remaining closure state.
+/// the subsequent <see cref="SSAConstruction"/>, which promotes the remaining
+/// closure state.
 /// </para>
 /// </remarks>
 sealed class LowerGCInit(TransformationArgs args) :

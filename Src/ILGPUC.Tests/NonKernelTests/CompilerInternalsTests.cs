@@ -15,6 +15,7 @@ using ILGPUC.Frontend;
 using ILGPUC.IR;
 using ILGPUC.IR.Analyses;
 using ILGPUC.Tests.Framework;
+using ILGPUC.Util;
 using System;
 using System.Reflection;
 using Xunit;
@@ -188,6 +189,87 @@ public sealed class CompilerInternalsTests
             var primitiveType = module.GetPrimitiveType(type);
             Assert.Equal(type, primitiveType.BasicValueType);
         }
+    }
+
+    #endregion
+
+    #region Non-capturing lambda detection
+
+    /// <summary>
+    /// A sealed class without instance state that is not a closure.
+    /// </summary>
+    private sealed class StatelessHelper
+    {
+        public override string ToString() => nameof(StatelessHelper);
+    }
+
+    /// <summary>
+    /// Calls a virtual method on <see cref="object"/>, which has no instance
+    /// fields or properties.
+    /// </summary>
+    private static string DescribeObject(object value) => value.ToString()!;
+
+    [Fact]
+    public void IsNotCapturingLambda_ObjectMethod_IsInstanceMethod()
+    {
+        var method = typeof(object).GetMethod(nameof(ToString))!;
+        Assert.False(method.IsNotCapturingLambda());
+        Assert.Equal(1, method.GetParameterOffset());
+    }
+
+    [Fact]
+    public void IsNotCapturingLambda_StatelessClassMethod_IsInstanceMethod()
+    {
+        var method = typeof(StatelessHelper).GetMethod(nameof(ToString))!;
+        Assert.Equal(typeof(StatelessHelper), method.DeclaringType);
+        Assert.False(method.IsNotCapturingLambda());
+        Assert.Equal(1, method.GetParameterOffset());
+    }
+
+    [Fact]
+    public void IsNotCapturingLambda_NonCapturingLambda_IsDetected()
+    {
+        Func<int, int> lambda = value => value + 1;
+        Assert.False(lambda.Method.IsStatic);
+        Assert.True(lambda.Method.IsNotCapturingLambda());
+        Assert.Equal(0, lambda.Method.GetParameterOffset());
+    }
+
+    [Fact]
+    public void IsNotCapturingLambda_CapturingLambda_IsInstanceMethod()
+    {
+        int offset = Environment.ProcessorCount;
+        Func<int, int> lambda = value => value + offset;
+        Assert.False(lambda.Method.IsNotCapturingLambda());
+        Assert.Equal(1, lambda.Method.GetParameterOffset());
+    }
+
+    /// <summary>
+    /// A callvirt to Object::ToString() pops the instance: treating object as a
+    /// non-capturing lambda left 'this' on the simulated evaluation stack.
+    /// </summary>
+    [Fact]
+    public void GetPushPopBehavior_CallvirtObjectToString_PopsInstance()
+    {
+        var method = typeof(CompilerInternalsTests).GetMethod(
+            nameof(DescribeObject),
+            BindingFlags.NonPublic | BindingFlags.Static)!;
+        var disassembled = Disassembler.TryDisassemble(method);
+        Assert.NotNull(disassembled);
+
+        int numCalls = 0;
+        foreach (var instruction in disassembled.Instructions)
+        {
+            if (instruction.InstructionType != ILInstructionType.Callvirt)
+                continue;
+            var target = instruction.GetArgumentAs<MethodBase>();
+            Assert.Equal(typeof(object), target.DeclaringType);
+            var (popCount, pushCount) = instruction.GetPushPopBehavior();
+            Assert.Equal(1, popCount);
+            Assert.Equal(1, pushCount);
+            ++numCalls;
+        }
+        Assert.Equal(1, numCalls);
     }
 
     #endregion

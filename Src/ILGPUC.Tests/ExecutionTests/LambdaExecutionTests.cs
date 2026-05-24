@@ -40,6 +40,41 @@ public abstract class LambdaExecutionTests : ExecutionTestBase
             ["2", "5", "8", "11"]);
     }
 
+    /// <summary>
+    /// Two different lambdas whose delegate handles cross a block boundary. Each
+    /// call site must devirtualize to its own lambda body.
+    /// </summary>
+    [SkippableFact]
+    public async Task TwoLambdasCrossBlock_ProducesCorrectOutput()
+    {
+        // The CPU vectorizer emits a uniform select between a vector and a
+        // scalar operand as a plain ternary (int[] vs. int), which fails to
+        // compile; this is independent of the devirtualization checked here.
+        Skip.If(
+            Backend == BackendType.CPU,
+            "CPU vector select of mixed scalar/vector operands");
+        await VerifyProgramOutputAsync(
+            "TestPrograms/Lambda/TwoLambdasCrossBlock.cs",
+            ["Kernels.TwoLambdasCrossBlockKernel"],
+            ["1", "4", "7", "10"]);
+    }
+
+    /// <summary>
+    /// Two closures whose captured values are read from blocks other than the entry
+    /// block. Regression guard — this shape produced 0 for both captures on
+    /// every backend, and no execution test covered it (single-capture closures never
+    /// reached the offending pass, and the single-block MultiCapture shape read before
+    /// the misplaced allocas).
+    /// </summary>
+    [SkippableFact]
+    public async Task TwoClosuresCrossBlock_ProducesCorrectOutput()
+    {
+        await VerifyProgramOutputAsync(
+            "TestPrograms/Lambda/TwoClosuresCrossBlock.cs",
+            ["Kernels.TwoClosuresCrossBlockKernel"],
+            ["29", "14", "18", "22"]);
+    }
+
     [SkippableFact]
     public async Task LambdaConditional_ProducesCorrectOutput()
     {

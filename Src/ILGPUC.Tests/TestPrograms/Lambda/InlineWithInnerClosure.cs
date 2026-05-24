@@ -11,8 +11,9 @@
 
 // Test program: InlineWithInnerClosure
 // Inline launch lambda that contains an inner closure (Func<int, int>)
-// which captures a local variable. Tests that ClosureElimination works
-// when the outer kernel is an inline lambda.
+// which captures a local variable. Tests that the closure allocation is
+// eliminated (SSAGlobalAllocations) when the outer kernel is an inline
+// lambda.
 // Computes: sum = add(index) + add(index + 1) where add(x) = { sum += x; return sum; }
 // Expected output: 1 3 5 7 (one per line)
 //   index=0: sum = 0+0+1 = 1
