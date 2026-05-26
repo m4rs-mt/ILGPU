@@ -86,6 +86,13 @@ sealed class CudaIntrinsicEmitter : IntrinsicEmitter
         type == ArithmeticBasicValueType.Float64 ? $"pow({x}, {y})" : $"powf({x}, {y})";
 
     /// <inheritdoc/>
+    public override string? EmitFloatRem(
+        string x,
+        string y,
+        ArithmeticBasicValueType type) =>
+        type == ArithmeticBasicValueType.Float64 ? $"fmod({x}, {y})" : $"fmodf({x}, {y})";
+
+    /// <inheritdoc/>
     public override string EmitPopCount(string arg, ArithmeticBasicValueType type) =>
         Is64BitInteger(type) ? $"__popcll({arg})" : $"__popc({arg})";
 

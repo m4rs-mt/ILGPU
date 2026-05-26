@@ -87,6 +87,13 @@ sealed class ROCmIntrinsicEmitter : IntrinsicEmitter
         type == ArithmeticBasicValueType.Float64 ? $"pow({x}, {y})" : $"powf({x}, {y})";
 
     /// <inheritdoc/>
+    public override string? EmitFloatRem(
+        string x,
+        string y,
+        ArithmeticBasicValueType type) =>
+        type == ArithmeticBasicValueType.Float64 ? $"fmod({x}, {y})" : $"fmodf({x}, {y})";
+
+    /// <inheritdoc/>
     public override string EmitPopCount(string arg, ArithmeticBasicValueType type) =>
         Is64BitInteger(type) ? $"__popcll({arg})" : $"__popc({arg})";
 
@@ -125,9 +132,12 @@ sealed class ROCmIntrinsicEmitter : IntrinsicEmitter
         {
             ArithmeticBasicValueType.Float64 => $"fmin({arg1}, {arg2})",
             ArithmeticBasicValueType.Float32 => $"fminf({arg1}, {arg2})",
-            ArithmeticBasicValueType.Int64 or
-            ArithmeticBasicValueType.UInt64 or
-            ArithmeticBasicValueType.UInt32 => EmitSelect(arg1, "<", arg2),
+            ArithmeticBasicValueType.Int64 => EmitSelect(arg1, "<", arg2),
+            ArithmeticBasicValueType.UInt8 or
+            ArithmeticBasicValueType.UInt16 or
+            ArithmeticBasicValueType.UInt32 or
+            ArithmeticBasicValueType.UInt64 =>
+                EmitSelect(arg1, "<", arg2, GetUnsignedTypeName(type)),
             _ => $"min({arg1}, {arg2})"
         };
 
@@ -137,9 +147,12 @@ sealed class ROCmIntrinsicEmitter : IntrinsicEmitter
         {
             ArithmeticBasicValueType.Float64 => $"fmax({arg1}, {arg2})",
             ArithmeticBasicValueType.Float32 => $"fmaxf({arg1}, {arg2})",
-            ArithmeticBasicValueType.Int64 or
-            ArithmeticBasicValueType.UInt64 or
-            ArithmeticBasicValueType.UInt32 => EmitSelect(arg1, ">", arg2),
+            ArithmeticBasicValueType.Int64 => EmitSelect(arg1, ">", arg2),
+            ArithmeticBasicValueType.UInt8 or
+            ArithmeticBasicValueType.UInt16 or
+            ArithmeticBasicValueType.UInt32 or
+            ArithmeticBasicValueType.UInt64 =>
+                EmitSelect(arg1, ">", arg2, GetUnsignedTypeName(type)),
             _ => $"max({arg1}, {arg2})"
         };
 
@@ -149,8 +162,31 @@ sealed class ROCmIntrinsicEmitter : IntrinsicEmitter
     /// CUDA's headers), and its <c>min</c>/<c>max</c> overloads are not
     /// guaranteed for all 64-bit and unsigned types.
     /// </summary>
-    private static string EmitSelect(string arg1, string comparison, string arg2) =>
-        $"(({arg1}) {comparison} ({arg2}) ? ({arg1}) : ({arg2}))";
+    /// <remarks>
+    /// Unsigned values are stored in signed variables, so unsigned
+    /// comparisons cast both operands to <paramref name="compareType"/>.
+    /// </remarks>
+    private static string EmitSelect(
+        string arg1,
+        string comparison,
+        string arg2,
+        string? compareType = null)
+    {
+        var cast = compareType is null ? string.Empty : $"({compareType})";
+        return $"({cast}({arg1}) {comparison} {cast}({arg2}) ? ({arg1}) : ({arg2}))";
+    }
+
+    /// <summary>
+    /// Returns the HIP name of the given unsigned integer type.
+    /// </summary>
+    private static string GetUnsignedTypeName(ArithmeticBasicValueType type) =>
+        type switch
+        {
+            ArithmeticBasicValueType.UInt8 => "unsigned char",
+            ArithmeticBasicValueType.UInt16 => "unsigned short",
+            ArithmeticBasicValueType.UInt32 => "unsigned int",
+            _ => "unsigned long long",
+        };
 
     /// <inheritdoc/>
     public override string EmitFloor(string arg, ArithmeticBasicValueType type) =>

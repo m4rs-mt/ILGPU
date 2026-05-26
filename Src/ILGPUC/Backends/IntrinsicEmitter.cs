@@ -109,6 +109,16 @@ abstract class IntrinsicEmitter
     public abstract string EmitPow(string x, string y, ArithmeticBasicValueType type);
 
     /// <summary>
+    /// Emits a floating-point remainder (C# <c>%</c> on floats, truncated
+    /// division semantics), or null if the language supports <c>%</c> on
+    /// floating-point operands.
+    /// </summary>
+    public virtual string? EmitFloatRem(
+        string x,
+        string y,
+        ArithmeticBasicValueType type) => null;
+
+    /// <summary>
     /// Emits an absolute value function call.
     /// </summary>
     public abstract string EmitAbs(string arg, ArithmeticBasicValueType type);

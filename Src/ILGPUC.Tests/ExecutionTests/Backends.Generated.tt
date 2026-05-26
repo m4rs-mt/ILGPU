@@ -28,6 +28,8 @@ var testClasses = new[]
     "AtomicExecutionTests",
     "BasicIfExecutionTests",
     "ShortCircuitExecutionTests",
+    "FloatConstantExecutionTests",
+    "FloatSemanticsExecutionTests",
     "KernelEntryPointExecutionTests",
     "ConvertExecutionTests",
     "ReinterpretCastExecutionTests",

@@ -286,6 +286,11 @@ public static unsafe partial class MetalAPI
     private static readonly IntPtr SelRetain = SelRegisterName("retain");
     private static readonly IntPtr SelRelease = SelRegisterName("release");
     private static readonly IntPtr SelAlloc = SelRegisterName("alloc");
+    private static readonly IntPtr SelInit = SelRegisterName("init");
+
+    // MTLCompileOptions
+    private static readonly IntPtr SelSetFastMathEnabled =
+        SelRegisterName("setFastMathEnabled:");
 
     // NSString
     private static readonly IntPtr SelInitWithUtf8String =
@@ -515,6 +520,21 @@ public static unsafe partial class MetalAPI
             source, options, &nsError);
         error = nsError;
         return result;
+    }
+
+    /// <summary>
+    /// Creates <c>MTLCompileOptions</c> with fast math enabled or disabled.
+    /// The caller releases the returned object.
+    /// </summary>
+    /// <param name="fastMath">True to enable fast math.</param>
+    /// <returns>Handle to the compile options.</returns>
+    public static IntPtr CreateCompileOptions(bool fastMath)
+    {
+        var options = ObjcMsgSend(
+            ObjcMsgSend(ObjcGetClass("MTLCompileOptions"), SelAlloc),
+            SelInit);
+        ObjcMsgSendVoid(options, SelSetFastMathEnabled, fastMath ? 1 : 0);
+        return options;
     }
 
     /// <summary>

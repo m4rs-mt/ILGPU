@@ -76,6 +76,13 @@ sealed class CLIntrinsicEmitter(CLVendor vendor) : IntrinsicEmitter
         $"pow({x}, {y})";
 
     /// <inheritdoc/>
+    public override string? EmitFloatRem(
+        string x,
+        string y,
+        ArithmeticBasicValueType type) =>
+        $"fmod({x}, {y})";
+
+    /// <inheritdoc/>
     public override string EmitPopCount(string arg, ArithmeticBasicValueType type) =>
         $"(int)popcount({arg})";
 
@@ -111,6 +118,11 @@ sealed class CLIntrinsicEmitter(CLVendor vendor) : IntrinsicEmitter
             ArithmeticBasicValueType.Float16 or
             ArithmeticBasicValueType.Float32 or
             ArithmeticBasicValueType.Float64 => $"fmin({arg1}, {arg2})",
+            ArithmeticBasicValueType.UInt8 or
+            ArithmeticBasicValueType.UInt16 or
+            ArithmeticBasicValueType.UInt32 or
+            ArithmeticBasicValueType.UInt64 =>
+                EmitUnsignedCall("min", arg1, arg2, type),
             _ => $"min({arg1}, {arg2})"
         };
 
@@ -124,8 +136,34 @@ sealed class CLIntrinsicEmitter(CLVendor vendor) : IntrinsicEmitter
             ArithmeticBasicValueType.Float16 or
             ArithmeticBasicValueType.Float32 or
             ArithmeticBasicValueType.Float64 => $"fmax({arg1}, {arg2})",
+            ArithmeticBasicValueType.UInt8 or
+            ArithmeticBasicValueType.UInt16 or
+            ArithmeticBasicValueType.UInt32 or
+            ArithmeticBasicValueType.UInt64 =>
+                EmitUnsignedCall("max", arg1, arg2, type),
             _ => $"max({arg1}, {arg2})"
         };
+
+    /// <summary>
+    /// Emits a binary integer builtin on unsigned operands. Unsigned values
+    /// are stored in signed variables, so both operands are cast to the
+    /// unsigned type to select the unsigned overload.
+    /// </summary>
+    private static string EmitUnsignedCall(
+        string function,
+        string arg1,
+        string arg2,
+        ArithmeticBasicValueType type)
+    {
+        var typeName = type switch
+        {
+            ArithmeticBasicValueType.UInt8 => "uchar",
+            ArithmeticBasicValueType.UInt16 => "ushort",
+            ArithmeticBasicValueType.UInt32 => "uint",
+            _ => "ulong",
+        };
+        return $"{function}(({typeName})({arg1}), ({typeName})({arg2}))";
+    }
 
     /// <inheritdoc/>
     public override string EmitFloor(string arg, ArithmeticBasicValueType type) => $"floor({arg})";

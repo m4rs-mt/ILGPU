@@ -140,7 +140,7 @@ partial class XMath
     /// <returns>The nearest value.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static double RoundToEven(double value) =>
-        RoundingModes.RoundAwayFromZero(value);
+        RoundingModes.RoundToEven(value);
 
     /// <summary>
     /// Rounds the value to the nearest value (halfway cases are rounded to even).
@@ -149,7 +149,7 @@ partial class XMath
     /// <returns>The nearest value.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static float RoundToEven(float value) =>
-        RoundingModes.RoundAwayFromZero(value);
+        RoundingModes.RoundToEven(value);
 
     /// <summary>
     /// Truncates the given value.

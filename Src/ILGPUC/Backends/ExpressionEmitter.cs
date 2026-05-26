@@ -495,11 +495,18 @@ sealed class ExpressionEmitter(GenerationContext context, TypeEmitter typeEmitte
             BasicValueType.Int1 => primitive.Int1Value ? "true" : "false",
             BasicValueType.Int8 => primitive.Int8Value.ToString(),
             BasicValueType.Int16 => primitive.Int16Value.ToString(),
+            // The minimum values have no literal in C: the magnitude does not
+            // fit the signed type, so the literal would be promoted to a
+            // wider type (or be ill-formed) before the negation.
+            BasicValueType.Int32 when primitive.Int32Value == int.MinValue =>
+                "(-2147483647 - 1)",
             BasicValueType.Int32 => primitive.Int32Value.ToString(),
+            BasicValueType.Int64 when primitive.Int64Value == long.MinValue =>
+                "(-9223372036854775807L - 1)",
             BasicValueType.Int64 => primitive.Int64Value.ToString() + "L",
             BasicValueType.Float16 =>
                 IntrinsicEmitter.EmitHalfConstant(primitive.Float16Value.RawValue),
-            BasicValueType.Float32 => FormatFloat(primitive.Float32Value) + "f",
+            BasicValueType.Float32 => FormatFloat(primitive.Float32Value),
             BasicValueType.Float64 => FormatFloat(primitive.Float64Value),
             _ => "0"
         };
@@ -507,14 +514,16 @@ sealed class ExpressionEmitter(GenerationContext context, TypeEmitter typeEmitte
     }
 
     /// <summary>
-    /// Formats a float constant, handling NaN and infinity special cases.
+    /// Formats a float constant, handling NaN and infinity special cases. The
+    /// NaN and infinity macros are float constants and take no suffix.
     /// </summary>
     private static string FormatFloat(float value)
     {
         if (float.IsNaN(value)) return "NAN";
         if (float.IsPositiveInfinity(value)) return "INFINITY";
         if (float.IsNegativeInfinity(value)) return "-INFINITY";
-        return value.ToString("F6", CultureInfo.InvariantCulture);
+        return EnsureFloatLiteral(
+            value.ToString("R", CultureInfo.InvariantCulture)) + "f";
     }
 
     /// <summary>
@@ -525,8 +534,16 @@ sealed class ExpressionEmitter(GenerationContext context, TypeEmitter typeEmitte
         if (double.IsNaN(value)) return "NAN";
         if (double.IsPositiveInfinity(value)) return "INFINITY";
         if (double.IsNegativeInfinity(value)) return "-INFINITY";
-        return value.ToString("F6", CultureInfo.InvariantCulture);
+        return EnsureFloatLiteral(value.ToString("R", CultureInfo.InvariantCulture));
     }
+
+    /// <summary>
+    /// C-family float literals require a decimal point or an exponent;
+    /// round-trip formatting drops both for whole numbers (e.g. "1"), and a
+    /// bare "1f" is not a valid literal.
+    /// </summary>
+    private static string EnsureFloatLiteral(string text) =>
+        text.AsSpan().IndexOfAny('.', 'E', 'e') >= 0 ? text : text + ".0";
 
     #endregion
 
@@ -544,6 +561,17 @@ sealed class ExpressionEmitter(GenerationContext context, TypeEmitter typeEmitte
         if (IsBinaryIntrinsic(binary.Kind))
             return EmitBinaryIntrinsicCall(binary.Kind, left, right,
                 binary.ArithmeticBasicValueType);
+
+        // Floating-point remainder maps to fmod on C-family languages
+        if (binary.Kind == BinaryArithmeticKind.Rem &&
+            binary.BasicValueType.IsFloat() &&
+            IntrinsicEmitter.EmitFloatRem(
+                left.Text,
+                right.Text,
+                binary.ArithmeticBasicValueType) is string rem)
+        {
+            return new Emitted(rem, Prec.Postfix);
+        }
 
         // Simple operators (+, -, *, /, etc.)
         var simpleOp = GetBinaryOperator(binary.Kind);
@@ -595,6 +623,27 @@ sealed class ExpressionEmitter(GenerationContext context, TypeEmitter typeEmitte
                 IntrinsicEmitter.EmitMin(left.Text, right.Text, basicType),
             BinaryArithmeticKind.Max =>
                 IntrinsicEmitter.EmitMax(left.Text, right.Text, basicType),
+            _ => null
+        };
+        if (text is not null)
+        {
+            // .NET's float min/max return NaN if either operand is NaN, while
+            // C's fmin/fmax return the other operand. CPU uses .NET directly.
+            if (basicType is ArithmeticBasicValueType.Float16 or
+                ArithmeticBasicValueType.Float32 or
+                ArithmeticBasicValueType.Float64 &&
+                context.LanguageConfig is not CPU.CPULanguageConfiguration)
+            {
+                text = $"(isnan({left.Text}) || isnan({right.Text}) " +
+                    $"? {Parenthesize(left, Prec.Additive)} + " +
+                    $"{Parenthesize(right, Prec.Additive, isRightChild: true)} " +
+                    $": {text})";
+            }
+            return new Emitted(text, Prec.Postfix);
+        }
+
+        text = kind switch
+        {
             BinaryArithmeticKind.Pow =>
                 IntrinsicEmitter.EmitPow(left.Text, right.Text, basicType),
             BinaryArithmeticKind.Atan2 =>
@@ -899,6 +948,10 @@ sealed class ExpressionEmitter(GenerationContext context, TypeEmitter typeEmitte
     {
         var left = Emit(compare.Left);
         var right = Emit(compare.Right);
+
+        if (compare.Left.BasicValueType.IsFloat())
+            return EmitFloatCompare(compare, left, right);
+
         var op = GetCompareOperator(compare.Kind);
         var prec = GetOperatorPrecedence(op);
 
@@ -913,6 +966,63 @@ sealed class ExpressionEmitter(GenerationContext context, TypeEmitter typeEmitte
         var l = Parenthesize(left, prec);
         var r = Parenthesize(right, prec, isRightChild: true);
         return new Emitted($"{l} {op} {r}", prec);
+    }
+
+    /// <summary>
+    /// Emits a float comparison honoring its ordered/unordered semantics. The
+    /// C operators <c>==</c>, <c>&lt;</c>, <c>&lt;=</c>, <c>&gt;</c> and
+    /// <c>&gt;=</c> are ordered (false for NaN operands) and <c>!=</c> is
+    /// unordered (true for NaN operands); every other combination is emitted
+    /// as the negation of the inverse comparison.
+    /// </summary>
+    private static Emitted EmitFloatCompare(
+        CompareValue compare,
+        Emitted left,
+        Emitted right)
+    {
+        bool unordered = compare.IsUnsignedOrUnordered;
+        string Binary(string op)
+        {
+            var prec = GetOperatorPrecedence(op);
+            var l = Parenthesize(left, prec);
+            var r = Parenthesize(right, prec, isRightChild: true);
+            return $"{l} {op} {r}";
+        }
+
+        // Natively matching operators
+        switch (compare.Kind)
+        {
+            case CompareKind.Equal when !unordered:
+            case CompareKind.LessThan when !unordered:
+            case CompareKind.LessEqual when !unordered:
+            case CompareKind.GreaterThan when !unordered:
+            case CompareKind.GreaterEqual when !unordered:
+            case CompareKind.NotEqual when unordered:
+            {
+                var op = GetCompareOperator(compare.Kind);
+                return new Emitted(Binary(op), GetOperatorPrecedence(op));
+            }
+        }
+
+        // Ordered not-equal: neither less nor greater
+        if (compare.Kind == CompareKind.NotEqual)
+        {
+            return new Emitted(
+                $"({Binary("<")} || {Binary(">")})",
+                Prec.Atom);
+        }
+
+        // Unordered equal: neither less nor greater
+        // Unordered relational: negation of the inverse ordered comparison
+        var negated = compare.Kind switch
+        {
+            CompareKind.Equal => $"{Binary("<")} || {Binary(">")}",
+            CompareKind.LessThan => Binary(">="),
+            CompareKind.LessEqual => Binary(">"),
+            CompareKind.GreaterThan => Binary("<="),
+            _ => Binary("<"),
+        };
+        return new Emitted($"!({negated})", Prec.Unary);
     }
 
     /// <summary>

@@ -90,6 +90,13 @@ sealed class MetalIntrinsicEmitter : IntrinsicEmitter
         $"metal::pow({x}, {y})";
 
     /// <inheritdoc/>
+    public override string? EmitFloatRem(
+        string x,
+        string y,
+        ArithmeticBasicValueType type) =>
+        $"metal::fmod({x}, {y})";
+
+    /// <inheritdoc/>
     public override string EmitPopCount(string arg, ArithmeticBasicValueType type) =>
         $"(int)popcount({arg})";
 
@@ -117,11 +124,38 @@ sealed class MetalIntrinsicEmitter : IntrinsicEmitter
 
     /// <inheritdoc/>
     public override string EmitMin(string arg1, string arg2, ArithmeticBasicValueType type) =>
-        $"metal::min({arg1}, {arg2})";
+        EmitMinMax("min", "<", arg1, arg2, type);
 
     /// <inheritdoc/>
     public override string EmitMax(string arg1, string arg2, ArithmeticBasicValueType type) =>
-        $"metal::max({arg1}, {arg2})";
+        EmitMinMax("max", ">", arg1, arg2, type);
+
+    /// <summary>
+    /// Emits a min/max operation. Unsigned values are stored in signed
+    /// variables, so unsigned operands are cast to select the unsigned
+    /// overload. 64-bit integers use a conditional expression since the
+    /// metal::min/max overloads for them are ambiguous.
+    /// </summary>
+    private static string EmitMinMax(
+        string function,
+        string comparison,
+        string arg1,
+        string arg2,
+        ArithmeticBasicValueType type)
+    {
+        var unsignedType = type switch
+        {
+            ArithmeticBasicValueType.UInt8 => "uchar",
+            ArithmeticBasicValueType.UInt16 => "ushort",
+            ArithmeticBasicValueType.UInt32 => "uint",
+            ArithmeticBasicValueType.UInt64 => "ulong",
+            _ => null
+        };
+        var cast = unsignedType is null ? string.Empty : $"({unsignedType})";
+        if (type is ArithmeticBasicValueType.Int64 or ArithmeticBasicValueType.UInt64)
+            return $"({cast}({arg1}) {comparison} {cast}({arg2}) ? ({arg1}) : ({arg2}))";
+        return $"metal::{function}({cast}({arg1}), {cast}({arg2}))";
+    }
 
     /// <inheritdoc/>
     public override string EmitFloor(string arg, ArithmeticBasicValueType type) =>

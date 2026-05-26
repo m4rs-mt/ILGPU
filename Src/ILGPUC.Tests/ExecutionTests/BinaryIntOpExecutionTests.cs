@@ -147,4 +147,19 @@ public abstract class BinaryIntOpExecutionTests : ExecutionTestBase
             ["Kernels.MulKernel"],
             ["20", "30", "40", "50"]);
     }
+
+    /// <summary>
+    /// Math.Min and Math.Max on uint and ulong compare unsigned.
+    /// </summary>
+    [SkippableFact]
+    public async Task UnsignedMinMax_ProducesCorrectOutput()
+    {
+        Skip.If(
+            Backend == BackendType.CPU,
+            "The CPU backend emits unsigned 64-bit min/max into signed locals");
+        await VerifyProgramOutputAsync(
+            "TestPrograms/BinaryIntOp/UnsignedMinMax.cs",
+            ["Kernels.UnsignedMinMaxKernel"],
+            ["10", "4294967280", "10", "18446744073709551600"]);
+    }
 }
