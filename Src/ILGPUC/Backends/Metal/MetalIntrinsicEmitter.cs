@@ -364,8 +364,21 @@ sealed class MetalIntrinsicEmitter : IntrinsicEmitter
             _ => throw new ArgumentException($"Unknown shuffle kind: {kind}")
         };
 
-        return $"{intrinsic}({variable}, {origin})";
+        return EmitSimdPermute(intrinsic, variable, origin, type);
     }
+
+    /// <summary>
+    /// Emits a SIMD-group permutation. Metal permutes 32-bit lanes only, so
+    /// 64-bit integers are permuted as a uint2 vector.
+    /// </summary>
+    private static string EmitSimdPermute(
+        string intrinsic,
+        string variable,
+        string origin,
+        ArithmeticBasicValueType type) =>
+        type is ArithmeticBasicValueType.Int64 or ArithmeticBasicValueType.UInt64
+            ? $"as_type<long>({intrinsic}(as_type<uint2>({variable}), {origin}))"
+            : $"{intrinsic}({variable}, {origin})";
 
     /// <inheritdoc/>
     public override string EmitBroadcast(
@@ -376,7 +389,7 @@ sealed class MetalIntrinsicEmitter : IntrinsicEmitter
     {
         // Broadcast at SIMD group (warp) level
         if (kind == BroadcastKind.WarpLevel)
-            return $"simd_broadcast({variable}, {origin})";
+            return EmitSimdPermute("simd_broadcast", variable, origin, type);
 
         // Group-level broadcast not directly supported
         throw new NotSupportedException(

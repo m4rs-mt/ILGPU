@@ -150,8 +150,10 @@ partial class ModuleBuilder : IGenerationObject
         // Populate unified types
         foreach (var basicValueType in Enum.GetValues<BasicValueType>())
         {
+            // Skip aliased entries (Float64 maps to Float32 in Fast32BitOnly)
             var basicType = GetPrimitiveType(basicValueType);
-            AddNewType(basicType);
+            if (basicType.BasicValueType == basicValueType)
+                AddNewType(basicType);
         }
 
         // Initialize static values

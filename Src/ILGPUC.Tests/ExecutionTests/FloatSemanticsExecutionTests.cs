@@ -112,4 +112,17 @@ public abstract class FloatSemanticsExecutionTests : ExecutionTestBase
             ["1.2345678", "1.2345678", "1.2345678", "1.2345678"],
             new CompilationProperties(MathMode: MathMode.Fast));
     }
+
+    /// <summary>
+    /// The 32-bit-only fast math mode compiles double arithmetic as float.
+    /// </summary>
+    [SkippableFact]
+    public async Task Fast32BitOnly_ProducesCorrectOutput()
+    {
+        await VerifyProgramOutputAsync(
+            "TestPrograms/FloatSemantics/Fast32BitOnly.cs",
+            ["Kernels.Fast32BitOnlyKernel"],
+            ["2", "3", "4", "5"],
+            new CompilationProperties(MathMode: MathMode.Fast32BitOnly));
+    }
 }

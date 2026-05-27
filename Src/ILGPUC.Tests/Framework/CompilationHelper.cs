@@ -212,12 +212,20 @@ sealed class CompilationHelper : DisposeBase
 
         // Apply backend transforms and dump
         using var sw = new StringWriter();
-        backendInstance.GenerateCode(
-            properties,
-            _typeManager,
-            optimizedModule,
-            sw,
-            IRPrinterFormat.LLVM);
+        try
+        {
+            backendInstance.GenerateCode(
+                properties,
+                _typeManager,
+                optimizedModule,
+                sw,
+                IRPrinterFormat.LLVM);
+        }
+        catch (NotSupportedException) when (sw.GetStringBuilder().Length > 0)
+        {
+            // The IR is dumped before source generation, which may reject
+            // the module for the target (e.g. double on Metal).
+        }
 
         // The GenerateCode with a dumpWriter writes the IR dump to sw.
         // But we want just the IR dump, not the source code.

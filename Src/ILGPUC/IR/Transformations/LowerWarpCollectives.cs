@@ -37,15 +37,23 @@ sealed class LowerWarpCollectives(
     private readonly int? _warpSize = specification.WarpSize;
 
     /// <summary>
+    /// Returns true if the given type is a 64-bit type.
+    /// </summary>
+    private static bool Is64Bit(BasicValueType type) =>
+        type is BasicValueType.Int64 or BasicValueType.Float64;
+
+    /// <summary>
     /// Returns true if the target backend supports native emission for the
     /// given warp reduce operation, meaning the node should NOT be lowered.
     /// </summary>
-    private bool SupportsNativeWarpReduce(BinaryArithmeticKind op) =>
+    private bool SupportsNativeWarpReduce(
+        BinaryArithmeticKind op,
+        BasicValueType type) =>
         specification.AcceleratorType switch
         {
             // Metal: simd_sum, simd_min, simd_max, simd_and, simd_or,
-            // simd_xor, simd_product
-            AcceleratorType.Metal => op is
+            // simd_xor, simd_product (32-bit and smaller types only)
+            AcceleratorType.Metal => !Is64Bit(type) && op is
                 BinaryArithmeticKind.Add or BinaryArithmeticKind.Min or
                 BinaryArithmeticKind.Max or BinaryArithmeticKind.And or
                 BinaryArithmeticKind.Or or BinaryArithmeticKind.Xor or
@@ -67,11 +75,14 @@ sealed class LowerWarpCollectives(
     /// Returns true if the target backend supports native emission for the
     /// given warp scan operation.
     /// </summary>
-    private bool SupportsNativeWarpScan(BinaryArithmeticKind op) =>
+    private bool SupportsNativeWarpScan(
+        BinaryArithmeticKind op,
+        BasicValueType type) =>
         specification.AcceleratorType switch
         {
             // Metal: simd_prefix_{inclusive,exclusive}_{sum,product}
-            AcceleratorType.Metal => op is
+            // (32-bit and smaller types only)
+            AcceleratorType.Metal => !Is64Bit(type) && op is
                 BinaryArithmeticKind.Add or BinaryArithmeticKind.Mul,
             // OpenCL: sub_group_scan_{inclusive,exclusive}_add etc.
             AcceleratorType.OpenCL => op is
@@ -199,7 +210,9 @@ sealed class LowerWarpCollectives(
         // If the backend supports this operation natively, leave the node
         // for the ExpressionEmitter to emit via IntrinsicEmitter.
         if (reduce.HasIntrinsicOperation
-            && SupportsNativeWarpReduce(reduce.IntrinsicOp!.Value))
+            && SupportsNativeWarpReduce(
+                reduce.IntrinsicOp!.Value,
+                reduce.BasicValueType))
         {
             return reduce;
         }
@@ -241,7 +254,9 @@ sealed class LowerWarpCollectives(
     private Value? LowerScan(BasicBlockTransform transform, WarpScan scan)
     {
         if (scan.HasIntrinsicOperation
-            && SupportsNativeWarpScan(scan.IntrinsicOp!.Value))
+            && SupportsNativeWarpScan(
+                scan.IntrinsicOp!.Value,
+                scan.BasicValueType))
         {
             return scan;
         }

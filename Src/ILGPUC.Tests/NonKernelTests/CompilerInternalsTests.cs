@@ -191,6 +191,16 @@ public sealed class CompilerInternalsTests
         }
     }
 
+    [Fact]
+    public void Module_GetPrimitiveType_Fast32BitOnly_AliasesFloat64()
+    {
+        var module = CompilePrimitiveTypeKernel(
+            new CompilationProperties(MathMode: MathMode.Fast32BitOnly));
+        Assert.Equal(
+            BasicValueType.Float32,
+            module.GetPrimitiveType(BasicValueType.Float64).BasicValueType);
+    }
+
     #endregion
 
     #region Non-capturing lambda detection

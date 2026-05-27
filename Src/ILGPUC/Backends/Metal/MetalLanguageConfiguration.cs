@@ -11,6 +11,7 @@
 
 using ILGPUC.IR;
 using ILGPUC.IR.ModuleValues;
+using System;
 using System.Collections.Generic;
 using System.Text;
 
@@ -44,7 +45,7 @@ sealed class MetalLanguageConfiguration : LanguageConfiguration
             BasicValueType.Int64 => "long",
             BasicValueType.Float16 => "half",
             BasicValueType.Float32 => "float",
-            BasicValueType.Float64 => "double",
+            BasicValueType.Float64 => throw DoubleNotSupported(),
             _ => "void"
         };
 
@@ -59,7 +60,7 @@ sealed class MetalLanguageConfiguration : LanguageConfiguration
             ArithmeticBasicValueType.Int64 => "long",
             ArithmeticBasicValueType.Float16 => "half",
             ArithmeticBasicValueType.Float32 => "float",
-            ArithmeticBasicValueType.Float64 => "double",
+            ArithmeticBasicValueType.Float64 => throw DoubleNotSupported(),
             ArithmeticBasicValueType.UInt8 => "uchar",
             ArithmeticBasicValueType.UInt16 => "ushort",
             ArithmeticBasicValueType.UInt32 => "uint",
@@ -89,6 +90,14 @@ sealed class MetalLanguageConfiguration : LanguageConfiguration
         yield return "#include <metal_stdlib>";
         yield return "using namespace metal;";
     }
+
+    /// <summary>
+    /// Creates the compile-time error for 64-bit floats, which Metal does not
+    /// support.
+    /// </summary>
+    private static NotSupportedException DoubleNotSupported() =>
+        new("Metal does not support 64-bit floating-point values (double); " +
+            "use float instead.");
 
     /// <inheritdoc/>
     public override string KernelAttribute => "kernel";
