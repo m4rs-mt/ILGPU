@@ -634,7 +634,8 @@ sealed class ExpressionEmitter(GenerationContext context, TypeEmitter typeEmitte
                 ArithmeticBasicValueType.Float64 &&
                 context.LanguageConfig is not CPU.CPULanguageConfiguration)
             {
-                text = $"(isnan({left.Text}) || isnan({right.Text}) " +
+                text = $"(isnan({ClassifyOperand(left, basicType)}) || " +
+                    $"isnan({ClassifyOperand(right, basicType)}) " +
                     $"? {Parenthesize(left, Prec.Additive)} + " +
                     $"{Parenthesize(right, Prec.Additive, isRightChild: true)} " +
                     $": {text})";
@@ -908,10 +909,29 @@ sealed class ExpressionEmitter(GenerationContext context, TypeEmitter typeEmitte
         };
 
         if (operation is not null)
-            return new Emitted($"{operation}({operand.Text})", Prec.Postfix);
+        {
+            var argument = kind is UnaryArithmeticKind.IsNaN
+                or UnaryArithmeticKind.IsInf or UnaryArithmeticKind.IsFin
+                ? ClassifyOperand(operand, basicType)
+                : operand.Text;
+            return new Emitted($"{operation}({argument})", Prec.Postfix);
+        }
 
         return new Emitted($"/* Unknown unary op: {kind} */", Prec.Atom);
     }
+
+    /// <summary>
+    /// Returns the argument of a floating-point classification function. Half
+    /// operands are widened to float, which is exact: the C++ half types
+    /// convert implicitly to several floating-point types, which makes
+    /// <c>isnan</c> and friends ambiguous for them under nvcc.
+    /// </summary>
+    private static string ClassifyOperand(
+        Emitted operand,
+        ArithmeticBasicValueType basicType) =>
+        basicType == ArithmeticBasicValueType.Float16
+            ? $"(float){Parenthesize(operand, Prec.Unary)}"
+            : operand.Text;
 
     #endregion
 

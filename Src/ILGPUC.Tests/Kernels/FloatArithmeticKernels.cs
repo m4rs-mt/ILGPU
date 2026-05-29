@@ -56,4 +56,13 @@ static class FloatArithmeticKernels
             System.Math.Round(x, System.MidpointRounding.AwayFromZero) +
             System.Math.Round(x, 2);
     }
+
+    public static void HalfAbsIsNaNKernel(
+        Index1D index,
+        ArrayView1D<ILGPU.Half, Stride1D.Dense> data,
+        ArrayView1D<int, Stride1D.Dense> result)
+    {
+        result[index] = ILGPU.Half.IsNaN(data[index]) ? 1 : 0;
+        data[index] = ILGPU.Half.Abs(data[index]);
+    }
 }

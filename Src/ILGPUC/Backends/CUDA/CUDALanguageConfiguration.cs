@@ -145,8 +145,9 @@ class CudaLanguageConfiguration : LanguageConfiguration
     /// <inheritdoc/>
     public override IEnumerable<string> GetHeaderIncludes()
     {
-        // CUDA includes are typically handled by the compiler
-        yield break;
+        // nvcc includes the CUDA runtime implicitly, but not __half and its
+        // conversions and intrinsics
+        yield return "#include <cuda_fp16.h>";
     }
 
     /// <inheritdoc/>

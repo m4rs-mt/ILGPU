@@ -119,6 +119,7 @@ sealed class CudaIntrinsicEmitter : IntrinsicEmitter
     {
         ArithmeticBasicValueType.Float64 => $"fabs({arg})",
         ArithmeticBasicValueType.Float32 => $"fabsf({arg})",
+        ArithmeticBasicValueType.Float16 => $"__habs({arg})",
         ArithmeticBasicValueType.Int64 => $"llabs({arg})",
         ArithmeticBasicValueType.UInt8 or ArithmeticBasicValueType.UInt16 or
         ArithmeticBasicValueType.UInt32 or ArithmeticBasicValueType.UInt64 => arg,

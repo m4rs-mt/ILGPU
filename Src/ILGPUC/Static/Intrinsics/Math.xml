@@ -370,6 +370,11 @@
     </Type>
     <Type Name="ILGPU.Half">
         <Generators Target="Frontend.Intrinsic.Intrinsics">
+            <Generator Name="Abs" Target="Math_UnaryOperation"
+                Arguments="UnaryArithmeticKind.Abs" />
+            <Generator Name="IsNaN" Target="Math_UnaryOperation"
+                Arguments="UnaryArithmeticKind.IsNaN" />
+
             <Generator Name="op_UnaryNegation" Target="Math_UnaryOperation"
                 Arguments="UnaryArithmeticKind.Neg" />
 
