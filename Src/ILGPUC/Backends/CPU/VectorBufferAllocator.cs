@@ -37,7 +37,15 @@ namespace ILGPUC.Backends.CPU;
 sealed record BufferPoolMetadata(
     List<(string ElementType, int SlotIndex)> Slots,
     Dictionary<Value, string> ValueAssignments,
-    Dictionary<string, string> BroadcastAssignments);
+    Dictionary<string, string> BroadcastAssignments)
+{
+    /// <summary>
+    /// Returns the field name of a pool slot. Qualified element type names
+    /// (e.g. <c>System.Half</c>) are turned into valid identifiers.
+    /// </summary>
+    public static string GetSlotName(string elementType, int slotIndex) =>
+        $"pool_{elementType.Replace('.', '_')}_{slotIndex}";
+}
 
 /// <summary>
 /// Performs SSA value liveness analysis and linear-scan register allocation
@@ -520,7 +528,7 @@ sealed class VectorBufferAllocator
                     slotEnds.Add(interval.End);
                 }
 
-                var poolName = $"pool_{elemType}_{assignedSlot}";
+                var poolName = BufferPoolMetadata.GetSlotName(elemType, assignedSlot);
                 slotSet.Add((elemType, assignedSlot));
 
                 if (interval.Value != null)

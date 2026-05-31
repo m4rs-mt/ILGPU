@@ -43,9 +43,6 @@ public abstract class FloatSemanticsExecutionTests : ExecutionTestBase
     [SkippableFact]
     public async Task NaNComparisons_ProducesCorrectOutput()
     {
-        Skip.If(
-            Backend == BackendType.CPU,
-            "The CPU backend does not honor unordered float comparisons yet");
         await VerifyProgramOutputAsync(
             "TestPrograms/FloatSemantics/NaNComparisons.cs",
             ["Kernels.NaNComparisonsKernel"],

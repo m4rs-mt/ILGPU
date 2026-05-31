@@ -154,6 +154,22 @@ public static class CPUVectorIntrinsics
     }
 
     /// <summary>
+    /// Returns the value of the last active lane, which is the value a
+    /// sequential execution of the active lanes leaves behind when every lane
+    /// writes its value to the same location.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static T LastActive<T>(ReadOnlySpan<T> values, ReadOnlySpan<bool> mask)
+    {
+        for (int i = mask.Length - 1; i > 0; i--)
+        {
+            if (mask[i])
+                return values[i];
+        }
+        return values[0];
+    }
+
+    /// <summary>
     /// Checks if all lanes satisfy a condition.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -336,6 +352,29 @@ public static class CPUVectorIntrinsics
     {
         for (int i = 0; i < a.Length; i++)
             target[i] = !a[i];
+    }
+
+    /// <summary>
+    /// Computes element-wise XOR of two masks, writing the result into target
+    /// in-place: target[i] = a[i] ^ b[i].
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void XorMask(bool[] target, ReadOnlySpan<bool> a, ReadOnlySpan<bool> b)
+    {
+        for (int i = 0; i < a.Length; i++)
+            target[i] = a[i] ^ b[i];
+    }
+
+    /// <summary>
+    /// Computes element-wise equality of two masks, writing the result into
+    /// target in-place: target[i] = a[i] == b[i].
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void EqualMask(
+        bool[] target, ReadOnlySpan<bool> a, ReadOnlySpan<bool> b)
+    {
+        for (int i = 0; i < a.Length; i++)
+            target[i] = a[i] == b[i];
     }
 
     #endregion
@@ -600,10 +639,30 @@ public static class CPUVectorIntrinsics
     }
 
     /// <summary>
-    /// Initializes per-lane pointers into a contiguous byte span.
-    /// Each lane gets <paramref name="elementSize"/> bytes of storage.
-    /// The span must be at least <c>pointers.Length * elementSize</c>
-    /// bytes long and must remain pinned for the lifetime of the pointers.
+    /// Computes the address of the element at the given per-lane index in the
+    /// private array of every active lane of a per-lane view.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static unsafe void ComputeLaneViewAddresses<T>(
+        Span<nint> addresses,
+        CPURuntimeView<T> view,
+        ReadOnlySpan<int> indices,
+        int elementSize,
+        ReadOnlySpan<bool> mask,
+        int laneStride) where T : unmanaged
+    {
+        for (int i = 0; i < addresses.Length; i++)
+        {
+            if (mask[i])
+            {
+                long element = (long)i * laneStride + indices[i];
+                addresses[i] = (nint)((byte*)view.Ptr + element * elementSize);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Points each lane's pointer at its own element-sized slot of storage.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static unsafe void InitAllocaPointers(

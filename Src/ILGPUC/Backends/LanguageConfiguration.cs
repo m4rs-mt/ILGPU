@@ -11,6 +11,7 @@
 
 using ILGPUC.IR;
 using ILGPUC.IR.ModuleValues;
+using ILGPUC.IR.PureValues;
 using System.Collections.Generic;
 
 namespace ILGPUC.Backends;
@@ -124,6 +125,12 @@ abstract class LanguageConfiguration
     /// Gets language-specific pragmas or attributes.
     /// </summary>
     public virtual IEnumerable<string> GetPragmas() => [];
+
+    /// <summary>
+    /// Formats a constant in the target language, or returns null to use the
+    /// default C-style literal syntax.
+    /// </summary>
+    public virtual string? FormatPrimitive(PrimitiveValue value) => null;
 
     /// <summary>
     /// Formats a null literal for a given type name.

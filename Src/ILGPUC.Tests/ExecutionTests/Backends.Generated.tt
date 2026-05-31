@@ -64,6 +64,9 @@ var testClasses = new[]
     "ArrayView2DExecutionTests",
     "ArrayView3DExecutionTests",
     "LaunchGeometryExecutionTests",
+    "DivergentMemoryExecutionTests",
+    "VectorArithmeticExecutionTests",
+    "VectorStructuresExecutionTests",
 };
 
 var backends = new[] { "CPU", "Metal", "Cuda", "ROCm", "OpenCL" };

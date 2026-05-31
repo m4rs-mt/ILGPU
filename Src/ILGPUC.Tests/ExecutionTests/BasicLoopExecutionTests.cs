@@ -84,4 +84,13 @@ public abstract class BasicLoopExecutionTests : ExecutionTestBase
             ["Kernels.LoopWithContinueKernel"],
             ["25", "25", "25", "25"]);
     }
+
+    [SkippableFact]
+    public async Task DivergentBreak_ProducesCorrectOutput()
+    {
+        await VerifyProgramOutputAsync(
+            "TestPrograms/BasicLoop/DivergentBreak.cs",
+            ["Kernels.DivergentBreakKernel"],
+            ["1", "6", "10", "10", "15", "21", "21", "28"]);
+    }
 }

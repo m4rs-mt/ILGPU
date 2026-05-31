@@ -10,6 +10,8 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPUC.IR;
+using ILGPUC.IR.Analyses;
+using ILGPUC.IR.MethodValues;
 using ILGPUC.IR.BasicBlockValues;
 using ILGPUC.IR.ModuleValues;
 using ILGPUC.IR.PureValues;
@@ -33,6 +35,8 @@ sealed class VectorizationAnalysis
     private readonly bool _vectorizeFirstParam;
     private readonly HashSet<Value> _scalarValues = [];
     private readonly HashSet<Value> _phiVisiting = [];
+    private Dominators<Forwards>? _dominators;
+    private Dominators<Backwards>? _postDominators;
 
     /// <summary>
     /// Creates a new vectorization analysis for a method.
@@ -77,9 +81,11 @@ sealed class VectorizationAnalysis
             // A phi is scalar when all its incoming values are scalar
             // (guard against infinite recursion for loop-carried phis)
             PhiValue phi => AreAllPhiArgsScalar(phi),
-            // A view load is scalar when its LEA offset is scalar
+            // A view load is scalar when its LEA offset is scalar, unless
+            // it reads a local array that every lane owns privately
             Load load when load.Source is LoadElementAddress lea
-                && lea.IsViewAccess => IsScalar(lea.Offset),
+                && lea.IsViewAccess => IsScalar(lea.Offset)
+                && CPUExpressionEmitter.GetLaneArrayLength(lea.Source) is null,
             // View property reads (Length) are always scalar — view metadata
             // is uniform across all SIMD lanes. This makes SubView length
             // computations (viewLength - offset) propagate as scalar.
@@ -110,12 +116,93 @@ sealed class VectorizationAnalysis
                 if (!IsScalar(phi.Arguments[i]))
                     return false;
             }
-            return true;
+
+            // Uniform incoming values still differ per lane when a divergent
+            // branch decides which of them each lane receives.
+            return !IsControlDivergent(phi);
         }
         finally
         {
             _phiVisiting.Remove(phi);
         }
+    }
+
+    /// <summary>
+    /// Returns true if lanes can reach the phi's block over different
+    /// incoming edges with different values, because a branch on a per-lane
+    /// condition sits between their divergence point and the phi. Loop-header
+    /// phis are excluded: the masked loop emitters blend their back edges.
+    /// </summary>
+    private bool IsControlDivergent(PhiValue phi)
+    {
+        if (!HasDistinctArguments(phi))
+            return false;
+
+        var merge = phi.BasicBlock;
+        _dominators ??= _method.Blocks.CreateDominators();
+        foreach (var pred in merge.Predecessors)
+        {
+            if (_dominators.Dominates(merge, pred))
+                return false;
+        }
+
+        _postDominators ??= _method.Blocks.CreatePostDominators();
+        foreach (var block in _method.Blocks)
+        {
+            if (block.TerminationKind is not (
+                BlockTerminationKind.Conditional or BlockTerminationKind.Switch))
+            {
+                continue;
+            }
+            var condition = block.TerminationCondition;
+            if (condition is null || IsScalar(condition))
+                continue;
+
+            var join = _postDominators.GetImmediateDominator(block);
+            if (join == merge || ReachesBefore(block, merge, join))
+                return true;
+        }
+        return false;
+    }
+
+    /// <summary>
+    /// Returns true if the phi has at least two different incoming values.
+    /// </summary>
+    private static bool HasDistinctArguments(PhiValue phi)
+    {
+        for (int i = 1; i < phi.NumArguments; i++)
+        {
+            if (phi.Arguments[i] != phi.Arguments[0])
+                return true;
+        }
+        return false;
+    }
+
+    /// <summary>
+    /// Returns true if <paramref name="target"/> is reachable from the
+    /// successors of <paramref name="source"/> without passing through
+    /// <paramref name="stop"/>.
+    /// </summary>
+    private static bool ReachesBefore(
+        BasicBlock source,
+        BasicBlock target,
+        BasicBlock stop)
+    {
+        var visited = new HashSet<BasicBlock>();
+        var stack = new Stack<BasicBlock>();
+        foreach (var successor in source.Successors)
+            stack.Push(successor);
+        while (stack.Count > 0)
+        {
+            var block = stack.Pop();
+            if (block == stop || !visited.Add(block))
+                continue;
+            if (block == target)
+                return true;
+            foreach (var successor in block.Successors)
+                stack.Push(successor);
+        }
+        return false;
     }
 
     /// <summary>
@@ -174,8 +261,16 @@ sealed class VectorizationAnalysis
         {
             if (_vectorizeFirstParam && param.Index == 0)
                 continue;
-            if (vectorizedParams is not null && vectorizedParams.Contains(param.Index))
+            // Views and structures holding views or pointers are passed
+            // as they are; they cannot be split into per-lane arrays.
+            bool perLaneType = param.Type is not ViewType
+                && !param.Type.HasFlags(
+                    TypeFlags.ViewDependent | TypeFlags.PointerDependent);
+            if (perLaneType && vectorizedParams is not null
+                && vectorizedParams.Contains(param.Index))
+            {
                 continue;
+            }
             _scalarValues.Add(param);
         }
 

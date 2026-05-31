@@ -490,6 +490,8 @@ sealed class ExpressionEmitter(GenerationContext context, TypeEmitter typeEmitte
     /// </summary>
     private Emitted EmitPrimitive(PrimitiveValue primitive)
     {
+        if (context.LanguageConfig.FormatPrimitive(primitive) is string formatted)
+            return new Emitted(formatted, Prec.Atom);
         var text = primitive.BasicValueType switch
         {
             BasicValueType.Int1 => primitive.Int1Value ? "true" : "false",

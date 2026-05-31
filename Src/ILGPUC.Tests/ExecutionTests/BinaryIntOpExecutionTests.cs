@@ -154,9 +154,6 @@ public abstract class BinaryIntOpExecutionTests : ExecutionTestBase
     [SkippableFact]
     public async Task UnsignedMinMax_ProducesCorrectOutput()
     {
-        Skip.If(
-            Backend == BackendType.CPU,
-            "The CPU backend emits unsigned 64-bit min/max into signed locals");
         await VerifyProgramOutputAsync(
             "TestPrograms/BinaryIntOp/UnsignedMinMax.cs",
             ["Kernels.UnsignedMinMaxKernel"],

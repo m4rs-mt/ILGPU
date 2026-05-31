@@ -260,6 +260,182 @@ public unsafe readonly struct CPURuntimeView<T>(T* ptr, long length)
 
     #endregion
 
+    #region Per-Lane IO Operations
+
+    // Per-lane views back a private array of every SIMD lane: lane i owns the
+    // elements [i * laneStride, (i + 1) * laneStride) of the underlying memory.
+
+    /// <summary>
+    /// Gathers one element per active lane from the lane's private array.
+    /// </summary>
+    [MethodImpl(
+        MethodImplOptions.AggressiveOptimization |
+        MethodImplOptions.AggressiveInlining)]
+    public readonly void LaneGatherLoad(
+        Span<T> target,
+        ReadOnlySpan<int> indices,
+        ReadOnlySpan<bool> mask,
+        int laneStride)
+    {
+        for (int i = 0; i < target.Length; i++)
+        {
+            if (mask[i])
+                target[i] = Ptr[(long)i * laneStride + indices[i]];
+        }
+    }
+
+    /// <inheritdoc cref="LaneGatherLoad(Span{T}, ReadOnlySpan{int},
+    /// ReadOnlySpan{bool}, int)"/>
+    [MethodImpl(
+        MethodImplOptions.AggressiveOptimization |
+        MethodImplOptions.AggressiveInlining)]
+    public readonly void LaneGatherLoad(
+        Span<T> target,
+        ReadOnlySpan<long> indices,
+        ReadOnlySpan<bool> mask,
+        int laneStride)
+    {
+        for (int i = 0; i < target.Length; i++)
+        {
+            if (mask[i])
+                target[i] = Ptr[(long)i * laneStride + indices[i]];
+        }
+    }
+
+    /// <summary>
+    /// Loads the element at a uniform index from the private array of every
+    /// active lane.
+    /// </summary>
+    [MethodImpl(
+        MethodImplOptions.AggressiveOptimization |
+        MethodImplOptions.AggressiveInlining)]
+    public readonly void LaneGatherLoad(
+        Span<T> target,
+        long index,
+        ReadOnlySpan<bool> mask,
+        int laneStride)
+    {
+        for (int i = 0; i < target.Length; i++)
+        {
+            if (mask[i])
+                target[i] = Ptr[(long)i * laneStride + index];
+        }
+    }
+
+    /// <summary>
+    /// Scatters one value per active lane into the lane's private array.
+    /// </summary>
+    [MethodImpl(
+        MethodImplOptions.AggressiveOptimization |
+        MethodImplOptions.AggressiveInlining)]
+    public readonly void LaneScatterStore(
+        ReadOnlySpan<int> indices,
+        ReadOnlySpan<T> values,
+        ReadOnlySpan<bool> mask,
+        int laneStride)
+    {
+        for (int i = 0; i < mask.Length; i++)
+        {
+            if (mask[i])
+                Ptr[(long)i * laneStride + indices[i]] = values[i];
+        }
+    }
+
+    /// <inheritdoc cref="LaneScatterStore(ReadOnlySpan{int}, ReadOnlySpan{T},
+    /// ReadOnlySpan{bool}, int)"/>
+    [MethodImpl(
+        MethodImplOptions.AggressiveOptimization |
+        MethodImplOptions.AggressiveInlining)]
+    public readonly void LaneScatterStore(
+        ReadOnlySpan<long> indices,
+        ReadOnlySpan<T> values,
+        ReadOnlySpan<bool> mask,
+        int laneStride)
+    {
+        for (int i = 0; i < mask.Length; i++)
+        {
+            if (mask[i])
+                Ptr[(long)i * laneStride + indices[i]] = values[i];
+        }
+    }
+
+    /// <summary>
+    /// Stores one value per active lane at a uniform index of the lane's
+    /// private array.
+    /// </summary>
+    [MethodImpl(
+        MethodImplOptions.AggressiveOptimization |
+        MethodImplOptions.AggressiveInlining)]
+    public readonly void LaneScatterStore(
+        long index,
+        ReadOnlySpan<T> values,
+        ReadOnlySpan<bool> mask,
+        int laneStride)
+    {
+        for (int i = 0; i < mask.Length; i++)
+        {
+            if (mask[i])
+                Ptr[(long)i * laneStride + index] = values[i];
+        }
+    }
+
+    /// <summary>
+    /// Stores a uniform value into the private array of every active lane.
+    /// </summary>
+    [MethodImpl(
+        MethodImplOptions.AggressiveOptimization |
+        MethodImplOptions.AggressiveInlining)]
+    public readonly void LaneScatterFill(
+        ReadOnlySpan<int> indices,
+        T value,
+        ReadOnlySpan<bool> mask,
+        int laneStride)
+    {
+        for (int i = 0; i < mask.Length; i++)
+        {
+            if (mask[i])
+                Ptr[(long)i * laneStride + indices[i]] = value;
+        }
+    }
+
+    /// <inheritdoc cref="LaneScatterFill(ReadOnlySpan{int}, T,
+    /// ReadOnlySpan{bool}, int)"/>
+    [MethodImpl(
+        MethodImplOptions.AggressiveOptimization |
+        MethodImplOptions.AggressiveInlining)]
+    public readonly void LaneScatterFill(
+        ReadOnlySpan<long> indices,
+        T value,
+        ReadOnlySpan<bool> mask,
+        int laneStride)
+    {
+        for (int i = 0; i < mask.Length; i++)
+        {
+            if (mask[i])
+                Ptr[(long)i * laneStride + indices[i]] = value;
+        }
+    }
+
+    /// <inheritdoc cref="LaneScatterFill(ReadOnlySpan{int}, T,
+    /// ReadOnlySpan{bool}, int)"/>
+    [MethodImpl(
+        MethodImplOptions.AggressiveOptimization |
+        MethodImplOptions.AggressiveInlining)]
+    public readonly void LaneScatterFill(
+        long index,
+        T value,
+        ReadOnlySpan<bool> mask,
+        int laneStride)
+    {
+        for (int i = 0; i < mask.Length; i++)
+        {
+            if (mask[i])
+                Ptr[(long)i * laneStride + index] = value;
+        }
+    }
+
+    #endregion
+
     #region Conversions
 
     /// <summary>

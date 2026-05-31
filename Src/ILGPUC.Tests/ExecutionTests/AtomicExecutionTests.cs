@@ -67,4 +67,21 @@ public abstract class AtomicExecutionTests : ExecutionTestBase
             ["Kernels.AtomicExchangeKernel"],
             ["42"]);
     }
+
+    /// <summary>
+    /// Unsigned and float atomics, mapped to native atomics where the target
+    /// has them and to compare-and-swap loops otherwise.
+    /// </summary>
+    [SkippableFact]
+    public async Task AtomicUnsignedFloat_ProducesCorrectOutput()
+    {
+        await VerifyProgramOutputAsync(
+            "TestPrograms/Atomics/AtomicUnsignedFloat.cs",
+            ["Kernels.AtomicUnsignedFloatKernel"],
+            [
+                "10", "2147483651", "2147483648", "4294967280", "4026531840",
+                "15", "3735928559", "2415919104",
+                "5", "2.5", "-2", "7.25", "3.5", "4", "4.5",
+            ]);
+    }
 }

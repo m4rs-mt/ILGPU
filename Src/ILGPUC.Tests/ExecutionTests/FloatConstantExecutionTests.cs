@@ -57,4 +57,23 @@ public abstract class FloatConstantExecutionTests : ExecutionTestBase
                 "3.141592653589793", "3.141592653589793",
             ]);
     }
+
+    [SkippableFact]
+    public async Task ExtremeFloatConstants_ProducesCorrectOutput()
+    {
+        await VerifyProgramOutputAsync(
+            "TestPrograms/FloatConstant/ExtremeFloatConstants.cs",
+            ["Kernels.ExtremeFloatConstantsKernel"],
+            ["3.4028235E+38", "1E+20", "1E-20", "-0"]);
+    }
+
+    [SkippableFact]
+    public async Task ExtremeDoubleConstants_ProducesCorrectOutput()
+    {
+        RequireCapability(Backend, BackendCapability.Float64);
+        await VerifyProgramOutputAsync(
+            "TestPrograms/FloatConstant/ExtremeDoubleConstants.cs",
+            ["Kernels.ExtremeDoubleConstantsKernel"],
+            ["1.7976931348623157E+308", "1E-300", "5E-324", "1E+100"]);
+    }
 }

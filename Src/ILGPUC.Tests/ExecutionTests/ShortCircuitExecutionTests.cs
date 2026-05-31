@@ -146,4 +146,22 @@ public abstract class ShortCircuitExecutionTests : ExecutionTestBase
             ["Kernels.DivGuardPhiKernel"],
             ["-10", "0", "10", "5"]);
     }
+
+    [SkippableFact]
+    public async Task GuardedLoad_ProducesCorrectOutput()
+    {
+        await VerifyProgramOutputAsync(
+            "TestPrograms/ShortCircuit/GuardedLoad.cs",
+            ["Kernels.GuardedLoadKernel"],
+            ["7", "0", "0", "0"]);
+    }
+
+    [SkippableFact]
+    public async Task GuardedAtomic_ProducesCorrectOutput()
+    {
+        await VerifyProgramOutputAsync(
+            "TestPrograms/ShortCircuit/GuardedAtomic.cs",
+            ["Kernels.GuardedAtomicKernel"],
+            ["0", "0", "1", "1", "2"]);
+    }
 }

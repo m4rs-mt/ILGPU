@@ -88,8 +88,35 @@ sealed class CPUExpressionEmitter(
                 .GetPrimitiveTypeName(pt.BasicValueType);
         if (type is StructureType st)
             return $"struct_{st.Id}";
+        if (type is PointerType)
+            return "nint";
         return "int";
     }
+
+    /// <summary>
+    /// Returns the number of elements of each lane's private array if the view
+    /// addresses a local array, or null for memory shared by all lanes. Local
+    /// arrays are allocated once per lane (see
+    /// <see cref="CPUMethodEmitter"/>), so element accesses are offset into
+    /// the private array of every lane.
+    /// </summary>
+    public static int? GetLaneArrayLength(Value view)
+    {
+        while (view is AddressSpaceCast cast)
+            view = cast.Source;
+        if (view is NewView nv
+            && nv.Pointer is Global { AddressSpace: MemoryAddressSpace.Local } g)
+        {
+            return GetLaneArrayLength(g);
+        }
+        return null;
+    }
+
+    /// <summary>
+    /// Returns the number of elements of each lane's copy of a local global.
+    /// </summary>
+    public static int GetLaneArrayLength(Global global) =>
+        global.ArrayLength?.Int32Value ?? 1;
 
     /// <summary>
     /// Emits a load operation. When the source is a LoadElementAddress on a
@@ -104,6 +131,14 @@ sealed class CPUExpressionEmitter(
         {
             var view = ResolveOperand(lea.Source);
             var index = ResolveOperand(lea.Offset);
+
+            if (GetLaneArrayLength(lea.Source) is int laneStride)
+            {
+                context.WriteLine(
+                    $"{view}.LaneGatherLoad(" +
+                    $"{result}, {index}, {ActiveMaskName}, {laneStride});");
+                return;
+            }
 
             if (analysis.IsScalar(lea.Offset))
             {
@@ -179,13 +214,35 @@ sealed class CPUExpressionEmitter(
             var view = ResolveOperand(lea.Source);
             var index = ResolveOperand(lea.Offset);
 
+            if (GetLaneArrayLength(lea.Source) is int laneStride)
+            {
+                var method = analysis.IsScalar(store.Value)
+                    ? "LaneScatterFill"
+                    : "LaneScatterStore";
+                context.WriteLine(
+                    $"{view}.{method}(" +
+                    $"{index}, {value}, {ActiveMaskName}, {laneStride});");
+                return;
+            }
+
             if (analysis.IsScalar(lea.Offset))
             {
-                // For scalar index into a view, extract lane 0 if value is vectorized
+                // All active lanes store to the same element: the last active
+                // lane wins, as in a sequential execution of the lanes. Blocks
+                // without active lanes must not store at all.
+                var guard = $"if (CPUVectorIntrinsics.Any({ActiveMaskName})) ";
                 if (!analysis.IsScalar(store.Value))
-                    context.WriteLine($"{view}[{index}] = {value}[0];");
+                {
+                    var elemType = GetTypeNameForCodegen(store.Value.Type);
+                    context.WriteLine(
+                        $"{guard}{view}[{index}] = " +
+                        $"CPUVectorIntrinsics.LastActive<{elemType}>(" +
+                        $"{value}, {ActiveMaskName});");
+                }
                 else
-                    context.WriteLine($"{view}[{index}] = {value};");
+                {
+                    context.WriteLine($"{guard}{view}[{index}] = {value};");
+                }
             }
             else
             {
@@ -258,8 +315,60 @@ sealed class CPUExpressionEmitter(
     }
 
     /// <summary>
+    /// Returns the C# type name of a basic value type, which is the element
+    /// type of the buffers storing values of that type.
+    /// </summary>
+    private string GetStorageType(BasicValueType type) =>
+        ((CPULanguageConfiguration)context.LanguageConfig).GetPrimitiveTypeName(type);
+
+    /// <summary>
+    /// Returns the C# type name of an arithmetic type, which carries the
+    /// signedness an operation works with.
+    /// </summary>
+    private string GetSemanticType(ArithmeticBasicValueType type) =>
+        ((CPULanguageConfiguration)context.LanguageConfig).GetPrimitiveTypeName(type);
+
+    /// <summary>
+    /// Reinterprets a per-lane buffer as a span of another element type of the
+    /// same size (e.g. int[] as Span&lt;uint&gt; for unsigned operations).
+    /// </summary>
+    private static string Reinterpret(string buffer, string from, string to) =>
+        from == to ? buffer : $"MemoryMarshal.Cast<{from}, {to}>({buffer}.AsSpan())";
+
+    /// <summary>
+    /// Casts a scalar operand to another C# type unless it already has it.
+    /// </summary>
+    private static string CastScalar(string operand, string from, string to) =>
+        from == to ? Parenthesize(operand) : $"(({to})({operand}))";
+
+    /// <summary>
+    /// Wraps an inlined operand expression in parentheses unless it is a
+    /// plain name or literal.
+    /// </summary>
+    private static string Parenthesize(string operand)
+    {
+        foreach (var c in operand)
+        {
+            if (!char.IsLetterOrDigit(c) && c is not ('_' or '.'))
+                return $"({operand})";
+        }
+        return operand;
+    }
+
+    /// <summary>
+    /// Returns true if the result of the operation depends on whether its
+    /// operands are interpreted as signed or unsigned integers.
+    /// </summary>
+    private static bool IsSignSensitive(BinaryArithmeticKind kind) =>
+        kind is BinaryArithmeticKind.Div or BinaryArithmeticKind.Rem
+            or BinaryArithmeticKind.Shr or BinaryArithmeticKind.Min
+            or BinaryArithmeticKind.Max;
+
+    /// <summary>
     /// Emits a binary arithmetic operation using CPUMathIntrinsics or a plain
-    /// C# operator when both operands are scalar.
+    /// C# operator when both operands are scalar. Values are stored in the
+    /// C# types of their basic value types; sign-sensitive operations
+    /// reinterpret their operands with the signedness of the operation.
     /// </summary>
     public void EmitBinaryOp(BinaryArithmeticValue binary)
     {
@@ -269,46 +378,20 @@ sealed class CPUExpressionEmitter(
 
         bool lScalar = analysis.IsScalar(binary.Left);
         bool rScalar = analysis.IsScalar(binary.Right);
+        bool isShift = binary.Kind is BinaryArithmeticKind.Shl
+            or BinaryArithmeticKind.Shr;
+
+        var storageType = GetStorageType(binary.BasicValueType);
+        var opType = IsSignSensitive(binary.Kind)
+            ? GetSemanticType(binary.ArithmeticBasicValueType)
+            : storageType;
+        var rightType = GetStorageType(binary.Right.BasicValueType);
 
         if (lScalar && rScalar)
         {
-            // Operations that map to a C# operator
-            string? op = binary.Kind switch
-            {
-                BinaryArithmeticKind.Add => "+",
-                BinaryArithmeticKind.Sub => "-",
-                BinaryArithmeticKind.Mul => "*",
-                BinaryArithmeticKind.Div => "/",
-                BinaryArithmeticKind.Rem => "%",
-                BinaryArithmeticKind.And => "&",
-                BinaryArithmeticKind.Or => "|",
-                BinaryArithmeticKind.Xor => "^",
-                BinaryArithmeticKind.Shl => "<<",
-                BinaryArithmeticKind.Shr => ">>",
-                _ => null
-            };
-            if (op is not null)
-            {
-                context.WriteLine($"{Declare(result)} = {left} {op} {right};");
-                return;
-            }
-
-            // Operations that require a method call (scalar path)
-            string? scalarMethod = binary.Kind switch
-            {
-                BinaryArithmeticKind.Max => "System.Math.Max",
-                BinaryArithmeticKind.Min => "System.Math.Min",
-                _ => null
-            };
-            if (scalarMethod is not null)
-            {
-                context.WriteLine(
-                    $"{Declare(result)} = {scalarMethod}({left}, {right});");
-                return;
-            }
-
-            throw new System.NotSupportedException(
-                $"Binary op {binary.Kind} not supported");
+            EmitScalarBinaryOp(
+                binary, result, left, right, storageType, opType, rightType);
+            return;
         }
 
         string method = binary.Kind switch
@@ -332,13 +415,13 @@ sealed class CPUExpressionEmitter(
         // Bool bitwise ops: bool doesn't implement IBitwiseOperators,
         // so use CPUVectorIntrinsics mask helpers instead of
         // CPUMathIntrinsics.BitwiseAnd/Or/Xor.
-        if (binary.Type is PrimitiveType pt
-            && pt.BasicValueType == BasicValueType.Int1)
+        if (binary.BasicValueType == BasicValueType.Int1)
         {
             var boolMethod = binary.Kind switch
             {
                 BinaryArithmeticKind.And => "AndMask",
                 BinaryArithmeticKind.Or => "OrMask",
+                BinaryArithmeticKind.Xor => "XorMask",
                 _ => null
             };
             if (boolMethod is not null)
@@ -348,89 +431,135 @@ sealed class CPUExpressionEmitter(
                     var bcast = GetBroadcastName(binary);
                     context.WriteLine(
                         $"CPUVectorIntrinsics.Broadcast<bool>({bcast}, {left});");
-                    context.WriteLine(
-                        $"CPUVectorIntrinsics.{boolMethod}({result}, " +
-                        $"{bcast}, {right});");
+                    left = bcast;
                 }
                 else if (rScalar)
                 {
                     var bcast = GetBroadcastName(binary);
                     context.WriteLine(
                         $"CPUVectorIntrinsics.Broadcast<bool>({bcast}, {right});");
-                    context.WriteLine(
-                        $"CPUVectorIntrinsics.{boolMethod}({result}, " +
-                        $"{left}, {bcast});");
+                    right = bcast;
                 }
-                else
-                {
-                    context.WriteLine(
-                        $"CPUVectorIntrinsics.{boolMethod}({result}, " +
-                        $"{left}, {right});");
-                }
+                context.WriteLine(
+                    $"CPUVectorIntrinsics.{boolMethod}({result}, " +
+                    $"{left}, {right});");
                 return;
             }
         }
-
-        // Derive the element type for explicit generic arguments to
-        // avoid type inference failures with mixed scalar/vector operands.
-        // Shift operations (ShiftLeft/ShiftRight) are non-generic — they
-        // have concrete int/long overloads, so skip the <T> suffix.
-        var config = (CPULanguageConfiguration)context.LanguageConfig;
-        var elemType = config.GetPrimitiveTypeName(
-            ((PrimitiveType)binary.Type).BasicValueType);
-        bool isShift = binary.Kind is BinaryArithmeticKind.Shl
-            or BinaryArithmeticKind.Shr;
-        var typeArg = isShift ? "" : $"<{elemType}>";
-
-        // For division/remainder, guard inactive lanes in the divisor
-        // with 1 to prevent DivideByZeroException on masked-out lanes
-        bool isDivRem = binary.Kind is BinaryArithmeticKind.Div
-            or BinaryArithmeticKind.Rem;
 
         if (lScalar)
         {
             var bcast = GetBroadcastName(binary);
             context.WriteLine(
-                $"CPUVectorIntrinsics.Broadcast<{elemType}>(" +
+                $"CPUVectorIntrinsics.Broadcast<{storageType}>(" +
                 $"{bcast}, {left});");
-            if (isDivRem)
-                EmitDivGuard(right, elemType);
-            context.WriteLine(
-                $"CPUMathIntrinsics.{method}{typeArg}(" +
-                $"{result}, {bcast}, {right});");
+            left = bcast;
         }
-        else if (rScalar)
+
+        // Shift amounts are ints; a uniform amount stays scalar
+        if (isShift)
+        {
+            string amount;
+            if (rScalar)
+                amount = $"(int)({right})";
+            else if (rightType == "int")
+                amount = right;
+            else
+            {
+                amount = $"_shamt_{binary.Id}";
+                context.WriteLine($"var {amount} = new int[SIMDWidth];");
+                context.WriteLine(
+                    $"CPUMathIntrinsics.Convert<{rightType}, int>(" +
+                    $"{amount}, {right});");
+            }
+            context.WriteLine(
+                $"CPUMathIntrinsics.{method}<{opType}>(" +
+                $"{Reinterpret(result, storageType, opType)}, " +
+                $"{Reinterpret(left, storageType, opType)}, {amount});");
+            return;
+        }
+
+        if (rScalar)
         {
             var bcast = GetBroadcastName(binary);
             context.WriteLine(
-                $"CPUVectorIntrinsics.Broadcast<{elemType}>(" +
+                $"CPUVectorIntrinsics.Broadcast<{storageType}>(" +
                 $"{bcast}, {right});");
-            // Scalar divisor is safe (broadcast fills all lanes)
-            context.WriteLine(
-                $"CPUMathIntrinsics.{method}{typeArg}(" +
-                $"{result}, {left}, {bcast});");
+            right = bcast;
         }
-        else
+
+        // Division and remainder only compute the active lanes: inactive
+        // lanes may hold zero divisors, and the divisor buffer itself must
+        // not be modified as it may be used again later.
+        var maskArg = "";
+        if (binary.Kind is BinaryArithmeticKind.Div or BinaryArithmeticKind.Rem)
         {
-            if (isDivRem)
-                EmitDivGuard(right, elemType);
-            context.WriteLine(
-                $"CPUMathIntrinsics.{method}{typeArg}(" +
-                $"{result}, {left}, {right});");
+            method += "Masked";
+            maskArg = $", {ActiveMaskName}";
         }
+
+        context.WriteLine(
+            $"CPUMathIntrinsics.{method}<{opType}>(" +
+            $"{Reinterpret(result, storageType, opType)}, " +
+            $"{Reinterpret(left, storageType, opType)}, " +
+            $"{Reinterpret(right, storageType, opType)}{maskArg});");
     }
 
     /// <summary>
-    /// Fills inactive lanes of a divisor array with 1 to prevent
-    /// DivideByZeroException on masked-out SIMD lanes.
+    /// Emits a binary operation on two uniform operands.
     /// </summary>
-    private void EmitDivGuard(string divisor, string elemType)
+    private void EmitScalarBinaryOp(
+        BinaryArithmeticValue binary,
+        string result,
+        string left,
+        string right,
+        string storageType,
+        string opType,
+        string rightType)
     {
-        // For each inactive lane, set divisor to 1
-        context.WriteLine(
-            $"for (int _g = 0; _g < SIMDWidth; _g++) " +
-            $"if (!{ActiveMaskName}[_g]) " +
-            $"{divisor}[_g] = ({elemType})1;");
+        string? op = binary.Kind switch
+        {
+            BinaryArithmeticKind.Add => "+",
+            BinaryArithmeticKind.Sub => "-",
+            BinaryArithmeticKind.Mul => "*",
+            BinaryArithmeticKind.Div => "/",
+            BinaryArithmeticKind.Rem => "%",
+            BinaryArithmeticKind.And => "&",
+            BinaryArithmeticKind.Or => "|",
+            BinaryArithmeticKind.Xor => "^",
+            BinaryArithmeticKind.Shl => "<<",
+            BinaryArithmeticKind.Shr => ">>",
+            _ => null
+        };
+
+        var l = CastScalar(left, storageType, opType);
+        string expr;
+        if (op is not null)
+        {
+            // Shift amounts must be ints in C#
+            var r = binary.Kind is BinaryArithmeticKind.Shl
+                or BinaryArithmeticKind.Shr
+                ? CastScalar(right, rightType, "int")
+                : CastScalar(right, storageType, opType);
+            expr = $"{l} {op} {r}";
+        }
+        else if (binary.Kind is BinaryArithmeticKind.Max
+            or BinaryArithmeticKind.Min)
+        {
+            var r = CastScalar(right, storageType, opType);
+            var function = binary.Kind == BinaryArithmeticKind.Max ? "Max" : "Min";
+            expr = $"System.Math.{function}({l}, {r})";
+        }
+        else
+        {
+            throw new System.NotSupportedException(
+                $"Binary op {binary.Kind} not supported");
+        }
+
+        // C# promotes small integer operands to int: truncate the result back
+        // to the storage type with wrap-around semantics.
+        var cast = storageType == "bool" ? "" : $"({storageType})";
+        context.WriteLine($"{Declare(result)} = unchecked({cast}({expr}));");
     }
 
     /// <summary>
@@ -450,6 +579,29 @@ sealed class CPUExpressionEmitter(
             UnaryArithmeticKind.CTZ => "TrailingZeroCount",
             _ => null
         };
+        // Floating-point classification takes the operand's type and yields
+        // a bool; C# has no isnan/isinf/isfinite functions.
+        var classifyMethod = unary.Kind switch
+        {
+            UnaryArithmeticKind.IsNaN => "IsNaN",
+            UnaryArithmeticKind.IsInf => "IsInfinity",
+            UnaryArithmeticKind.IsFin => "IsFinite",
+            _ => null
+        };
+        if (classifyMethod is not null
+            && unary.Value.Type is PrimitiveType classifyType)
+        {
+            var classifyConfig = (CPULanguageConfiguration)context.LanguageConfig;
+            var classifyElemType = classifyConfig.GetPrimitiveTypeName(
+                classifyType.BasicValueType);
+            context.WriteLine(analysis.IsScalar(unary.Value)
+                ? $"{Declare(result)} = " +
+                    $"{classifyElemType}.{classifyMethod}({operand});"
+                : $"CPUMathIntrinsics.{classifyMethod}<{classifyElemType}>(" +
+                    $"{result}, {operand});");
+            return;
+        }
+
         if (bitCountMethod is not null
             && unary.Value.Type is PrimitiveType operandType)
         {
@@ -465,7 +617,12 @@ sealed class CPUExpressionEmitter(
 
         if (analysis.IsScalar(unary.Value))
         {
-            // Scalar unary operations use plain C# operators or Math calls
+            // Scalar unary operations use plain C# operators or Math calls;
+            // float operands use MathF so that the result stays a float.
+            bool isFloat = unary.BasicValueType == BasicValueType.Float32;
+            var math = isFloat ? "MathF" : "Math";
+            var one = isFloat ? "1.0f" : "1.0";
+            var two = isFloat ? "2.0f" : "2.0";
             var expr = unary.Kind switch
             {
                 UnaryArithmeticKind.Neg => $"-{operand}",
@@ -474,28 +631,28 @@ sealed class CPUExpressionEmitter(
                     unary.BasicValueType == BasicValueType.Int1
                         ? $"!{operand}"
                         : $"~{operand}",
-                UnaryArithmeticKind.Abs => $"Math.Abs({operand})",
-                UnaryArithmeticKind.Sqrt => $"Math.Sqrt({operand})",
-                UnaryArithmeticKind.Sin => $"Math.Sin({operand})",
-                UnaryArithmeticKind.Cos => $"Math.Cos({operand})",
-                UnaryArithmeticKind.Tan => $"Math.Tan({operand})",
-                UnaryArithmeticKind.Asin => $"Math.Asin({operand})",
-                UnaryArithmeticKind.Acos => $"Math.Acos({operand})",
-                UnaryArithmeticKind.Atan => $"Math.Atan({operand})",
-                UnaryArithmeticKind.Sinh => $"Math.Sinh({operand})",
-                UnaryArithmeticKind.Cosh => $"Math.Cosh({operand})",
-                UnaryArithmeticKind.Tanh => $"Math.Tanh({operand})",
-                UnaryArithmeticKind.Asinh => $"Math.Asinh({operand})",
-                UnaryArithmeticKind.Acosh => $"Math.Acosh({operand})",
-                UnaryArithmeticKind.Atanh => $"Math.Atanh({operand})",
-                UnaryArithmeticKind.Exp => $"Math.Exp({operand})",
-                UnaryArithmeticKind.Exp2 => $"Math.Pow(2.0, {operand})",
-                UnaryArithmeticKind.Log => $"Math.Log({operand})",
-                UnaryArithmeticKind.Log2 => $"Math.Log2({operand})",
-                UnaryArithmeticKind.Log10 => $"Math.Log10({operand})",
-                UnaryArithmeticKind.Floor => $"Math.Floor({operand})",
-                UnaryArithmeticKind.Ceiling => $"Math.Ceiling({operand})",
-                UnaryArithmeticKind.Rcp => $"(1.0 / {operand})",
+                UnaryArithmeticKind.Abs => $"{math}.Abs({operand})",
+                UnaryArithmeticKind.Sqrt => $"{math}.Sqrt({operand})",
+                UnaryArithmeticKind.Sin => $"{math}.Sin({operand})",
+                UnaryArithmeticKind.Cos => $"{math}.Cos({operand})",
+                UnaryArithmeticKind.Tan => $"{math}.Tan({operand})",
+                UnaryArithmeticKind.Asin => $"{math}.Asin({operand})",
+                UnaryArithmeticKind.Acos => $"{math}.Acos({operand})",
+                UnaryArithmeticKind.Atan => $"{math}.Atan({operand})",
+                UnaryArithmeticKind.Sinh => $"{math}.Sinh({operand})",
+                UnaryArithmeticKind.Cosh => $"{math}.Cosh({operand})",
+                UnaryArithmeticKind.Tanh => $"{math}.Tanh({operand})",
+                UnaryArithmeticKind.Asinh => $"{math}.Asinh({operand})",
+                UnaryArithmeticKind.Acosh => $"{math}.Acosh({operand})",
+                UnaryArithmeticKind.Atanh => $"{math}.Atanh({operand})",
+                UnaryArithmeticKind.Exp => $"{math}.Exp({operand})",
+                UnaryArithmeticKind.Exp2 => $"{math}.Pow({two}, {operand})",
+                UnaryArithmeticKind.Log => $"{math}.Log({operand})",
+                UnaryArithmeticKind.Log2 => $"{math}.Log2({operand})",
+                UnaryArithmeticKind.Log10 => $"{math}.Log10({operand})",
+                UnaryArithmeticKind.Floor => $"{math}.Floor({operand})",
+                UnaryArithmeticKind.Ceiling => $"{math}.Ceiling({operand})",
+                UnaryArithmeticKind.Rcp => $"({one} / {operand})",
                 _ => null
             };
             if (expr != null)
@@ -567,7 +724,9 @@ sealed class CPUExpressionEmitter(
 
     /// <summary>
     /// Emits a comparison operation producing a bool[] mask using CPUMathIntrinsics,
-    /// or a plain C# operator when both operands are scalar.
+    /// or a plain C# operator when both operands are scalar. Integer orderings
+    /// use the signedness of the comparison; floating-point comparisons
+    /// flagged unordered are also true if either operand is NaN.
     /// </summary>
     public void EmitCompare(CompareValue compare)
     {
@@ -578,34 +737,57 @@ sealed class CPUExpressionEmitter(
         bool lScalar = analysis.IsScalar(compare.Left);
         bool rScalar = analysis.IsScalar(compare.Right);
 
+        var leftBvt = compare.Left.BasicValueType;
+        bool isFloat = leftBvt.IsFloat();
+        bool unordered = isFloat && compare.IsUnsignedOrUnordered;
+        bool isOrdering = compare.Kind is not (
+            CompareKind.Equal or CompareKind.NotEqual);
+        var storageType = GetStorageType(leftBvt);
+        var opType = !isFloat && isOrdering
+            ? GetSemanticType(compare.CompareType)
+            : storageType;
+
         if (lScalar && rScalar)
         {
-            string op = compare.Kind switch
+            var l = CastScalar(left, storageType, opType);
+            var r = CastScalar(right, storageType, opType);
+            string ordered(CompareKind kind) => kind switch
             {
-                CompareKind.Equal => "==",
-                CompareKind.NotEqual => "!=",
-                CompareKind.LessThan => "<",
-                CompareKind.LessEqual => "<=",
-                CompareKind.GreaterThan => ">",
-                CompareKind.GreaterEqual => ">=",
+                CompareKind.Equal => $"{l} == {r}",
+                CompareKind.NotEqual => $"{l} != {r}",
+                CompareKind.LessThan => $"{l} < {r}",
+                CompareKind.LessEqual => $"{l} <= {r}",
+                CompareKind.GreaterThan => $"{l} > {r}",
+                CompareKind.GreaterEqual => $"{l} >= {r}",
                 _ => throw new System.NotSupportedException(
                     $"Compare {compare.Kind} not supported")
             };
-            context.WriteLine($"{Declare(result)} = {left} {op} {right};");
+            string expr;
+            if (!isFloat)
+                expr = ordered(compare.Kind);
+            else if (unordered)
+            {
+                // An unordered comparison is the negated ordered inverse
+                expr = compare.Kind switch
+                {
+                    CompareKind.Equal => $"!({l} < {r} || {l} > {r})",
+                    CompareKind.NotEqual => $"{l} != {r}",
+                    CompareKind.LessThan => $"!({l} >= {r})",
+                    CompareKind.LessEqual => $"!({l} > {r})",
+                    CompareKind.GreaterThan => $"!({l} <= {r})",
+                    _ => $"!({l} < {r})"
+                };
+            }
+            else
+            {
+                // C# != is unordered; the ordered variant excludes NaNs
+                expr = compare.Kind == CompareKind.NotEqual
+                    ? $"({l} < {r} || {l} > {r})"
+                    : ordered(compare.Kind);
+            }
+            context.WriteLine($"{Declare(result)} = {expr};");
             return;
         }
-
-        string method = compare.Kind switch
-        {
-            CompareKind.Equal => "Equal",
-            CompareKind.NotEqual => "NotEqual",
-            CompareKind.LessThan => "LessThan",
-            CompareKind.LessEqual => "LessEqual",
-            CompareKind.GreaterThan => "GreaterThan",
-            CompareKind.GreaterEqual => "GreaterEqual",
-            _ => throw new System.NotSupportedException(
-                $"Compare {compare.Kind} not supported")
-        };
 
         // Detect type mismatch (e.g., int vs long in bounds checks).
         // CPUMathIntrinsics comparison methods require both operands to
@@ -615,44 +797,87 @@ sealed class CPUExpressionEmitter(
         if (leftPrim != null && rightPrim != null
             && leftPrim.BasicValueType != rightPrim.BasicValueType)
         {
+            string mismatchMethod = compare.Kind switch
+            {
+                CompareKind.Equal => "Equal",
+                CompareKind.NotEqual => "NotEqual",
+                CompareKind.LessThan => "LessThan",
+                CompareKind.LessEqual => "LessEqual",
+                CompareKind.GreaterThan => "GreaterThan",
+                _ => "GreaterEqual",
+            };
             EmitMismatchedCompare(
                 left, right, result, lScalar, rScalar,
-                method, leftPrim, rightPrim);
+                mismatchMethod, leftPrim, rightPrim);
             return;
         }
-
-        // Derive the element type for explicit generic arguments
-        var cmpConfig = (CPULanguageConfiguration)context.LanguageConfig;
-        var cmpElemType = leftPrim != null
-            ? cmpConfig.GetPrimitiveTypeName(leftPrim.BasicValueType)
-            : "int";
 
         if (lScalar)
         {
             var bcast = GetBroadcastName(compare);
             context.WriteLine(
-                $"CPUVectorIntrinsics.Broadcast<{cmpElemType}>(" +
+                $"CPUVectorIntrinsics.Broadcast<{storageType}>(" +
                 $"{bcast}, {left});");
-            context.WriteLine(
-                $"CPUMathIntrinsics.{method}<{cmpElemType}>(" +
-                $"{result}, {bcast}, {right});");
+            left = bcast;
         }
         else if (rScalar)
         {
             var bcast = GetBroadcastName(compare);
             context.WriteLine(
-                $"CPUVectorIntrinsics.Broadcast<{cmpElemType}>(" +
+                $"CPUVectorIntrinsics.Broadcast<{storageType}>(" +
                 $"{bcast}, {right});");
+            right = bcast;
+        }
+
+        // Bool masks do not implement the generic comparison interfaces
+        if (leftBvt == BasicValueType.Int1 && !isOrdering)
+        {
+            var maskMethod = compare.Kind == CompareKind.Equal
+                ? "EqualMask"
+                : "XorMask";
             context.WriteLine(
-                $"CPUMathIntrinsics.{method}<{cmpElemType}>(" +
-                $"{result}, {left}, {bcast});");
+                $"CPUVectorIntrinsics.{maskMethod}({result}, {left}, {right});");
+            return;
+        }
+
+        // Unordered comparisons negate the ordered inverse comparison
+        bool negate = false;
+        string method;
+        if (unordered && compare.Kind != CompareKind.NotEqual)
+        {
+            negate = compare.Kind != CompareKind.Equal;
+            method = compare.Kind switch
+            {
+                CompareKind.Equal => "EqualUnordered",
+                CompareKind.LessThan => "GreaterEqual",
+                CompareKind.LessEqual => "GreaterThan",
+                CompareKind.GreaterThan => "LessEqual",
+                _ => "LessThan"
+            };
         }
         else
         {
-            context.WriteLine(
-                $"CPUMathIntrinsics.{method}<{cmpElemType}>(" +
-                $"{result}, {left}, {right});");
+            method = compare.Kind switch
+            {
+                CompareKind.Equal => "Equal",
+                CompareKind.NotEqual => isFloat && !unordered
+                    ? "NotEqualOrdered"
+                    : "NotEqual",
+                CompareKind.LessThan => "LessThan",
+                CompareKind.LessEqual => "LessEqual",
+                CompareKind.GreaterThan => "GreaterThan",
+                CompareKind.GreaterEqual => "GreaterEqual",
+                _ => throw new System.NotSupportedException(
+                    $"Compare {compare.Kind} not supported")
+            };
         }
+
+        context.WriteLine(
+            $"CPUMathIntrinsics.{method}<{opType}>({result}, " +
+            $"{Reinterpret(left, storageType, opType)}, " +
+            $"{Reinterpret(right, storageType, opType)});");
+        if (negate)
+            context.WriteLine($"CPUVectorIntrinsics.NotMask({result}, {result});");
     }
 
     /// <summary>
@@ -817,48 +1042,62 @@ sealed class CPUExpressionEmitter(
     }
 
     /// <summary>
-    /// Emits a type conversion operation.
+    /// Emits a type conversion operation. The operand is read with the
+    /// signedness of the conversion's source type and converted to its target
+    /// type before it is stored in the result's storage type.
     /// </summary>
     public void EmitConvert(ConvertValue convert)
     {
         var operand = ResolveOperand(convert.Value);
         var result = context.GetValueName(convert);
-        var config = (CPULanguageConfiguration)context.LanguageConfig;
-        var targetType = config.GetPrimitiveTypeName(convert.TargetType);
+
+        var sourceBvt = convert.Value.BasicValueType;
+        var targetBvt = convert.BasicValueType;
+        var sourceStorage = GetStorageType(sourceBvt);
+        var sourceType = GetSemanticType(convert.SourceType);
+        var targetStorage = GetStorageType(targetBvt);
+        var targetType = GetSemanticType(convert.TargetType);
 
         if (analysis.IsScalar(convert.Value))
         {
-            // For sign-extension from an unsigned C# type to a wider type
-            // (e.g., byte→int where the IR says sign-extend), cast through
-            // the signed intermediate: (int)(sbyte)byteVal. Without this,
-            // (int)byteVal zero-extends (255 stays 255 instead of -1).
-            var sourceArith = convert.SourceType;
-            var signedSourceType = config.GetPrimitiveTypeName(sourceArith);
-            var sourceBvt = convert.Value.BasicValueType;
-            var unsignedSourceType = config.GetPrimitiveTypeName(sourceBvt);
-            if (!convert.IsSourceUnsigned
-                && signedSourceType != unsignedSourceType)
+            string expr;
+            if (sourceBvt == BasicValueType.Int1)
             {
-                // The IR source is signed but the C# type is unsigned
-                // (e.g., Int8→sbyte but the var is byte). Cast through
-                // the signed type to get proper sign extension.
-                context.WriteLine(
-                    $"{Declare(result)} = ({targetType})({signedSourceType})" +
-                    $"{operand};");
+                expr = $"(({operand}) ? ({targetType})1 : ({targetType})0)";
+            }
+            else if (targetBvt == BasicValueType.Int1)
+            {
+                var source = CastScalar(operand, sourceStorage, sourceType);
+                expr = $"{source} != ({sourceType})0";
             }
             else
             {
-                context.WriteLine(
-                    $"{Declare(result)} = ({targetType}){operand};");
+                var source = CastScalar(operand, sourceStorage, sourceType);
+                expr = $"({targetType}){source}";
             }
+            expr = CastScalar(expr, targetType, targetStorage);
+            context.WriteLine($"{Declare(result)} = unchecked({expr});");
+            return;
+        }
+
+        var target = Reinterpret(result, targetStorage, targetType);
+        if (sourceBvt == BasicValueType.Int1)
+        {
+            context.WriteLine(
+                $"CPUMathIntrinsics.ConvertFromBool<{targetType}>(" +
+                $"{target}, {operand});");
+        }
+        else if (targetBvt == BasicValueType.Int1)
+        {
+            context.WriteLine(
+                $"CPUMathIntrinsics.ConvertToBool<{sourceType}>(" +
+                $"{result}, {Reinterpret(operand, sourceStorage, sourceType)});");
         }
         else
         {
-            var sourceType = config.GetPrimitiveTypeName(
-                ((PrimitiveType)convert.Value.Type).BasicValueType);
             context.WriteLine(
                 $"CPUMathIntrinsics.Convert<{sourceType}, {targetType}>(" +
-                $"{result}, {operand});");
+                $"{target}, {Reinterpret(operand, sourceStorage, sourceType)});");
         }
     }
 
@@ -874,22 +1113,32 @@ sealed class CPUExpressionEmitter(
         var falseVal = ResolveOperand(predicate.FalseValue);
         var result = context.GetValueName(predicate);
 
-        if (analysis.IsScalar(predicate.Condition))
+        if (analysis.IsScalar(predicate))
         {
-            // Scalar condition — plain ternary
+            // Scalar condition and operands — plain ternary
             context.WriteLine(
                 $"{Declare(result)} = {condition} ? {trueVal} : {falseVal};");
             return;
         }
 
-        // Vectorized condition — use Select with explicit type arg
-        var config = (CPULanguageConfiguration)context.LanguageConfig;
-        var elemType = predicate.Type is PrimitiveType pt
-            ? config.GetPrimitiveTypeName(pt.BasicValueType) : "int";
+        // Vectorized select — use Select with explicit type arg
+        var elemType = GetTypeNameForCodegen(predicate.Type);
 
         // Use the value's unique ID for temporary variable names to avoid
         // collisions when multiple Predicate values reuse the same pool slot.
         var uid = predicate.Id;
+
+        // A uniform condition selecting between per-lane operands is
+        // broadcast to a lane mask; a plain ternary would assign one
+        // operand array by reference (aliasing e.g. laneIdx).
+        if (analysis.IsScalar(predicate.Condition))
+        {
+            var mask = $"_sel_{uid}_c";
+            context.WriteLine($"var {mask} = new bool[SIMDWidth];");
+            context.WriteLine(
+                $"CPUVectorIntrinsics.Broadcast<bool>({mask}, {condition});");
+            condition = mask;
+        }
 
         // Ensure true/false values are vectorized (broadcast if scalar)
         if (analysis.IsScalar(predicate.TrueValue))
@@ -945,6 +1194,15 @@ sealed class CPUExpressionEmitter(
             context.WriteLine(
                 $"CPUVectorIntrinsics.Broadcast<int>({bcast}, {index});");
             index = bcast;
+        }
+
+        if (GetLaneArrayLength(lea.Source) is int laneStride)
+        {
+            context.WriteLine(
+                $"CPUVectorIntrinsics.ComputeLaneViewAddresses(" +
+                $"{result}, {view}, {index}, {elemSize}, {ActiveMaskName}, " +
+                $"{laneStride});");
+            return;
         }
 
         context.WriteLine(
@@ -1084,7 +1342,6 @@ sealed class CPUExpressionEmitter(
 
         var target = ResolveOperand(atomic.Target);
         var value = ResolveOperand(atomic.Value);
-        var result = context.GetValueName(atomic);
 
         string operation = atomic.Kind switch
         {
@@ -1099,24 +1356,68 @@ sealed class CPUExpressionEmitter(
                 $"Atomic {atomic.Kind} not supported")
         };
 
-        // CPUAtomicIntrinsics methods return T[] (per-lane results).
-        // The value argument must be a span — broadcast scalar if needed.
-        var config = (CPULanguageConfiguration)context.LanguageConfig;
-        var elemType = config.GetPrimitiveTypeName(valueType);
+        var storageType = GetStorageType(valueType);
+        var opType = GetSemanticType(atomic.ArithmeticBasicValueType);
+        value = BroadcastAtomicOperand(atomic, atomic.Value, value, storageType, "v");
+        var result = GetAtomicResult(atomic, storageType);
 
-        if (analysis.IsScalar(atomic.Value))
-        {
-            var bcast = $"_atomic_val_{atomic.Id}";
-            context.WriteLine(
-                $"var {bcast} = new {elemType}[SIMDWidth];");
-            context.WriteLine(
-                $"CPUVectorIntrinsics.Broadcast<{elemType}>(" +
-                $"{bcast}, {value});");
-            value = bcast;
-        }
-
+        // The per-lane old values are written into the value's buffer for the
+        // active lanes; unsigned operations reinterpret the buffers.
         context.WriteLine(
-            $"{result} = CPUAtomicIntrinsics.{operation}(" +
-            $"{target}, {value}, {ActiveMaskName});");
+            $"CPUAtomicIntrinsics.{operation}(" +
+            $"{Reinterpret(result, storageType, opType)}, {target}, " +
+            $"{Reinterpret(value, storageType, opType)}, {ActiveMaskName});");
+    }
+
+    /// <summary>
+    /// Emits a masked atomic compare-and-swap.
+    /// </summary>
+    public void EmitAtomicCAS(AtomicCAS atomic)
+    {
+        var target = ResolveOperand(atomic.Target);
+        var storageType = GetStorageType(atomic.Value.BasicValueType);
+        var opType = GetSemanticType(atomic.ArithmeticBasicValueType);
+        var value = BroadcastAtomicOperand(
+            atomic, atomic.Value, ResolveOperand(atomic.Value), storageType, "v");
+        var compare = BroadcastAtomicOperand(
+            atomic, atomic.Compare, ResolveOperand(atomic.Compare), storageType, "c");
+        var result = GetAtomicResult(atomic, storageType);
+        context.WriteLine(
+            $"CPUAtomicIntrinsics.CompareExchange(" +
+            $"{Reinterpret(result, storageType, opType)}, {target}, " +
+            $"{Reinterpret(value, storageType, opType)}, " +
+            $"{Reinterpret(compare, storageType, opType)}, {ActiveMaskName});");
+    }
+
+    /// <summary>
+    /// Broadcasts a uniform atomic operand to a per-lane buffer.
+    /// </summary>
+    private string BroadcastAtomicOperand(
+        Value atomic,
+        Value operand,
+        string expression,
+        string storageType,
+        string suffix)
+    {
+        if (!analysis.IsScalar(operand))
+            return expression;
+        var bcast = $"_atomic_{suffix}_{atomic.Id}";
+        context.WriteLine($"var {bcast} = new {storageType}[SIMDWidth];");
+        context.WriteLine(
+            $"CPUVectorIntrinsics.Broadcast<{storageType}>({bcast}, {expression});");
+        return bcast;
+    }
+
+    /// <summary>
+    /// Returns the buffer receiving the old values of an atomic operation; a
+    /// scratch buffer if the old values are not used.
+    /// </summary>
+    private string GetAtomicResult(Value atomic, string storageType)
+    {
+        if (context.NeedsVariable(atomic))
+            return context.GetValueName(atomic);
+        var result = $"_atomic_r_{atomic.Id}";
+        context.WriteLine($"var {result} = new {storageType}[SIMDWidth];");
+        return result;
     }
 }

@@ -47,12 +47,6 @@ public abstract class LambdaExecutionTests : ExecutionTestBase
     [SkippableFact]
     public async Task TwoLambdasCrossBlock_ProducesCorrectOutput()
     {
-        // The CPU vectorizer emits a uniform select between a vector and a
-        // scalar operand as a plain ternary (int[] vs. int), which fails to
-        // compile; this is independent of the devirtualization checked here.
-        Skip.If(
-            Backend == BackendType.CPU,
-            "CPU vector select of mixed scalar/vector operands");
         await VerifyProgramOutputAsync(
             "TestPrograms/Lambda/TwoLambdasCrossBlock.cs",
             ["Kernels.TwoLambdasCrossBlockKernel"],
@@ -109,5 +103,23 @@ public abstract class LambdaExecutionTests : ExecutionTestBase
             "TestPrograms/Lambda/ClosureReadAfterWrite.cs",
             ["Kernels.ClosureReadAfterWriteKernel"],
             ["0", "2", "4", "6"]);
+    }
+
+    [SkippableFact]
+    public async Task SelectedDelegate_ProducesCorrectOutput()
+    {
+        await VerifyProgramOutputAsync(
+            "TestPrograms/Lambda/SelectedDelegate.cs",
+            ["Kernels.SelectedDelegateKernel"],
+            ["0", "2", "4", "6"]);
+    }
+
+    [SkippableFact]
+    public async Task ThreeCapturesLoop_ProducesCorrectOutput()
+    {
+        await VerifyProgramOutputAsync(
+            "TestPrograms/Lambda/ThreeCapturesLoop.cs",
+            ["Kernels.ThreeCapturesLoopKernel"],
+            ["-1", "-1", "0", "2"]);
     }
 }

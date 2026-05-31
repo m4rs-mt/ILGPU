@@ -355,7 +355,7 @@ sealed class CPUIntrinsicEmitter(int? vectorWidth) : IntrinsicEmitter
             ArithmeticBasicValueType.UInt32 => "uint",
             ArithmeticBasicValueType.Int64 => "long",
             ArithmeticBasicValueType.UInt64 => "ulong",
-            ArithmeticBasicValueType.Float16 => "Half",
+            ArithmeticBasicValueType.Float16 => "System.Half",
             ArithmeticBasicValueType.Float32 => "float",
             ArithmeticBasicValueType.Float64 => "double",
             _ => throw new ArgumentException(
