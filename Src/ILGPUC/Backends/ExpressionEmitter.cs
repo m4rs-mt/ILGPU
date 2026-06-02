@@ -133,10 +133,13 @@ sealed class ExpressionEmitter(GenerationContext context, TypeEmitter typeEmitte
         return value switch
         {
             Store store => EmitStore(store),
-            Barrier => $"{IntrinsicEmitter.EmitBarrier()};",
-            MemoryBarrier => $"{IntrinsicEmitter.EmitMemoryFence()};",
-            MethodCall call when call.Type is VoidType =>
-                $"{EmitMethodCall(call).Text};",
+            Barrier barrier => $"{IntrinsicEmitter.EmitBarrier(barrier.Kind)};",
+            MemoryBarrier fence => $"{IntrinsicEmitter.EmitMemoryFence(fence.Kind)};",
+            PredicateBarrier barrier => $"{EmitPredicateBarrier(barrier).Text};",
+            // Calls can have side effects and must be emitted as statements
+            // even when a non-void result is unused (the result is simply
+            // discarded, which is valid in all C-family target languages).
+            MethodCall call => $"{EmitMethodCall(call).Text};",
             // Atomic operations have side effects and must be emitted even
             // when their return value (the old value) is unused.
             GenericAtomic atomic => $"{EmitAtomicOperation(atomic).Text};",
@@ -227,7 +230,8 @@ sealed class ExpressionEmitter(GenerationContext context, TypeEmitter typeEmitte
             GetViewLength viewLen => EmitGetViewLength(viewLen),
             SubView subView => EmitSubView(subView),
             GetField getField => EmitGetField(getField),
-            SetField setField => Emit(setField.Source),
+            SetField => throw new InvalidOperationException(
+                "Field insertions are emitted as statements by the method emitter"),
             StructureValue structure => EmitStructure(structure),
             LoadElementAddress lea => EmitLoadElementAddress(lea),
             LoadFieldAddress lfa => EmitLoadFieldAddress(lfa),
@@ -250,6 +254,7 @@ sealed class ExpressionEmitter(GenerationContext context, TypeEmitter typeEmitte
             Broadcast broadcast => EmitBroadcast(broadcast),
             WarpReduce reduce => EmitWarpReduce(reduce),
             WarpScan scan => EmitWarpScan(scan),
+            PredicateBarrier barrier => EmitPredicateBarrier(barrier),
             GroupReduce => throw new NotSupportedException(
                 "GroupReduce must be lowered before codegen"),
             GroupScan => throw new NotSupportedException(
@@ -331,7 +336,11 @@ sealed class ExpressionEmitter(GenerationContext context, TypeEmitter typeEmitte
         // Emit the storage array
         if (!string.IsNullOrEmpty(addrSpace))
             sb.Append($"{addrSpace} ");
-        sb.Append($"{elemTypeName} {storageName}[{arraySize}];");
+        sb.Append($"{elemTypeName} {storageName}[{arraySize}]");
+        // Local storage starts zeroed, as .NET locals and arrays do
+        if (pointerType.AddressSpace == MemoryAddressSpace.Local)
+            sb.Append(" = {0}");
+        sb.Append(';');
 
         // Emit the pointer variable. Build the pointer type via the
         // language config so backends that don't carry an address-space
@@ -1257,7 +1266,8 @@ sealed class ExpressionEmitter(GenerationContext context, TypeEmitter typeEmitte
 
     /// <summary>
     /// Emits a load field address as a pointer to a struct field.
-    /// For GPU backends: <c>(addrspace FieldType*)(source) + fieldIndex</c>.
+    /// For GPU backends:
+    /// <c>(addrspace FieldType*)&amp;((addrspace StructType*)source)-&gt;FieldN</c>.
     /// Uses the source pointer's address space (not the IR result type's)
     /// to avoid cross-address-space casts that Metal rejects.
     /// For CPU: falls back to variable name (CPU handles LFA separately).
@@ -1285,11 +1295,18 @@ sealed class ExpressionEmitter(GenerationContext context, TypeEmitter typeEmitte
             ? $"{elemTypeName}*"
             : $"{addrKeyword} {elemTypeName}*";
 
+        // Take the address of the flattened field member so that the native
+        // compiler applies the real byte offset of the field. A multi-field
+        // span addresses a sub-structure starting at its first field.
+        var fieldName = StructureType.GetFieldName(lfa.FieldSpan.Index);
+        var structTypeName = typeEmitter.GetTypeName(lfa.StructureType);
+        var structPtrType = string.IsNullOrEmpty(addrKeyword)
+            ? $"{structTypeName}*"
+            : $"{addrKeyword} {structTypeName}*";
         var inner = Parenthesize(source, Prec.Unary);
-        if (lfa.FieldSpan.Index == 0)
-            return new Emitted($"({castType}){inner}", Prec.Unary);
         return new Emitted(
-            $"({castType}){inner} + {lfa.FieldSpan.Index}", Prec.Additive);
+            $"({castType})&(({structPtrType}){inner})->{fieldName}",
+            Prec.Unary);
     }
 
     /// <summary>
@@ -1522,6 +1539,19 @@ sealed class ExpressionEmitter(GenerationContext context, TypeEmitter typeEmitte
                     "Custom warp scan operations must be lowered before codegen"),
             scan.Kind,
             scan.BasicValueType.GetArithmeticBasicValueType(false));
+        return new Emitted(text, Prec.Postfix);
+    }
+
+    /// <summary>
+    /// Emits a predicate barrier via language-specific intrinsics.
+    /// </summary>
+    private Emitted EmitPredicateBarrier(PredicateBarrier barrier)
+    {
+        var predicate = Emit(barrier.Predicate).Text;
+        var text = IntrinsicEmitter.EmitPredicateBarrier(
+            predicate,
+            barrier.Kind,
+            barrier.PredicateKind);
         return new Emitted(text, Prec.Postfix);
     }
 

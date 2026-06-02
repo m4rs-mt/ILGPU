@@ -122,6 +122,9 @@ sealed class CPULanguageConfiguration(int vectorWidth) : LanguageConfiguration
     }
 
     /// <inheritdoc/>
+    public override bool SupportsExplicitFieldOffsets => true;
+
+    /// <inheritdoc/>
     public override string FormatNullLiteral(string typeName) =>
         "default";
 

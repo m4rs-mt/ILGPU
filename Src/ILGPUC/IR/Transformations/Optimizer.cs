@@ -156,7 +156,7 @@ static class Optimizer
         // pass to inline the operation lambda that LowerCustomAtomic inserts
         // as a MethodCall in the loop body. A later SSAConstruction pass
         // promotes the loop's currentVar alloca into a proper phi.
-        builder.Add(static args => new LowerCustomAtomic(args));
+        builder.Add(args => new LowerCustomAtomic(args, specification));
         builder.Add(static args => new Inliner(args));
         builder.Add(static args => new SimplifyControlFlow(args));
 

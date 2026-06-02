@@ -23,12 +23,6 @@ public abstract class DivergentMemoryExecutionTests : ExecutionTestBase
         ITestOutputHelper output, BackendType backend)
         : base(output, backend) { }
 
-    /// <summary>
-    /// Skips tests that the GPU backends do not translate correctly yet.
-    /// </summary>
-    private void SkipOnGpuBackends(string reason) =>
-        Skip.If(Backend != BackendType.CPU, reason);
-
     [SkippableFact]
     public async Task LocalArrayPerLane_ProducesCorrectOutput()
     {
@@ -44,8 +38,6 @@ public abstract class DivergentMemoryExecutionTests : ExecutionTestBase
     [SkippableFact]
     public async Task LocalArrayDivergentWrite_ProducesCorrectOutput()
     {
-        SkipOnGpuBackends(
-            "Local arrays written in divergent branches are not yet supported");
         await VerifyProgramOutputAsync(
             "TestPrograms/DivergentMemory/LocalArrayDivergentWrite.cs",
             ["Kernels.LocalArrayDivergentWriteKernel"],

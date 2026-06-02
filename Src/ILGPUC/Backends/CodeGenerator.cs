@@ -12,6 +12,7 @@
 
 using ILGPU.Util;
 using ILGPUC.Backends.CPU;
+using ILGPUC.IR;
 using ILGPUC.IR.ModuleValues;
 using System.IO;
 using System.Linq;
@@ -180,6 +181,11 @@ sealed class CodeGenerator(
             var arraySize = global.ArrayLength.Value.Int32Value;
             context.Write($"[{arraySize}]");
         }
+
+        // Thread-local storage starts zeroed, as .NET locals and arrays do;
+        // the other address spaces cannot carry an initializer here
+        if (addressSpace == MemoryAddressSpace.Local)
+            context.Write(" = {0}");
 
         context.WriteLine(";");
     }

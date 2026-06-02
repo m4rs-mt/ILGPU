@@ -89,6 +89,35 @@ sealed class MetalLanguageConfiguration : LanguageConfiguration
     {
         yield return "#include <metal_stdlib>";
         yield return "using namespace metal;";
+
+        // Scoped memory fences require Metal 3.2; older language versions
+        // fall back to a threadgroup barrier with device and threadgroup
+        // memory ordering.
+        yield return "#if __METAL_VERSION__ >= 320";
+        yield return "#define ILGPU_THREAD_FENCE(scope) atomic_thread_fence(" +
+            "mem_flags::mem_device | mem_flags::mem_threadgroup, " +
+            "memory_order_seq_cst, scope)";
+        yield return "#else";
+        yield return "#define ILGPU_THREAD_FENCE(scope) threadgroup_barrier(" +
+            "mem_flags::mem_device | mem_flags::mem_threadgroup)";
+        yield return "#endif";
+
+        // Strong compare-and-swap returning the previous value. Metal only
+        // provides the weak variant, which may fail spuriously and reports
+        // success as a bool; retry until the comparison genuinely fails or
+        // the exchange succeeds.
+        foreach (var space in new[] { "device", "threadgroup" })
+        {
+            yield return
+                $"inline int ilgpu_atomic_cas({space} atomic_int* ptr, " +
+                "int compare, int value) {";
+            yield return "    int expected = compare;";
+            yield return "    while (!atomic_compare_exchange_weak_explicit(" +
+                "ptr, &expected, value, memory_order_relaxed, " +
+                "memory_order_relaxed) && expected == compare) { }";
+            yield return "    return expected;";
+            yield return "}";
+        }
     }
 
     /// <summary>
@@ -137,6 +166,10 @@ sealed class MetalLanguageConfiguration : LanguageConfiguration
     /// </remarks>
     /// <inheritdoc/>
     public override bool UsesCStyleStructLiterals => true;
+
+    /// <inheritdoc/>
+    public override string? FormatFieldAlignment(int alignment) =>
+        $" __attribute__((aligned({alignment})))";
 
     /// <inheritdoc/>
     public override bool SkipsIndexParameter => true;

@@ -53,4 +53,30 @@ public abstract class StructureExecutionTests : ExecutionTestBase
             ["Kernels.StructLocalBuildKernel"],
             ["10", "10", "10", "10"]);
     }
+
+    /// <summary>
+    /// In-place updates of struct fields stored in a buffer go through the
+    /// field address, which must use the field's byte offset.
+    /// </summary>
+    [SkippableFact]
+    public async Task StructFieldAddress_ProducesCorrectOutput()
+    {
+        await VerifyProgramOutputAsync(
+            "TestPrograms/Structure/StructFieldAddress.cs",
+            ["Kernels.StructFieldAddressKernel"],
+            ["0", "1", "13", "1", "2", "23", "2", "3", "33", "3", "4", "43"]);
+    }
+
+    /// <summary>
+    /// A nested struct keeps its alignment within the flattened outer struct
+    /// so that device and host layouts agree.
+    /// </summary>
+    [SkippableFact]
+    public async Task NestedStructLayout_ProducesCorrectOutput()
+    {
+        await VerifyProgramOutputAsync(
+            "TestPrograms/Structure/NestedStructLayout.cs",
+            ["Kernels.NestedStructLayoutKernel"],
+            ["7", "1", "2", "3", "9", "7", "2", "4", "6", "9"]);
+    }
 }

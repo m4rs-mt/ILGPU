@@ -129,6 +129,10 @@ class CudaLanguageConfiguration : LanguageConfiguration
     public override bool UsesCStyleStructLiterals => true;
 
     /// <inheritdoc/>
+    public override string? FormatFieldAlignment(int alignment) =>
+        $" __attribute__((aligned({alignment})))";
+
+    /// <inheritdoc/>
     public override bool SupportsFeature(LanguageFeature feature) =>
         feature switch
         {

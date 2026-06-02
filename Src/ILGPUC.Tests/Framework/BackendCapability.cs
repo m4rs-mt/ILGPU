@@ -32,17 +32,29 @@ public enum BackendCapability
     /// <summary>
     /// Float64 atomic operations (built-in <c>Atomic.Add</c> for double and
     /// the custom-CAS path that <c>Atomic.MakeAtomic</c> lowers to).
-    /// Distinct from <see cref="Float64"/> arithmetic — Metal lacks a
-    /// Float64-atomic emitter path entirely, and OpenCL's CAS over Int64
-    /// requires the <c>cl_khr_int64_base_atomics</c> extension.
+    /// Distinct from <see cref="Float64"/> arithmetic — Metal has no 64-bit
+    /// atomics, and OpenCL's CAS over Int64 requires the
+    /// <c>cl_khr_int64_base_atomics</c> extension.
     /// </summary>
     Float64Atomics = 1 << 2,
 
     /// <summary>
-    /// Signed 64-bit atomic min/max. Metal has no signed 64-bit atomic type,
-    /// and the OpenCL emitter does not map 64-bit atomic min/max.
+    /// Signed 64-bit atomic min/max. Metal has no signed 64-bit atomic type;
+    /// OpenCL requires the <c>cl_khr_int64_extended_atomics</c> extension.
     /// </summary>
     Int64AtomicMinMax = 1 << 3,
+
+    /// <summary>
+    /// Predicate barriers (<c>Group.BarrierPopCount</c>, <c>Warp.BarrierAnd</c>,
+    /// ...).
+    /// </summary>
+    PredicateBarriers = 1 << 4,
+
+    /// <summary>
+    /// 64-bit integer atomics. Metal has no 64-bit atomic arithmetic or
+    /// compare-and-swap.
+    /// </summary>
+    Int64Atomics = 1 << 5,
 }
 
 /// <summary>
@@ -96,18 +108,29 @@ public static class BackendCapabilities
         [BackendType.CPU] = BackendCapability.Float64
             | BackendCapability.Float16
             | BackendCapability.Float64Atomics
-            | BackendCapability.Int64AtomicMinMax,
+            | BackendCapability.Int64AtomicMinMax
+            | BackendCapability.Int64Atomics
+            | BackendCapability.PredicateBarriers,
         [BackendType.Cuda] = BackendCapability.Float64
             | BackendCapability.Float16
             | BackendCapability.Float64Atomics
-            | BackendCapability.Int64AtomicMinMax,
+            | BackendCapability.Int64AtomicMinMax
+            | BackendCapability.Int64Atomics
+            | BackendCapability.PredicateBarriers,
         [BackendType.ROCm] = BackendCapability.Float64
             | BackendCapability.Float16
             | BackendCapability.Float64Atomics
-            | BackendCapability.Int64AtomicMinMax,
+            | BackendCapability.Int64AtomicMinMax
+            | BackendCapability.Int64Atomics
+            | BackendCapability.PredicateBarriers,
         [BackendType.OpenCL] = BackendCapability.Float64
-            | BackendCapability.Float16,
-        [BackendType.Metal] = BackendCapability.Float16,
+            | BackendCapability.Float16
+            | BackendCapability.Float64Atomics
+            | BackendCapability.Int64AtomicMinMax
+            | BackendCapability.Int64Atomics
+            | BackendCapability.PredicateBarriers,
+        [BackendType.Metal] = BackendCapability.Float16
+            | BackendCapability.PredicateBarriers,
     };
 
     /// <summary>

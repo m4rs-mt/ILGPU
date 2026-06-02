@@ -14,6 +14,7 @@
 using ILGPUC.IR;
 using ILGPUC.IR.BasicBlockValues;
 using ILGPUC.IR.PureValues;
+using System;
 
 namespace ILGPUC.Backends;
 
@@ -339,6 +340,41 @@ abstract class IntrinsicEmitter
     /// Emits a memory fence to ensure memory consistency.
     /// </summary>
     public abstract string EmitMemoryFence();
+
+    /// <summary>
+    /// Emits a barrier of the given kind.
+    /// </summary>
+    /// <param name="kind">The barrier kind (warp or group level).</param>
+    public virtual string EmitBarrier(BarrierKind kind) =>
+        kind == BarrierKind.WarpLevel ? EmitWarpBarrier() : EmitBarrier();
+
+    /// <summary>
+    /// Emits a barrier that synchronizes all threads of a warp. Defaults to a
+    /// group barrier, which also synchronizes the warp.
+    /// </summary>
+    public virtual string EmitWarpBarrier() => EmitBarrier();
+
+    /// <summary>
+    /// Emits a memory fence of the given scope.
+    /// </summary>
+    /// <param name="kind">The fence scope (group, device or system).</param>
+    public virtual string EmitMemoryFence(MemoryBarrierKind kind) =>
+        EmitMemoryFence();
+
+    /// <summary>
+    /// Emits a barrier that also combines a predicate across all threads of
+    /// the warp or group: the number of threads for which it is true, or the
+    /// logical and/or of it.
+    /// </summary>
+    /// <param name="predicate">The bool predicate expression.</param>
+    /// <param name="kind">The barrier kind (warp or group level).</param>
+    /// <param name="predicateKind">The combination of the predicate.</param>
+    public virtual string EmitPredicateBarrier(
+        string predicate,
+        PredicateBarrierKind kind,
+        PredicateBarrierPredicateKind predicateKind) =>
+        throw new NotSupportedException(
+            $"{kind} predicate barriers are not supported by this backend");
 
     #endregion
 

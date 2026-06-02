@@ -410,8 +410,38 @@ sealed class MethodEmitter(
             return;
 
         var varName = context.GetValueName(value);
+        if (value is SetField setField)
+        {
+            EmitSetField(setField, varName);
+            return;
+        }
         var expr = expressionEmitter.EmitDefinition(value);
         EmitVariableAssignment(value, varName, expr);
+    }
+
+    /// <summary>
+    /// Emits a field insertion as a copy of the source structure followed by
+    /// an assignment of the inserted field (or fields, for a field span).
+    /// </summary>
+    private void EmitSetField(SetField setField, string varName)
+    {
+        var source = expressionEmitter.EmitExpression(setField.Source);
+        EmitVariableAssignment(setField, varName, source);
+        var fieldValue = expressionEmitter.EmitExpression(setField.Value);
+        var span = setField.FieldSpan;
+        if (span.Span == 1)
+        {
+            context.WriteLine(
+                $"{varName}.{StructureType.GetFieldName(span.Index)} = " +
+                $"{fieldValue};");
+            return;
+        }
+        for (int i = 0; i < span.Span; i++)
+        {
+            context.WriteLine(
+                $"{varName}.{StructureType.GetFieldName(span.Index + i)} = " +
+                $"({fieldValue}).{StructureType.GetFieldName(i)};");
+        }
     }
 
     /// <summary>

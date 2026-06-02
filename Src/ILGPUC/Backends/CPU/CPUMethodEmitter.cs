@@ -1205,6 +1205,10 @@ sealed class CPUMethodEmitter(
                 expressionEmitter.EmitShuffle(shuffle);
                 break;
 
+            case PredicateBarrier barrier:
+                expressionEmitter.EmitPredicateBarrier(barrier);
+                break;
+
             case Predicate predicate
                 when !analysis.IsScalar(predicate.Condition) ||
                     !analysis.IsScalar(predicate):

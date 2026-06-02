@@ -379,6 +379,90 @@ public static class CPUVectorIntrinsics
 
     #endregion
 
+    #region Predicate Barriers (masked)
+
+    // A vectorized kernel call runs one group of SIMD-width threads in
+    // lockstep, so a group or warp predicate barrier combines the predicate
+    // across the lanes of the call. Only the active lanes take part: lanes
+    // beyond the launch extent and lanes that left the barrier's block on
+    // a divergent path do not count, like threads that have exited.
+
+    /// <summary>
+    /// Fills <paramref name="target"/> with the number of active lanes whose
+    /// predicate is true.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void BarrierPopCount(
+        Span<int> target,
+        ReadOnlySpan<bool> predicate,
+        ReadOnlySpan<bool> mask)
+    {
+        int count = 0;
+        for (int i = 0; i < mask.Length; i++)
+        {
+            if (mask[i] && predicate[i])
+                count++;
+        }
+        target.Fill(count);
+    }
+
+    /// <summary>
+    /// Fills <paramref name="target"/> with the number of active lanes for a
+    /// predicate that is the same in all lanes.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void BarrierPopCount(
+        Span<int> target,
+        bool predicate,
+        ReadOnlySpan<bool> mask) =>
+        target.Fill(predicate ? PopCount(mask) : 0);
+
+    /// <summary>
+    /// Fills <paramref name="target"/> with true if the predicate is true in
+    /// all active lanes.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void BarrierAnd(
+        Span<bool> target,
+        ReadOnlySpan<bool> predicate,
+        ReadOnlySpan<bool> mask)
+    {
+        bool result = true;
+        for (int i = 0; i < mask.Length; i++)
+        {
+            if (mask[i] && !predicate[i])
+            {
+                result = false;
+                break;
+            }
+        }
+        target.Fill(result);
+    }
+
+    /// <summary>
+    /// Fills <paramref name="target"/> with true if the predicate is true in
+    /// any active lane.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void BarrierOr(
+        Span<bool> target,
+        ReadOnlySpan<bool> predicate,
+        ReadOnlySpan<bool> mask)
+    {
+        bool result = false;
+        for (int i = 0; i < mask.Length; i++)
+        {
+            if (mask[i] && predicate[i])
+            {
+                result = true;
+                break;
+            }
+        }
+        target.Fill(result);
+    }
+
+    #endregion
+
     #region Warp Reduce Operations (masked)
 
     // The CPU vector backend launches SIMD groups of fixed width. When a

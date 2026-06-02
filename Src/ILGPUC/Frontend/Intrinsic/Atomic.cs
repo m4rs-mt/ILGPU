@@ -46,18 +46,22 @@ partial class Intrinsics
     }
 
     /// <summary>
-    /// Handles atomic ands.
+    /// Handles atomic compare-exchange operations.
     /// </summary>
     /// <param name="context">The current invocation context.</param>
     /// <returns>The resulting value.</returns>
     private static Value? Atomic_CompareExchange(ref InvocationContext context)
     {
         var flags = DetermineAtomicFlags(ref context);
+        // CompareExchange(ref target, compare, value)
+        var target = context.Pull();
+        var compare = context.Pull();
+        var value = context.Pull();
         return context.Builder.CreateAtomicCAS(
             context.Location,
-            context.Pull(),
-            context.Pull(),
-            context.Pull(),
+            target,
+            value,
+            compare,
             flags);
     }
 

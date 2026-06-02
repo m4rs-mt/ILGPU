@@ -290,6 +290,15 @@ sealed class CPUIntrinsicEmitter(int? vectorWidth) : IntrinsicEmitter
     public override string EmitMemoryFence() =>
         "System.Threading.Thread.MemoryBarrier()";
 
+    /// <inheritdoc/>
+    public override string EmitPredicateBarrier(
+        string predicate,
+        PredicateBarrierKind kind,
+        PredicateBarrierPredicateKind predicateKind) =>
+        throw new NotSupportedException(
+            "CPU backend uses CPUExpressionEmitter.EmitPredicateBarrier " +
+            "directly; this path should not be reached.");
+
     #endregion
 
     #region Warp/Wave Primitives

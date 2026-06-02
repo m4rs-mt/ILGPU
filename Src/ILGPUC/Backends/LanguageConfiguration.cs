@@ -158,6 +158,27 @@ abstract class LanguageConfiguration
     public virtual string StructFieldModifier => "";
 
     /// <summary>
+    /// Returns the suffix that raises the alignment of a struct field to the
+    /// given number of bytes, or null if the language cannot express it.
+    /// Flattened nested structures use it to keep the inner alignment so that
+    /// the device layout matches the host layout.
+    /// </summary>
+    public virtual string? FormatFieldAlignment(int alignment) => null;
+
+    /// <summary>
+    /// Returns true if the language places struct fields at explicit byte
+    /// offsets, which keeps the host layout of flattened nested structures.
+    /// </summary>
+    public virtual bool SupportsExplicitFieldOffsets => false;
+
+    /// <summary>
+    /// Returns the type name used to store bool struct fields, or null to use
+    /// the regular bool type name. Languages whose bool has no defined size
+    /// (OpenCL C) store bools as one byte to match the host layout.
+    /// </summary>
+    public virtual string? BoolStorageTypeName => null;
+
+    /// <summary>
     /// Formats a default-initialized value for the given type name.
     /// C/C++/Metal: <c>(TypeName){}</c>, C#: <c>default(TypeName)</c>.
     /// </summary>

@@ -16,6 +16,15 @@ using ILGPUC.Tests.Framework;
 namespace ILGPUC.Tests.Kernels;
 
 /// <summary>
+/// A value with a bool flag, passed to kernels by value.
+/// </summary>
+public struct FlaggedValue
+{
+    public int Value;
+    public bool Enabled;
+}
+
+/// <summary>
 /// Kernel definitions for structure access tests.
 /// </summary>
 static class StructureKernels
@@ -69,5 +78,17 @@ static class StructureKernels
         local.Z = (short)(value * 3);
         local.W = value * 4;
         data[index] = local.X + (int)local.Y + (int)local.Z + local.W;
+    }
+
+    /// <summary>
+    /// A bool kernel argument and a by-value struct argument with a bool field.
+    /// </summary>
+    public static void BoolArgumentKernel(
+        Index1D index,
+        ArrayView1D<int, Stride1D.Dense> data,
+        bool flag,
+        FlaggedValue value)
+    {
+        data[index] = (flag ? 1 : 0) + (value.Enabled ? value.Value : 0);
     }
 }

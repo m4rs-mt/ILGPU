@@ -11,6 +11,7 @@
 
 using ILGPU;
 using ILGPU.Runtime;
+using ILGPUC.Tests.Framework;
 
 namespace ILGPUC.Tests.Kernels;
 
@@ -47,5 +48,41 @@ static class GroupKernels
         Index1D index, ArrayView1D<int, Stride1D.Dense> data)
     {
         data[index] = Group.Index;
+    }
+
+    /// <summary>
+    /// Group and warp predicate barriers, warp barriers and scoped fences.
+    /// </summary>
+    [RequiresCapability(BackendCapability.PredicateBarriers)]
+    public static void PredicateBarrierKernel(
+        Index1D index, ArrayView1D<int, Stride1D.Dense> data)
+    {
+        bool predicate = data[index] != 0;
+        int groupPopCount = Group.BarrierPopCount(predicate);
+        bool groupAnd = Group.BarrierAnd(predicate);
+        bool groupOr = Group.BarrierOr(predicate);
+        Group.MemoryFence();
+        Warp.Barrier();
+        int warpPopCount = Warp.BarrierPopCount(predicate);
+        bool warpAnd = Warp.BarrierAnd(predicate);
+        bool warpOr = Warp.BarrierOr(predicate);
+        Grid.MemoryFence();
+        Grid.SystemMemoryFence();
+        data[index] = groupPopCount + warpPopCount +
+            (groupAnd ? 1 : 0) + (groupOr ? 2 : 0) +
+            (warpAnd ? 4 : 0) + (warpOr ? 8 : 0);
+    }
+
+    /// <summary>
+    /// A single shared-memory element accessed through a ref local.
+    /// </summary>
+    public static void SharedMemoryElementRefKernel(
+        Index1D index, ArrayView1D<int, Stride1D.Dense> data)
+    {
+        ref int shared = ref Group.GetSharedMemory<int>();
+        if (Group.IsFirstThread)
+            shared = data[0];
+        Group.Barrier();
+        data[index] = shared + index;
     }
 }

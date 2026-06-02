@@ -197,19 +197,20 @@ sealed class CLIntrinsicEmitter(CLVendor vendor) : IntrinsicEmitter
 
     #region Atomic Operations
 
+    // Unsigned values are stored in signed variables; the bitwise atomics
+    // operate on the same bits for both. Min/max select the unsigned
+    // overloads explicitly. 64-bit atomics use the atom_* built-ins of the
+    // cl_khr_int64_*_atomics extensions. Atomics without a native built-in
+    // (e.g. float add) are lowered to compare-and-swap loops before code
+    // generation.
+
     /// <inheritdoc/>
     public override string EmitAtomicAdd(
         string ptr,
         string value,
         ArithmeticBasicValueType type,
         MemoryAddressSpace addressSpace) =>
-        type switch
-        {
-            ArithmeticBasicValueType.Int32 => $"atomic_add({ptr}, {value})",
-            ArithmeticBasicValueType.Int64 => $"atom_add({ptr}, {value})", // 64-bit extension
-            _ => throw new NotSupportedException(
-                $"Atomic add not supported for type {type} in OpenCL")
-        };
+        EmitIntegerAtomic("add", ptr, value, type, addressSpace);
 
     /// <inheritdoc/>
     public override string EmitAtomicExchange(
@@ -217,13 +218,9 @@ sealed class CLIntrinsicEmitter(CLVendor vendor) : IntrinsicEmitter
         string value,
         ArithmeticBasicValueType type,
         MemoryAddressSpace addressSpace) =>
-        type switch
-        {
-            ArithmeticBasicValueType.Int32 => $"atomic_xchg({ptr}, {value})",
-            ArithmeticBasicValueType.Float32 => $"atomic_xchg({ptr}, {value})",
-            _ => throw new NotSupportedException(
-                $"Atomic exchange not supported for type {type} in OpenCL")
-        };
+        type == ArithmeticBasicValueType.Float32
+            ? $"atomic_xchg({AtomicCast("float", addressSpace)}({ptr}), {value})"
+            : EmitIntegerAtomic("xchg", ptr, value, type, addressSpace);
 
     /// <inheritdoc/>
     public override string EmitAtomicCAS(
@@ -234,10 +231,20 @@ sealed class CLIntrinsicEmitter(CLVendor vendor) : IntrinsicEmitter
         MemoryAddressSpace addressSpace) =>
         type switch
         {
-            ArithmeticBasicValueType.Int32 => $"atomic_cmpxchg({ptr}, {compare}, {value})",
-            ArithmeticBasicValueType.Int64 => $"atom_cmpxchg({ptr}, {compare}, {value})", // 64-bit extension
+            ArithmeticBasicValueType.Float32 =>
+                $"as_float(atomic_cmpxchg({AtomicCast("int", addressSpace)}({ptr}), " +
+                $"as_int({compare}), as_int({value})))",
+            ArithmeticBasicValueType.Float64 =>
+                $"as_double(atom_cmpxchg({AtomicCast("long", addressSpace)}({ptr}), " +
+                $"as_long({compare}), as_long({value})))",
+            ArithmeticBasicValueType.Int32 or ArithmeticBasicValueType.UInt32 =>
+                $"atomic_cmpxchg({AtomicCast("int", addressSpace)}({ptr}), " +
+                $"{compare}, {value})",
+            ArithmeticBasicValueType.Int64 or ArithmeticBasicValueType.UInt64 =>
+                $"atom_cmpxchg({AtomicCast("long", addressSpace)}({ptr}), " +
+                $"{compare}, {value})",
             _ => throw new NotSupportedException(
-                $"Atomic CAS not supported for type {type} in OpenCL")
+                $"Atomic compare-exchange is not supported for type {type} in OpenCL")
         };
 
     /// <inheritdoc/>
@@ -246,12 +253,7 @@ sealed class CLIntrinsicEmitter(CLVendor vendor) : IntrinsicEmitter
         string value,
         ArithmeticBasicValueType type,
         MemoryAddressSpace addressSpace) =>
-        type switch
-        {
-            ArithmeticBasicValueType.Int32 => $"atomic_min({ptr}, {value})",
-            _ => throw new NotSupportedException(
-                $"Atomic min not supported for type {type} in OpenCL")
-        };
+        EmitIntegerAtomic("min", ptr, value, type, addressSpace, signed: true);
 
     /// <inheritdoc/>
     public override string EmitAtomicMax(
@@ -259,12 +261,7 @@ sealed class CLIntrinsicEmitter(CLVendor vendor) : IntrinsicEmitter
         string value,
         ArithmeticBasicValueType type,
         MemoryAddressSpace addressSpace) =>
-        type switch
-        {
-            ArithmeticBasicValueType.Int32 => $"atomic_max({ptr}, {value})",
-            _ => throw new NotSupportedException(
-                $"Atomic max not supported for type {type} in OpenCL")
-        };
+        EmitIntegerAtomic("max", ptr, value, type, addressSpace, signed: true);
 
     /// <inheritdoc/>
     public override string EmitAtomicAnd(
@@ -272,12 +269,7 @@ sealed class CLIntrinsicEmitter(CLVendor vendor) : IntrinsicEmitter
         string value,
         ArithmeticBasicValueType type,
         MemoryAddressSpace addressSpace) =>
-        type switch
-        {
-            ArithmeticBasicValueType.Int32 => $"atomic_and({ptr}, {value})",
-            _ => throw new NotSupportedException(
-                $"Atomic AND not supported for type {type} in OpenCL")
-        };
+        EmitIntegerAtomic("and", ptr, value, type, addressSpace);
 
     /// <inheritdoc/>
     public override string EmitAtomicOr(
@@ -285,12 +277,7 @@ sealed class CLIntrinsicEmitter(CLVendor vendor) : IntrinsicEmitter
         string value,
         ArithmeticBasicValueType type,
         MemoryAddressSpace addressSpace) =>
-        type switch
-        {
-            ArithmeticBasicValueType.Int32 => $"atomic_or({ptr}, {value})",
-            _ => throw new NotSupportedException(
-                $"Atomic OR not supported for type {type} in OpenCL")
-        };
+        EmitIntegerAtomic("or", ptr, value, type, addressSpace);
 
     /// <inheritdoc/>
     public override string EmitAtomicXor(
@@ -298,12 +285,54 @@ sealed class CLIntrinsicEmitter(CLVendor vendor) : IntrinsicEmitter
         string value,
         ArithmeticBasicValueType type,
         MemoryAddressSpace addressSpace) =>
-        type switch
+        EmitIntegerAtomic("xor", ptr, value, type, addressSpace);
+
+    /// <summary>
+    /// Emits an integer atomic built-in: <c>atomic_op</c> for 32-bit and
+    /// <c>atom_op</c> for 64-bit operands. Unsigned operands use the unsigned
+    /// overloads when the operation is sign-sensitive.
+    /// </summary>
+    private static string EmitIntegerAtomic(
+        string operation,
+        string ptr,
+        string value,
+        ArithmeticBasicValueType type,
+        MemoryAddressSpace addressSpace,
+        bool signed = false)
+    {
+        var (prefix, typeName) = type switch
         {
-            ArithmeticBasicValueType.Int32 => $"atomic_xor({ptr}, {value})",
+            ArithmeticBasicValueType.Int32 => ("atomic", "int"),
+            ArithmeticBasicValueType.UInt32 => ("atomic", signed ? "uint" : "int"),
+            ArithmeticBasicValueType.Int64 => ("atom", "long"),
+            ArithmeticBasicValueType.UInt64 => ("atom", signed ? "ulong" : "long"),
             _ => throw new NotSupportedException(
-                $"Atomic XOR not supported for type {type} in OpenCL")
+                $"Atomic {operation} is not supported for type {type} in OpenCL")
         };
+        return $"{prefix}_{operation}({AtomicCast(typeName, addressSpace)}({ptr}), " +
+            $"({typeName})({value}))";
+    }
+
+    /// <summary>
+    /// Returns the pointer cast to the atomic operand type in the address
+    /// space of the target (local for shared memory, global for global memory).
+    /// Atomics on pointers into any other address space are rejected: casting
+    /// a generic pointer to global would be undefined if it points to shared
+    /// memory.
+    /// </summary>
+    private static string AtomicCast(string typeName, MemoryAddressSpace addressSpace)
+    {
+        var space = addressSpace switch
+        {
+            MemoryAddressSpace.Shared => "local",
+            MemoryAddressSpace.Global => "global",
+            _ => throw new NotSupportedException(
+                $"Atomic operations on {addressSpace} pointers are not " +
+                "supported in OpenCL; the pointer must point to global or " +
+                "shared memory")
+        };
+        return $"(volatile {space} {typeName}*)";
+    }
 
     #endregion
 
@@ -346,6 +375,42 @@ sealed class CLIntrinsicEmitter(CLVendor vendor) : IntrinsicEmitter
     /// <inheritdoc/>
     public override string EmitMemoryFence() =>
         "mem_fence(CLK_LOCAL_MEM_FENCE | CLK_GLOBAL_MEM_FENCE)";
+
+    /// <inheritdoc/>
+    public override string EmitWarpBarrier() =>
+        "sub_group_barrier(CLK_LOCAL_MEM_FENCE | CLK_GLOBAL_MEM_FENCE)";
+
+    /// <inheritdoc/>
+    /// <remarks>
+    /// System-level fences use the device scope, the widest scope available
+    /// without shared virtual memory.
+    /// </remarks>
+    public override string EmitMemoryFence(MemoryBarrierKind kind) =>
+        kind == MemoryBarrierKind.GroupLevel
+            ? "atomic_work_item_fence(CLK_LOCAL_MEM_FENCE | CLK_GLOBAL_MEM_FENCE, " +
+                "memory_order_seq_cst, memory_scope_work_group)"
+            : "atomic_work_item_fence(CLK_GLOBAL_MEM_FENCE, " +
+                "memory_order_seq_cst, memory_scope_device)";
+
+    /// <inheritdoc/>
+    public override string EmitPredicateBarrier(
+        string predicate,
+        PredicateBarrierKind kind,
+        PredicateBarrierPredicateKind predicateKind)
+    {
+        var (prefix, barrier) = kind == PredicateBarrierKind.GroupLevel
+            ? ("work_group", EmitBarrier())
+            : ("sub_group", EmitWarpBarrier());
+        var vote = predicateKind switch
+        {
+            PredicateBarrierPredicateKind.PopCount =>
+                $"{prefix}_reduce_add(({predicate}) ? 1 : 0)",
+            PredicateBarrierPredicateKind.And =>
+                $"({prefix}_all({predicate}) != 0)",
+            _ => $"({prefix}_any({predicate}) != 0)",
+        };
+        return $"({barrier}, {vote})";
+    }
 
     #endregion
 

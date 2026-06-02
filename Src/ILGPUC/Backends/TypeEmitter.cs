@@ -97,17 +97,50 @@ sealed class TypeEmitter(GenerationContext context)
     {
         var typeName = GetStructureTypeName(structure);
 
+        // Languages with explicit field offsets place every field at its IR
+        // offset when the natural layout would deviate from it
+        bool explicitOffsets = context.LanguageConfig.SupportsExplicitFieldOffsets
+            && !HasNaturalLayout(structure);
+        if (explicitOffsets)
+        {
+            context.WriteLine(
+                "[System.Runtime.InteropServices.StructLayout(" +
+                "System.Runtime.InteropServices.LayoutKind.Explicit, " +
+                $"Size = {structure.Size})]");
+        }
         context.WriteLine($"{context.LanguageConfig.StructKeyword} {typeName}");
         context.OpenScope();
 
-        // Emit each field
+        // Emit each field. Flattened nested structures place their first field
+        // at the alignment of the nested structure, which can exceed the
+        // natural alignment of the field itself: raise the field alignment
+        // explicitly so the native layout matches the IR (host) offsets.
+        int naturalEnd = 0;
         for (int i = 0; i < structure.NumFields; i++)
         {
             var fieldType = structure.Fields[i];
             var fieldName = StructureType.GetFieldName(i);
-            var fieldTypeName = GetTypeName(fieldType);
+            var fieldTypeName =
+                fieldType.BasicValueType == BasicValueType.Int1 &&
+                context.LanguageConfig.BoolStorageTypeName is string boolName
+                ? boolName
+                : GetTypeName(fieldType);
+            int offset = structure.GetOffset(i);
+            var alignment = explicitOffsets
+                ? string.Empty
+                : GetFieldAlignment(
+                    structure,
+                    naturalEnd,
+                    offset,
+                    fieldType.Alignment);
+            naturalEnd = offset + fieldType.Size;
 
-            context.WriteLine($"{context.LanguageConfig.StructFieldModifier}{fieldTypeName} {fieldName};");
+            var fieldOffset = explicitOffsets
+                ? $"[System.Runtime.InteropServices.FieldOffset({offset})] "
+                : string.Empty;
+            context.WriteLine(
+                $"{fieldOffset}{context.LanguageConfig.StructFieldModifier}" +
+                $"{fieldTypeName} {fieldName}{alignment};");
         }
 
         context.PopIndent();
@@ -128,6 +161,59 @@ sealed class TypeEmitter(GenerationContext context)
 
         context.WriteLine();
     }
+
+    /// <summary>
+    /// Returns the alignment suffix required to place a field at the given
+    /// offset, or an empty string if the natural alignment suffices.
+    /// </summary>
+    private string GetFieldAlignment(
+        StructureType structure,
+        int naturalEnd,
+        int offset,
+        int naturalAlignment)
+    {
+        if (Align(naturalEnd, naturalAlignment) == offset)
+            return string.Empty;
+
+        // Languages without field alignment control keep their own layout
+        var config = context.LanguageConfig;
+        if (config.FormatFieldAlignment(naturalAlignment) is null)
+            return string.Empty;
+
+        for (int alignment = naturalAlignment * 2; alignment <= offset;
+            alignment *= 2)
+        {
+            if (Align(naturalEnd, alignment) == offset)
+                return config.FormatFieldAlignment(alignment) ?? string.Empty;
+        }
+        throw new NotSupportedException(
+            $"The layout of structure type {structure} cannot be represented " +
+            $"in the target language (field offset {offset})");
+    }
+
+    /// <summary>
+    /// Returns true if laying out the fields one after another at their
+    /// natural alignments yields the IR offsets of all fields.
+    /// </summary>
+    private static bool HasNaturalLayout(StructureType structure)
+    {
+        int naturalEnd = 0;
+        for (int i = 0; i < structure.NumFields; i++)
+        {
+            var fieldType = structure.Fields[i];
+            int offset = structure.GetOffset(i);
+            if (Align(naturalEnd, fieldType.Alignment) != offset)
+                return false;
+            naturalEnd = offset + fieldType.Size;
+        }
+        return true;
+    }
+
+    /// <summary>
+    /// Aligns the given offset to the given power-of-two alignment.
+    /// </summary>
+    private static int Align(int offset, int alignment) =>
+        (offset + alignment - 1) & ~(alignment - 1);
 
     /// <summary>
     /// Gets the name for a structure type.

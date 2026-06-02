@@ -54,6 +54,21 @@ public sealed class MetalSourceTests
         Assert.Contains("64-bit floating-point", Flatten(exception));
     }
 
+    /// <summary>
+    /// Metal has no 64-bit atomics.
+    /// </summary>
+    [Fact]
+    public void Int64Atomics_ReportError()
+    {
+        var kernel = typeof(AtomicKernels)
+            .GetMethod(nameof(AtomicKernels.AtomicInt64Kernel))!;
+        using var helper = new CompilationHelper(BackendType.Metal);
+
+        var exception = Assert.ThrowsAny<Exception>(
+            () => helper.GenerateBackendCode(kernel, BackendType.Metal));
+        Assert.Contains("not supported by Metal", Flatten(exception));
+    }
+
     private static string Flatten(Exception exception)
     {
         var message = string.Empty;

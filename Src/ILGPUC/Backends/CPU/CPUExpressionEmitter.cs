@@ -1211,6 +1211,40 @@ sealed class CPUExpressionEmitter(
     }
 
     /// <summary>
+    /// Emits a group or warp predicate barrier. The lanes of a vectorized call
+    /// form one group (and one warp) that runs in lockstep, so the barrier
+    /// itself needs no synchronization and the predicate is combined across
+    /// the active lanes.
+    /// </summary>
+    public void EmitPredicateBarrier(PredicateBarrier barrier)
+    {
+        if (!context.NeedsVariable(barrier))
+            return;
+
+        var result = context.GetValueName(barrier);
+        var predicate = ResolveOperand(barrier.Predicate);
+        bool uniform = analysis.IsScalar(barrier.Predicate);
+        if (uniform &&
+            barrier.PredicateKind != PredicateBarrierPredicateKind.PopCount)
+        {
+            // A uniform predicate is its own logical and/or
+            context.WriteLine(
+                $"CPUVectorIntrinsics.Broadcast<bool>({result}, {predicate});");
+            return;
+        }
+
+        var method = barrier.PredicateKind switch
+        {
+            PredicateBarrierPredicateKind.PopCount => "BarrierPopCount",
+            PredicateBarrierPredicateKind.And => "BarrierAnd",
+            _ => "BarrierOr",
+        };
+        context.WriteLine(
+            $"CPUVectorIntrinsics.{method}({result}, {predicate}, " +
+            $"{ActiveMaskName});");
+    }
+
+    /// <summary>
     /// Emits a warp reduce operation using the CPU's vectorized helpers.
     /// The operand is resolved through the vectorized path so that
     /// per-lane arrays feed into the <c>ReadOnlySpan&lt;T&gt;</c> parameters

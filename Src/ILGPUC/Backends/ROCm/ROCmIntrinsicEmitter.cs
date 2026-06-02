@@ -227,19 +227,22 @@ sealed class ROCmIntrinsicEmitter : IntrinsicEmitter
 
     #region Atomic Operations
 
+    // Unsigned values are stored in signed variables; the bitwise atomics
+    // operate on the same bits for both. Min/max select the unsigned
+    // overloads explicitly. Atomics without a native instruction (e.g. float
+    // min/max) are lowered to compare-and-swap loops before code generation.
+
     /// <inheritdoc/>
     public override string EmitAtomicAdd(
         string ptr,
         string value,
         ArithmeticBasicValueType type,
-        MemoryAddressSpace addressSpace) => type switch
+        MemoryAddressSpace addressSpace) =>
+        type switch
         {
-            ArithmeticBasicValueType.Int32 => $"atomicAdd({ptr}, {value})",
-            ArithmeticBasicValueType.Int64 => $"atomicAdd((unsigned long long*){ptr}, {value})",
-            ArithmeticBasicValueType.Float32 => $"atomicAdd({ptr}, {value})",
-            ArithmeticBasicValueType.Float64 => $"atomicAdd((double*){ptr}, {value})",
-            _ => throw new NotSupportedException(
-                $"Atomic add not supported for type {type} in HIP")
+            ArithmeticBasicValueType.Float32 => $"atomicAdd((float*)({ptr}), {value})",
+            ArithmeticBasicValueType.Float64 => $"atomicAdd((double*)({ptr}), {value})",
+            _ => EmitIntegerAtomic("atomicAdd", ptr, value, type, "add"),
         };
 
     /// <inheritdoc/>
@@ -250,11 +253,8 @@ sealed class ROCmIntrinsicEmitter : IntrinsicEmitter
         MemoryAddressSpace addressSpace) =>
         type switch
         {
-            ArithmeticBasicValueType.Int32 => $"atomicExch({ptr}, {value})",
-            ArithmeticBasicValueType.Int64 => $"atomicExch((unsigned long long*){ptr}, {value})",
-            ArithmeticBasicValueType.Float32 => $"atomicExch({ptr}, {value})",
-            _ => throw new NotSupportedException(
-                $"Atomic exchange not supported for type {type} in HIP")
+            ArithmeticBasicValueType.Float32 => $"atomicExch((float*)({ptr}), {value})",
+            _ => EmitIntegerAtomic("atomicExch", ptr, value, type, "exchange"),
         };
 
     /// <inheritdoc/>
@@ -266,11 +266,21 @@ sealed class ROCmIntrinsicEmitter : IntrinsicEmitter
         MemoryAddressSpace addressSpace) =>
         type switch
         {
-            ArithmeticBasicValueType.Int32 => $"atomicCAS({ptr}, {compare}, {value})",
-            ArithmeticBasicValueType.Int64 =>
-                $"atomicCAS((unsigned long long*){ptr}, {compare}, {value})",
+            ArithmeticBasicValueType.Float32 =>
+                $"__int_as_float(atomicCAS((int*)({ptr}), " +
+                $"__float_as_int({compare}), __float_as_int({value})))",
+            ArithmeticBasicValueType.Float64 =>
+                "__longlong_as_double((long long)atomicCAS(" +
+                $"(unsigned long long*)({ptr}), " +
+                $"(unsigned long long)__double_as_longlong({compare}), " +
+                $"(unsigned long long)__double_as_longlong({value})))",
+            ArithmeticBasicValueType.Int32 or ArithmeticBasicValueType.UInt32 =>
+                $"atomicCAS((int*)({ptr}), {compare}, {value})",
+            ArithmeticBasicValueType.Int64 or ArithmeticBasicValueType.UInt64 =>
+                $"atomicCAS((unsigned long long*)({ptr}), " +
+                $"(unsigned long long)({compare}), (unsigned long long)({value}))",
             _ => throw new NotSupportedException(
-                $"Atomic CAS not supported for type {type} in HIP")
+                $"Atomic compare-exchange is not supported for type {type} in HIP")
         };
 
     /// <inheritdoc/>
@@ -279,13 +289,7 @@ sealed class ROCmIntrinsicEmitter : IntrinsicEmitter
         string value,
         ArithmeticBasicValueType type,
         MemoryAddressSpace addressSpace) =>
-        type switch
-        {
-            ArithmeticBasicValueType.Int32 => $"atomicMin({ptr}, {value})",
-            ArithmeticBasicValueType.Int64 => $"atomicMin((long long*){ptr}, {value})",
-            _ => throw new NotSupportedException(
-                $"Atomic min not supported for type {type} in HIP")
-        };
+        EmitIntegerAtomic("atomicMin", ptr, value, type, "min", signed: true);
 
     /// <inheritdoc/>
     public override string EmitAtomicMax(
@@ -293,13 +297,7 @@ sealed class ROCmIntrinsicEmitter : IntrinsicEmitter
         string value,
         ArithmeticBasicValueType type,
         MemoryAddressSpace addressSpace) =>
-        type switch
-        {
-            ArithmeticBasicValueType.Int32 => $"atomicMax({ptr}, {value})",
-            ArithmeticBasicValueType.Int64 => $"atomicMax((long long*){ptr}, {value})",
-            _ => throw new NotSupportedException(
-                $"Atomic max not supported for type {type} in HIP")
-        };
+        EmitIntegerAtomic("atomicMax", ptr, value, type, "max", signed: true);
 
     /// <inheritdoc/>
     public override string EmitAtomicAnd(
@@ -307,13 +305,7 @@ sealed class ROCmIntrinsicEmitter : IntrinsicEmitter
         string value,
         ArithmeticBasicValueType type,
         MemoryAddressSpace addressSpace) =>
-        type switch
-        {
-            ArithmeticBasicValueType.Int32 => $"atomicAnd({ptr}, {value})",
-            ArithmeticBasicValueType.Int64 => $"atomicAnd((unsigned long long*){ptr}, {value})",
-            _ => throw new NotSupportedException(
-                $"Atomic AND not supported for type {type} in HIP")
-        };
+        EmitIntegerAtomic("atomicAnd", ptr, value, type, "and");
 
     /// <inheritdoc/>
     public override string EmitAtomicOr(
@@ -321,13 +313,7 @@ sealed class ROCmIntrinsicEmitter : IntrinsicEmitter
         string value,
         ArithmeticBasicValueType type,
         MemoryAddressSpace addressSpace) =>
-        type switch
-        {
-            ArithmeticBasicValueType.Int32 => $"atomicOr({ptr}, {value})",
-            ArithmeticBasicValueType.Int64 => $"atomicOr((unsigned long long*){ptr}, {value})",
-            _ => throw new NotSupportedException(
-                $"Atomic OR not supported for type {type} in HIP")
-        };
+        EmitIntegerAtomic("atomicOr", ptr, value, type, "or");
 
     /// <inheritdoc/>
     public override string EmitAtomicXor(
@@ -335,13 +321,33 @@ sealed class ROCmIntrinsicEmitter : IntrinsicEmitter
         string value,
         ArithmeticBasicValueType type,
         MemoryAddressSpace addressSpace) =>
-        type switch
+        EmitIntegerAtomic("atomicXor", ptr, value, type, "xor");
+
+    /// <summary>
+    /// Emits an integer atomic. 64-bit operations use the
+    /// <c>unsigned long long</c> overloads, except for signed min/max which
+    /// use <c>long long</c>; unsigned 32-bit min/max use <c>unsigned int</c>.
+    /// </summary>
+    private static string EmitIntegerAtomic(
+        string function,
+        string ptr,
+        string value,
+        ArithmeticBasicValueType type,
+        string operation,
+        bool signed = false)
+    {
+        var typeName = type switch
         {
-            ArithmeticBasicValueType.Int32 => $"atomicXor({ptr}, {value})",
-            ArithmeticBasicValueType.Int64 => $"atomicXor((unsigned long long*){ptr}, {value})",
+            ArithmeticBasicValueType.Int32 => "int",
+            ArithmeticBasicValueType.UInt32 => signed ? "unsigned int" : "int",
+            ArithmeticBasicValueType.Int64 =>
+                signed ? "long long" : "unsigned long long",
+            ArithmeticBasicValueType.UInt64 => "unsigned long long",
             _ => throw new NotSupportedException(
-                $"Atomic XOR not supported for type {type} in HIP")
+                $"Atomic {operation} is not supported for type {type} in HIP")
         };
+        return $"{function}(({typeName}*)({ptr}), ({typeName})({value}))";
+    }
 
     #endregion
 
@@ -385,6 +391,42 @@ sealed class ROCmIntrinsicEmitter : IntrinsicEmitter
 
     /// <inheritdoc/>
     public override string EmitMemoryFence() => "__threadfence()";
+
+    /// <inheritdoc/>
+    /// <remarks>
+    /// The lanes of a wavefront execute in lockstep; the wave barrier keeps
+    /// the compiler from moving memory operations across it.
+    /// </remarks>
+    public override string EmitWarpBarrier() => "__builtin_amdgcn_wave_barrier()";
+
+    /// <inheritdoc/>
+    public override string EmitMemoryFence(MemoryBarrierKind kind) =>
+        kind switch
+        {
+            MemoryBarrierKind.GroupLevel => "__threadfence_block()",
+            MemoryBarrierKind.SystemLevel => "__threadfence_system()",
+            _ => "__threadfence()",
+        };
+
+    /// <inheritdoc/>
+    public override string EmitPredicateBarrier(
+        string predicate,
+        PredicateBarrierKind kind,
+        PredicateBarrierPredicateKind predicateKind) =>
+        (kind, predicateKind) switch
+        {
+            (PredicateBarrierKind.GroupLevel, PredicateBarrierPredicateKind.PopCount) =>
+                $"__syncthreads_count({predicate})",
+            (PredicateBarrierKind.GroupLevel, PredicateBarrierPredicateKind.And) =>
+                $"(__syncthreads_and({predicate}) != 0)",
+            (PredicateBarrierKind.GroupLevel, _) =>
+                $"(__syncthreads_or({predicate}) != 0)",
+            (_, PredicateBarrierPredicateKind.PopCount) =>
+                $"(int)__popcll(__ballot({predicate}))",
+            (_, PredicateBarrierPredicateKind.And) =>
+                $"(__all({predicate}) != 0)",
+            _ => $"(__any({predicate}) != 0)",
+        };
 
     #endregion
 
