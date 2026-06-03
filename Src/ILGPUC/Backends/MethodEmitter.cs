@@ -37,6 +37,15 @@ sealed class MethodEmitter(
     private LoopStatement? _currentLoop;
 
     /// <summary>
+    /// Per-method counter for emitter-synthesized locals (loop-condition
+    /// captures and state-machine variables). Hardcoded names would
+    /// redeclare when two such constructs share a scope (sibling self-loops
+    /// or unstructured regions) and shadow confusingly when nested, so
+    /// every construct claims a unique suffix. Reset per method body.
+    /// </summary>
+    private int _emitterLocalId;
+
+    /// <summary>
     /// Emits method declarations (forward declarations).
     /// </summary>
     public void EmitMethodDeclarations()
@@ -231,6 +240,9 @@ sealed class MethodEmitter(
     /// </summary>
     private void EmitMethodBody(Method method)
     {
+        // Reset the synthesized-local counter — names only need to be
+        // unique within one function.
+        _emitterLocalId = 0;
         // Entry point parameter set-up (e.g. applying OpenCL buffer offsets).
         if (method == context.Module.EntryPoint)
         {
@@ -250,7 +262,10 @@ sealed class MethodEmitter(
         }
 
         // GPU backends: compute the thread index from built-in attributes
-        // instead of receiving it as a buffer parameter.
+        // instead of receiving it as a buffer parameter. Grouped
+        // (explicit-config) kernels have no implicit index — parameter 0 is
+        // a real user parameter received via the signature, so nothing may
+        // be computed (and redeclared) here.
         if (method == context.Module.EntryPoint
             && context.LanguageConfig.SkipsIndexParameter
             && context.Launch.HasIndexParameter
@@ -669,6 +684,15 @@ sealed class MethodEmitter(
     }
 
     /// <summary>
+    /// Returns the condition under which the given loop continues, negating the
+    /// emitted header condition if the header exits the loop on true.
+    /// </summary>
+    private static string GetContinueCondition(
+        LoopStatement loop,
+        string condition) =>
+        loop.IsConditionInverted ? $"!({condition})" : condition;
+
+    /// <summary>
     /// Emits a for-loop with induction variable.
     /// </summary>
     private void EmitForLoop(ForLoop forLoop, CodePlacement placement)
@@ -686,7 +710,8 @@ sealed class MethodEmitter(
         // Use EmitFullyInlined to recursively expand all operands.
         // The condition value may reference variables declared inside the
         // loop body, so we must inline them to avoid forward references.
-        var condition = expressionEmitter.EmitFullyInlined(forLoop.Condition);
+        var condition = GetContinueCondition(
+            forLoop, expressionEmitter.EmitFullyInlined(forLoop.Condition));
 
         // Build the initializer: var = initialValue
         var varName = context.GetValueName(inductionVar.Phi);
@@ -708,26 +733,7 @@ sealed class MethodEmitter(
         // Emit phi updates for non-induction header phis. The back-edge
         // block is excluded from the body by the reconstructor, so its
         // phi assignments are lost. Emit them at the end of the loop body.
-        foreach (var value in header.PhiValues)
-        {
-            // Skip the induction variable — handled by the for increment
-            if (value == inductionVar.Phi) continue;
-
-            // Find the incoming value from a back-edge source
-            for (int i = 0; i < value.NumArguments; i++)
-            {
-                bool isBackEdge = false;
-                foreach (var be in forLoop.Loop.BackEdges)
-                {
-                    if (be == value.Sources[i]) { isBackEdge = true; break; }
-                }
-                if (!isBackEdge) continue;
-                var phiVar = context.GetValueName(value);
-                var incoming = expressionEmitter.EmitExpression(
-                    value.Arguments[i]);
-                context.WriteLine($"{phiVar} = {incoming};");
-            }
-        }
+        EmitLoopBackEdgePhis(header, forLoop.Loop, inductionVar.Phi);
 
         context.CloseScope();
     }
@@ -748,7 +754,7 @@ sealed class MethodEmitter(
         // The condition is computed by the header block (part of the body).
         // We must capture it BEFORE the back-edge phi updates overwrite
         // the phi variables with new values.
-        var condVar = "_loopCond";
+        var condVar = $"_loopCond{_emitterLocalId++}";
         context.WriteLine($"bool {condVar};");
 
         context.WriteLine("do");
@@ -756,7 +762,8 @@ sealed class MethodEmitter(
         EmitControlFlow(forLoop.Body, placement);
 
         // Capture condition before phi updates (phis still hold current values)
-        var condition = expressionEmitter.EmitExpression(forLoop.Condition);
+        var condition = GetContinueCondition(
+            forLoop, expressionEmitter.EmitExpression(forLoop.Condition));
         context.WriteLine($"{condVar} = {condition};");
 
         EmitLoopBackEdgePhis(header, forLoop.Loop);
@@ -773,7 +780,8 @@ sealed class MethodEmitter(
         EmitLoopPhiInitializers(header, whileLoop.Loop);
 
         // Use EmitFullyInlined to avoid forward references to body-scoped vars.
-        var condition = expressionEmitter.EmitFullyInlined(whileLoop.Condition);
+        var condition = GetContinueCondition(
+            whileLoop, expressionEmitter.EmitFullyInlined(whileLoop.Condition));
         context.WriteLine($"while ({condition})");
         context.OpenScope();
         EmitControlFlow(whileLoop.Body, placement);
@@ -794,13 +802,14 @@ sealed class MethodEmitter(
         // a temporary BEFORE updating the phis (mirrors EmitSelfLoopAsDoWhile).
         if (doWhileLoop.IsSelfLoop)
         {
-            var condVar = "_loopCond";
+            var condVar = $"_loopCond{_emitterLocalId++}";
             context.WriteLine($"bool {condVar};");
             context.WriteLine("do");
             context.OpenScope();
             EmitControlFlow(doWhileLoop.Body, placement);
-            var capturedCond = expressionEmitter.EmitExpression(
-                doWhileLoop.Condition);
+            var capturedCond = GetContinueCondition(
+                doWhileLoop,
+                expressionEmitter.EmitExpression(doWhileLoop.Condition));
             context.WriteLine($"{condVar} = {capturedCond};");
             EmitLoopBackEdgePhis(header, doWhileLoop.Loop);
             context.CloseScope();
@@ -815,7 +824,8 @@ sealed class MethodEmitter(
         context.CloseScope();
 
         // Use EmitDefinition to inline the condition expression directly.
-        var condition = expressionEmitter.EmitDefinition(doWhileLoop.Condition);
+        var condition = GetContinueCondition(
+            doWhileLoop, expressionEmitter.EmitDefinition(doWhileLoop.Condition));
         context.WriteLine($"while ({condition});");
     }
 
@@ -825,10 +835,14 @@ sealed class MethodEmitter(
     /// </summary>
     private void EmitLoopBackEdgePhis(
         BasicBlock header,
-        Loops<ReversePostOrder<BasicBlock>, Forwards>.Node loop)
+        Loops<ReversePostOrder<BasicBlock>, Forwards>.Node loop,
+        PhiValue? skipPhi = null)
     {
+        var copies = new List<(PhiValue, Value)>();
         foreach (var value in header.PhiValues)
         {
+            if (value == skipPhi) continue;
+
             for (int i = 0; i < value.NumArguments; i++)
             {
                 bool isBackEdge = false;
@@ -839,12 +853,10 @@ sealed class MethodEmitter(
                 }
                 if (!isBackEdge) continue;
 
-                var phiVar = context.GetValueName(value);
-                var incoming = expressionEmitter.EmitExpression(
-                    value.Arguments[i]);
-                context.WriteLine($"{phiVar} = {incoming};");
+                copies.Add((value, value.Arguments[i]));
             }
         }
+        EmitPhiCopies(copies);
     }
 
     /// <summary>
@@ -899,11 +911,17 @@ sealed class MethodEmitter(
         foreach (var block in region.Blocks)
             EmitRegionExternalPhiInits(block, region);
 
-        context.WriteLine($"int _state = {entryId};");
-        context.WriteLine("bool _done = false;");
-        context.WriteLine("while (!_done)");
+        // Unique per-region state variables — sibling or nested regions
+        // must not redeclare/shadow each other's state machine locals.
+        int regionId = _emitterLocalId++;
+        var stateVar = $"_state{regionId}";
+        var doneVar = $"_done{regionId}";
+
+        context.WriteLine($"int {stateVar} = {entryId};");
+        context.WriteLine($"bool {doneVar} = false;");
+        context.WriteLine($"while (!{doneVar})");
         context.OpenScope();
-        context.WriteLine("switch (_state)");
+        context.WriteLine($"switch ({stateVar})");
         context.OpenScope();
 
         foreach (var block in region.Blocks)
@@ -912,17 +930,17 @@ sealed class MethodEmitter(
             context.WriteLine($"case {stateId}:");
             context.OpenScope();
             EmitRegionBlock(block, placement);
-            EmitRegionTransition(block, region);
+            EmitRegionTransition(block, region, stateVar);
             context.WriteLine("break;");
             context.CloseScope();
         }
 
-        // Exit sentinel cases → _done = true
+        // Exit sentinel cases → done
         foreach (var (_, sentinel) in region.ExitSentinels)
         {
             context.WriteLine($"case {sentinel}:");
             context.PushIndent();
-            context.WriteLine("_done = true;");
+            context.WriteLine($"{doneVar} = true;");
             context.WriteLine("break;");
             context.PopIndent();
         }
@@ -954,7 +972,8 @@ sealed class MethodEmitter(
     /// </summary>
     private void EmitRegionTransition(
         BasicBlock block,
-        UnstructuredRegion region)
+        UnstructuredRegion region,
+        string stateVar)
     {
         switch (block.TerminationKind)
         {
@@ -962,7 +981,8 @@ sealed class MethodEmitter(
                 {
                     var succ = block.Successors[0];
                     EmitPhiTransitions(block, succ, region);
-                    context.WriteLine($"_state = {region.GetTargetState(succ)};");
+                    context.WriteLine(
+                        $"{stateVar} = {region.GetTargetState(succ)};");
                     break;
                 }
 
@@ -974,13 +994,13 @@ sealed class MethodEmitter(
                     context.OpenScope();
                     EmitPhiTransitions(block, view.TrueTarget, region);
                     context.WriteLine(
-                        $"_state = {region.GetTargetState(view.TrueTarget)};");
+                        $"{stateVar} = {region.GetTargetState(view.TrueTarget)};");
                     context.CloseScope();
                     context.WriteLine("else");
                     context.OpenScope();
                     EmitPhiTransitions(block, view.FalseTarget, region);
                     context.WriteLine(
-                        $"_state = {region.GetTargetState(view.FalseTarget)};");
+                        $"{stateVar} = {region.GetTargetState(view.FalseTarget)};");
                     context.CloseScope();
                     break;
                 }
@@ -998,7 +1018,7 @@ sealed class MethodEmitter(
                         context.PushIndent();
                         EmitPhiTransitions(block, target, region);
                         context.WriteLine(
-                            $"_state = {region.GetTargetState(target)};");
+                            $"{stateVar} = {region.GetTargetState(target)};");
                         context.WriteLine("break;");
                         context.PopIndent();
                     }
@@ -1006,7 +1026,7 @@ sealed class MethodEmitter(
                     context.PushIndent();
                     EmitPhiTransitions(block, view.DefaultTarget, region);
                     context.WriteLine(
-                        $"_state = {region.GetTargetState(view.DefaultTarget)};");
+                        $"{stateVar} = {region.GetTargetState(view.DefaultTarget)};");
                     context.WriteLine("break;");
                     context.PopIndent();
                     context.CloseScope();
@@ -1042,6 +1062,7 @@ sealed class MethodEmitter(
         if (region.IsExit(target))
             return;
 
+        var copies = new List<(PhiValue, Value)>();
         foreach (var value in target.Values)
         {
             if (value is not PhiValue phi) continue;
@@ -1049,12 +1070,10 @@ sealed class MethodEmitter(
             for (int i = 0; i < phi.NumArguments; i++)
             {
                 if (phi.Sources[i] != source) continue;
-
-                var phiVar = context.GetValueName(phi);
-                var incoming = expressionEmitter.EmitExpression(phi.Arguments[i]);
-                context.WriteLine($"{phiVar} = {incoming};");
+                copies.Add((phi, phi.Arguments[i]));
             }
         }
+        EmitPhiCopies(copies);
     }
 
     /// <summary>
@@ -1067,6 +1086,7 @@ sealed class MethodEmitter(
         BasicBlock target,
         PhiValue? skipPhi = null)
     {
+        var copies = new List<(PhiValue, Value)>();
         foreach (var value in target.PhiValues)
         {
             if (value == skipPhi) continue;
@@ -1074,13 +1094,10 @@ sealed class MethodEmitter(
             for (int i = 0; i < value.NumArguments; i++)
             {
                 if (value.Sources[i] != source) continue;
-
-                var phiVar = context.GetValueName(value);
-                var incoming = expressionEmitter.EmitExpression(
-                    value.Arguments[i]);
-                context.WriteLine($"{phiVar} = {incoming};");
+                copies.Add((value, value.Arguments[i]));
             }
         }
+        EmitPhiCopies(copies);
     }
 
     /// <summary>
@@ -1092,6 +1109,7 @@ sealed class MethodEmitter(
         Loops<ReversePostOrder<BasicBlock>, Forwards>.Node loop,
         PhiValue? skipPhi = null)
     {
+        var copies = new List<(PhiValue, Value)>();
         foreach (var value in header.PhiValues)
         {
             if (value == skipPhi) continue;
@@ -1107,12 +1125,10 @@ sealed class MethodEmitter(
                 }
                 if (isInternal) continue;
 
-                var phiVar = context.GetValueName(value);
-                var incoming = expressionEmitter.EmitExpression(
-                    value.Arguments[i]);
-                context.WriteLine($"{phiVar} = {incoming};");
+                copies.Add((value, value.Arguments[i]));
             }
         }
+        EmitPhiCopies(copies);
     }
 
     /// <summary>
@@ -1123,6 +1139,7 @@ sealed class MethodEmitter(
         BasicBlock block,
         UnstructuredRegion region)
     {
+        var copies = new List<(PhiValue, Value)>();
         foreach (var value in block.Values)
         {
             if (value is not PhiValue phi) continue;
@@ -1131,12 +1148,84 @@ sealed class MethodEmitter(
             {
                 if (region.BlockIds.ContainsKey(phi.Sources[i]))
                     continue;
-
-                var phiVar = context.GetValueName(phi);
-                var incoming = expressionEmitter.EmitExpression(phi.Arguments[i]);
-                context.WriteLine($"{phiVar} = {incoming};");
+                copies.Add((phi, phi.Arguments[i]));
             }
         }
+        EmitPhiCopies(copies);
+    }
+
+    /// <summary>
+    /// Emits the given phi copies of a single control-flow edge as a parallel
+    /// copy: every incoming value is read before any phi is assigned. A copy
+    /// whose incoming value may read a phi assigned by an earlier copy (e.g.
+    /// when two phis swap their values) is read into a temporary first.
+    /// </summary>
+    private void EmitPhiCopies(List<(PhiValue Phi, Value Incoming)> copies)
+    {
+        var temporaries = new string?[copies.Count];
+        for (int i = 0; i < copies.Count; i++)
+        {
+            var (phi, incoming) = copies[i];
+            if (i > 0 && MayRead(incoming, copies, i))
+            {
+                var temporary = $"_phi{_emitterLocalId++}";
+                var typeName = typeEmitter.GetTypeName(phi.Type);
+                var expr = expressionEmitter.EmitExpression(incoming);
+                context.WriteLine($"{typeName} {temporary} = {expr};");
+                temporaries[i] = temporary;
+            }
+        }
+
+        for (int i = 0; i < copies.Count; i++)
+        {
+            var (phi, incoming) = copies[i];
+            if (incoming == phi)
+                continue;
+            var phiVar = context.GetValueName(phi);
+            var expr = temporaries[i] ??
+                expressionEmitter.EmitExpression(incoming);
+            context.WriteLine($"{phiVar} = {expr};");
+        }
+    }
+
+    /// <summary>
+    /// Returns true if the given incoming value may read one of the phis that
+    /// the first <paramref name="count"/> copies assign. Phis are emitted as
+    /// variables; all other operands may be inlined and are followed.
+    /// </summary>
+    private static bool MayRead(
+        Value incoming,
+        List<(PhiValue Phi, Value Incoming)> copies,
+        int count)
+    {
+        var targets = new HashSet<Value>();
+        for (int i = 0; i < count; i++)
+        {
+            if (copies[i].Incoming != copies[i].Phi)
+                targets.Add(copies[i].Phi);
+        }
+        if (targets.Count == 0)
+            return false;
+
+        var visited = new HashSet<Value>();
+        var worklist = new Stack<Value>();
+        worklist.Push(incoming);
+        while (worklist.TryPop(out var value))
+        {
+            if (!visited.Add(value))
+                continue;
+            if (value is PhiValue)
+            {
+                if (targets.Contains(value))
+                    return true;
+                continue;
+            }
+            if (value is BasicBlock or Method or TypeValue)
+                continue;
+            foreach (var operand in value.Values)
+                worklist.Push(operand);
+        }
+        return false;
     }
 
     #endregion

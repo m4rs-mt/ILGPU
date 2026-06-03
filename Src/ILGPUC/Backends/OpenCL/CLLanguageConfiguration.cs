@@ -86,6 +86,10 @@ sealed class CLLanguageConfiguration(CLVendor vendor = CLVendor.Intel) : Languag
     public override bool UsesCStyleStructLiterals => true;
 
     /// <inheritdoc/>
+    /// <remarks>get_local_id and friends return size_t.</remarks>
+    public override bool HasUnsignedThreadBuiltIns => true;
+
+    /// <inheritdoc/>
     public override string? FormatFieldAlignment(int alignment) =>
         $" __attribute__((aligned({alignment})))";
 

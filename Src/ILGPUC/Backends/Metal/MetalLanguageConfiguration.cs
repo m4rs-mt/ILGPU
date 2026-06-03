@@ -168,6 +168,10 @@ sealed class MetalLanguageConfiguration : LanguageConfiguration
     public override bool UsesCStyleStructLiterals => true;
 
     /// <inheritdoc/>
+    /// <remarks>The thread position attributes are uint.</remarks>
+    public override bool HasUnsignedThreadBuiltIns => true;
+
+    /// <inheritdoc/>
     public override string? FormatFieldAlignment(int alignment) =>
         $" __attribute__((aligned({alignment})))";
 

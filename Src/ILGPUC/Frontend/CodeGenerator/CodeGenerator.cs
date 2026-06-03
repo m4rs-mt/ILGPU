@@ -84,16 +84,21 @@ sealed partial class CodeGenerator
     /// Backend the IR is being generated for. Used by codegen-time
     /// intrinsic resolution to pick the backend-specific implementation.
     /// </param>
+    /// <param name="isEntryPoint">
+    /// True if the method is a kernel entry point, which is never inlined.
+    /// </param>
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     public CodeGenerator(
         MethodBuilder methodBuilder,
         DisassembledMethod disassembledMethod,
-        Backends.BackendType backendType = default)
+        Backends.BackendType backendType = default,
+        bool isEntryPoint = false)
     {
         ModuleBuilder = methodBuilder.ModuleBuilder;
         MethodBuilder = methodBuilder;
         DisassembledMethod = disassembledMethod;
         BackendType = backendType;
+        IsEntryPoint = isEntryPoint;
 
         _cfgBuilder = new Block.CFGBuilder(this, methodBuilder);
         EntryBlock = _cfgBuilder.EntryBlock;
@@ -235,6 +240,12 @@ sealed partial class CodeGenerator
     public Backends.BackendType BackendType { get; }
 
     /// <summary>
+    /// Returns true if the current method is a kernel entry point. All other
+    /// methods can be inlined into a loop of their caller.
+    /// </summary>
+    public bool IsEntryPoint { get; }
+
+    /// <summary>
     /// Returns compilation properties.
     /// </summary>
     public CompilationProperties Properties => ModuleBuilder.Properties;
@@ -282,6 +293,11 @@ sealed partial class CodeGenerator
     /// Gets or sets the current location.
     /// </summary>
     private Location Location { get; set; }
+
+    /// <summary>
+    /// Gets or sets the IL offset of the instruction being generated.
+    /// </summary>
+    private int CurrentInstructionOffset { get; set; }
 
     /// <summary>
     /// Gets or sets the offset for load/store argument instructions in a lambda.
@@ -458,6 +474,7 @@ sealed partial class CodeGenerator
         for (int i = Block.InstructionOffset; i < endOffset; ++i)
         {
             var instruction = DisassembledMethod[i];
+            CurrentInstructionOffset = instruction.Offset;
 
             // Setup debug information
             Location = instruction.Location;

@@ -424,8 +424,19 @@ class MethodBuilder : PureValueBuilder
         var exitBlock = allBlocks.FindExitBlock();
 
         // Seal all reachable blocks
+        var reachableBlocks = new HashSet<BasicBlock>(allBlocks.Count);
         foreach (var block in allBlocks)
+        {
             this[block].Seal();
+            reachableBlocks.Add(block);
+        }
+
+        // Drop phi arguments of unreachable predecessors (implicit UCE above)
+        foreach (var block in allBlocks)
+        {
+            foreach (PhiValue phi in block.PhiValues)
+                phi.RemoveUnreachableSources(reachableBlocks);
+        }
 
         // Build final value list
         var values = ValueBuilderList.Create(Generation, _parameters.Count + 1);

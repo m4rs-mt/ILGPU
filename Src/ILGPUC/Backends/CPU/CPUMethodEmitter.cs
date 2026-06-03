@@ -17,6 +17,7 @@ using ILGPUC.IR.BasicBlockValues;
 using ILGPUC.IR.MethodValues;
 using ILGPUC.IR.ModuleValues;
 using ILGPUC.IR.PureValues;
+using System;
 using System.Collections.Generic;
 
 namespace ILGPUC.Backends.CPU;
@@ -1681,6 +1682,22 @@ sealed class CPUMethodEmitter(
     }
 
     /// <summary>
+    /// Returns the scalar continue condition of the given loop, negating the
+    /// header condition if the header exits the loop on true.
+    /// </summary>
+    private static string GetScalarContinueCondition(
+        LoopStatement loop,
+        string condition) =>
+        loop.IsConditionInverted ? $"!({condition})" : condition;
+
+    /// <summary>
+    /// Returns the mask intrinsic that keeps the lanes continuing the given
+    /// loop: <c>AndMask</c> or, if the header exits on true, <c>AndNotMask</c>.
+    /// </summary>
+    private static string GetContinueMaskIntrinsic(LoopStatement loop) =>
+        loop.IsConditionInverted ? "AndNotMask" : "AndMask";
+
+    /// <summary>
     /// Emits a masked while loop that continues while any lane is active.
     /// </summary>
     private void EmitMaskedWhileLoop(
@@ -1738,12 +1755,13 @@ sealed class CPUMethodEmitter(
             whileLoop.Condition, analysis, expressionEmitter);
         if (analysis.IsScalar(whileLoop.Condition))
         {
-            context.WriteLine($"while ({condition})");
+            context.WriteLine(
+                $"while ({GetScalarContinueCondition(whileLoop, condition)})");
         }
         else
         {
             context.WriteLine(
-                $"CPUVectorIntrinsics.AndMask(" +
+                $"CPUVectorIntrinsics.{GetContinueMaskIntrinsic(whileLoop)}(" +
                 $"{am}, {am}, {condition});");
             context.WriteLine(
                 $"while (CPUVectorIntrinsics.Any({am}))");
@@ -1775,7 +1793,7 @@ sealed class CPUMethodEmitter(
         if (!analysis.IsScalar(whileLoop.Condition))
         {
             context.WriteLine(
-                $"CPUVectorIntrinsics.AndMask(" +
+                $"CPUVectorIntrinsics.{GetContinueMaskIntrinsic(whileLoop)}(" +
                 $"{am}, {am}, {condition});");
 
             // Break handling: scan the header's PureValues for
@@ -1789,7 +1807,8 @@ sealed class CPUMethodEmitter(
         }
         else
         {
-            context.WriteLine($"if (!{condition}) break;");
+            context.WriteLine(
+                $"if (!({GetScalarContinueCondition(whileLoop, condition)})) break;");
         }
 
         context.CloseScope();
@@ -1883,12 +1902,13 @@ sealed class CPUMethodEmitter(
             forLoop.Condition, analysis, expressionEmitter);
         if (analysis.IsScalar(forLoop.Condition))
         {
-            context.WriteLine($"while ({condition})");
+            context.WriteLine(
+                $"while ({GetScalarContinueCondition(forLoop, condition)})");
         }
         else
         {
             context.WriteLine(
-                $"CPUVectorIntrinsics.AndMask(" +
+                $"CPUVectorIntrinsics.{GetContinueMaskIntrinsic(forLoop)}(" +
                 $"{am}, {savedMask}, {condition});");
             context.WriteLine(
                 $"while (CPUVectorIntrinsics.Any({am}))");
@@ -1941,7 +1961,7 @@ sealed class CPUMethodEmitter(
         if (!analysis.IsScalar(forLoop.Condition))
         {
             context.WriteLine(
-                $"CPUVectorIntrinsics.AndMask(" +
+                $"CPUVectorIntrinsics.{GetContinueMaskIntrinsic(forLoop)}(" +
                 $"{am}, {am}, {condition});");
 
             // Break handling: before excluding break lanes, capture
@@ -1978,7 +1998,8 @@ sealed class CPUMethodEmitter(
         }
         else
         {
-            context.WriteLine($"if (!{condition}) break;");
+            context.WriteLine(
+                $"if (!({GetScalarContinueCondition(forLoop, condition)})) break;");
         }
 
         context.CloseScope();
@@ -2027,9 +2048,10 @@ sealed class CPUMethodEmitter(
         // Emit back-edge Selects before condition filters the mask
         // (all lanes that ran the body in this iteration must update their phi)
         var dwConfig = (CPULanguageConfiguration)context.LanguageConfig;
+        var dwPhiNames = SnapshotLoopPhis(loopPhis, analysis);
         foreach (var (phi, _, backEdge) in loopPhis)
         {
-            var phiVar = context.GetValueName(phi);
+            var phiVar = dwPhiNames[phi];
             var newVal = context.GetValueName(backEdge);
             var selT = phi.Type is PrimitiveType dwpt
                 ? dwConfig.GetPrimitiveTypeName(dwpt.BasicValueType) : "int";
@@ -2037,6 +2059,7 @@ sealed class CPUMethodEmitter(
                 $"CPUVectorIntrinsics.Select<{selT}>(" +
                 $"{phiVar}, {am}, {newVal}, {phiVar});");
         }
+        RestoreLoopPhiNames(dwPhiNames);
 
         // Evaluate condition and combine with mask
         var condition = EmitConditionExpression(
@@ -2045,12 +2068,13 @@ sealed class CPUMethodEmitter(
         {
             // Scalar condition: all lanes agree — use the condition directly
             context.CloseScope();
-            context.WriteLine($"while ({condition});");
+            context.WriteLine(
+                $"while ({GetScalarContinueCondition(doWhileLoop, condition)});");
         }
         else
         {
             context.WriteLine(
-                $"CPUVectorIntrinsics.AndMask(" +
+                $"CPUVectorIntrinsics.{GetContinueMaskIntrinsic(doWhileLoop)}(" +
                 $"{am}, {am}, {condition});");
             context.CloseScope();
             context.WriteLine(
@@ -2406,9 +2430,10 @@ sealed class CPUMethodEmitter(
         ExpressionEmitter exprEmitter,
         string activeMask)
     {
+        var phiNames = SnapshotLoopPhis(loopPhis, analysis);
         foreach (var (phi, _, backEdge) in loopPhis)
         {
-            var phiVar = context.GetValueName(phi);
+            var phiVar = phiNames[phi];
 
             // PhiValue back-edge with self-reference: the inner phi merges
             // a "continue" path (self = old value) and an "accumulate" path
@@ -2613,6 +2638,97 @@ sealed class CPUMethodEmitter(
                     $"{phiVar}, {activeMask}, {newVal}, {phiVar});");
             }
         }
+        RestoreLoopPhiNames(phiNames);
+    }
+
+    /// <summary>
+    /// Prepares the back-edge updates of the given loop phis, which must act
+    /// as a parallel copy: copies every phi that the update of a later phi may
+    /// read (e.g. when two phis swap their values) into a snapshot, and lets
+    /// all expressions refer to the snapshot until the updates are done.
+    /// </summary>
+    /// <returns>The variable names of all phis to assign.</returns>
+    private Dictionary<PhiValue, string> SnapshotLoopPhis(
+        List<(PhiValue Phi, Value PreHeader, Value BackEdge)> loopPhis,
+        VectorizationAnalysis analysis)
+    {
+        var phiNames = new Dictionary<PhiValue, string>();
+        foreach (var (phi, _, _) in loopPhis)
+            phiNames[phi] = context.GetValueName(phi);
+
+        var assigned = new HashSet<Value>();
+        var snapshots = new HashSet<PhiValue>();
+        foreach (var (phi, _, backEdge) in loopPhis)
+        {
+            CollectReadPhis(backEdge, assigned, snapshots);
+            if (backEdge != phi)
+                assigned.Add(phi);
+        }
+
+        foreach (var phi in snapshots)
+        {
+            var snapshot = $"_phisnap_{phi.Id}_{_phiBroadcastId++}";
+            var name = phiNames[phi];
+            context.WriteLine(analysis.IsScalar(phi)
+                ? $"var {snapshot} = {name};"
+                : $"var {snapshot} = {name}.Clone() as " +
+                    $"{GetVectorTypeName(phi)};");
+            context.SetValueName(phi, snapshot);
+        }
+        return phiNames;
+    }
+
+    /// <summary>
+    /// Returns the C# type of the vectorized buffer of the given phi.
+    /// </summary>
+    private string GetVectorTypeName(PhiValue phi)
+    {
+        var config = (CPULanguageConfiguration)context.LanguageConfig;
+        var elementType = phi.Type is PrimitiveType primitive
+            ? config.GetPrimitiveTypeName(primitive.BasicValueType)
+            : "int";
+        return $"{elementType}[]";
+    }
+
+    /// <summary>
+    /// Adds all phis of <paramref name="assigned"/> that the given value may
+    /// read to <paramref name="result"/>. Phis are stored in variables; all
+    /// other operands may be inlined and are followed.
+    /// </summary>
+    private static void CollectReadPhis(
+        Value value,
+        HashSet<Value> assigned,
+        HashSet<PhiValue> result)
+    {
+        if (assigned.Count == 0)
+            return;
+        var visited = new HashSet<Value>();
+        var worklist = new Stack<Value>();
+        worklist.Push(value);
+        while (worklist.TryPop(out var current))
+        {
+            if (!visited.Add(current))
+                continue;
+            if (current is PhiValue phi)
+            {
+                if (assigned.Contains(phi))
+                    result.Add(phi);
+                continue;
+            }
+            if (current is BasicBlock or Method or TypeValue)
+                continue;
+            foreach (var operand in current.Values)
+                worklist.Push(operand);
+        }
+    }
+
+    /// <summary>
+    /// Restores the variable names of all phis after their back-edge updates.
+    /// </summary>
+    private void RestoreLoopPhiNames(Dictionary<PhiValue, string> phiNames)
+    {
+        foreach (var (phi, name) in phiNames)
+            context.SetValueName(phi, name);
     }
 
     /// <summary>

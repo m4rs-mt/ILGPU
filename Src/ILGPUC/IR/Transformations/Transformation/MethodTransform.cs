@@ -286,17 +286,11 @@ sealed class MethodTransform :
             {
                 return cached is null ? null : Rewrite(cached);
             }
-            // Step 2: Identity cache — already confirmed up-to-date.
-            // Guard with generation check: TypeValue.Equals uses structural
-            // equality (same fields/offsets), so a Gen_N type can match a
-            // Gen_N+1 type in the set. Only trust the cache for current-gen.
-            if (oldValue.Generation == Generation
-                && _resolvedIdentity.Contains(oldValue))
-            {
-                return oldValue;
-            }
-
-            // Step 3: BasicBlock (phi source) — check split redirect, else as-is
+            // Step 2: BasicBlock (phi source) — check split redirect, else as-is.
+            // This must precede the identity cache: a block can be cached as
+            // an identity while redirects are disabled (successor resolution)
+            // and must still follow its redirect when resolving phi sources,
+            // e.g. for the back edge of a split single-block loop.
             if (oldValue is BasicBlock bb)
             {
                 // When a block has been split by SpecializeMethodCall, phi sources
@@ -313,6 +307,16 @@ sealed class MethodTransform :
                 }
 
                 _resolvedIdentity.Add(oldValue);
+                return oldValue;
+            }
+
+            // Step 3: Identity cache — already confirmed up-to-date.
+            // Guard with generation check: TypeValue.Equals uses structural
+            // equality (same fields/offsets), so a Gen_N type can match a
+            // Gen_N+1 type in the set. Only trust the cache for current-gen.
+            if (oldValue.Generation == Generation
+                && _resolvedIdentity.Contains(oldValue))
+            {
                 return oldValue;
             }
 

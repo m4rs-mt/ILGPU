@@ -515,6 +515,17 @@ abstract class Value(in ValueInitializer initializer, TypeValue type) : IValue
         Seal();
     }
 
+    /// <summary>
+    /// Replaces the child nodes of an already sealed value. Only valid before
+    /// the uses of the parent method have been computed.
+    /// </summary>
+    /// <param name="valueList">The new child nodes.</param>
+    protected void ReplaceSealedValues(ref ValueBuilderList valueList)
+    {
+        Debug.Assert(IsSealed, "Value has not been sealed");
+        valueList.MoveTo(ref _values);
+    }
+
     #endregion
 
     #region Object

@@ -248,6 +248,18 @@ sealed class CodePlacement
         {
             foreach (BasicBlockValue bbValue in block)
             {
+                // Phi arguments are used at the end of their incoming source
+                // block, not at the position of the phi in its own block
+                if (bbValue is PhiValue phi)
+                {
+                    for (int i = 0; i < phi.NumArguments; i++)
+                    {
+                        if (phi.Arguments[i] is PureValue pureArg)
+                            ComputePureValuePlacement(pureArg, phi.Sources[i]);
+                    }
+                    continue;
+                }
+
                 // Process all operands of this basic block value
                 foreach (var operand in bbValue.Values)
                 {
@@ -475,6 +487,16 @@ sealed class CodePlacement
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     private void PlaceAllValues()
     {
+        // Collect all values that are part of a block's value chain. Only
+        // values outside of all chains are orphaned and need to be placed
+        // explicitly at their use sites.
+        var chainSet = Method.CreateSet<BasicBlockValue>();
+        foreach (var block in Method.Blocks)
+        {
+            foreach (var (bbValue, _) in block.BasicBlockValues)
+                chainSet.Add(bbValue);
+        }
+
         // Process blocks in reverse post order
         var placedSet = Method.CreateSet<BasicBlockValue>();
         foreach (var block in Method.Blocks)
@@ -485,7 +507,7 @@ sealed class CodePlacement
             _blockMap.Add(block, placedBlock);
 
             // Place all values for this block
-            PlaceBlockValues(block, placedBlock, placedSet);
+            PlaceBlockValues(block, placedBlock, placedSet, chainSet);
         }
     }
 
@@ -495,16 +517,21 @@ sealed class CodePlacement
     /// <param name="block">The source basic block.</param>
     /// <param name="placedBlock">The target placed block.</param>
     /// <param name="placedSet">The set of placed basic block values.</param>
+    /// <param name="chainSet">The set of all values in any value chain.</param>
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     private void PlaceBlockValues(
         BasicBlock block,
         PlacedBlock placedBlock,
-        ValueSet<Method, BasicBlockValue> placedSet)
+        ValueSet<Method, BasicBlockValue> placedSet,
+        ValueSet<Method, BasicBlockValue> chainSet)
     {
         // Process all basic block values from the chain
-        foreach (var bbValue in block.BasicBlockValues)
+        foreach (var (bbValue, _) in block.BasicBlockValues)
         {
-            PlacePureValueDependencies(bbValue, block, placedBlock);
+            // Phi arguments are not used at the position of the phi but on
+            // the incoming edges (see the end of this method)
+            if (bbValue is not PhiValue)
+                PlacePureValueDependencies(bbValue, block, placedBlock);
             placedBlock.Add(bbValue);
             placedSet.Add(bbValue);
         }
@@ -530,14 +557,23 @@ sealed class CodePlacement
 
         // Handle orphaned phi arguments — phi values reference operands
         // that may not be in any block's value chain after transformation.
-        foreach (var phi in block.PhiValues)
+        // Phi arguments are used on the incoming edge, so they are placed at
+        // the end of this block when it is the source of a successor's phi.
+        // Values that are part of a chain are placed by their own block and
+        // must never be duplicated here.
+        foreach (var successor in block.Successors)
         {
-            for (int i = 0; i < phi.NumArguments; i++)
+            foreach (var phi in successor.PhiValues)
             {
-                if (phi.Arguments[i] is BasicBlockValue bbArg
-                    && !placedSet.Contains(bbArg))
+                for (int i = 0; i < phi.NumArguments; i++)
                 {
-                    PlaceOrphanedValue(bbArg, block, placedBlock, placedSet);
+                    if (phi.Sources[i] == block
+                        && phi.Arguments[i] is BasicBlockValue bbArg
+                        && !chainSet.Contains(bbArg)
+                        && !placedSet.Contains(bbArg))
+                    {
+                        PlaceOrphanedValue(bbArg, block, placedBlock, placedSet);
+                    }
                 }
             }
         }

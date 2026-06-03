@@ -84,4 +84,14 @@ public abstract class AtomicExecutionTests : ExecutionTestBase
                 "5", "2.5", "-2", "7.25", "3.5", "4", "4.5",
             ]);
     }
+
+    [SkippableFact]
+    public async Task AtomicAddInLoop_ProducesCorrectOutput()
+    {
+        // Three increments per thread: the last returns 2, the counter ends at 3
+        await VerifyProgramOutputAsync(
+            "TestPrograms/Atomics/AtomicAddInLoop.cs",
+            ["Kernels.AtomicAddInLoopKernel"],
+            ["23", "23", "23", "23"]);
+    }
 }

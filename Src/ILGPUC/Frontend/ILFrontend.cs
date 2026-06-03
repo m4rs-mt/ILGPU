@@ -796,7 +796,7 @@ sealed class ILFrontend
             try
             {
                 var codeGenerator = new CodeGenerator(
-                    methodBuilder, disassembled, BackendType);
+                    methodBuilder, disassembled, BackendType, isEntryPoint);
                 codeGenerator.OnNewMethodCalled += (_, e) => queue.Enqueue(e);
 
                 codeGenerator.GenerateCode();

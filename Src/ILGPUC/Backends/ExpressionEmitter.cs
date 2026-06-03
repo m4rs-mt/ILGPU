@@ -168,6 +168,16 @@ sealed class ExpressionEmitter(GenerationContext context, TypeEmitter typeEmitte
     }
 
     /// <summary>
+    /// Emits a thread index or dimension built-in, cast to its IR type if the
+    /// built-in is unsigned (see
+    /// <see cref="LanguageConfiguration.HasUnsignedThreadBuiltIns"/>).
+    /// </summary>
+    private Emitted EmitBuiltIn(Value value, string builtIn) =>
+        context.LanguageConfig.HasUnsignedThreadBuiltIns
+            ? new($"({typeEmitter.GetTypeName(value.Type)}){builtIn}", Prec.Unary)
+            : new(builtIn, Prec.Atom);
+
+    /// <summary>
     /// Emits the actual expression for a value, without checking for variable names.
     /// Used when generating the definition (RHS) of a variable assignment.
     /// </summary>
@@ -183,20 +193,20 @@ sealed class ExpressionEmitter(GenerationContext context, TypeEmitter typeEmitte
             UndefinedValue undef => EmitUndefined(undef),
 
             // Device constants
-            SubGroupIndexValue => new Emitted(
-                IntrinsicEmitter.EmitWarpIdx(0), Prec.Atom),
-            SubGroupLaneIndexValue => new Emitted(
-                IntrinsicEmitter.EmitLaneIdx(0), Prec.Atom),
-            GroupIndexValue => new Emitted(
-                IntrinsicEmitter.EmitThreadIdx(0), Prec.Atom),
-            GridIndexValue => new Emitted(
-                IntrinsicEmitter.EmitBlockIdx(0), Prec.Atom),
-            SubGroupDimensionValue => new Emitted(
-                IntrinsicEmitter.EmitWarpDim(0), Prec.Atom),
-            GroupDimensionValue => new Emitted(
-                IntrinsicEmitter.EmitBlockDim(0), Prec.Atom),
-            GridDimensionValue => new Emitted(
-                IntrinsicEmitter.EmitGridDim(0), Prec.Atom),
+            SubGroupIndexValue => EmitBuiltIn(
+                value, IntrinsicEmitter.EmitWarpIdx(0)),
+            SubGroupLaneIndexValue => EmitBuiltIn(
+                value, IntrinsicEmitter.EmitLaneIdx(0)),
+            GroupIndexValue => EmitBuiltIn(
+                value, IntrinsicEmitter.EmitThreadIdx(0)),
+            GridIndexValue => EmitBuiltIn(
+                value, IntrinsicEmitter.EmitBlockIdx(0)),
+            SubGroupDimensionValue => EmitBuiltIn(
+                value, IntrinsicEmitter.EmitWarpDim(0)),
+            GroupDimensionValue => EmitBuiltIn(
+                value, IntrinsicEmitter.EmitBlockDim(0)),
+            GridDimensionValue => EmitBuiltIn(
+                value, IntrinsicEmitter.EmitGridDim(0)),
 
             // Parameters and globals
             Parameter param => new Emitted(

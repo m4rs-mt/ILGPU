@@ -129,6 +129,10 @@ class CudaLanguageConfiguration : LanguageConfiguration
     public override bool UsesCStyleStructLiterals => true;
 
     /// <inheritdoc/>
+    /// <remarks>threadIdx, blockIdx and blockDim are unsigned int.</remarks>
+    public override bool HasUnsignedThreadBuiltIns => true;
+
+    /// <inheritdoc/>
     public override string? FormatFieldAlignment(int alignment) =>
         $" __attribute__((aligned({alignment})))";
 

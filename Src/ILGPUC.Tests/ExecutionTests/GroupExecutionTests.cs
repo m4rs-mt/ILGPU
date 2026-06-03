@@ -47,6 +47,25 @@ public abstract class GroupExecutionTests : ExecutionTestBase
     }
 
     /// <summary>
+    /// Loops bounded by the group index, which GPU backends read from
+    /// unsigned built-ins: one with two exit conditions, one starting at a
+    /// negative value.
+    /// </summary>
+    [SkippableFact]
+    public async Task GroupIdxLoopBound_ProducesCorrectOutput()
+    {
+        // first[t] = sum of (i + 1) for i in 0..t,
+        // second[t] = sum of (i + 3) for i in -2..t
+        await VerifyProgramOutputAsync(
+            "TestPrograms/Group/GroupIdxLoopBound.cs",
+            [
+                "Kernels.GroupIdxLoopBoundKernel",
+                "Kernels.GroupIdxNegativeStartKernel"
+            ],
+            ["1", "3", "6", "10", "6", "10", "15", "21"]);
+    }
+
+    /// <summary>
     /// Group and warp predicate barriers over many groups with divergent and
     /// uniform predicates, including a partially filled last group.
     /// </summary>

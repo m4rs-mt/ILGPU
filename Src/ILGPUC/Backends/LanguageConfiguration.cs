@@ -320,6 +320,14 @@ abstract class LanguageConfiguration
     public virtual bool UsesCStyleStructLiterals => false;
 
     /// <summary>
+    /// Returns true if the thread index and dimension built-ins are unsigned
+    /// (e.g. <c>uint</c> or <c>size_t</c>), while the IR treats them as signed
+    /// integers. Such built-ins are cast to their IR type so that comparisons
+    /// and divisions with negative operands stay signed.
+    /// </summary>
+    public virtual bool HasUnsignedThreadBuiltIns => false;
+
+    /// <summary>
     /// Returns additional built-in parameter declarations to append after all regular
     /// parameters in a kernel entry-point signature. Used by backends (Metal) where
     /// thread position, group index, etc. must be declared as explicit kernel parameters
