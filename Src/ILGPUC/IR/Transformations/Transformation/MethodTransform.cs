@@ -469,11 +469,12 @@ sealed class MethodTransform :
                     .AsNotNullCast<BasicBlockTransform>();
             }
 
-            // PhiValues need special rebuild: resolved arguments may have
-            // different types than the phi's declared type (e.g., after
-            // InferAddressSpaces changes address spaces). Standard
-            // PhiValue.Rewrite asserts type equality via Equals. We
-            // rebuild manually and skip arguments whose types diverge.
+            // PhiValues need a special rebuild: the replacement has to be
+            // registered before the arguments are resolved (see below).
+            // Every argument must keep the type of the phi. Transformations
+            // that change the type of a value must convert it back for all
+            // phis that keep their type (see InferAddressSpaces), as dropping
+            // the argument would silently change the program.
             if (bbv is PhiValue phiV)
             {
                 var scope = blockTransform.PushLastValue(null);
@@ -496,12 +497,13 @@ sealed class MethodTransform :
                     var argument = Rewrite(phiV.Arguments[i]);
                     if (argument is null) continue;
 
-                    // Only add arguments whose type matches the phi type
-                    // (structural equality via Equals). Arguments with
-                    // divergent types are dropped — the phi may end up
-                    // with fewer arguments, which is valid.
-                    if (argument.Type.Equals(newPhiType))
-                        phiBuilder.AddArgument(newSource, argument);
+                    if (!argument.Type.Equals(newPhiType))
+                    {
+                        throw phiV.Location.GetInvalidOperationException(
+                            $"Phi argument {argument} does not have the " +
+                            $"phi type {newPhiType}");
+                    }
+                    phiBuilder.AddArgument(newSource, argument);
                 }
 
                 newValue = phiBuilder.Seal();

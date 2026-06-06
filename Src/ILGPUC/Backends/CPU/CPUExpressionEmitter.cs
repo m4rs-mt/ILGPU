@@ -90,8 +90,70 @@ sealed class CPUExpressionEmitter(
             return $"struct_{st.Id}";
         if (type is PointerType)
             return "nint";
+        if (type is ViewType view)
+            return GetViewTypeName(view);
         return "int";
     }
+
+    /// <summary>
+    /// Returns the C# type name of a view of the given type.
+    /// </summary>
+    private string GetViewTypeName(ViewType view) =>
+        "CPURuntimeView<" + VectorizationAnalysis.GetScalarTypeName(
+            view.ElementType,
+            (CPULanguageConfiguration)context.LanguageConfig) + ">";
+
+    private int _viewBufferCounter;
+
+    /// <summary>
+    /// Returns a buffer holding the view of every lane
+    /// (<c>CPURuntimeView&lt;T&gt;[]</c>). A uniform view is broadcast, and a
+    /// view of a local array becomes the views of the private arrays of all
+    /// lanes.
+    /// </summary>
+    public string ResolveViews(Value view)
+    {
+        if (analysis.IsPerLaneView(view))
+            return ResolveOperand(view);
+
+        var viewType = (ViewType)view.Type;
+        var typeName = GetViewTypeName(viewType);
+        var source = ResolveOperand(view);
+        var buffer = $"_views_{_viewBufferCounter++}";
+        context.WriteLine($"var {buffer} = new {typeName}[SIMDWidth];");
+        if (GetLaneArrayLength(view) is int laneStride)
+        {
+            var elemType = VectorizationAnalysis.GetScalarTypeName(
+                viewType.ElementType,
+                (CPULanguageConfiguration)context.LanguageConfig);
+            context.WriteLine(
+                $"CPUVectorIntrinsics.LaneViews<{elemType}>(" +
+                $"{buffer}, {source}, {laneStride});");
+        }
+        else
+        {
+            context.WriteLine(
+                $"CPUVectorIntrinsics.Broadcast<{typeName}>({buffer}, {source});");
+        }
+        return buffer;
+    }
+
+    /// <summary>
+    /// Returns the element type name of a view.
+    /// </summary>
+    private string GetViewElementTypeName(Value view) =>
+        VectorizationAnalysis.GetScalarTypeName(
+            view.GetTypeAs<ViewType>().ElementType,
+            (CPULanguageConfiguration)context.LanguageConfig);
+
+    /// <summary>
+    /// Returns the index operand of an access through views that differ per
+    /// lane: a per-lane index buffer or a uniform 64-bit index.
+    /// </summary>
+    private string GetLaneViewIndex(Value offset) =>
+        analysis.IsScalar(offset)
+            ? $"(long)({ResolveOperand(offset)})"
+            : ResolveOperand(offset);
 
     /// <summary>
     /// Returns the number of elements of each lane's private array if the view
@@ -129,6 +191,17 @@ sealed class CPUExpressionEmitter(
 
         if (load.Source is LoadElementAddress lea && lea.IsViewAccess)
         {
+            if (analysis.IsPerLaneView(lea.Source))
+            {
+                // Every active lane loads through its own view
+                context.WriteLine(
+                    "CPUVectorIntrinsics.ViewGatherLoad<" +
+                    $"{GetViewElementTypeName(lea.Source)}>({result}, " +
+                    $"{ResolveOperand(lea.Source)}, " +
+                    $"{GetLaneViewIndex(lea.Offset)}, {ActiveMaskName});");
+                return;
+            }
+
             var view = ResolveOperand(lea.Source);
             var index = ResolveOperand(lea.Offset);
 
@@ -211,6 +284,20 @@ sealed class CPUExpressionEmitter(
 
         if (store.Target is LoadElementAddress lea && lea.IsViewAccess)
         {
+            if (analysis.IsPerLaneView(lea.Source))
+            {
+                // Every active lane stores through its own view
+                var method = analysis.IsScalar(store.Value)
+                    ? "ViewScatterFill"
+                    : "ViewScatterStore";
+                context.WriteLine(
+                    $"CPUVectorIntrinsics.{method}<" +
+                    $"{GetViewElementTypeName(lea.Source)}>(" +
+                    $"{ResolveOperand(lea.Source)}, " +
+                    $"{GetLaneViewIndex(lea.Offset)}, {value}, {ActiveMaskName});");
+                return;
+            }
+
             var view = ResolveOperand(lea.Source);
             var index = ResolveOperand(lea.Offset);
 
@@ -1128,6 +1215,15 @@ sealed class CPUExpressionEmitter(
         // collisions when multiple Predicate values reuse the same pool slot.
         var uid = predicate.Id;
 
+        // Views select the view of every lane; views of local arrays become
+        // the views of the private arrays of all lanes
+        bool isView = predicate.Type is ViewType;
+        if (isView)
+        {
+            trueVal = ResolveViews(predicate.TrueValue);
+            falseVal = ResolveViews(predicate.FalseValue);
+        }
+
         // A uniform condition selecting between per-lane operands is
         // broadcast to a lane mask; a plain ternary would assign one
         // operand array by reference (aliasing e.g. laneIdx).
@@ -1141,7 +1237,7 @@ sealed class CPUExpressionEmitter(
         }
 
         // Ensure true/false values are vectorized (broadcast if scalar)
-        if (analysis.IsScalar(predicate.TrueValue))
+        if (!isView && analysis.IsScalar(predicate.TrueValue))
         {
             var bcast = $"_sel_{uid}_t";
             context.WriteLine(
@@ -1151,7 +1247,7 @@ sealed class CPUExpressionEmitter(
                 $"{bcast}, {trueVal});");
             trueVal = bcast;
         }
-        if (analysis.IsScalar(predicate.FalseValue))
+        if (!isView && analysis.IsScalar(predicate.FalseValue))
         {
             var bcast = $"_sel_{uid}_f";
             context.WriteLine(
@@ -1184,6 +1280,16 @@ sealed class CPUExpressionEmitter(
         var elemType = lea.Source.Type is ViewType vt
             ? vt.ElementType : lea.Source.Type;
         var elemSize = elemType.Size;
+
+        if (analysis.IsPerLaneView(lea.Source))
+        {
+            // Every active lane addresses an element of its own view
+            context.WriteLine(
+                "CPUVectorIntrinsics.ComputeViewAddresses<" +
+                $"{GetViewElementTypeName(lea.Source)}>({result}, {view}, " +
+                $"{GetLaneViewIndex(lea.Offset)}, {elemSize}, {ActiveMaskName});");
+            return;
+        }
 
         // Scalar offset: broadcast to a per-lane array first
         if (analysis.IsScalar(lea.Offset))

@@ -33,10 +33,13 @@ sealed class VectorizationAnalysis
 {
     private readonly Method _method;
     private readonly bool _vectorizeFirstParam;
+    private readonly System.Func<Method, VectorizationAnalysis?>? _callerAnalyses;
     private readonly HashSet<Value> _scalarValues = [];
     private readonly HashSet<Value> _phiVisiting = [];
+    private readonly HashSet<(PhiValue, Value)> _equivalentPhis = [];
     private Dominators<Forwards>? _dominators;
     private Dominators<Backwards>? _postDominators;
+    private Loops<ReversePostOrder<BasicBlock>, Forwards>? _loops;
 
     /// <summary>
     /// Creates a new vectorization analysis for a method.
@@ -47,12 +50,19 @@ sealed class VectorizationAnalysis
     /// per-lane vectorized rather than scalar. Set this for entry-point
     /// methods where the first parameter maps to <c>laneIdx</c>.
     /// </param>
+    /// <param name="callerAnalyses">
+    /// Returns the analysis of a calling method, or null if it is not
+    /// available. View parameters differ per lane if a caller passes a view
+    /// that differs per lane.
+    /// </param>
     public VectorizationAnalysis(
         Method method,
-        bool vectorizeFirstParam = false)
+        bool vectorizeFirstParam = false,
+        System.Func<Method, VectorizationAnalysis?>? callerAnalyses = null)
     {
         _method = method;
         _vectorizeFirstParam = vectorizeFirstParam;
+        _callerAnalyses = callerAnalyses;
         PerformAnalysis();
     }
 
@@ -82,17 +92,47 @@ sealed class VectorizationAnalysis
             // (guard against infinite recursion for loop-carried phis)
             PhiValue phi => AreAllPhiArgsScalar(phi),
             // A view load is scalar when its LEA offset is scalar, unless
-            // it reads a local array that every lane owns privately
+            // it reads a local array that every lane owns privately or
+            // reads through a view that differs per lane
             Load load when load.Source is LoadElementAddress lea
                 && lea.IsViewAccess => IsScalar(lea.Offset)
-                && CPUExpressionEmitter.GetLaneArrayLength(lea.Source) is null,
-            // View property reads (Length) are always scalar — view metadata
-            // is uniform across all SIMD lanes. This makes SubView length
-            // computations (viewLength - offset) propagate as scalar.
-            ViewPropertyValue => true,
+                && CPUExpressionEmitter.GetLaneArrayLength(lea.Source) is null
+                && !IsPerLaneView(lea.Source),
+            // Sub-views and casts of uniform views are uniform
+            SubView sub => IsScalar(sub.Source)
+                && IsScalar(sub.Offset)
+                && IsScalar(sub.Length),
+            ViewCast cast => IsScalar(cast.Source),
+            AddressSpaceCast { Source.Type: ViewType } cast =>
+                IsScalar(cast.Source),
+            // Views of shared memory are the same for all lanes, whereas
+            // every lane owns a private copy of a local array
+            NewView { Pointer: Global global } =>
+                global.AddressSpace != MemoryAddressSpace.Local,
+            NewView nv => IsScalar(nv.Pointer) && IsScalar(nv.Length),
+            // View properties (Length) are uniform unless the view differs
+            // per lane; all private arrays of a local array have the same
+            // length. This makes SubView length computations
+            // (viewLength - offset) propagate as scalar.
+            ViewPropertyValue property => !IsPerLaneView(property.Source),
             _ => false
         };
     }
+
+    /// <summary>
+    /// Returns true if the value is a view of a local array, which addresses
+    /// the private arrays of all lanes (see
+    /// <see cref="CPUExpressionEmitter.GetLaneArrayLength(Value)"/>).
+    /// </summary>
+    public static bool IsLaneArrayView(Value value) =>
+        CPUExpressionEmitter.GetLaneArrayLength(value) is not null;
+
+    /// <summary>
+    /// Returns true if the value is a view that differs per lane. Such views
+    /// are stored as one view per lane (<c>CPURuntimeView&lt;T&gt;[]</c>).
+    /// </summary>
+    public bool IsPerLaneView(Value value) =>
+        value.Type is ViewType && !IsScalar(value) && !IsLaneArrayView(value);
 
     /// <summary>
     /// Checks if all phi arguments are scalar. Uses a guard set to prevent
@@ -131,7 +171,7 @@ sealed class VectorizationAnalysis
     /// Returns true if lanes can reach the phi's block over different
     /// incoming edges with different values, because a branch on a per-lane
     /// condition sits between their divergence point and the phi. Loop-header
-    /// phis are excluded: the masked loop emitters blend their back edges.
+    /// phis diverge when lanes can leave the loop in different iterations.
     /// </summary>
     private bool IsControlDivergent(PhiValue phi)
     {
@@ -143,7 +183,7 @@ sealed class VectorizationAnalysis
         foreach (var pred in merge.Predecessors)
         {
             if (_dominators.Dominates(merge, pred))
-                return false;
+                return !IsInvariantStructPhi(phi) && HasDivergentExit(merge);
         }
 
         _postDominators ??= _method.Blocks.CreatePostDominators();
@@ -166,16 +206,157 @@ sealed class VectorizationAnalysis
     }
 
     /// <summary>
-    /// Returns true if the phi has at least two different incoming values.
+    /// Returns true if lanes can leave the loop with the given header in
+    /// different iterations, because a branch on a per-lane condition decides
+    /// whether a lane exits. Loop-carried values then differ per lane after
+    /// the loop even when every iteration computes uniform values.
     /// </summary>
-    private static bool HasDistinctArguments(PhiValue phi)
+    private bool HasDivergentExit(BasicBlock header)
     {
-        for (int i = 1; i < phi.NumArguments; i++)
+        _loops ??= _method.CreateLoops();
+        if (!_loops.TryGetLoop(header, out var loop))
+            return false;
+        while (loop.Parent is not null && !IsHeaderOf(loop, header))
+            loop = loop.Parent;
+        foreach (var breaker in loop.Breakers)
         {
-            if (phi.Arguments[i] != phi.Arguments[0])
+            var condition = breaker.TerminationCondition;
+            if (condition is not null && !IsScalar(condition))
                 return true;
         }
         return false;
+    }
+
+    /// <summary>
+    /// Returns true if the block is a header of the loop.
+    /// </summary>
+    private static bool IsHeaderOf(
+        Loops<ReversePostOrder<BasicBlock>, Forwards>.Node loop,
+        BasicBlock block)
+    {
+        foreach (var header in loop.Headers)
+        {
+            if (header == block)
+                return true;
+        }
+        return false;
+    }
+
+    /// <summary>
+    /// Returns true if every back-edge value of a structure-typed loop phi is
+    /// equivalent to the phi itself, e.g. the phi rebuilt from its own fields
+    /// or a merge of such copies. Such phis (e.g. views passed through a loop)
+    /// keep their initial value.
+    /// </summary>
+    private bool IsInvariantStructPhi(PhiValue phi)
+    {
+        if (phi.Type is not StructureType)
+            return false;
+        for (int i = 0; i < phi.NumArguments; i++)
+        {
+            if (_dominators!.Dominates(phi.BasicBlock, phi.Sources[i]) &&
+                !AreEquivalent(phi.Arguments[i], phi, 0))
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /// <summary>
+    /// Returns true if the phi has at least two different incoming values.
+    /// </summary>
+    private bool HasDistinctArguments(PhiValue phi)
+    {
+        for (int i = 1; i < phi.NumArguments; i++)
+        {
+            if (!AreEquivalent(phi.Arguments[i], phi.Arguments[0], 0))
+                return true;
+        }
+        return false;
+    }
+
+    /// <summary>
+    /// Returns true if two values are equal in every lane because they are
+    /// built by the same structural operations from the same values. Address
+    /// space inference and view lowering rebuild views and structures holding
+    /// views on several paths; the phis merging these copies are uniform.
+    /// </summary>
+    private bool AreEquivalent(Value left, Value right, int depth)
+    {
+        if (left == right)
+            return true;
+        if (depth > 8 || left.Type != right.Type)
+            return false;
+        switch (left, right)
+        {
+            case (AddressSpaceCast l, AddressSpaceCast r):
+                return AreEquivalent(l.Source, r.Source, depth + 1);
+            case (GetField l, GetField r):
+                return l.FieldSpan.Index == r.FieldSpan.Index
+                    && l.FieldSpan.Span == r.FieldSpan.Span
+                    && AreEquivalent(l.Source, r.Source, depth + 1);
+            case (StructureValue l, StructureValue r):
+                for (int i = 0; i < l.Count; i++)
+                {
+                    if (!AreEquivalent(l.Values[i], r.Values[i], depth + 1))
+                        return false;
+                }
+                return true;
+            case (StructureValue l, _):
+                return IsRebuiltFrom(l, right, depth);
+            case (_, StructureValue r):
+                return IsRebuiltFrom(r, left, depth);
+            case (PhiValue l, _):
+                return IsMergeOf(l, right, depth);
+            case (_, PhiValue r):
+                return IsMergeOf(r, left, depth);
+            default:
+                return false;
+        }
+    }
+
+    /// <summary>
+    /// Returns true if a structure value consists of all fields of another
+    /// value of the same type, in order.
+    /// </summary>
+    private bool IsRebuiltFrom(StructureValue value, Value source, int depth)
+    {
+        for (int i = 0; i < value.Count; i++)
+        {
+            if (value.Values[i] is not GetField gf ||
+                gf.FieldSpan.Index != i || gf.FieldSpan.Span != 1 ||
+                !AreEquivalent(gf.Source, source, depth + 1))
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /// <summary>
+    /// Returns true if all incoming values of a phi are equivalent to another
+    /// value. A phi that is reached again while it is being compared to the
+    /// same value is assumed to be equivalent, as a cycle of phis only merges
+    /// the values entering it from outside.
+    /// </summary>
+    private bool IsMergeOf(PhiValue phi, Value value, int depth)
+    {
+        if (!_equivalentPhis.Add((phi, value)))
+            return true;
+        try
+        {
+            for (int i = 0; i < phi.NumArguments; i++)
+            {
+                if (!AreEquivalent(phi.Arguments[i], value, depth + 1))
+                    return false;
+            }
+            return true;
+        }
+        finally
+        {
+            _equivalentPhis.Remove((phi, value));
+        }
     }
 
     /// <summary>
@@ -261,11 +442,12 @@ sealed class VectorizationAnalysis
         {
             if (_vectorizeFirstParam && param.Index == 0)
                 continue;
-            // Views and structures holding views or pointers are passed
-            // as they are; they cannot be split into per-lane arrays.
-            bool perLaneType = param.Type is not ViewType
-                && !param.Type.HasFlags(
-                    TypeFlags.ViewDependent | TypeFlags.PointerDependent);
+            // Pointers and structures holding pointers are passed as they
+            // are; they cannot be split into per-lane arrays. Views and
+            // structures holding views are passed as one value per lane if
+            // a caller passes one that differs per lane.
+            bool perLaneType = param.Type is not PointerType
+                && !param.Type.HasFlags(TypeFlags.PointerDependent);
             if (perLaneType && vectorizedParams is not null
                 && vectorizedParams.Contains(param.Index))
             {
@@ -300,7 +482,7 @@ sealed class VectorizationAnalysis
                 {
                     var arg = call.Arguments[i];
                     // Per-lane device constants are NOT intrinsically scalar
-                    if (!IsIntrinsicallyScalar(arg))
+                    if (!IsIntrinsicallyScalar(arg) && IsPerLaneArgument(caller, arg))
                     {
                         result ??= [];
                         result.Add(i);
@@ -309,6 +491,26 @@ sealed class VectorizationAnalysis
             });
         }
         return result;
+    }
+
+    /// <summary>
+    /// Returns true if a call argument may differ per lane. Views and
+    /// structures holding views differ per lane if the caller's analysis
+    /// classifies them as per-lane or they address a local array, which every
+    /// lane owns privately. Without the caller's analysis, they are assumed
+    /// to differ per lane.
+    /// </summary>
+    private bool IsPerLaneArgument(Method caller, Value arg)
+    {
+        if (arg.Type is not ViewType &&
+            !arg.Type.HasFlags(TypeFlags.ViewDependent))
+        {
+            return true;
+        }
+        if (IsLaneArrayView(arg))
+            return true;
+        var analysis = caller == _method ? this : _callerAnalyses?.Invoke(caller);
+        return analysis is null || !analysis.IsScalar(arg);
     }
 
     /// <summary>
@@ -351,9 +553,14 @@ sealed class VectorizationAnalysis
         if (baseType is PointerType)
             return "nint[]";
 
-        // Vectorized view values → CPURuntimeView<elementType>
+        // Views of local arrays address the private arrays of all lanes;
+        // views that differ per lane are stored as one view per lane
         if (baseType is ViewType view)
-            return $"CPURuntimeView<{GetScalarTypeName(view.ElementType, config)}>";
+        {
+            var viewType =
+                $"CPURuntimeView<{GetScalarTypeName(view.ElementType, config)}>";
+            return IsLaneArrayView(value) ? viewType : viewType + "[]";
+        }
 
         // Vectorized primitive values use Tensor<T>
         if (baseType is PrimitiveType primitive)

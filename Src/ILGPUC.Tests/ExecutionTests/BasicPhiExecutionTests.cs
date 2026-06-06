@@ -86,4 +86,26 @@ public abstract class BasicPhiExecutionTests : ExecutionTestBase
             ["Kernels.DoWhileRotateLoadKernel"],
             ["20406", "40606", "60609", "60912"]);
     }
+
+    [SkippableFact]
+    public async Task ViewSwapLoop_ProducesCorrectOutput()
+    {
+        // data[i] = (7 * i) % 11 - 5; thread t swaps the two halves of data
+        // in t + 2 iterations, once with ArrayView1D and once with ArrayView
+        await VerifyProgramOutputAsync(
+            "TestPrograms/BasicPhi/ViewSwapLoop.cs",
+            ["Kernels.ViewSwapLoopKernel", "Kernels.ContiguousViewSwapLoopKernel"],
+            ["-17", "16", "-103", "443", "-17", "16", "-103", "443"]);
+    }
+
+    [SkippableFact]
+    public async Task ViewShrinkLoop_ProducesCorrectOutput()
+    {
+        // data[i] = 3 * i + 1; thread t sums data[0..t + 2) by dropping the
+        // first element of a view in every iteration
+        await VerifyProgramOutputAsync(
+            "TestPrograms/BasicPhi/ViewShrinkLoop.cs",
+            ["Kernels.ViewShrinkLoopKernel"],
+            ["5", "12", "22", "35"]);
+    }
 }

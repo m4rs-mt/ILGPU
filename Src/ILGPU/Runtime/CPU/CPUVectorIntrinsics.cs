@@ -839,4 +839,245 @@ public static class CPUVectorIntrinsics
     }
 
     #endregion
+
+    #region Per-Lane View Operations
+
+    // Views that differ per lane are stored as one view per SIMD lane. Element
+    // accesses go through the view of each active lane; inactive lanes are
+    // neither read nor written.
+
+    /// <summary>
+    /// Writes the view of the private array of every lane of a local array
+    /// into a per-lane view buffer: lane i owns the elements
+    /// [i * laneStride, i * laneStride + view.Length) of the underlying memory.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static unsafe void LaneViews<T>(
+        Span<CPURuntimeView<T>> views,
+        CPURuntimeView<T> view,
+        int laneStride) where T : unmanaged
+    {
+        for (int i = 0; i < views.Length; i++)
+            views[i] = new(view.Ptr + (long)i * laneStride, view.Length);
+    }
+
+    /// <summary>
+    /// Loads the element at a per-lane index from the view of every active
+    /// lane.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static unsafe void ViewGatherLoad<T>(
+        Span<T> target,
+        ReadOnlySpan<CPURuntimeView<T>> views,
+        ReadOnlySpan<int> indices,
+        ReadOnlySpan<bool> mask) where T : unmanaged
+    {
+        for (int i = 0; i < target.Length; i++)
+        {
+            if (mask[i])
+                target[i] = views[i].Ptr[indices[i]];
+        }
+    }
+
+    /// <inheritdoc cref="ViewGatherLoad{T}(Span{T},
+    /// ReadOnlySpan{CPURuntimeView{T}}, ReadOnlySpan{int}, ReadOnlySpan{bool})"/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static unsafe void ViewGatherLoad<T>(
+        Span<T> target,
+        ReadOnlySpan<CPURuntimeView<T>> views,
+        ReadOnlySpan<long> indices,
+        ReadOnlySpan<bool> mask) where T : unmanaged
+    {
+        for (int i = 0; i < target.Length; i++)
+        {
+            if (mask[i])
+                target[i] = views[i].Ptr[indices[i]];
+        }
+    }
+
+    /// <summary>
+    /// Loads the element at a uniform index from the view of every active
+    /// lane.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static unsafe void ViewGatherLoad<T>(
+        Span<T> target,
+        ReadOnlySpan<CPURuntimeView<T>> views,
+        long index,
+        ReadOnlySpan<bool> mask) where T : unmanaged
+    {
+        for (int i = 0; i < target.Length; i++)
+        {
+            if (mask[i])
+                target[i] = views[i].Ptr[index];
+        }
+    }
+
+    /// <summary>
+    /// Stores one value per active lane at a per-lane index into the view of
+    /// the lane.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static unsafe void ViewScatterStore<T>(
+        ReadOnlySpan<CPURuntimeView<T>> views,
+        ReadOnlySpan<int> indices,
+        ReadOnlySpan<T> values,
+        ReadOnlySpan<bool> mask) where T : unmanaged
+    {
+        for (int i = 0; i < views.Length; i++)
+        {
+            if (mask[i])
+                views[i].Ptr[indices[i]] = values[i];
+        }
+    }
+
+    /// <inheritdoc cref="ViewScatterStore{T}(ReadOnlySpan{CPURuntimeView{T}},
+    /// ReadOnlySpan{int}, ReadOnlySpan{T}, ReadOnlySpan{bool})"/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static unsafe void ViewScatterStore<T>(
+        ReadOnlySpan<CPURuntimeView<T>> views,
+        ReadOnlySpan<long> indices,
+        ReadOnlySpan<T> values,
+        ReadOnlySpan<bool> mask) where T : unmanaged
+    {
+        for (int i = 0; i < views.Length; i++)
+        {
+            if (mask[i])
+                views[i].Ptr[indices[i]] = values[i];
+        }
+    }
+
+    /// <summary>
+    /// Stores one value per active lane at a uniform index into the view of
+    /// the lane.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static unsafe void ViewScatterStore<T>(
+        ReadOnlySpan<CPURuntimeView<T>> views,
+        long index,
+        ReadOnlySpan<T> values,
+        ReadOnlySpan<bool> mask) where T : unmanaged
+    {
+        for (int i = 0; i < views.Length; i++)
+        {
+            if (mask[i])
+                views[i].Ptr[index] = values[i];
+        }
+    }
+
+    /// <summary>
+    /// Stores a uniform value at a per-lane index into the view of every
+    /// active lane.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static unsafe void ViewScatterFill<T>(
+        ReadOnlySpan<CPURuntimeView<T>> views,
+        ReadOnlySpan<int> indices,
+        T value,
+        ReadOnlySpan<bool> mask) where T : unmanaged
+    {
+        for (int i = 0; i < views.Length; i++)
+        {
+            if (mask[i])
+                views[i].Ptr[indices[i]] = value;
+        }
+    }
+
+    /// <inheritdoc cref="ViewScatterFill{T}(ReadOnlySpan{CPURuntimeView{T}},
+    /// ReadOnlySpan{int}, T, ReadOnlySpan{bool})"/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static unsafe void ViewScatterFill<T>(
+        ReadOnlySpan<CPURuntimeView<T>> views,
+        ReadOnlySpan<long> indices,
+        T value,
+        ReadOnlySpan<bool> mask) where T : unmanaged
+    {
+        for (int i = 0; i < views.Length; i++)
+        {
+            if (mask[i])
+                views[i].Ptr[indices[i]] = value;
+        }
+    }
+
+    /// <summary>
+    /// Stores a uniform value at a uniform index into the view of every
+    /// active lane.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static unsafe void ViewScatterFill<T>(
+        ReadOnlySpan<CPURuntimeView<T>> views,
+        long index,
+        T value,
+        ReadOnlySpan<bool> mask) where T : unmanaged
+    {
+        for (int i = 0; i < views.Length; i++)
+        {
+            if (mask[i])
+                views[i].Ptr[index] = value;
+        }
+    }
+
+    /// <summary>
+    /// Computes the address of the element at a per-lane index in the view of
+    /// every active lane.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static unsafe void ComputeViewAddresses<T>(
+        Span<nint> addresses,
+        ReadOnlySpan<CPURuntimeView<T>> views,
+        ReadOnlySpan<int> indices,
+        int elementSize,
+        ReadOnlySpan<bool> mask) where T : unmanaged
+    {
+        for (int i = 0; i < addresses.Length; i++)
+        {
+            if (mask[i])
+            {
+                addresses[i] = (nint)(
+                    (byte*)views[i].Ptr + (long)indices[i] * elementSize);
+            }
+        }
+    }
+
+    /// <inheritdoc cref="ComputeViewAddresses{T}(Span{nint},
+    /// ReadOnlySpan{CPURuntimeView{T}}, ReadOnlySpan{int}, int,
+    /// ReadOnlySpan{bool})"/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static unsafe void ComputeViewAddresses<T>(
+        Span<nint> addresses,
+        ReadOnlySpan<CPURuntimeView<T>> views,
+        ReadOnlySpan<long> indices,
+        int elementSize,
+        ReadOnlySpan<bool> mask) where T : unmanaged
+    {
+        for (int i = 0; i < addresses.Length; i++)
+        {
+            if (mask[i])
+            {
+                addresses[i] = (nint)(
+                    (byte*)views[i].Ptr + indices[i] * elementSize);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Computes the address of the element at a uniform index in the view of
+    /// every active lane.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static unsafe void ComputeViewAddresses<T>(
+        Span<nint> addresses,
+        ReadOnlySpan<CPURuntimeView<T>> views,
+        long index,
+        int elementSize,
+        ReadOnlySpan<bool> mask) where T : unmanaged
+    {
+        for (int i = 0; i < addresses.Length; i++)
+        {
+            if (mask[i])
+                addresses[i] = (nint)((byte*)views[i].Ptr + index * elementSize);
+        }
+    }
+
+    #endregion
 }
