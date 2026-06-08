@@ -41,6 +41,10 @@ dotnet test --filter PerfTests --blame-hang-timeout 360s
 # backends). Optional: ILGPU_BENCH_WARMUP / ILGPU_BENCH_ITERATIONS /
 # ILGPU_BENCH_OUTPUT.
 ILGPU_RUN_BENCH=1 dotnet test --filter CompileBench --blame-hang-timeout 360s
+
+# Write the generated kernel and wrapper sources of execution tests to a
+# directory (nothing is written unless this is set).
+ILGPU_DUMP_SOURCE=/tmp/ilgpu_sources dotnet test --filter ExecutionTests
 ```
 
 Target framework is **net10.0** (C# 13). `AllowUnsafeBlocks` is enabled.

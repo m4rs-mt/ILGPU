@@ -553,7 +553,9 @@ public static unsafe partial class MetalAPI
     {
         // Write metallib to a temp file and load via newLibraryWithURL:
         // This avoids dispatch_data_t interop complexity.
-        var tmpPath = System.IO.Path.GetTempFileName() + ".metallib";
+        var tmpPath = System.IO.Path.Combine(
+            System.IO.Path.GetTempPath(),
+            System.IO.Path.GetRandomFileName() + ".metallib");
         try
         {
             System.IO.File.WriteAllBytes(tmpPath, data.ToArray());
