@@ -5,8 +5,8 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>$(SamplesTargetFramework)</TargetFramework>
-    <RootNamespace>AlgorithmsSequence</RootNamespace>
-    <AssemblyName>AlgorithmsSequence</AssemblyName>
+    <RootNamespace>Scan</RootNamespace>
+    <AssemblyName>Scan</AssemblyName>
   </PropertyGroup>
 
   <ItemGroup>

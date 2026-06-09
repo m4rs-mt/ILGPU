@@ -5,8 +5,8 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>$(SamplesTargetFramework)</TargetFramework>
-    <RootNamespace>EmptyAlgorithms</RootNamespace>
-    <AssemblyName>EmptyAlgorithms</AssemblyName>
+    <RootNamespace>RadixSort</RootNamespace>
+    <AssemblyName>RadixSort</AssemblyName>
   </PropertyGroup>
 
   <ItemGroup>

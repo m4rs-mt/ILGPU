@@ -16,7 +16,7 @@ using ILGPU.Initialization;
 using ILGPU.Runtime;
 using ILGPU.ScanReduce;
 
-namespace AlgorithmsScan;
+namespace Scan;
 
 static class Program
 {

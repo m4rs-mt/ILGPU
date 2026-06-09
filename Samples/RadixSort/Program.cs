@@ -13,10 +13,10 @@ using System;
 using System.Linq;
 using ILGPU;
 using ILGPU.Initialization;
+using ILGPU.RadixSort;
 using ILGPU.Runtime;
-using ILGPU.ScanReduce;
 
-namespace AlgorithmsReduce;
+namespace RadixSort;
 
 static class Program
 {
@@ -40,19 +40,28 @@ static class Program
         Console.WriteLine($"Using {accelerator}");
         var stream = accelerator.DefaultStream;
 
-        using var buffer = stream.Allocate1D<int>(64);
+        const int N = 32;
+        using var buffer = stream.Allocate1D<int>(N);
 
-        // Fill the buffer with a sequence 0..63
-        stream.Sequence(buffer.View, i => (int)i);
+        // Fill with a descending sequence: N-1, N-2, ..., 1, 0
+        stream.Sequence(buffer.View, i => (int)(N - 1 - i));
 
-        // Reduce: sum all elements -> returns the scalar result directly
-        int result = stream.Reduce(
-            buffer.View,
-            identity: 0,
-            apply: (a, b) => a + b,
-            atomicApply: (ref int t, int v) => Atomic.Add(ref t, v));
+        // Ascending radix sort
+        stream.RadixSort<int, AscendingInt32>(buffer.View);
         stream.Synchronize();
 
-        Console.WriteLine($"Reduced = {result}");
+        Console.WriteLine("Ascending RadixSort:");
+        var data = buffer.GetAsArray1D();
+        for (int i = 0, e = data.Length; i < e; ++i)
+            Console.WriteLine($"Data[{i}] = {data[i]}");
+
+        // Descending radix sort
+        stream.RadixSort<int, DescendingInt32>(buffer.View);
+        stream.Synchronize();
+
+        Console.WriteLine("Descending RadixSort:");
+        data = buffer.GetAsArray1D();
+        for (int i = 0, e = data.Length; i < e; ++i)
+            Console.WriteLine($"Data[{i}] = {data[i]}");
     }
 }

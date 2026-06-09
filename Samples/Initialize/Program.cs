@@ -15,7 +15,7 @@ using ILGPU;
 using ILGPU.Initialization;
 using ILGPU.Runtime;
 
-namespace AlgorithmsTransform;
+namespace Initialize;
 
 public struct CustomStruct
 {
@@ -48,22 +48,30 @@ static class Program
         Console.WriteLine($"Using {accelerator}");
         var stream = accelerator.DefaultStream;
 
-        using var sourceBuffer = stream.Allocate1D<int>(64);
-        stream.Initialize(sourceBuffer.View, 2);
+        // Initialize a buffer of ints to a constant value
+        using (var buffer = stream.Allocate1D<int>(64))
+        {
+            stream.Initialize(buffer.View, 23);
+            stream.Synchronize();
 
-        using var targetBuffer = stream.Allocate1D<CustomStruct>(64);
+            var data = buffer.GetAsArray1D();
+            for (int i = 0, e = data.Length; i < e; ++i)
+                Console.WriteLine($"Data[{i}] = {data[i]}");
+        }
 
-        // Transform int -> CustomStruct using a lambda
-        stream.Transform(sourceBuffer.View, targetBuffer.View, value =>
-            new CustomStruct
+        // Initialize a buffer of custom structs using a lambda
+        using (var buffer = stream.Allocate1D<CustomStruct>(64))
+        {
+            stream.Initialize(buffer.View, _ => new CustomStruct
             {
-                First = value,
-                Second = value * value
+                First = 23,
+                Second = 42
             });
-        stream.Synchronize();
+            stream.Synchronize();
 
-        var data = targetBuffer.GetAsArray1D();
-        for (int i = 0, e = data.Length; i < e; ++i)
-            Console.WriteLine($"Data[{i}] = {data[i]}");
+            var data = buffer.GetAsArray1D();
+            for (int i = 0, e = data.Length; i < e; ++i)
+                Console.WriteLine($"Data2[{i}] = {data[i]}");
+        }
     }
 }

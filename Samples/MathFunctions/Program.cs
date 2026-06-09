@@ -14,7 +14,7 @@ using System.Linq;
 using ILGPU;
 using ILGPU.Runtime;
 
-namespace AlgorithmsMath;
+namespace MathFunctions;
 
 static class Kernels
 {

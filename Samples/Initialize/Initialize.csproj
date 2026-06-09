@@ -5,8 +5,8 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>$(SamplesTargetFramework)</TargetFramework>
-    <RootNamespace>AlgorithmsReduce</RootNamespace>
-    <AssemblyName>AlgorithmsReduce</AssemblyName>
+    <RootNamespace>Initialize</RootNamespace>
+    <AssemblyName>Initialize</AssemblyName>
   </PropertyGroup>
 
   <ItemGroup>

@@ -13,10 +13,18 @@ using System;
 using System.Linq;
 using ILGPU;
 using ILGPU.Initialization;
-using ILGPU.RadixSort;
 using ILGPU.Runtime;
 
-namespace AlgorithmsRadixSort;
+namespace Transform;
+
+public struct CustomStruct
+{
+    public int First { get; set; }
+    public int Second { get; set; }
+
+    public override string ToString() =>
+        $"First: {First}, Second: {Second}";
+}
 
 static class Program
 {
@@ -40,27 +48,21 @@ static class Program
         Console.WriteLine($"Using {accelerator}");
         var stream = accelerator.DefaultStream;
 
-        const int N = 32;
-        using var buffer = stream.Allocate1D<int>(N);
+        using var sourceBuffer = stream.Allocate1D<int>(64);
+        stream.Initialize(sourceBuffer.View, 2);
 
-        // Fill with a descending sequence: N-1, N-2, ..., 1, 0
-        stream.Sequence(buffer.View, i => (int)(N - 1 - i));
+        using var targetBuffer = stream.Allocate1D<CustomStruct>(64);
 
-        // Ascending radix sort
-        stream.RadixSort<int, AscendingInt32>(buffer.View);
+        // Transform int -> CustomStruct using a lambda
+        stream.Transform(sourceBuffer.View, targetBuffer.View, value =>
+            new CustomStruct
+            {
+                First = value,
+                Second = value * value
+            });
         stream.Synchronize();
 
-        Console.WriteLine("Ascending RadixSort:");
-        var data = buffer.GetAsArray1D();
-        for (int i = 0, e = data.Length; i < e; ++i)
-            Console.WriteLine($"Data[{i}] = {data[i]}");
-
-        // Descending radix sort
-        stream.RadixSort<int, DescendingInt32>(buffer.View);
-        stream.Synchronize();
-
-        Console.WriteLine("Descending RadixSort:");
-        data = buffer.GetAsArray1D();
+        var data = targetBuffer.GetAsArray1D();
         for (int i = 0, e = data.Length; i < e; ++i)
             Console.WriteLine($"Data[{i}] = {data[i]}");
     }

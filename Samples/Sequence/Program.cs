@@ -15,7 +15,7 @@ using ILGPU;
 using ILGPU.Initialization;
 using ILGPU.Runtime;
 
-namespace AlgorithmsSequence;
+namespace Sequence;
 
 struct CustomStruct
 {

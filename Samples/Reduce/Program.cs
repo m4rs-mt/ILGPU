@@ -14,17 +14,9 @@ using System.Linq;
 using ILGPU;
 using ILGPU.Initialization;
 using ILGPU.Runtime;
+using ILGPU.ScanReduce;
 
-namespace AlgorithmsInitialize;
-
-public struct CustomStruct
-{
-    public int First { get; set; }
-    public int Second { get; set; }
-
-    public override string ToString() =>
-        $"First: {First}, Second: {Second}";
-}
+namespace Reduce;
 
 static class Program
 {
@@ -48,30 +40,19 @@ static class Program
         Console.WriteLine($"Using {accelerator}");
         var stream = accelerator.DefaultStream;
 
-        // Initialize a buffer of ints to a constant value
-        using (var buffer = stream.Allocate1D<int>(64))
-        {
-            stream.Initialize(buffer.View, 23);
-            stream.Synchronize();
+        using var buffer = stream.Allocate1D<int>(64);
 
-            var data = buffer.GetAsArray1D();
-            for (int i = 0, e = data.Length; i < e; ++i)
-                Console.WriteLine($"Data[{i}] = {data[i]}");
-        }
+        // Fill the buffer with a sequence 0..63
+        stream.Sequence(buffer.View, i => (int)i);
 
-        // Initialize a buffer of custom structs using a lambda
-        using (var buffer = stream.Allocate1D<CustomStruct>(64))
-        {
-            stream.Initialize(buffer.View, _ => new CustomStruct
-            {
-                First = 23,
-                Second = 42
-            });
-            stream.Synchronize();
+        // Reduce: sum all elements -> returns the scalar result directly
+        int result = stream.Reduce(
+            buffer.View,
+            identity: 0,
+            apply: (a, b) => a + b,
+            atomicApply: (ref int t, int v) => Atomic.Add(ref t, v));
+        stream.Synchronize();
 
-            var data = buffer.GetAsArray1D();
-            for (int i = 0, e = data.Length; i < e; ++i)
-                Console.WriteLine($"Data2[{i}] = {data[i]}");
-        }
+        Console.WriteLine($"Reduced = {result}");
     }
 }
