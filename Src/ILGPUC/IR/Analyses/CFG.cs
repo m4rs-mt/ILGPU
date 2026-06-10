@@ -66,16 +66,6 @@ sealed class CFG<TOrder, TDirection>
         public NodeCollection Successors =>
             new(cfg, Block.GetSuccessors<TDirection>());
 
-        /// <summary>
-        /// Returns the number of predecessors.
-        /// </summary>
-        public int NumPredecessors => Predecessors.Count;
-
-        /// <summary>
-        /// Returns the number of successors.
-        /// </summary>
-        public int NumSuccessors => Successors.Count;
-
         /// <inheritdoc cref="ILocation.FormatErrorMessage(string)"/>
         string ILocation.FormatErrorMessage(string message) =>
             Block.FormatErrorMessage(message);
@@ -93,19 +83,6 @@ sealed class CFG<TOrder, TDirection>
         ReadOnlySpan<BasicBlock> links)
     {
         private readonly ReadOnlySpan<BasicBlock> _links = links;
-
-        /// <summary>
-        /// Returns the number of nodes.
-        /// </summary>
-        public int Count => _links.Length;
-
-        /// <summary>
-        /// Returns the i-th node.
-        /// </summary>
-        /// <param name="index">The relative node index.</param>
-        /// <returns>The resolved node.</returns>
-        public Node this[int index] =>
-            new(cfg, _links[index], cfg._numbering[_links[index]]);
 
         /// <summary>
         /// Returns an enumerator to iterate over all attached nodes.
@@ -169,11 +146,6 @@ sealed class CFG<TOrder, TDirection>
     public BasicBlockCollection<TOrder, TDirection> Blocks { get; }
 
     /// <summary>
-    /// Returns the underlying blocks as materialized span.
-    /// </summary>
-    public ReadOnlySpan<BasicBlock> BlockSpan => _blocks;
-
-    /// <summary>
     /// Returns the number of nodes in the graph.
     /// </summary>
     public int Count => _numbering.Count;
@@ -217,19 +189,4 @@ static class CFG
         where TOrder : struct, ITraversalOrder<BasicBlock>
         where TDirection : struct, IControlFlowDirection =>
         CFG<TOrder, TDirection>.Create(blocks);
-
-    /// <summary>
-    /// Creates a new CFG based on the given module.
-    /// </summary>
-    /// <typeparam name="TOrder">The underlying block order.</typeparam>
-    /// <typeparam name="TDirection">The control-flow direction.</typeparam>
-    /// <param name="module">The source module.</param>
-    /// <returns>The created CFGs.</returns>
-    public static ValueMap<Module, Method, CFG<TOrder, TDirection>> CreateCFGs<
-        TOrder, TDirection>(this Module module)
-        where TOrder : struct, ITraversalOrder<BasicBlock>
-        where TDirection : struct, IControlFlowDirection =>
-        module.CreateMap<Method, CFG<TOrder, TDirection>>(method =>
-            CFG<TOrder, TDirection>.Create(
-                method.Blocks.ChangeOrder<TOrder, TDirection>()));
 }

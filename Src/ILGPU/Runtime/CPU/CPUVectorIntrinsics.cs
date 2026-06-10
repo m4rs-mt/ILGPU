@@ -41,17 +41,6 @@ public static class CPUVectorIntrinsics
     public static void Broadcast<T>(Span<T> target, T value) =>
         target.Fill(value);
 
-    /// <summary>
-    /// Broadcasts a value from one lane to all lanes.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static T[] BroadcastFrom<T>(ReadOnlySpan<T> source, int originLane)
-    {
-        var data = new T[source.Length];
-        Array.Fill(data, source[originLane]);
-        return data;
-    }
-
     #endregion
 
     #region Shuffle Operations

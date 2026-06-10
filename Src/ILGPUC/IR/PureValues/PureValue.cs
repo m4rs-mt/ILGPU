@@ -58,11 +58,6 @@ readonly record struct PureValueInitializer(
     public ModuleBuilder ModuleBuilder => Builder.ModuleBuilder;
 
     /// <summary>
-    /// Returns the current generation.
-    /// </summary>
-    public Generation Generation => Builder.Generation;
-
-    /// <summary>
     /// Formats an error message to include specific location information.
     /// </summary>
     string ILocation.FormatErrorMessage(string message) =>
@@ -121,14 +116,6 @@ abstract class PureValue(in PureValueInitializer initializer, TypeValue type) :
     /// Visits all child nodes using DFS.
     /// </summary>
     /// <param name="callback">The callback to be invoked for all child nodes.</param>
-    [Conditional("DEBUG")]
-    public void AssertRecursive(Predicate<Value> callback) =>
-        VisitDFS(value => value.Assert(callback(value)));
-
-    /// <summary>
-    /// Visits all child nodes using DFS.
-    /// </summary>
-    /// <param name="callback">The callback to be invoked for all child nodes.</param>
     public void VisitDFS(Action<Value> callback)
     {
         callback.Invoke(this);
@@ -144,32 +131,6 @@ abstract class PureValue(in PureValueInitializer initializer, TypeValue type) :
                 // Invoke callback and avoid recursion
                 callback.Invoke(child);
             }
-        }
-    }
-
-    /// <summary>
-    /// Visits all child nodes using BFS.
-    /// </summary>
-    /// <param name="callback">The callback to be invoked for all child nodes.</param>
-    public void VisitBFS(Action<Value> callback)
-    {
-        callback.Invoke(this);
-        VisitBFSInternal(callback);
-    }
-
-    /// <summary>
-    /// Visits all child nodes using BFS.
-    /// </summary>
-    /// <param name="callback">The callback to be invoked for all child nodes.</param>
-    private void VisitBFSInternal(Action<Value> callback)
-    {
-        foreach (var child in Values)
-            callback.Invoke(child);
-
-        foreach (var child in Values)
-        {
-            if (child is PureValue pureValue)
-                pureValue.VisitBFSInternal(callback);
         }
     }
 

@@ -133,10 +133,4 @@ readonly struct GenerationValidator(Generation current, Generation? other = null
             Generation.ValidateGeneration(value);
         }
     }
-
-    /// <summary>
-    /// Checks if the given generation is is supported.
-    /// </summary>
-    public bool SupportsGeneration(Generation gen) =>
-        gen == Generation || (IsDoubleGeneration && gen == OtherGeneration);
 }

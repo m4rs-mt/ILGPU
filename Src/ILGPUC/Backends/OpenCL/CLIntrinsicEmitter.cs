@@ -172,20 +172,6 @@ sealed class CLIntrinsicEmitter(CLVendor vendor) : IntrinsicEmitter
     public override string EmitCeil(string arg, ArithmeticBasicValueType type) => $"ceil({arg})";
 
     /// <inheritdoc/>
-    public override string EmitTrunc(string arg, ArithmeticBasicValueType type) => $"trunc({arg})";
-
-    /// <inheritdoc/>
-    public override string EmitRound(string arg, ArithmeticBasicValueType type) => $"round({arg})";
-
-    /// <inheritdoc/>
-    public override string EmitClamp(
-        string value,
-        string min,
-        string max,
-        ArithmeticBasicValueType type) =>
-        $"clamp({value}, {min}, {max})";
-
-    /// <inheritdoc/>
     public override string EmitMultiplyAdd(
         string a,
         string b,
@@ -539,30 +525,6 @@ sealed class CLIntrinsicEmitter(CLVendor vendor) : IntrinsicEmitter
     /// <inheritdoc/>
     public override string EmitGridDim(int dimension) =>
         $"get_num_groups({dimension})";
-
-    #endregion
-
-    #region Debug and Utility
-
-    /// <inheritdoc/>
-    public override string EmitPrintf(string format, params string[] args)
-    {
-        var argList = args.Length > 0 ? ", " + string.Join(", ", args) : "";
-        return $"printf(\"{format}\"{argList})";
-    }
-
-    /// <inheritdoc/>
-    public override string EmitAssert(string condition, string? message = null)
-    {
-        // OpenCL doesn't have native assert, implement custom version
-        return $"if (!({condition})) {{ /* assertion failed: {message} */ }}";
-    }
-
-    /// <inheritdoc/>
-    public override bool SupportsPrintf => true; // OpenCL 1.2+
-
-    /// <inheritdoc/>
-    public override bool SupportsAssert => false; // No native assert
 
     #endregion
 

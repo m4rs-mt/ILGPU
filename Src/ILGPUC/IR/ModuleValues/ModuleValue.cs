@@ -33,16 +33,6 @@ readonly record struct ModuleValueInitializer(
     public Module Module => Builder.Module;
 
     /// <summary>
-    /// Returns associated compilation properties.
-    /// </summary>
-    public CompilationProperties Properties => Builder.Properties;
-
-    /// <summary>
-    /// Returns the current generation.
-    /// </summary>
-    public Generation Generation => Builder.Generation;
-
-    /// <summary>
     /// Formats an error message to include specific location information.
     /// </summary>
     string ILocation.FormatErrorMessage(string message) =>

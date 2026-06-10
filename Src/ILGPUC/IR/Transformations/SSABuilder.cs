@@ -39,22 +39,6 @@ sealed class SSABuilder<TVariable> where TVariable : notnull
     #region Nested Types
 
     /// <summary>
-    /// A successor or predecessor enumerator.
-    /// </summary>
-    internal struct Enumerator(HashSet<ValueContainer> set)
-    {
-        private HashSet<ValueContainer>.Enumerator _enumerator = set.GetEnumerator();
-
-        /// <summary>
-        /// Returns the current value.
-        /// </summary>
-        public BasicBlock Current => _enumerator.Current.Block;
-
-        /// <summary cref="IEnumerator.MoveNext"/>
-        public bool MoveNext() => _enumerator.MoveNext();
-    }
-
-    /// <summary>
     /// Provides marker values.
     /// </summary>
     /// <param name="markerValue">The current marker value.</param>
@@ -550,21 +534,6 @@ sealed class SSABuilder<TVariable> where TVariable : notnull
         var markerProvider = new MarkerProvider(_markerValue);
         container.Seal(ref markerProvider);
         markerProvider.Apply(ref _markerValue);
-    }
-
-    /// <summary>
-    /// Tries to seals the associated node.
-    /// </summary>
-    /// <param name="block">The target block.</param>
-    public bool Seal(BasicBlock block)
-    {
-        var valueContainer = this[block];
-        if (valueContainer.CanSeal)
-        {
-            Seal(valueContainer);
-            return true;
-        }
-        return false;
     }
 
     /// <summary>

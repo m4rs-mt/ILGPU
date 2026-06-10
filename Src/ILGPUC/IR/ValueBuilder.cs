@@ -148,13 +148,6 @@ struct ValueBuilderList(Generation generation, int capacity) : IGenerationObject
     }
 
     /// <summary>
-    /// Reserves the given additional capacity.
-    /// </summary>
-    /// <param name="additionalCapacity">The additional capacity to reserve.</param>
-    public void ReserveAdditional(int additionalCapacity) =>
-        _values.Reserve(_values.Count + additionalCapacity);
-
-    /// <summary>
     /// Gets a value as a specific target type.
     /// </summary>
     /// <typeparam name="T">The target type.</typeparam>

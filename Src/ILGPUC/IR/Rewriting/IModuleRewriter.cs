@@ -20,11 +20,6 @@ namespace ILGPUC.IR.Rewriting;
 interface IModuleRewriter : IRewriter<ModuleBuilder>
 {
     /// <summary>
-    /// Returns the underlying new module.
-    /// </summary>
-    Module Module { get; }
-
-    /// <summary>
     /// Returns the old module.
     /// </summary>
     Module OldModule { get; }

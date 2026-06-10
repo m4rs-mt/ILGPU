@@ -112,11 +112,6 @@ readonly struct BasicBlockCollection<TOrder, TDirection> :
     /// </summary>
     public int Count => _blocks.Length;
 
-    /// <summary>
-    /// Returns the i-th basic block in this collection.
-    /// </summary>
-    public BasicBlock this[int index] => _blocks[index];
-
     #endregion
 
     #region Methods
@@ -189,38 +184,6 @@ readonly struct BasicBlockCollection<TOrder, TDirection> :
     {
         foreach (var block in this)
             block.ForEachValue(callback, ref set);
-    }
-
-    /// <summary>
-    /// Returns the underlying immutable block array.
-    /// </summary>
-    /// <returns>The underlying block array.</returns>
-    public ImmutableArray<BasicBlock> AsImmutable() => _blocks;
-
-    /// <summary>
-    /// Returns underlying immutable block array as read only memory.
-    /// </summary>
-    /// <returns>The underlying block array as read only memory.</returns>
-    public ReadOnlyMemory<BasicBlock> AsReadOnlyMemory() => _blocks.AsMemory();
-
-    /// <summary>
-    /// Converts this collection into a hash set.
-    /// </summary>
-    /// <returns>The created set.</returns>
-    public ValueSet<Method, BasicBlock> ToSet() => ToSet(static _ => true);
-
-    /// <summary>
-    /// Converts this collection into a hash set that contains all elements for
-    /// which the given predicate evaluates to true.
-    /// </summary>
-    /// <param name="predicate">The predicate instance.</param>
-    /// <returns>The created set.</returns>
-    public ValueSet<Method, BasicBlock> ToSet(Predicate<BasicBlock> predicate)
-    {
-        var result = CreateSet();
-        foreach (var block in this)
-            if (predicate(block)) result.Add(block);
-        return result;
     }
 
     /// <summary>
@@ -326,13 +289,6 @@ readonly struct BasicBlockCollection<TOrder, TDirection> :
     public ValueSet<Method, BasicBlock> CreateSet() => Method.CreateSet<BasicBlock>();
 
     /// <summary>
-    /// Constructs a new block set list.
-    /// </summary>
-    /// <returns>The created block set list.</returns>
-    public ValueSetList<Method, BasicBlock> CreateSetList() =>
-        Method.CreateSetList<BasicBlock>();
-
-    /// <summary>
     /// Constructs a new block map.
     /// </summary>
     /// <typeparam name="T">The value type.</typeparam>
@@ -368,18 +324,6 @@ readonly struct BasicBlockCollection<TOrder, TDirection> :
             foreach (var source in phiValue.Sources)
                 result.Add(source);
         });
-        return result;
-    }
-
-    /// <summary>
-    /// Gathers all phis.
-    /// </summary>
-    /// <returns>All phi value source blocks.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public ValueSet<Method, PhiValue> ComputePhis()
-    {
-        var result = Method.CreateSet<PhiValue>();
-        ForEachValue<PhiValue>(phiValue => result.Add(phiValue));
         return result;
     }
 

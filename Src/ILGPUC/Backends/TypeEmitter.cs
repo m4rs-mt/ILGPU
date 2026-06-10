@@ -45,12 +45,6 @@ sealed class TypeEmitter(GenerationContext context)
     /// <summary>
     /// Gets the name to use for a type.
     /// </summary>
-    public string GetTypeName(BasicValueType type) =>
-        context.LanguageConfig.GetPrimitiveTypeName(type);
-
-    /// <summary>
-    /// Gets the name to use for a type.
-    /// </summary>
     public string GetTypeName(ArithmeticBasicValueType type) =>
         context.LanguageConfig.GetPrimitiveTypeName(type);
 

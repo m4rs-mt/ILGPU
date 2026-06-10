@@ -30,16 +30,6 @@ sealed class MetalBackend(MetalTargetOS targetOS, MetalGPUFamily gpuFamily) :
         MetalAcceleratorCapabilities.FromGPUFamily(gpuFamily))
 {
     /// <summary>
-    /// Returns the target platform.
-    /// </summary>
-    public MetalTargetOS TargetOS => targetOS;
-
-    /// <summary>
-    /// Returns the target GPU family.
-    /// </summary>
-    public MetalGPUFamily GPUFamily => gpuFamily;
-
-    /// <summary>
     /// Returns the underlying language configuration.
     /// </summary>
     public override LanguageConfiguration LanguageConfiguration { get; } =

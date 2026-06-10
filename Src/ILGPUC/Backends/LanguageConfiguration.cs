@@ -107,11 +107,6 @@ abstract class LanguageConfiguration
             : $"{addressSpaceKeyword} {elementTypeName}*";
 
     /// <summary>
-    /// Returns the keyword for a pointer type.
-    /// </summary>
-    public abstract string PointerSyntax { get; }
-
-    /// <summary>
     /// Returns true if this language supports a specific feature.
     /// </summary>
     public abstract bool SupportsFeature(LanguageFeature feature);
@@ -193,11 +188,6 @@ abstract class LanguageConfiguration
     /// function-scoped; only <c>constant</c> can be at program scope.
     /// </summary>
     public virtual bool IsFileScopeAddressSpace(MemoryAddressSpace addressSpace) => true;
-
-    /// <summary>
-    /// Returns true if pointers use '*' syntax, false if they use special keywords.
-    /// </summary>
-    public virtual bool UsesPointerStar => true;
 
     /// <summary>
     /// Returns the attribute/qualifier for the entry point function.

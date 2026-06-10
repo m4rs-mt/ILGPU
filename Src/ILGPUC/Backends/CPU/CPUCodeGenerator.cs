@@ -33,26 +33,6 @@ sealed class CPUCodeGenerator(
     EntryPointLaunch launch)
 {
     /// <summary>
-    /// Gets the module being compiled.
-    /// </summary>
-    public Module Module => module;
-
-    /// <summary>
-    /// Gets the language configuration.
-    /// </summary>
-    public LanguageConfiguration Configuration => languageConfiguration;
-
-    /// <summary>
-    /// Gets whether to emit debug symbols.
-    /// </summary>
-    public bool EmitDebugSymbols => emitDebugSymbols;
-
-    /// <summary>
-    /// Returns the vector width (number of SIMD lanes).
-    /// </summary>
-    public int VectorWidth => vectorWidth;
-
-    /// <summary>
     /// Generates C# code with array-based vectorization.
     /// </summary>
     public CodeGenerationResult GenerateCode()

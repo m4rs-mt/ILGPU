@@ -27,13 +27,6 @@ namespace ILGPUC.IR;
 readonly record struct Use(Value Target, int Index = -1)
 {
     /// <summary>
-    /// Returns the target value as a specific type.
-    /// </summary>
-    /// <typeparam name="T">The target type.</typeparam>
-    /// <returns>The target converted into the desired target type.</returns>
-    public T GetTargetAs<T>() where T : Value => Target.AsNotNullCast<T>();
-
-    /// <summary>
     /// Returns the string representation of this use.
     /// </summary>
     /// <returns>The string representation of this use.</returns>
@@ -133,76 +126,6 @@ readonly ref struct UseCollection(
             return false;
         use = enumerator.Current;
         return !enumerator.MoveNext();
-    }
-
-    /// <summary>
-    /// Returns true if this use collection has at least one phi use.
-    /// </summary>
-    public bool HasPhiUses => HasUsesOf<PhiValue>();
-
-    /// <summary>
-    /// Returns true if this use collection has at least one use having side effects.
-    /// </summary>
-    public bool HasBBValueUses => HasUsesOf<BasicBlockValue>();
-
-    /// <summary>
-    /// Returns true if this use collection has at least one use having side effects.
-    /// </summary>
-    public bool HasModuleValueUses => HasUsesOf<ModuleValue>();
-
-    /// <summary>
-    /// Returns true if this collection has value uses of type <typeparamref name="T"/>.
-    /// </summary>
-    /// <typeparam name="T">The target type to match.</typeparam>
-    /// <returns>True if a match was found.</returns>
-    public bool HasUsesOf<T>() where T : Value
-    {
-        foreach (Value value in this)
-            if (value is T) return true;
-        return false;
-    }
-
-    /// <summary>
-    /// Returns true if any of the uses fulfills the given predicate.
-    /// </summary>
-    /// <param name="predicate">The predicate to use.</param>
-    /// <returns>True, if any use fulfills the given predicate.</returns>
-    public bool Any(Predicate<Use> predicate)
-    {
-        if (_predicate is null) return _uses.Any(predicate);
-        var current = _predicate;
-        return _uses.Any(use => current(use) && predicate(use));
-    }
-
-    /// <summary>
-    /// Adds an additional predicate to the use collection by returning a refined
-    /// version.
-    /// </summary>
-    /// <param name="predicate">The predicate to be added.</param>
-    /// <returns>The refined use collection.</returns>
-    public UseCollection With(Predicate<Use> predicate)
-    {
-        if (_predicate is null) return new(Value, _uses, predicate);
-        var current = _predicate;
-        return new(Value, _uses, use => current(use) && predicate(use));
-    }
-
-    /// <summary>
-    /// Invokes the callback for every use of the given value type.
-    /// </summary>
-    /// <typeparam name="TValue">The value type.</typeparam>
-    /// <param name="callback">
-    /// The callback to be invoked for a use of the given value type.
-    /// </param>
-    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    public void ForEachUseOf<TValue>(Action<TValue> callback)
-        where TValue : Value
-    {
-        foreach (var use in this)
-        {
-            if (use.Target is TValue value)
-                callback(value);
-        }
     }
 
     /// <summary>

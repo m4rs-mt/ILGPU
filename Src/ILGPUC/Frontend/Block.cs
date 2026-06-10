@@ -88,11 +88,6 @@ sealed partial class Block
     public BasicBlock BasicBlock => Builder.BasicBlock;
 
     /// <summary>
-    /// Returns the current termination kind.
-    /// </summary>
-    public BlockTerminationKind TerminationKind => BasicBlock.TerminationKind;
-
-    /// <summary>
     /// Returns the current stack counter.
     /// </summary>
     public int StackCounter { get; set; }

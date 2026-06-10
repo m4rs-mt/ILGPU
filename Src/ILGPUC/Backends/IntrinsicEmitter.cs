@@ -173,25 +173,6 @@ abstract class IntrinsicEmitter
     public abstract string EmitCeil(string arg, ArithmeticBasicValueType type);
 
     /// <summary>
-    /// Emits a truncate function call (round toward zero).
-    /// </summary>
-    public abstract string EmitTrunc(string arg, ArithmeticBasicValueType type);
-
-    /// <summary>
-    /// Emits a round function call (round to nearest).
-    /// </summary>
-    public abstract string EmitRound(string arg, ArithmeticBasicValueType type);
-
-    /// <summary>
-    /// Emits a clamp function call (constrain value to range).
-    /// </summary>
-    public abstract string EmitClamp(
-        string value,
-        string min,
-        string max,
-        ArithmeticBasicValueType type);
-
-    /// <summary>
     /// Emits a fused multiply-add function call (a * b + c).
     /// </summary>
     /// <param name="a">First operand (multiplicand).</param>
@@ -479,42 +460,6 @@ abstract class IntrinsicEmitter
     /// </summary>
     /// <param name="dimension">0=x, 1=y, 2=z</param>
     public abstract string EmitGridDim(int dimension);
-
-    #endregion
-
-    #region Debug and Utility
-
-    /// <summary>
-    /// Emits a printf statement for device-side output.
-    /// </summary>
-    /// <param name="format">Format string.</param>
-    /// <param name="args">Arguments to format.</param>
-    /// <returns>Printf statement code, or throws if not supported.</returns>
-    public abstract string EmitPrintf(string format, params string[] args);
-
-    /// <summary>
-    /// Emits an assertion check.
-    /// </summary>
-    /// <param name="condition">Condition expression to assert.</param>
-    /// <param name="message">
-    /// Optional message (may not be supported on all platforms).
-    /// </param>
-    /// <returns>Assert statement code, or custom implementation.</returns>
-    public abstract string EmitAssert(string condition, string? message = null);
-
-    #endregion
-
-    #region Utility Methods
-
-    /// <summary>
-    /// Returns true if printf is supported by this backend.
-    /// </summary>
-    public abstract bool SupportsPrintf { get; }
-
-    /// <summary>
-    /// Returns true if native assertions are supported by this backend.
-    /// </summary>
-    public abstract bool SupportsAssert { get; }
 
     #endregion
 

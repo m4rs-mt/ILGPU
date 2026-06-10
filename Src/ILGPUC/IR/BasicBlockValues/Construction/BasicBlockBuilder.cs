@@ -105,11 +105,6 @@ partial class BasicBlockBuilder : PureValueBuilder, IDumpable
     public BasicBlock BasicBlock { get; }
 
     /// <summary>
-    /// The entry point value.
-    /// </summary>
-    public BasicBlockValue? Entry { get; private set; }
-
-    /// <summary>
     /// The last basic block value.
     /// </summary>
     public BasicBlockValue? Last { get; protected set; }

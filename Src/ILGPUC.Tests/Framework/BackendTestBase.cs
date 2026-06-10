@@ -65,25 +65,14 @@ public abstract class BackendTestBase : DisposeBase
     }
 
     /// <summary>
-    /// Assert native compilation succeeds (skips if compiler unavailable,
-    /// the kernel requires capabilities this backend does not support, or
-    /// the kernel is annotated with <see cref="KnownFailingOnAttribute"/>
-    /// for the current backend).
+    /// Assert native compilation succeeds (skips if compiler unavailable or
+    /// the kernel requires capabilities this backend does not support).
     /// </summary>
     protected async Task AssertNativeCompilationSucceeds(
         MethodInfo kernel,
         CompilationProperties? props = null,
-        BackendCapability required = BackendCapability.None,
-        KnownFailingOnAttribute? knownFailing = null)
+        BackendCapability required = BackendCapability.None)
     {
-        // Skip if kernel is a known-failing holding pen for this backend
-        if (knownFailing is not null
-            && Array.IndexOf(knownFailing.Backends, Backend) >= 0)
-        {
-            Skip.If(true,
-                $"Known failing on {Backend}: {knownFailing.Reason}");
-        }
-
         // Skip if kernel requires unsupported capabilities
         var unsupported = BackendCapabilities.GetUnsupported(Backend, required);
         Skip.If(

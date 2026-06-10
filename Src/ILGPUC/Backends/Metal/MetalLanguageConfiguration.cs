@@ -69,9 +69,6 @@ sealed class MetalLanguageConfiguration : LanguageConfiguration
         };
 
     /// <inheritdoc/>
-    public override string PointerSyntax => "*";
-
-    /// <inheritdoc/>
     public override bool SupportsFeature(LanguageFeature feature) =>
         feature switch
         {

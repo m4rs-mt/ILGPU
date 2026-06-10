@@ -92,17 +92,6 @@ sealed class DebugMethodScope : IEquatable<DebugMethodScope>
 
     #endregion
 
-    #region IEnumerable
-
-    /// <summary>
-    /// Returns an unboxed variable enumerator.
-    /// </summary>
-    /// <returns>An unboxed variable enumerator.</returns>
-    public ReadOnlySpan<LocalVariable>.Enumerator GetEnumerator() =>
-        Variables.GetEnumerator();
-
-    #endregion
-
     #region IEquatable
 
     /// <summary>

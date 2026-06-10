@@ -71,13 +71,6 @@ sealed partial class PhiValue(
         public int Count => _arguments.Count;
 
         /// <summary>
-        /// Returns the i-th argument.
-        /// </summary>
-        /// <param name="index">The argument index.</param>
-        /// <returns>The resolved argument.</returns>
-        public Value this[int index] => _arguments.Get<Value>(index);
-
-        /// <summary>
         /// Adds the given argument.
         /// </summary>
         /// <param name="predecessor">
@@ -101,13 +94,6 @@ sealed partial class PhiValue(
             PhiValue.SealPhiArguments(ref _argumentBlocks, ref _arguments);
             return PhiValue;
         }
-
-        /// <summary>
-        /// Returns a new enumerator.
-        /// </summary>
-        /// <returns>The created enumerator.</returns>
-        public ReadOnlySpan<Value>.Enumerator GetEnumerator() =>
-            _arguments.GetEnumerator();
     }
 
     /// <summary>

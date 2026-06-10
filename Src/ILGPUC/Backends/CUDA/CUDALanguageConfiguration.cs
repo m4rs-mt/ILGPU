@@ -92,9 +92,6 @@ class CudaLanguageConfiguration : LanguageConfiguration
         };
 
     /// <inheritdoc/>
-    public override string PointerSyntax => "*";
-
-    /// <inheritdoc/>
     /// <remarks>
     /// CUDA / HIP pointer types do not take a pointee address-space
     /// qualifier (unlike Metal's <c>threadgroup T*</c> or OpenCL's

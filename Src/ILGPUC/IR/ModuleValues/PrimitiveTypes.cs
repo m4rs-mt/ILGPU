@@ -83,20 +83,6 @@ sealed partial class PrimitiveType : TypeValue
     /// </summary>
     public bool IsBool => BasicValueType == BasicValueType.Int1;
 
-    /// <summary>
-    /// Returns true if this type represents a 32 bit type.
-    /// </summary>
-    public bool Is32Bit =>
-        BasicValueType == BasicValueType.Int32 ||
-        BasicValueType == BasicValueType.Float32;
-
-    /// <summary>
-    /// Returns true if this type represents a 64 bit type.
-    /// </summary>
-    public bool Is64Bit =>
-        BasicValueType == BasicValueType.Int64 ||
-        BasicValueType == BasicValueType.Float64;
-
     /// <inheritdoc/>
     public override TypeValue? Rewrite<TRewriter>(in TRewriter rewriter) =>
         rewriter.ModuleBuilder.GetPrimitiveType(BasicValueType);

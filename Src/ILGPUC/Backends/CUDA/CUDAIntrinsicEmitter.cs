@@ -159,24 +159,6 @@ sealed class CudaIntrinsicEmitter : IntrinsicEmitter
         type == ArithmeticBasicValueType.Float64 ? $"ceil({arg})" : $"ceilf({arg})";
 
     /// <inheritdoc/>
-    public override string EmitTrunc(string arg, ArithmeticBasicValueType type) =>
-        type == ArithmeticBasicValueType.Float64 ? $"trunc({arg})" : $"truncf({arg})";
-
-    /// <inheritdoc/>
-    public override string EmitRound(string arg, ArithmeticBasicValueType type) =>
-        type == ArithmeticBasicValueType.Float64 ? $"round({arg})" : $"roundf({arg})";
-
-    /// <inheritdoc/>
-    public override string EmitClamp(
-        string value,
-        string min,
-        string max,
-        ArithmeticBasicValueType type) =>
-        type == ArithmeticBasicValueType.Float64
-            ? $"fmin(fmax({value}, {min}), {max})"
-            : $"fminf(fmaxf({value}, {min}), {max})";
-
-    /// <inheritdoc/>
     public override string EmitMultiplyAdd(
         string a,
         string b,
@@ -494,29 +476,6 @@ sealed class CudaIntrinsicEmitter : IntrinsicEmitter
         2 => 'z',
         _ => throw new ArgumentOutOfRangeException(nameof(dimension))
     };
-
-    #endregion
-
-    #region Debug and Utility
-
-    /// <inheritdoc/>
-    public override string EmitPrintf(string format, params string[] args)
-    {
-        var argList = args.Length > 0 ? ", " + string.Join(", ", args) : "";
-        return $"printf(\"{format}\"{argList})";
-    }
-
-    /// <inheritdoc/>
-    public override string EmitAssert(string condition, string? message = null)
-    {
-        // CUDA supports native assert
-        return $"assert({condition})";
-    }
-
-    /// <inheritdoc/>
-    public override bool SupportsPrintf => true;
-    /// <inheritdoc/>
-    public override bool SupportsAssert => true;
 
     #endregion
 

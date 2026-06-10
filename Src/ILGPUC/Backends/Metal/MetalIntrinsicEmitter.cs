@@ -166,22 +166,6 @@ sealed class MetalIntrinsicEmitter : IntrinsicEmitter
         $"metal::ceil({arg})";
 
     /// <inheritdoc/>
-    public override string EmitTrunc(string arg, ArithmeticBasicValueType type) =>
-        $"metal::trunc({arg})";
-
-    /// <inheritdoc/>
-    public override string EmitRound(string arg, ArithmeticBasicValueType type) =>
-        $"metal::round({arg})";
-
-    /// <inheritdoc/>
-    public override string EmitClamp(
-        string value,
-        string min,
-        string max,
-        ArithmeticBasicValueType type) =>
-        $"metal::clamp({value}, {min}, {max})";
-
-    /// <inheritdoc/>
     public override string EmitMultiplyAdd(
         string a,
         string b,
@@ -539,28 +523,6 @@ sealed class MetalIntrinsicEmitter : IntrinsicEmitter
         2 => 'z',
         _ => throw new ArgumentOutOfRangeException(nameof(dimension))
     };
-
-    #endregion
-
-    #region Debug and Utility
-
-    /// <inheritdoc/>
-    public override string EmitPrintf(string format, params string[] args) =>
-        throw new NotSupportedException("Metal does not support device-side printf. " +
-        "Use a device buffer for debug output.");
-
-    /// <inheritdoc/>
-    public override string EmitAssert(string condition, string? message = null)
-    {
-        // Metal doesn't have native assert, implement custom version
-        return $"if (!({condition})) {{ /* assertion failed: {message} */ }}";
-    }
-
-    /// <inheritdoc/>
-    public override bool SupportsPrintf => false;
-
-    /// <inheritdoc/>
-    public override bool SupportsAssert => false;
 
     #endregion
 

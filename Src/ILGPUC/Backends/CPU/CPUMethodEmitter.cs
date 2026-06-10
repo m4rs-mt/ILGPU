@@ -55,11 +55,6 @@ sealed class CPUMethodEmitter(
     private HashSet<PhiValue> _handledMergePhis = [];
 
     /// <summary>
-    /// Gets the generation context.
-    /// </summary>
-    public GenerationContext Context => context;
-
-    /// <summary>
     /// Gets the buffer pool metadata computed during code generation.
     /// Only available after <see cref="EmitMethodImplementations"/> has run.
     /// </summary>

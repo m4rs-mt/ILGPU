@@ -80,20 +80,10 @@ sealed class PlacedBlock
     public int Count => _values.Count;
 
     /// <summary>
-    /// Returns the termination kind of this placed block.
-    /// </summary>
-    public BlockTerminationKind TerminationKind => BasicBlock.TerminationKind;
-
-    /// <summary>
     /// Gets the value at the specified index.
     /// </summary>
     /// <param name="index">The value index.</param>
     public Value<Method> this[int index] => _values[index];
-
-    /// <summary>
-    /// Returns all placed values as a read-only span.
-    /// </summary>
-    public ReadOnlySpan<Value<Method>> Values => _values.AsReadOnlySpan();
 
     #endregion
 
@@ -219,17 +209,6 @@ sealed class CodePlacement
     /// Returns the dominators of the analyzed method.
     /// </summary>
     public PreDominators Dominators { get; }
-
-    /// <summary>
-    /// Returns the number of placed blocks.
-    /// </summary>
-    public int Count => _placedBlocks.Count;
-
-    /// <summary>
-    /// Gets the placed block at the specified index.
-    /// </summary>
-    /// <param name="index">The block index (in reverse post order).</param>
-    public PlacedBlock this[int index] => _placedBlocks[index];
 
     #endregion
 
@@ -707,13 +686,4 @@ static class CodePlacementExtensions
         this Method method,
         CFG<DominanceOrder, Forwards>? cfg = null) =>
         CodePlacement.Create(method, cfg);
-
-    /// <summary>
-    /// Creates a new code placement analysis for the given basic block collection.
-    /// </summary>
-    /// <param name="blocks">The blocks to analyze.</param>
-    /// <returns>The created code placement analysis.</returns>
-    public static CodePlacement CreateCodePlacement(
-        this BasicBlockCollection<DominanceOrder, Forwards> blocks) =>
-        CodePlacement.Create(blocks.Method, cfg: null);
 }

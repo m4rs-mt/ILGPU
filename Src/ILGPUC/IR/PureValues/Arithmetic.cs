@@ -58,11 +58,6 @@ abstract class ArithmeticValue(
     ArithmeticFlags flags) : PureValue(initializer, type)
 {
     /// <summary>
-    /// Returns the associated type.
-    /// </summary>
-    public PrimitiveType PrimitiveType => GetTypeAs<PrimitiveType>();
-
-    /// <summary>
     /// Returns the operation flags.
     /// </summary>
     public ArithmeticFlags Flags { get; } = flags;
@@ -74,21 +69,10 @@ abstract class ArithmeticValue(
         GetValue<Value>(0).BasicValueType.GetArithmeticBasicValueType(IsUnsigned);
 
     /// <summary>
-    /// Returns true if the operation has enabled overflow semantics.
-    /// </summary>
-    public bool CanOverflow => (Flags & ArithmeticFlags.Overflow) ==
-        ArithmeticFlags.Overflow;
-
-    /// <summary>
     /// Returns true if the operation has enabled unsigned semantics.
     /// </summary>
     public bool IsUnsigned => (Flags & ArithmeticFlags.Unsigned) ==
         ArithmeticFlags.Unsigned;
-
-    /// <summary>
-    /// Returns true if the operation works on integers.
-    /// </summary>
-    public bool IsIntOperation => BasicValueType.IsInt();
 
     /// <summary>
     /// Returns true if the operation works on floats.

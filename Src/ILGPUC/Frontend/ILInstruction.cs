@@ -39,35 +39,6 @@ sealed class ILInstructionBranchTargets(params int[] targets)
     /// </summary>
     public int Count => _targetOffsets.Length;
 
-    /// <summary>
-    /// Returns the target offset at the given index.
-    /// </summary>
-    /// <param name="index">The index of the target offset.</param>
-    /// <returns>The resolved target offset.</returns>
-    public int this[int index] => _targetOffsets.Span[index];
-
-    /// <summary>
-    /// Returns the unconditional branch target (if any).
-    /// </summary>
-    public int? UnconditionalBranchTarget =>
-        _targetOffsets.Length > 0 ? _targetOffsets.Span[0] : null;
-
-    /// <summary>
-    /// Returns the conditional branch if-target (if any).
-    /// </summary>
-    public int? ConditionalBranchIfTarget => UnconditionalBranchTarget;
-
-    /// <summary>
-    /// Returns the conditional branch else-target (if any).
-    /// </summary>
-    public int? ConditionalBranchElseTarget =>
-        _targetOffsets.Length > 1 ? _targetOffsets.Span[1] : null;
-
-    /// <summary>
-    /// Returns the default switch branch target (if any).
-    /// </summary>
-    public int? SwitchDefaultTarget => UnconditionalBranchTarget;
-
     #endregion
 
     #region Methods
@@ -256,21 +227,6 @@ sealed class ILInstruction(
     /// Returns the instruction argument.
     /// </summary>
     public object? Argument { get; } = argument;
-
-    /// <summary>
-    /// Returns true if the instruction is a call instruction.
-    /// </summary>
-    public bool IsCall
-    {
-        get => InstructionType switch
-        {
-            ILInstructionType.Call or
-            ILInstructionType.Callvirt or
-            ILInstructionType.Jmp or
-            ILInstructionType.Newobj => true,
-            _ => false,
-        };
-    }
 
     /// <summary>
     /// Returns true if this instruction is a basic block terminator.

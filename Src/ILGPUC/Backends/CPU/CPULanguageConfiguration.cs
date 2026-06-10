@@ -140,12 +140,6 @@ sealed class CPULanguageConfiguration(int vectorWidth) : LanguageConfiguration
         $"{GetPrimitiveTypeName(elementType)}[]";
 
     /// <inheritdoc/>
-    /// <remarks>
-    /// C# doesn't use pointer syntax in vectorized code.
-    /// </remarks>
-    public override string PointerSyntax => "*";
-
-    /// <inheritdoc/>
     public override bool SupportsFeature(LanguageFeature feature) =>
         feature switch
         {

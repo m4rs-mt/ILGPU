@@ -229,21 +229,6 @@ sealed class ModuleTransform : ModuleBuilder, IModuleRewriter, ITransform, IType
     }
 
     /// <summary>
-    /// Pops the current replacement scope and merges all entries into
-    /// the parent scope. Entries already in the parent are overwritten.
-    /// Used by the inliner to persist inlining-specific mappings while
-    /// preventing cache poisoning from previous inlinings.
-    /// </summary>
-    internal void MergeAndPopReplacementScope()
-    {
-        Debug.Assert(_mappingStack.Count > 2);
-        var top = _mappingStack.Pop();
-        var parent = PeekMapping();
-        foreach (var kvp in top)
-            parent[kvp.Key] = kvp.Value;
-    }
-
-    /// <summary>
     /// Peeks the current replacement mapping.
     /// </summary>
     private GlobalValueMap<Value?> PeekMapping() => _mappingStack.Peek();

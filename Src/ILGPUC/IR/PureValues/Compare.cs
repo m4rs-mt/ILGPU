@@ -137,14 +137,6 @@ sealed partial class CompareValue : PureValue
         ref CompareFlags flags) =>
         Swapped[(int)kind];
 
-    /// <summary>
-    /// Returns true if the given kind is commutative.
-    /// </summary>
-    /// <param name="kind">The compare kind.</param>
-    /// <returns>True, if the given kind is commutative.</returns>
-    public static bool IsCommutative(CompareKind kind) =>
-        kind <= CompareKind.NotEqual;
-
     #endregion
 
     #region Compare Value

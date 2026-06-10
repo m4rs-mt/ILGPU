@@ -75,45 +75,12 @@ namespace ILGPUC.IR
 <# } #>
     }
 
-    /// <summary>
-    /// Represents groups of value kinds.
-    /// </summary>
-    enum ValueGroup : int
-    {
-<# foreach (var group in valueGroups) { #>
-        <#= group.Name #>,
-<# } #>
-    }
-
     partial class ValueKinds
     {
         /// <summary>
         /// The number of different value kinds.
         /// </summary>
         public const int NumValueKinds = <#= valueGroups.Select(t => t.Values.Length).Sum() #>;
-
-        /// <summary>
-        /// The number of different value groups.
-        /// </summary>
-        public const int NumValueGroup = <#= valueGroups.Length #>;
-    }
-}
-
-namespace ILGPUC.IR
-{
-    interface IValueVisitor
-    {
-<# foreach (var group in valueGroups) { #>
-        // <#= group.Name #>
-
-<#      foreach (var valueType in group.Values) { #>
-        /// <summary>
-        /// Visits a value of type <#= valueType.Implementation #>.
-        /// </summary>
-        void Visit(<#= valueType.Implementation #> value);
-
-<#      } #>
-<# } #>
     }
 }
 
@@ -125,17 +92,8 @@ namespace ILGPUC.IR.<#=  valueType.Group.Namespace #>
         /// <inheritdoc cref="IValueInformation.ValueKind"/>
         static ValueKind IValueInformation.ValueKind => ValueKind.<#= valueType.Type #>;
 
-        /// <inheritdoc cref="IValueInformation.ValueKind"/>
-        static ValueGroup IValueInformation.ValueGroup => ValueGroup.<#= valueType.Group.Name #>;
-
-        /// <inheritdoc cref="Value.Accept{TVisitor}(TVisitor)"/>
-        public override void Accept<TVisitor>(TVisitor visitor) => visitor.Visit(this);
-
         /// <inheritdoc cref="Value.ValueKind"/>
         public override ValueKind ValueKind => ValueKind.<#= valueType.Type #>;
-
-        /// <inheritdoc cref="Value.ValueGroup"/>
-        public override ValueGroup ValueGroup => ValueGroup.<#= valueType.Group.Name #>;
 
 <#      foreach (var property in valueType.Properties) { #>
         /// <summary>

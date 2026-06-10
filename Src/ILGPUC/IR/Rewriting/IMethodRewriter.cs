@@ -20,11 +20,6 @@ namespace ILGPUC.IR.Rewriting;
 interface IMethodRewriter : IRewriter<MethodBuilder>, ITypeRewriter
 {
     /// <summary>
-    /// Returns the underlying new method.
-    /// </summary>
-    Method Method { get; }
-
-    /// <summary>
     /// Returns the old method.
     /// </summary>
     Method OldMethod { get; }

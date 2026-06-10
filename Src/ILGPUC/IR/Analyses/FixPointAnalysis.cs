@@ -45,27 +45,6 @@ readonly struct FixPointAnalysisResult<T>(
             return result;
         return AnalysisValue.Create(defaultValue, value.Type);
     }
-
-    /// <summary>
-    /// Tries to get an analysis result from this mapping.
-    /// </summary>
-    /// <param name="value">The value to get the result for.</param>
-    /// <param name="result">The determined result.</param>
-    /// <returns>True if the result could have been determined.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool TryGetResult(Value value, out AnalysisValue<T> result)
-    {
-        result = AnalysisValue.Create(defaultValue, value.Type);
-        if (!results.HasValue || !results.Value.TryGetValue(value, out var tempResult))
-            return false;
-        result = tempResult;
-        return true;
-    }
-
-    /// <summary>
-    /// Returns true if this alignment information object is empty.
-    /// </summary>
-    public bool IsEmpty => results is null;
 }
 
 /// <summary>

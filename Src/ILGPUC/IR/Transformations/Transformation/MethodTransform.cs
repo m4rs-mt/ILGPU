@@ -52,11 +52,6 @@ sealed class MethodTransform :
         BasicBlockBuilder ExitBlock)
     {
         /// <summary>
-        /// Returns the parent basic block.
-        /// </summary>
-        public BasicBlock BasicBlock => Call.BasicBlock;
-
-        /// <summary>
         /// Returns all call argument values.
         /// </summary>
         public ReadOnlySpan<Value> Arguments => Call.Arguments;
@@ -185,19 +180,6 @@ sealed class MethodTransform :
 
     /// <inheritdoc/>
     PureValueBuilder IRewriter<PureValueBuilder>.Builder => this;
-
-    /// <summary>
-    /// Returns the CFG of the old source method.
-    /// </summary>
-    public CFG<ReversePostOrder<BasicBlock>, Forwards> CFG => _cfg.Value;
-
-    /// <summary>
-    /// Returns true if the given basic block value has been remapped.
-    /// </summary>
-    /// <param name="basicBlockValue">The basic block value to test.</param>
-    /// <returns>True if the given value has been remapped.</returns>
-    public bool IsRemapped(BasicBlockValue basicBlockValue) =>
-        _prevMapping.ContainsKey(basicBlockValue);
 
     /// <summary>
     /// Creates a new block transform.

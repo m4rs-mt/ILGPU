@@ -64,13 +64,6 @@ readonly struct AnalysisValue<T>(T data, ReadOnlyMemory<T>? fieldData = null) :
     public T this[int index] => _fieldData.Span[index];
 
     /// <summary>
-    /// Clones the internal field data array into a new one.
-    /// </summary>
-    /// <returns>The cloned field data array (or null for scalars).</returns>
-    public ReadOnlyMemory<T> CloneFieldData() =>
-        IsScalar ? ReadOnlyMemory<T>.Empty : _fieldData.Span.ToArray();
-
-    /// <summary>
     /// Returns true if the given value is equal to the current one.
     /// </summary>
     /// <param name="other">The other value.</param>

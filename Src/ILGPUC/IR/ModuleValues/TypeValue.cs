@@ -117,18 +117,6 @@ abstract class TypeValue(in ModuleValueInitializer initializer, TypeValue type) 
     /// </summary>
     public TypeFlags Flags { get; private set; }
 
-    /// <summary>
-    /// Returns true if this type corresponds to its lowered representation.
-    /// </summary>
-    /// <remarks>
-    /// Lowered in this scope means that this type does not contains nested arrays
-    /// and views. In this case the size and alignment information can be used
-    /// immediately for interop purposes.
-    /// </remarks>
-    public bool IsLowered =>
-        Size > 0 && Alignment > 0 &&
-        !HasFlags(TypeFlags.ArrayDependent | TypeFlags.ViewDependent);
-
     #endregion
 
     #region Methods

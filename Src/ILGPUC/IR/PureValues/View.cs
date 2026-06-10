@@ -56,11 +56,6 @@ sealed partial class NewView : PureValue
     public TypeValue ViewElementType => GetTypeAs<ViewType>().ElementType;
 
     /// <summary>
-    /// Returns the view's address space.
-    /// </summary>
-    public MemoryAddressSpace ViewAddressSpace => GetTypeAs<ViewType>().AddressSpace;
-
-    /// <summary>
     /// Returns the length of the view.
     /// </summary>
     public Value Length => GetValue<Value>(1);
@@ -161,11 +156,6 @@ abstract class ViewPropertyValue(in PureValueInitializer initializer, TypeValue 
     /// Returns true if this is a 32bit element access.
     /// </summary>
     public bool Is32BitProperty => BasicValueType <= BasicValueType.Int32;
-
-    /// <summary>
-    /// Returns true if this is a 64bit element access.
-    /// </summary>
-    public bool Is64BitProperty => BasicValueType == BasicValueType.Int64;
 }
 
 /// <summary>

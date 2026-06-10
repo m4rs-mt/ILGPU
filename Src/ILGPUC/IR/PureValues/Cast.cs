@@ -258,11 +258,6 @@ sealed partial class AddressSpaceCast : BaseAddressSpaceCast
     public MemoryAddressSpace TargetAddressSpace => Type.AddressSpace;
 
     /// <summary>
-    /// Returns true if the current access works on a view.
-    /// </summary>
-    public bool IsViewCast => !IsPointerCast;
-
-    /// <summary>
     /// Returns true if the current access works on a pointer.
     /// </summary>
     public bool IsPointerCast => Type is PointerType;
@@ -316,11 +311,6 @@ sealed partial class ViewCast : BaseAddressSpaceCast
     {
         Seal(sourceView);
     }
-
-    /// <summary>
-    /// Returns the source element type.
-    /// </summary>
-    public TypeValue SourceElementType => SourceType.As<ViewType>().ElementType;
 
     /// <summary>
     /// Returns the target element type.
@@ -423,21 +413,6 @@ abstract class BitCast : CastValue
 
         Seal(source);
     }
-
-    /// <summary>
-    /// Returns the target type to convert the value to.
-    /// </summary>
-    public PrimitiveType TargetPrimitiveType => Type.As<PrimitiveType>();
-
-    /// <summary>
-    /// Returns true if this type represents a 32 bit type.
-    /// </summary>
-    public bool Is32Bit => TargetPrimitiveType.Is32Bit;
-
-    /// <summary>
-    /// Returns true if this type represents a 64 bit type.
-    /// </summary>
-    public bool Is64Bit => TargetPrimitiveType.Is64Bit;
 
     /// <inheritdoc cref="Value.ToArgString()"/>
     protected override string ToArgString() => $"{Source} as {TargetType}";

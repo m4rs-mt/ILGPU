@@ -151,22 +151,6 @@ sealed class CPUIntrinsicEmitter(int? vectorWidth) : IntrinsicEmitter
         $"{M(type)}.Ceiling({arg})";
 
     /// <inheritdoc/>
-    public override string EmitTrunc(string arg, ArithmeticBasicValueType type) =>
-        $"{M(type)}.Truncate({arg})";
-
-    /// <inheritdoc/>
-    public override string EmitRound(string arg, ArithmeticBasicValueType type) =>
-        $"{M(type)}.Round({arg})";
-
-    /// <inheritdoc/>
-    public override string EmitClamp(
-        string value,
-        string min,
-        string max,
-        ArithmeticBasicValueType type) =>
-        $"Math.Clamp({value}, {min}, {max})";
-
-    /// <inheritdoc/>
     public override string EmitMultiplyAdd(
         string a,
         string b,
@@ -481,31 +465,6 @@ sealed class CPUIntrinsicEmitter(int? vectorWidth) : IntrinsicEmitter
     /// Grid dimension is always 1 in vectorized execution.
     /// </remarks>
     public override string EmitGridDim(int dimension) => "1";
-
-    #endregion
-
-    #region Debug and Utility
-
-    /// <inheritdoc/>
-    /// <remarks>
-    /// Printf is not supported in C# vectorized backend.
-    /// </remarks>
-    public override string EmitPrintf(string format, params string[] args) =>
-        throw new NotSupportedException(
-            "Printf is not supported in C# vectorized backend. " +
-            "Use Debug.WriteLine or Console.WriteLine instead.");
-
-    /// <inheritdoc/>
-    public override string EmitAssert(string condition, string? message = null) =>
-        message != null
-            ? $"Debug.Assert({condition}, \"{message}\")"
-            : $"Debug.Assert({condition})";
-
-    /// <inheritdoc/>
-    public override bool SupportsPrintf => false;
-
-    /// <inheritdoc/>
-    public override bool SupportsAssert => true;
 
     #endregion
 

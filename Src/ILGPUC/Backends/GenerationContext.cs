@@ -178,11 +178,6 @@ sealed partial class GenerationContext(
         return result;
     }
 
-    /// <summary>
-    /// Generates a unique temporary variable name.
-    /// </summary>
-    public string GenerateTempName() => $"tmp_{_nextTempId++}";
-
     private readonly HashSet<string> _declaredNames = [];
 
     /// <summary>

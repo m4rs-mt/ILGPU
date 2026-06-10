@@ -40,49 +40,6 @@ sealed partial class WriteToOutput : IOValue
     #region Nested Types and Constants
 
     /// <summary>
-    /// Represents an write argument collection.
-    /// </summary>
-    /// <param name="writeToOutput">The parent write node.</param>
-    internal readonly ref struct ArgumentCollection(WriteToOutput writeToOutput)
-    {
-        /// <summary>
-        /// Returns an enumerator to enumerate all values in argument collection.
-        /// </summary>
-        /// <param name="writeToOutput">The parent write node.</param>
-        internal ref struct Enumerator(WriteToOutput writeToOutput)
-        {
-            private FormatArray.Enumerator _enumerator =
-                writeToOutput.Expressions.GetEnumerator();
-
-            /// <summary>
-            /// Returns the current use.
-            /// </summary>
-            public Value Current { get; private set; } =
-                Utilities.InitNotNullable<Value>();
-
-            /// <summary cref="IEnumerator.MoveNext"/>
-            public bool MoveNext()
-            {
-                while (_enumerator.MoveNext())
-                {
-                    if (!_enumerator.Current.HasArgument)
-                        continue;
-                    Current = writeToOutput.GetValue<Value>(_enumerator.Current.Argument);
-                    return true;
-                }
-                return false;
-            }
-        }
-
-        /// <summary>
-        /// Returns an enumerator to enumerate all uses in the context
-        /// of the parent scope.
-        /// </summary>
-        /// <returns>The enumerator.</returns>
-        public Enumerator GetEnumerator() => new(writeToOutput);
-    }
-
-    /// <summary>
     /// All native PrintF formats for all arithmetic basic value types.
     /// </summary>
     private static readonly ImmutableArray<string> PrintFFormats =
@@ -109,28 +66,6 @@ sealed partial class WriteToOutput : IOValue
     /// <returns>The resolved PrintF format.</returns>
     public static string GetPrintFFormat(ArithmeticBasicValueType valueType) =>
         PrintFFormats[(int)valueType];
-
-    /// <summary>
-    /// Converts the given value into a printf compatible argument.
-    /// </summary>
-    /// <param name="builder">The current builder.</param>
-    /// <param name="location">The current location.</param>
-    /// <param name="value">The value to convert.</param>
-    /// <returns>The converted value.</returns>
-    public static Value ConvertToPrintFArgument(
-        BasicBlockBuilder builder,
-        Location location,
-        Value value) =>
-        value.BasicValueType switch
-        {
-            BasicValueType.Int1 or
-            BasicValueType.Int8 or
-            BasicValueType.Int16 => builder.CreateConvertToInt32(location, value),
-            BasicValueType.Float16 or
-            BasicValueType.Float32 =>
-                builder.CreateConvert(location, value, BasicValueType.Float64),
-            _ => value,
-        };
 
     #endregion
 
@@ -173,11 +108,6 @@ sealed partial class WriteToOutput : IOValue
     /// Returns the underlying native format expressions.
     /// </summary>
     public FormatArray Expressions { get; }
-
-    /// <summary>
-    /// Returns all direct argument references for further processing.
-    /// </summary>
-    public ArgumentCollection Arguments => new(this);
 
     /// <inheritdoc/>
     public override Value? Rewrite<TRewriter>(in TRewriter rewriter)
@@ -223,22 +153,6 @@ sealed partial class WriteToOutput : IOValue
         }
         return result.ToString();
     }
-
-    /// <summary>
-    /// Converts the internal format expressions into an escaped sequence.
-    /// </summary>
-    public string ToEscapedPrintFExpression() =>
-        ToPrintFExpression()
-        // Replace backslash before others, so that we do not double-escape.
-        .Replace("\\", @"\\", StringComparison.Ordinal)
-        // On Unix, replaces NewLine of \n with an escaped \n.
-        // On Windows, replaces NewLine of \r\n with an escaped \n.
-        // The printf call expects \n, and will translate to the appropriate newline.
-        .Replace(Environment.NewLine, @"\n", StringComparison.Ordinal)
-        .Replace("\t", @"\t", StringComparison.Ordinal)
-        .Replace("\r", @"\r", StringComparison.Ordinal)
-        .Replace("\n", @"\n", StringComparison.Ordinal)
-        .Replace("\"", "\\\"", StringComparison.Ordinal);
 
     /// <summary cref="Value.ToPrefixString"/>
     protected override string ToPrefixString() => "write";

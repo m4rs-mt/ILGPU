@@ -80,9 +80,6 @@ sealed class CLLanguageConfiguration(CLVendor vendor = CLVendor.Intel) : Languag
         };
 
     /// <inheritdoc/>
-    public override string PointerSyntax => "*";
-
-    /// <inheritdoc/>
     public override bool UsesCStyleStructLiterals => true;
 
     /// <inheritdoc/>

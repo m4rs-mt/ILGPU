@@ -75,29 +75,6 @@ public sealed class RequiresCapabilityAttribute : Attribute
 }
 
 /// <summary>
-/// Marks a kernel method as known-failing on one or more backends —
-/// typically because of an open compiler bug whose fix is tracked
-/// elsewhere. Tests that consult this attribute (e.g. <c>BackendTests</c>'
-/// <c>NativeCompilation</c> theory) skip the affected backend rows with
-/// the attribute's <see cref="Reason"/> message. Removing the attribute
-/// when the underlying bug is fixed re-arms the tests; that's the holding
-/// pen the test framework provides for in-flight bugs.
-/// </summary>
-[AttributeUsage(AttributeTargets.Method, AllowMultiple = false)]
-public sealed class KnownFailingOnAttribute : Attribute
-{
-    public KnownFailingOnAttribute(params BackendType[] backends)
-    {
-        Backends = backends;
-    }
-
-    public BackendType[] Backends { get; }
-
-    public string Reason { get; init; } =
-        "Known failing — see attribute site for tracking.";
-}
-
-/// <summary>
 /// Declares which capabilities each backend supports. Used by the test framework
 /// to skip tests that require unsupported capabilities.
 /// </summary>

@@ -156,11 +156,6 @@ readonly record struct PrimitiveValueBox(BasicValueType BasicValueType, long Raw
     public bool IsInt => BasicValueType.IsInt();
 
     /// <summary>
-    /// Returns true if the value is a float.
-    /// </summary>
-    public bool IsFloat => BasicValueType.IsFloat();
-
-    /// <summary>
     /// Returns true if this value represents the constant 0.
     /// </summary>
     public bool IsZero => HasValue(0, 0.0f, 0.0);
@@ -336,11 +331,6 @@ sealed partial class PrimitiveValue : ConstantNode
     public bool IsInt => Box.IsInt;
 
     /// <summary>
-    /// Returns true if the value is a float.
-    /// </summary>
-    public bool IsFloat => Box.IsFloat;
-
-    /// <summary>
     /// Returns the underlying raw value.
     /// </summary>
     [DebuggerBrowsable(DebuggerBrowsableState.Never)]
@@ -380,26 +370,9 @@ sealed partial class PrimitiveValue : ConstantNode
     public bool HasFloatValue(float f32Value, double f64Value) =>
         Box.HasFloatValue(f32Value, f64Value);
 
-    /// <summary>
-    /// Returns true if this constant represents one of the given values.
-    /// </summary>
-    /// <param name="value">The integer value.</param>
-    /// <param name="f32Value">The 32-bit float value.</param>
-    /// <param name="f64Value">The 64-bit float value.</param>
-    /// <returns>True, if this constant represents on the given values.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool HasValue(long value, float f32Value, double f64Value) =>
-        Box.HasValue(value, f32Value, f64Value);
-
     /// <inheritdoc/>
     public override Value? Rewrite<TRewriter>(in TRewriter rewriter) =>
         rewriter.Builder.CreatePrimitiveValue(Location, Box);
-
-    /// <summary>
-    /// Returns the encapsulated value as string.
-    /// </summary>
-    /// <returns>The string representation of the encapsulated value.</returns>
-    public string ToValueString() => ToArgString();
 
     /// <inheritdoc cref="Value.ToPrefixString"/>
     protected override string ToPrefixString() => "const";
@@ -420,11 +393,6 @@ sealed partial class StringValue(
     Encoding encoding) :
     ConstantNode(initializer, initializer.ModuleBuilder.StringType)
 {
-    /// <summary>
-    /// Returns the associated type.
-    /// </summary>
-    public StringType StringType => GetTypeAs<StringType>();
-
     /// <summary>
     /// Returns the associated string constant.
     /// </summary>
