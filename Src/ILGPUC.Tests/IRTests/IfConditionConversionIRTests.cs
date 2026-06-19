@@ -57,6 +57,45 @@ public sealed class IfConditionConversionIRTests : DisposeBase
         }
 
         public static int DivGuardPhi(int a, int b) => b != 0 ? a / b : 0;
+
+        public static int Tautology(int a)
+        {
+            bool p = a > 0;
+            if (p || !p)
+                return 1;
+            return 2;
+        }
+
+        public static int CommutedTautology(int a)
+        {
+            bool p = a > 0;
+            if (!p || p)
+                return 1;
+            return 2;
+        }
+
+        public static int Contradiction(int a)
+        {
+            bool p = a > 0;
+            if (p && !p)
+                return 1;
+            return 2;
+        }
+
+        public static int CommutedContradiction(int a)
+        {
+            bool p = a > 0;
+            if (!p && p)
+                return 1;
+            return 2;
+        }
+
+        public static int NestedTautology(int a, int b)
+        {
+            if (a > 0 && b > 0 || a <= 0)
+                return 1;
+            return 2;
+        }
     }
 
     #endregion
@@ -83,6 +122,149 @@ public sealed class IfConditionConversionIRTests : DisposeBase
             .Apply(props, _helper.TypeManager, module);
 
         return optimized.EntryPoint;
+    }
+
+    /// <summary>
+    /// Compiles the method through the full O1 pipeline and returns the
+    /// entry-point method of the result.
+    /// </summary>
+    private Method OptimizeMethod(MethodInfo method)
+    {
+        var props = new CompilationProperties(
+            OptimizationLevel: OptimizationLevel.O1)
+            .WithMode(CompilationMode.Release);
+        var module = _helper.CompileToModule(method, props);
+        return OptimizationLevel.O1.CreateTransformer()
+            .Apply(props, _helper.TypeManager, module)
+            .EntryPoint;
+    }
+
+    /// <summary>
+    /// Returns the constant the given method returns on every path.
+    /// </summary>
+    private static int GetConstantReturnValue(Method method)
+    {
+        int? result = null;
+        foreach (var block in method.Blocks)
+        {
+            Assert.NotEqual(BlockTerminationKind.Conditional, block.TerminationKind);
+            if (!ReturnView.TryCreate(block, out var returnView))
+                continue;
+            var constant = Assert.IsType<PrimitiveValue>(returnView.ReturnValue);
+            Assert.True(result is null || result == constant.Int32Value);
+            result = constant.Int32Value;
+        }
+        Assert.NotNull(result);
+        return result.Value;
+    }
+
+    /// <summary>
+    /// Returns true if both boolean values are the same value or the same
+    /// comparison.
+    /// </summary>
+    private static bool AreEquivalent(Value first, Value second) =>
+        first == second ||
+        first is CompareValue firstCompare &&
+        second is CompareValue secondCompare &&
+        firstCompare.Kind == secondCompare.Kind &&
+        firstCompare.Flags == secondCompare.Flags &&
+        AreSameOperand(firstCompare.Left, secondCompare.Left) &&
+        AreSameOperand(firstCompare.Right, secondCompare.Right);
+
+    /// <summary>
+    /// Returns true if both values are the same value or equal constants.
+    /// </summary>
+    private static bool AreSameOperand(Value first, Value second) =>
+        first == second ||
+        first is PrimitiveValue firstConstant &&
+        second is PrimitiveValue secondConstant &&
+        firstConstant.BasicValueType == secondConstant.BasicValueType &&
+        firstConstant.RawValue == secondConstant.RawValue;
+
+    /// <summary>
+    /// Returns true if one boolean value is the negation of the other (for
+    /// integer comparisons, the inverse comparison of the same operands).
+    /// </summary>
+    private static bool AreComplementary(Value first, Value second)
+    {
+        if (second is UnaryArithmeticValue { Kind: UnaryArithmeticKind.Not } not)
+            return AreEquivalent(first, not.Value);
+        if (first is not CompareValue firstCompare ||
+            second is not CompareValue secondCompare ||
+            !AreSameOperand(firstCompare.Left, secondCompare.Left) ||
+            !AreSameOperand(firstCompare.Right, secondCompare.Right) ||
+            firstCompare.Flags != secondCompare.Flags)
+        {
+            return false;
+        }
+        return (firstCompare.Kind, secondCompare.Kind) switch
+        {
+            (CompareKind.Equal, CompareKind.NotEqual) or
+            (CompareKind.NotEqual, CompareKind.Equal) or
+            (CompareKind.LessThan, CompareKind.GreaterEqual) or
+            (CompareKind.GreaterEqual, CompareKind.LessThan) or
+            (CompareKind.LessEqual, CompareKind.GreaterThan) or
+            (CompareKind.GreaterThan, CompareKind.LessEqual) => true,
+            _ => false,
+        };
+    }
+
+    /// <summary>
+    /// Asserts that no logical and/or in the method combines equivalent or
+    /// complementary operands (directly or one level deep).
+    /// </summary>
+    private static void AssertNoTrivialLogic(Method method)
+    {
+        var visited = new HashSet<Value>();
+
+        bool IsTrivial(Value left, Value right) =>
+            AreEquivalent(left, right) ||
+            AreComplementary(left, right) ||
+            AreComplementary(right, left);
+
+        void Check(Value? value)
+        {
+            if (value is not PureValue pureValue || !visited.Add(pureValue))
+                return;
+            foreach (var operand in pureValue.Values)
+                Check(operand);
+            if (pureValue is not BinaryArithmeticValue binary ||
+                binary.BasicValueType != BasicValueType.Int1 ||
+                binary.Kind is not BinaryArithmeticKind.And and
+                    not BinaryArithmeticKind.Or)
+            {
+                return;
+            }
+            Assert.False(
+                IsTrivial(binary.Left, binary.Right),
+                $"Trivial logical operation: {binary}");
+            foreach (var (nested, other) in new[]
+            {
+                (binary.Left, binary.Right),
+                (binary.Right, binary.Left),
+            })
+            {
+                if (nested is BinaryArithmeticValue
+                    {
+                        Kind: BinaryArithmeticKind.And or BinaryArithmeticKind.Or
+                    } inner)
+                {
+                    Assert.False(
+                        IsTrivial(inner.Left, other) || IsTrivial(inner.Right, other),
+                        $"Trivial nested logical operation: {binary}");
+                }
+            }
+        }
+
+        foreach (var block in method.Blocks)
+        {
+            foreach (var (value, _) in block.BasicBlockValues)
+            {
+                foreach (var operand in value.Values)
+                    Check(operand);
+            }
+            Check(block.TerminationValue);
+        }
     }
 
     private static MethodInfo GetSnippet(string name) =>
@@ -250,6 +432,31 @@ public sealed class IfConditionConversionIRTests : DisposeBase
             nameof(BasicIfKernels.NestedIfKernel)));
         var regions = IfConditionConversion.FindRegions(method, 64, 256);
         Assert.Empty(regions);
+    }
+
+    [Theory]
+    [InlineData(nameof(Snippets.Tautology), 1)]
+    [InlineData(nameof(Snippets.CommutedTautology), 1)]
+    [InlineData(nameof(Snippets.Contradiction), 2)]
+    [InlineData(nameof(Snippets.CommutedContradiction), 2)]
+    public void ConstantCondition_FoldsTheBranch(string snippet, int expected)
+    {
+        // p || !p and p && !p fold to constant conditions, the branch vanishes
+        var method = OptimizeMethod(GetSnippet(snippet));
+        Assert.Equal(expected, GetConstantReturnValue(method));
+    }
+
+    [Theory]
+    [InlineData(typeof(Snippets), nameof(Snippets.NestedTautology))]
+    [InlineData(typeof(BasicIfKernels), nameof(BasicIfKernels.IfAndOrKernel))]
+    public void FoldedConditions_ContainNoTrivialLogic(System.Type type, string name)
+    {
+        // The residual conditions of branch ladders combine edge predicates with
+        // their complements, e.g. (a <= 0) & (a > 0) for the else-if exit of
+        // IfAndOrKernel
+        var method = OptimizeMethod(
+            CompilationTestBaseAccessor.GetKernel(type, name));
+        AssertNoTrivialLogic(method);
     }
 
     #endregion
