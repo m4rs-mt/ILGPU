@@ -90,6 +90,34 @@ static class AddressSpaceKernels
     }
 
     /// <summary>
+    /// A reference selects one of two elements of shared memory per thread.
+    /// </summary>
+    public static void SharedRefSelectKernel(
+        Index1D index, ArrayView1D<int, Stride1D.Dense> data)
+    {
+        var shared = Group.GetSharedMemory<int>(64);
+        int groupIdx = Group.Index;
+        if (groupIdx < 32)
+        {
+            shared[groupIdx] = 10 * (groupIdx + 1);
+            shared[groupIdx + 32] = groupIdx;
+        }
+        Group.Barrier();
+
+        if (groupIdx < 32)
+        {
+            ref int target = ref groupIdx % 2 == 0
+                ? ref shared[groupIdx]
+                : ref shared[groupIdx + 32];
+            target += 1;
+        }
+        Group.Barrier();
+
+        if (groupIdx < 32)
+            data[index] = shared[groupIdx] + shared[groupIdx + 32];
+    }
+
+    /// <summary>
     /// Selects a reference into either shared or global memory: the merged
     /// reference mixes both address spaces and must stay generic.
     /// </summary>

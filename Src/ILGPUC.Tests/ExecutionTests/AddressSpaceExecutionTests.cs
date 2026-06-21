@@ -74,6 +74,17 @@ public abstract class AddressSpaceExecutionTests : ExecutionTestBase
     }
 
     [SkippableFact]
+    public async Task SharedRefSelect_ProducesCorrectOutput()
+    {
+        // Even threads increment shared[t] = 10 * (t + 1), odd threads
+        // shared[t + 32] = t; then data[t] = shared[t] + shared[t + 32]
+        await VerifyProgramOutputAsync(
+            "TestPrograms/AddressSpace/SharedRefSelect.cs",
+            ["Kernels.SharedRefSelectKernel"],
+            ["11", "22", "33", "44"]);
+    }
+
+    [SkippableFact]
     public async Task MixedSpaceRef_ProducesCorrectOutput()
     {
         // Even threads increment shared[t] = 10 * (t + 1), odd threads data[t] = t;
