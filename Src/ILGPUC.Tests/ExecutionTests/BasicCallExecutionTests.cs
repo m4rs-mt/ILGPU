@@ -22,6 +22,12 @@ public abstract class BasicCallExecutionTests : ExecutionTestBase
     protected BasicCallExecutionTests(ITestOutputHelper output, BackendType backend)
         : base(output, backend) { }
 
+    /// <summary>
+    /// Skips tests that the GPU backends do not translate correctly yet.
+    /// </summary>
+    private void SkipOnGpuBackends(string reason) =>
+        Skip.If(Backend != BackendType.CPU, reason);
+
     [SkippableFact]
     public async Task SimpleCall_ProducesCorrectOutput()
     {
@@ -74,6 +80,16 @@ public abstract class BasicCallExecutionTests : ExecutionTestBase
             "TestPrograms/BasicCall/HelperUniformArgument.cs",
             ["Kernels.HelperUniformArgumentKernel"],
             ["1", "11", "21", "31", "41", "51", "61", "71", "81", "1", "11", "21"]);
+    }
+
+    [SkippableFact]
+    public async Task HelperSwitchReturns_ProducesCorrectOutput()
+    {
+        SkipOnGpuBackends("Returns from switch cases are not yet supported");
+        await VerifyProgramOutputAsync(
+            "TestPrograms/BasicCall/HelperSwitchReturns.cs",
+            ["Kernels.HelperSwitchReturnsKernel"],
+            ["5", "-1", "14", "-3", "28", "-5", "-6", "-7", "-8", "5", "-1", "14"]);
     }
 
     [SkippableFact]

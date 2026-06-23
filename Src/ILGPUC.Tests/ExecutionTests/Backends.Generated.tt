@@ -64,6 +64,7 @@ var testClasses = new[]
     "ArrayView2DExecutionTests",
     "ArrayView3DExecutionTests",
     "LaunchGeometryExecutionTests",
+    "DivergentControlFlowExecutionTests",
     "DivergentMemoryExecutionTests",
     "VectorArithmeticExecutionTests",
     "VectorStructuresExecutionTests",

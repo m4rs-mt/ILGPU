@@ -143,6 +143,23 @@ public static class CPUVectorIntrinsics
     }
 
     /// <summary>
+    /// Writes a uniform value into the lanes of a target selected by a mask
+    /// and keeps all other lanes unchanged.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void SelectFill<T>(
+        Span<T> target,
+        ReadOnlySpan<bool> condition,
+        T value)
+    {
+        for (int i = 0; i < condition.Length; i++)
+        {
+            if (condition[i])
+                target[i] = value;
+        }
+    }
+
+    /// <summary>
     /// Returns the value of the last active lane, which is the value a
     /// sequential execution of the active lanes leaves behind when every lane
     /// writes its value to the same location.
@@ -364,6 +381,71 @@ public static class CPUVectorIntrinsics
     {
         for (int i = 0; i < a.Length; i++)
             target[i] = a[i] == b[i];
+    }
+
+    /// <summary>
+    /// Moves a pending block entry mask into the active mask and clears the
+    /// pending mask: target[i] = source[i], source[i] = false.
+    /// </summary>
+    /// <returns>True if any lane of the moved mask is active.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool TakeMask(bool[] target, bool[] source)
+    {
+        bool any = false;
+        for (int i = 0; i < target.Length; i++)
+        {
+            bool active = source[i];
+            target[i] = active;
+            source[i] = false;
+            any |= active;
+        }
+        return any;
+    }
+
+    /// <summary>
+    /// Computes the lanes of a mask that take a switch case:
+    /// target[i] = mask[i] &amp; values[i] == caseValue.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void CaseMask<T>(
+        bool[] target,
+        ReadOnlySpan<bool> mask,
+        ReadOnlySpan<T> values,
+        T caseValue)
+        where T : IEqualityOperators<T, T, bool>
+    {
+        for (int i = 0; i < target.Length; i++)
+            target[i] = mask[i] & values[i] == caseValue;
+    }
+
+    /// <summary>
+    /// Computes the lanes of a mask that take the default target of a switch
+    /// with the given number of cases:
+    /// target[i] = mask[i] &amp; (values[i] &lt; 0 | values[i] &gt;= numCases).
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void DefaultCaseMask<T>(
+        bool[] target,
+        ReadOnlySpan<bool> mask,
+        ReadOnlySpan<T> values,
+        T numCases)
+        where T : INumber<T>
+    {
+        for (int i = 0; i < target.Length; i++)
+        {
+            target[i] = mask[i]
+                & (values[i] < T.Zero | values[i] >= numCases);
+        }
+    }
+
+    /// <summary>
+    /// Adds the lanes of a mask to a pending mask: target[i] |= mask[i].
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void AccumulateMask(bool[] target, ReadOnlySpan<bool> mask)
+    {
+        for (int i = 0; i < target.Length; i++)
+            target[i] |= mask[i];
     }
 
     #endregion
