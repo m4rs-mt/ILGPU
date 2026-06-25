@@ -853,6 +853,48 @@ public static class CPUVectorIntrinsics
     }
 
     /// <summary>
+    /// Offsets each per-lane pointer by a fixed (possibly large) byte amount.
+    /// Used for element addresses with uniform offsets.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void OffsetPointers(
+        Span<nint> dest, ReadOnlySpan<nint> source, long byteOffset)
+    {
+        for (int i = 0; i < dest.Length; i++)
+            dest[i] = (nint)(source[i] + byteOffset);
+    }
+
+    /// <summary>
+    /// Offsets each per-lane pointer by its own number of elements.
+    /// Used for element addresses with per-lane offsets.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void OffsetPointers(
+        Span<nint> dest,
+        ReadOnlySpan<nint> source,
+        ReadOnlySpan<int> offsets,
+        int elementSize)
+    {
+        for (int i = 0; i < dest.Length; i++)
+            dest[i] = source[i] + (nint)offsets[i] * elementSize;
+    }
+
+    /// <summary>
+    /// Offsets each per-lane pointer by its own number of elements.
+    /// Used for element addresses with per-lane 64-bit offsets.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void OffsetPointers(
+        Span<nint> dest,
+        ReadOnlySpan<nint> source,
+        ReadOnlySpan<long> offsets,
+        int elementSize)
+    {
+        for (int i = 0; i < dest.Length; i++)
+            dest[i] = (nint)(source[i] + offsets[i] * elementSize);
+    }
+
+    /// <summary>
     /// Stores values through per-lane pointers with masking.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -892,21 +934,6 @@ public static class CPUVectorIntrinsics
     {
         for (int i = 0; i < result.Length; i++)
             result[i] = mask[i] ? Unsafe.Read<T>((void*)pointers[i]) : default;
-    }
-
-    /// <summary>
-    /// Computes per-lane pointers offset by a fixed byte amount from
-    /// a source pointer array. Used for struct field access on per-lane
-    /// alloca pointers (e.g., accessing field at byte offset 4 in each
-    /// lane's struct allocation).
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void PointerOffset(
-        Span<nint> result, ReadOnlySpan<nint> pointers,
-        int byteOffset)
-    {
-        for (int i = 0; i < result.Length; i++)
-            result[i] = pointers[i] + byteOffset;
     }
 
     #endregion

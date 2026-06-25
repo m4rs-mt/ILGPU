@@ -24,13 +24,7 @@ namespace ILGPUC.Tests.ExecutionTests;
 public abstract class AddressSpaceExecutionTests : ExecutionTestBase
 {
     protected AddressSpaceExecutionTests(ITestOutputHelper output, BackendType backend)
-        : base(output, backend)
-    {
-        Skip.If(
-            backend == BackendType.CPU,
-            "The CPU backend cannot emit references held in phis or passed " +
-            "to helper methods (raw pointers outside an unsafe context).");
-    }
+        : base(output, backend) { }
 
     [SkippableFact]
     public async Task SharedPointerLoop_ProducesCorrectOutput()
@@ -74,6 +68,38 @@ public abstract class AddressSpaceExecutionTests : ExecutionTestBase
     }
 
     [SkippableFact]
+    public async Task GlobalRefHelper_ProducesCorrectOutput()
+    {
+        // data[t] = 10 * t, incremented by a helper through a reference
+        await VerifyProgramOutputAsync(
+            "TestPrograms/AddressSpace/GlobalRefHelper.cs",
+            ["Kernels.GlobalRefHelperKernel"],
+            ["1", "11", "21", "31"]);
+    }
+
+    [SkippableFact]
+    public async Task GlobalPointerLoop_ProducesCorrectOutput()
+    {
+        // input = [1, 2, 3, 4]; thread t sums input[0..t] through a reference
+        // whose loop exits diverge per thread
+        await VerifyProgramOutputAsync(
+            "TestPrograms/AddressSpace/GlobalPointerLoop.cs",
+            ["Kernels.GlobalPointerLoopKernel"],
+            ["1", "3", "6", "10"]);
+    }
+
+    [SkippableFact]
+    public async Task UniformPointerLoop_ProducesCorrectOutput()
+    {
+        // input = [1, 2, 3, 4]; all threads sum the input through a reference
+        // advanced by a uniform loop
+        await VerifyProgramOutputAsync(
+            "TestPrograms/AddressSpace/UniformPointerLoop.cs",
+            ["Kernels.UniformPointerLoopKernel"],
+            ["10", "11", "12", "13"]);
+    }
+
+    [SkippableFact]
     public async Task SharedRefSelect_ProducesCorrectOutput()
     {
         // Even threads increment shared[t] = 10 * (t + 1), odd threads
@@ -82,6 +108,16 @@ public abstract class AddressSpaceExecutionTests : ExecutionTestBase
             "TestPrograms/AddressSpace/SharedRefSelect.cs",
             ["Kernels.SharedRefSelectKernel"],
             ["11", "22", "33", "44"]);
+    }
+
+    [SkippableFact]
+    public async Task RefHelperLoop_ProducesCorrectOutput()
+    {
+        // input = [1, 2, 3, 4]; a helper sums input[0..t] through a reference
+        await VerifyProgramOutputAsync(
+            "TestPrograms/AddressSpace/RefHelperLoop.cs",
+            ["Kernels.RefHelperLoopKernel"],
+            ["1", "3", "6", "10"]);
     }
 
     [SkippableFact]

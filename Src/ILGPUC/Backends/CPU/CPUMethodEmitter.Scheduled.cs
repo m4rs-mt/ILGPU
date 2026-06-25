@@ -58,19 +58,26 @@ partial class CPUMethodEmitter
     /// Returns the element type of the per-lane buffer of a vectorized value,
     /// or null if the value is not stored in a per-lane array.
     /// </summary>
-    private string? GetVectorElementType(Value value)
-    {
-        if (value is CompareValue)
-            return "bool";
-        return value.Type switch
+    private string? GetVectorElementType(Value value) =>
+        value is CompareValue ? "bool" : GetLaneElementType(value.Type);
+
+    /// <summary>
+    /// Returns the element type of the per-lane buffer of values of the given
+    /// type, or null if such values are not stored in per-lane arrays.
+    /// </summary>
+    private string? GetLaneElementType(TypeValue type) =>
+        type switch
         {
             PrimitiveType pt => ((CPULanguageConfiguration)context.LanguageConfig)
                 .GetPrimitiveTypeName(pt.BasicValueType),
             PointerType => "nint",
             StructureType st => $"struct_{st.Id}",
+            ViewType view => "CPURuntimeView<" +
+                VectorizationAnalysis.GetScalarTypeName(
+                    view.ElementType,
+                    (CPULanguageConfiguration)context.LanguageConfig) + ">",
             _ => null
         };
-    }
 
     /// <summary>
     /// Prepares the scheduled emission of a method: maps values to their
@@ -121,8 +128,12 @@ partial class CPUMethodEmitter
                     continue;
                 }
                 var elemType = GetVectorElementType(value);
-                if (elemType is null || !IsUsedOutside(value, loop, analysis))
+                if (elemType is null ||
+                    value.Type is ViewType && !analysis.IsPerLaneView(value) ||
+                    !IsUsedOutside(value, loop, analysis))
+                {
                     continue;
+                }
                 _maskedWrites.Add(value);
                 context.WriteLine(
                     $"var {GetMaskedWriteName(value)} = " +
@@ -508,6 +519,12 @@ partial class CPUMethodEmitter
                 }
                 sources[i] = expr;
             }
+            else if (arg.Type is ViewType && !analysis.IsPerLaneView(arg))
+            {
+                // Views of local arrays become the views of the private
+                // arrays of all lanes
+                sources[i] = _expressionEmitter!.ResolveViews(arg);
+            }
             else
             {
                 var name = context.GetValueName(arg);
@@ -543,9 +560,8 @@ partial class CPUMethodEmitter
             var elemType = GetVectorElementType(phi) ?? "int";
             if (analysis.IsScalar(arg))
             {
-                var value = elemType == "nint"
-                    ? $"(nint)({sources[i]})"
-                    : sources[i];
+                var value = CPUExpressionEmitter.ToLaneElement(
+                    sources[i], elemType);
                 context.WriteLine(
                     $"CPUVectorIntrinsics.SelectFill<{elemType}>(" +
                     $"{phiName}, {mask}, {value});");

@@ -46,6 +46,9 @@ sealed partial class CPUMethodEmitter(
     private const string CallerLanesName = "_callerLanes";
 
     private readonly Dictionary<Method, VectorizationAnalysis> _analyses = [];
+    private readonly HashSet<Method> _pendingAnalyses = [];
+    private CPUExpressionEmitter? _expressionEmitter;
+    private int _layoutCounter;
 
     /// <summary>
     /// Gets the buffer pool metadata computed during code generation.
@@ -73,19 +76,10 @@ sealed partial class CPUMethodEmitter(
     private void EmitVectorizedMethod(Method method)
     {
         bool isEntryPoint = method == context.Module.EntryPoint;
-
-        // Perform vectorization analysis — the entry point's first parameter
-        // (the thread index) is vectorized, mapping to per-lane laneIdx.
-        // For grouped kernels, there is no index parameter, so param0 is
-        // a real parameter and must NOT be vectorized.
-        bool hasIndexParam = isEntryPoint
-            && method.Parameters.Count > 0
-            && (method.Parameters[0].Type is PrimitiveType
-                    { BasicValueType: BasicValueType.Int32 }
-                || (method.Parameters[0].Type is StructureType st
-                    && IsIndexStructType(st)));
-        var analysis = new VectorizationAnalysis(
-            method, vectorizeFirstParam: hasIndexParam);
+        var analysis = GetAnalysis(method)
+            ?? throw new System.NotSupportedException(
+                $"Recursive calls of '{method.Name}' are not supported by the " +
+                "CPU backend.");
 
         // Schedule the blocks for masked execution
         var schedule = new CPUBlockSchedule(method);
@@ -161,19 +155,24 @@ sealed partial class CPUMethodEmitter(
         if (!isEntryPoint && method.Type is not VoidType)
         {
             var retVal = method.ExitBlock.TerminationValue;
+            var returnType = GetLaneElementType(method.Type) ?? "int";
             if (retVal is not null && analysis.IsScalar(retVal))
             {
                 // Uniform return values are broadcast to all lanes
                 var elemType = GetVectorElementType(retVal) ?? "int";
                 var expr = new ExpressionEmitter(context, new TypeEmitter(context))
                     .EmitExpression(retVal);
+                expr = ConvertLayout(expr, elemType, returnType);
                 context.WriteLine(
-                    $"return CPUVectorIntrinsics.Broadcast<{elemType}>(" +
-                    $"{expr}, SIMDWidth);");
+                    $"return CPUVectorIntrinsics.Broadcast<{returnType}>(" +
+                    $"{CPUExpressionEmitter.ToLaneElement(expr, returnType)}, " +
+                    "SIMDWidth);");
             }
             else if (retVal is not null)
             {
-                var retName = context.GetValueName(retVal);
+                var retName = GetLaneOperand(retVal, analysis);
+                retName = ConvertLaneLayout(
+                    retName, GetVectorElementType(retVal), returnType);
                 context.WriteLine($"return {retName};");
             }
         }
@@ -195,16 +194,17 @@ sealed partial class CPUMethodEmitter(
 
         // Non-entry methods are vectorized helpers emitted in the
         // same static class — return type must be T[] for non-void.
-        var returnType = typeEmitter.GetTypeName(method.Type);
-        if (!isEntryPoint && method.Type is not VoidType)
-            returnType += "[]";
+        var returnType = !isEntryPoint && method.Type is not VoidType
+            ? GetLaneArrayTypeName(method.Type, typeEmitter)
+            : typeEmitter.GetTypeName(method.Type);
         var methodName = isEntryPoint
             ? "KernelEntryPoint"
             : context.GetValueName(method);
 
-        // All methods in the static class must be static
+        // All methods in the static class must be static; helpers may take
+        // and return uniform pointers
         if (!isEntryPoint)
-            context.Write("static ");
+            context.Write("static unsafe ");
         context.Write($"{returnType} {methodName}(");
 
         // Emit parameters — vectorized params become T[] arrays
@@ -230,7 +230,7 @@ sealed partial class CPUMethodEmitter(
             // is aliased to laneIdx in EmitVectorizationSetup.
             else if (!isEntryPoint && !analysis.IsScalar(param))
             {
-                typeName += "[]";
+                typeName = GetLaneArrayTypeName(param.Type, typeEmitter);
             }
             var paramName = context.GetValueName(param);
             context.Write($"{typeName} {paramName}");
@@ -272,6 +272,15 @@ sealed partial class CPUMethodEmitter(
 
         context.Write(")");
     }
+
+    /// <summary>
+    /// Returns the type of the per-lane array holding values of the given
+    /// type. Per-lane pointers are stored as addresses (<c>nint[]</c>).
+    /// </summary>
+    private static string GetLaneArrayTypeName(
+        TypeValue type,
+        TypeEmitter typeEmitter) =>
+        type is PointerType ? "nint[]" : typeEmitter.GetTypeName(type) + "[]";
 
     /// <summary>
     /// Emits the vectorization setup code (lane indices tensor, active mask).
@@ -577,6 +586,7 @@ sealed partial class CPUMethodEmitter(
 
         // Create expression emitter
         var expressionEmitter = new CPUExpressionEmitter(context, analysis);
+        _expressionEmitter = expressionEmitter;
 
         // Set up broadcast name overrides for pooled mode. The emitter
         // constructs broadcast names as "_bcast_tmp_{value.Id}"; the
@@ -720,6 +730,13 @@ sealed partial class CPUMethodEmitter(
                     // Pointer vectors are nint[]
                     context.WriteLine(
                         $"var {varName} = new nint[SIMDWidth];");
+                }
+                else if (analysis.IsPerLaneView(value))
+                {
+                    // Views that differ per lane hold one view per lane
+                    context.WriteLine(
+                        $"var {varName} = new {GetVectorElementType(value)}" +
+                        "[SIMDWidth];");
                 }
                 else if (!analysis.IsScalar(value) && value.Type is StructureType st2)
                 {
@@ -927,6 +944,22 @@ sealed partial class CPUMethodEmitter(
                 expressionEmitter.EmitViewLEA(lea);
                 break;
 
+            case LoadElementAddress lea when !analysis.IsScalar(lea):
+                // Non-fusable vectorized LEA on a pointer: offset the
+                // per-lane addresses
+                expressionEmitter.EmitPointerAddresses(
+                    lea, context.GetValueName(lea));
+                break;
+
+            case BaseAddressSpaceCast cast
+                when cast.Type is PointerType && !analysis.IsScalar(cast):
+                // Per-lane pointer casts keep the addresses of their source.
+                // They are copied, as the buffers of both values may be
+                // reused independently.
+                expressionEmitter.EmitPointerCopy(
+                    context.GetValueName(cast), cast.Source);
+                break;
+
             case Alloca alloca when !analysis.IsScalar(alloca):
                 // Vectorized alloca: use stackalloc for per-lane local
                 // memory and initialize the nint[] pointer array.
@@ -948,7 +981,8 @@ sealed partial class CPUMethodEmitter(
                 // nint[] by the field's byte offset within the struct.
                 {
                     var lfaVar = context.GetValueName(lfa);
-                    var srcVar = context.GetValueName(lfa.Source);
+                    var srcVar = expressionEmitter.ResolvePointers(
+                        lfa.Source, lfa);
                     var fieldOffset = lfa.FieldSpan.Index;
                     if (fieldOffset == 0)
                     {
@@ -972,26 +1006,34 @@ sealed partial class CPUMethodEmitter(
                 break;
 
             case GetViewLength viewLen when !analysis.IsScalar(viewLen):
-                // Vectorized GetViewLength: the length is a scalar
-                // property but the pool buffer is an array — broadcast.
-                // Resolve the source view expression directly to avoid
-                // pool redirection of the GetViewLength value itself.
+                // The length of a view that differs per lane: read the length
+                // of every lane's view
                 {
                     var vlResult = context.GetValueName(viewLen);
-                    var te = new TypeEmitter(context);
-                    var ee = new ExpressionEmitter(context, te);
-                    // Get the source view expression (not the viewLen's
-                    // pool name) and append .Length
-                    var srcExpr = ee.EmitExpression(viewLen.Source);
+                    var views = expressionEmitter.ResolveViews(viewLen.Source);
                     var lenField = context.LanguageConfig.ViewLengthFieldName;
                     var cfg = (CPULanguageConfiguration)
                         context.LanguageConfig;
                     var lenType = cfg.GetPrimitiveTypeName(
                         viewLen.BasicValueType);
                     context.WriteLine(
-                        $"CPUVectorIntrinsics.Broadcast<{lenType}>(" +
-                        $"{vlResult}, {srcExpr}.{lenField});");
+                        "for (int _si = 0; _si < SIMDWidth; _si++)");
+                    context.WriteLine(
+                        $"    {vlResult}[_si] = ({lenType})" +
+                        $"{views}[_si].{lenField};");
                 }
+                break;
+
+            case SubView subView when analysis.IsPerLaneView(subView):
+                EmitPerLaneSubView(subView, analysis, expressionEmitter);
+                break;
+
+            case NewView newView when analysis.IsPerLaneView(newView):
+                EmitPerLaneNewView(newView, analysis, expressionEmitter);
+                break;
+
+            case BaseAddressSpaceCast cast when analysis.IsPerLaneView(cast):
+                EmitPerLaneViewCast(cast, expressionEmitter);
                 break;
 
             case PointerAsIntCast ptrCast:
@@ -1068,6 +1110,9 @@ sealed partial class CPUMethodEmitter(
         {
             var structType = (StructureType)sv.Type;
             var typeName = new TypeEmitter(context).GetTypeName(structType);
+            var fieldValues = new string[sv.Count];
+            for (int i = 0; i < sv.Count; i++)
+                fieldValues[i] = GetLaneOperand(sv.Values[i], analysis);
 
             context.WriteLine(
                 "for (int _si = 0; _si < SIMDWidth; _si++)");
@@ -1078,10 +1123,7 @@ sealed partial class CPUMethodEmitter(
             {
                 if (i > 0) sb.Append(", ");
                 var fieldName = StructureType.GetFieldName(i);
-                var fieldVal = analysis.IsScalar(sv.Values[i])
-                    ? new ExpressionEmitter(context, new TypeEmitter(context))
-                        .EmitExpression(sv.Values[i])
-                    : context.GetValueName(sv.Values[i]);
+                var fieldVal = fieldValues[i];
                 if (analysis.IsScalar(sv.Values[i]))
                     sb.Append($"{fieldName} = {fieldVal}");
                 else
@@ -1125,6 +1167,10 @@ sealed partial class CPUMethodEmitter(
             return;
         }
 
+        // Views that differ per lane are only formed by the operations above
+        if (analysis.IsPerLaneView(value))
+            throw UnsupportedPerLaneView(value);
+
         // Field insertion: copy the source struct and overwrite the field
         if (value is SetField setField)
         {
@@ -1140,16 +1186,160 @@ sealed partial class CPUMethodEmitter(
     }
 
     /// <summary>
-    /// Returns the vectorization analysis of a helper method.
+    /// Returns the vectorization analysis of a method, or null if the
+    /// analysis of the method is being computed (a recursive call).
     /// </summary>
-    private VectorizationAnalysis GetAnalysis(Method method)
+    private VectorizationAnalysis? GetAnalysis(Method method)
     {
-        if (!_analyses.TryGetValue(method, out var analysis))
-        {
-            analysis = new VectorizationAnalysis(method);
-            _analyses[method] = analysis;
-        }
+        if (_analyses.TryGetValue(method, out var analysis))
+            return analysis;
+        if (!_pendingAnalyses.Add(method))
+            return null;
+
+        // The entry point's first parameter (the thread index) is vectorized,
+        // mapping to per-lane laneIdx. For grouped kernels, there is no index
+        // parameter, so param0 is a real parameter and must NOT be vectorized.
+        bool hasIndexParam = method == context.Module.EntryPoint
+            && method.Parameters.Count > 0
+            && (method.Parameters[0].Type is PrimitiveType
+                    { BasicValueType: BasicValueType.Int32 }
+                || (method.Parameters[0].Type is StructureType st
+                    && IsIndexStructType(st)));
+        analysis = new VectorizationAnalysis(
+            method, vectorizeFirstParam: hasIndexParam, GetAnalysis);
+        _pendingAnalyses.Remove(method);
+        _analyses[method] = analysis;
         return analysis;
+    }
+
+    /// <summary>
+    /// Returns the text of an operand of a per-lane operation: the expression
+    /// of a uniform operand, or the per-lane buffer of an operand that differs
+    /// per lane. Views of local arrays become the views of the private arrays
+    /// of all lanes.
+    /// </summary>
+    private string GetLaneOperand(Value operand, VectorizationAnalysis analysis)
+    {
+        if (analysis.IsScalar(operand))
+        {
+            return new ExpressionEmitter(context, new TypeEmitter(context))
+                .EmitExpression(operand);
+        }
+        return operand.Type is ViewType
+            ? _expressionEmitter!.ResolveViews(operand)
+            : context.GetValueName(operand);
+    }
+
+    /// <summary>
+    /// Returns true if values of the given C# types are structures or views
+    /// that only differ in the address spaces of their views and pointers,
+    /// which have the same representation on the CPU.
+    /// </summary>
+    private static bool IsLayoutConversion(string? from, string? to) =>
+        from is not null && to is not null && from != to &&
+        (from.StartsWith("struct_", System.StringComparison.Ordinal) &&
+            to.StartsWith("struct_", System.StringComparison.Ordinal) ||
+        from.StartsWith("CPURuntimeView<", System.StringComparison.Ordinal) &&
+            to.StartsWith("CPURuntimeView<", System.StringComparison.Ordinal));
+
+    /// <summary>
+    /// Converts a uniform structure or view to another type of the same
+    /// layout. Helper methods may take or return values whose types only
+    /// differ in address spaces from the values at their call sites.
+    /// </summary>
+    private static string ConvertLayout(string expr, string? from, string? to) =>
+        IsLayoutConversion(from, to)
+            ? $"Unsafe.BitCast<{from}, {to}>({expr})"
+            : expr;
+
+    /// <summary>
+    /// Converts a per-lane buffer of structures or views to a buffer of
+    /// another type of the same layout (see <see cref="ConvertLayout"/>).
+    /// </summary>
+    private string ConvertLaneLayout(string buffer, string? from, string? to)
+    {
+        if (!IsLayoutConversion(from, to))
+            return buffer;
+        var converted = $"_layout_{_layoutCounter++}";
+        context.WriteLine($"var {converted} = new {to}[SIMDWidth];");
+        context.WriteLine("for (int _si = 0; _si < SIMDWidth; _si++)");
+        context.WriteLine(
+            $"    {converted}[_si] = Unsafe.BitCast<{from}, {to}>({buffer}[_si]);");
+        return converted;
+    }
+
+    /// <summary>
+    /// Returns the exception reporting a view that differs per lane, which
+    /// the CPU backend cannot represent for the given value.
+    /// </summary>
+    private System.NotSupportedException UnsupportedPerLaneView(Value value) =>
+        new($"The kernel '{context.Module.EntryPoint.Name}' uses a view that " +
+            $"differs per lane in a '{value.GetType().Name}' operation, " +
+            "which the CPU backend does not support.");
+
+    /// <summary>
+    /// Emits a sub-view of a view that differs per lane, or with an offset or
+    /// length that differs per lane.
+    /// </summary>
+    private void EmitPerLaneSubView(
+        SubView subView,
+        VectorizationAnalysis analysis,
+        CPUExpressionEmitter expressionEmitter)
+    {
+        var result = context.GetValueName(subView);
+        var source = expressionEmitter.ResolveViews(subView.Source);
+        var offset = GetLaneOperand(subView.Offset, analysis);
+        var length = GetLaneOperand(subView.Length, analysis);
+        string Lane(Value operand, string text) =>
+            analysis.IsScalar(operand) ? $"({text})" : $"{text}[_si]";
+        context.WriteLine("for (int _si = 0; _si < SIMDWidth; _si++)");
+        context.WriteLine(
+            $"    {result}[_si] = {source}[_si].SubView(" +
+            $"{Lane(subView.Offset, offset)}, {Lane(subView.Length, length)});");
+    }
+
+    /// <summary>
+    /// Emits a view of per-lane pointers or lengths.
+    /// </summary>
+    private void EmitPerLaneNewView(
+        NewView newView,
+        VectorizationAnalysis analysis,
+        CPUExpressionEmitter expressionEmitter)
+    {
+        if (newView.Pointer.Type is not PointerType)
+            throw UnsupportedPerLaneView(newView);
+        var result = context.GetValueName(newView);
+        var pointers = expressionEmitter.ResolvePointers(newView.Pointer, newView);
+        var length = GetLaneOperand(newView.Length, analysis);
+        if (!analysis.IsScalar(newView.Length))
+            length += "[_si]";
+        var elemType = VectorizationAnalysis.GetScalarTypeName(
+            newView.ViewElementType,
+            (CPULanguageConfiguration)context.LanguageConfig);
+        context.WriteLine("for (int _si = 0; _si < SIMDWidth; _si++)");
+        context.WriteLine(
+            $"    {result}[_si] = new CPURuntimeView<{elemType}>(" +
+            $"({elemType}*){pointers}[_si], {length});");
+    }
+
+    /// <summary>
+    /// Emits an address space or element type cast of a view that differs per
+    /// lane. The views are copied, as the buffers of both values may be
+    /// reused independently.
+    /// </summary>
+    private void EmitPerLaneViewCast(
+        BaseAddressSpaceCast cast,
+        CPUExpressionEmitter expressionEmitter)
+    {
+        var result = context.GetValueName(cast);
+        var source = expressionEmitter.ResolveViews(cast.Source);
+        var sourceType = GetVectorElementType(cast.Source);
+        var targetType = GetVectorElementType(cast);
+        context.WriteLine("for (int _si = 0; _si < SIMDWidth; _si++)");
+        context.WriteLine(sourceType == targetType
+            ? $"    {result}[_si] = {source}[_si];"
+            : $"    {result}[_si] = Unsafe.BitCast<{sourceType}, {targetType}>(" +
+                $"{source}[_si]);");
     }
 
     /// <summary>
@@ -1163,24 +1353,36 @@ sealed partial class CPUMethodEmitter(
         CPUExpressionEmitter expressionEmitter)
     {
         var target = call.Target;
-        var targetAnalysis = GetAnalysis(target);
+        var targetAnalysis = GetAnalysis(target)
+            ?? throw new System.NotSupportedException(
+                $"Recursive calls of '{target.Name}' are not supported by the " +
+                "CPU backend.");
         var exprEmitter = new ExpressionEmitter(context, new TypeEmitter(context));
         var arguments = new List<string>();
         for (int i = 0; i < call.Arguments.Length; i++)
         {
             var arg = call.Arguments[i];
-            bool perLaneParam = !targetAnalysis.IsScalar(target.Parameters[i]);
+            var param = target.Parameters[i];
+            bool perLaneParam = !targetAnalysis.IsScalar(param);
+            var paramType = GetVectorElementType(param);
             if (!analysis.IsScalar(arg))
             {
-                arguments.Add(expressionEmitter.ResolveOperand(arg));
+                var buffer = arg.Type is ViewType
+                    ? expressionEmitter.ResolveViews(arg)
+                    : expressionEmitter.ResolveOperand(arg);
+                arguments.Add(ConvertLaneLayout(
+                    buffer, GetVectorElementType(arg), paramType));
                 continue;
             }
-            var expr = exprEmitter.EmitExpression(arg);
+            var expr = ConvertLayout(
+                exprEmitter.EmitExpression(arg),
+                GetVectorElementType(arg),
+                paramType);
             if (perLaneParam)
             {
-                var elemType = GetVectorElementType(target.Parameters[i]) ?? "int";
+                var elemType = paramType ?? "int";
                 expr = $"CPUVectorIntrinsics.Broadcast<{elemType}>(" +
-                    $"{expr}, SIMDWidth)";
+                    $"{CPUExpressionEmitter.ToLaneElement(expr, elemType)}, SIMDWidth)";
             }
             arguments.Add(expr);
         }
@@ -1207,23 +1409,24 @@ sealed partial class CPUMethodEmitter(
         string varName,
         VectorizationAnalysis analysis)
     {
-        var exprEmitter = new ExpressionEmitter(context, new TypeEmitter(context));
-        string Operand(Value operand, string lane) =>
-            analysis.IsScalar(operand)
-                ? exprEmitter.EmitExpression(operand)
-                : $"{context.GetValueName(operand)}{lane}";
-
         bool vectorized = !analysis.IsScalar(setField);
         var lane = vectorized ? "[_si]" : "";
+        string Operand(Value operand)
+        {
+            var text = GetLaneOperand(operand, analysis);
+            return analysis.IsScalar(operand) ? text : text + lane;
+        }
+        var source = Operand(setField.Source);
+        var fieldValue = Operand(setField.Value);
+
         if (vectorized)
         {
             context.WriteLine("for (int _si = 0; _si < SIMDWidth; _si++)");
             context.OpenScope();
         }
         var target = $"{varName}{lane}";
-        context.WriteLine($"{target} = {Operand(setField.Source, lane)};");
+        context.WriteLine($"{target} = {source};");
         var span = setField.FieldSpan;
-        var fieldValue = Operand(setField.Value, lane);
         if (span.Span == 1)
         {
             context.WriteLine(

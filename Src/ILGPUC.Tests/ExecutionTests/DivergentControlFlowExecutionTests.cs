@@ -32,6 +32,19 @@ public abstract class DivergentControlFlowExecutionTests : ExecutionTestBase
             Backend != BackendType.CPU,
             "Not yet supported by the structured control flow reconstruction");
 
+    /// <summary>
+    /// A view merged after divergent branches with side effects is written by every lane
+    /// that reaches the merge.
+    /// </summary>
+    [SkippableFact]
+    public async Task BranchViewMerge_ProducesCorrectOutput()
+    {
+        await VerifyProgramOutputAsync(
+            "TestPrograms/DivergentControlFlow/BranchViewMerge.cs",
+            ["Kernels.BranchViewMergeKernel"],
+            ["0", "1013", "22", "0", "22", "1013", "0", "1013", "22", "0", "22", "1013"]);
+    }
+
     [SkippableFact]
     public async Task LoopBreakFirstIteration_ProducesCorrectOutput()
     {
@@ -222,6 +235,19 @@ public abstract class DivergentControlFlowExecutionTests : ExecutionTestBase
             [
                 "86", "213", "422", "529", "934", "1725", "1788", "2600", "3481", "86",
                 "213", "422"
+            ]);
+    }
+
+    [SkippableFact]
+    public async Task LoopSwitchContinueView_ProducesCorrectOutput()
+    {
+        SkipOnStructuredBackends();
+        await VerifyProgramOutputAsync(
+            "TestPrograms/DivergentControlFlow/LoopSwitchContinueView.cs",
+            ["Kernels.LoopSwitchContinueViewKernel"],
+            [
+                "458", "634", "977", "980", "807", "957", "745", "400", "401", "402",
+                "802", "36"
             ]);
     }
 }

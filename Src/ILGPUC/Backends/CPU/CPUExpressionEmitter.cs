@@ -90,8 +90,70 @@ sealed class CPUExpressionEmitter(
             return $"struct_{st.Id}";
         if (type is PointerType)
             return "nint";
+        if (type is ViewType view)
+            return GetViewTypeName(view);
         return "int";
     }
+
+    /// <summary>
+    /// Returns the C# type name of a view of the given type.
+    /// </summary>
+    private string GetViewTypeName(ViewType view) =>
+        "CPURuntimeView<" + VectorizationAnalysis.GetScalarTypeName(
+            view.ElementType,
+            (CPULanguageConfiguration)context.LanguageConfig) + ">";
+
+    private int _viewBufferCounter;
+
+    /// <summary>
+    /// Returns a buffer holding the view of every lane
+    /// (<c>CPURuntimeView&lt;T&gt;[]</c>). A uniform view is broadcast, and a
+    /// view of a local array becomes the views of the private arrays of all
+    /// lanes.
+    /// </summary>
+    public string ResolveViews(Value view)
+    {
+        if (analysis.IsPerLaneView(view))
+            return ResolveOperand(view);
+
+        var viewType = (ViewType)view.Type;
+        var typeName = GetViewTypeName(viewType);
+        var source = ResolveOperand(view);
+        var buffer = $"_views_{_viewBufferCounter++}";
+        context.WriteLine($"var {buffer} = new {typeName}[SIMDWidth];");
+        if (GetLaneArrayLength(view) is int laneStride)
+        {
+            var elemType = VectorizationAnalysis.GetScalarTypeName(
+                viewType.ElementType,
+                (CPULanguageConfiguration)context.LanguageConfig);
+            context.WriteLine(
+                $"CPUVectorIntrinsics.LaneViews<{elemType}>(" +
+                $"{buffer}, {source}, {laneStride});");
+        }
+        else
+        {
+            context.WriteLine(
+                $"CPUVectorIntrinsics.Broadcast<{typeName}>({buffer}, {source});");
+        }
+        return buffer;
+    }
+
+    /// <summary>
+    /// Returns the element type name of a view.
+    /// </summary>
+    private string GetViewElementTypeName(Value view) =>
+        VectorizationAnalysis.GetScalarTypeName(
+            view.GetTypeAs<ViewType>().ElementType,
+            (CPULanguageConfiguration)context.LanguageConfig);
+
+    /// <summary>
+    /// Returns the index operand of an access through views that differ per
+    /// lane: a per-lane index buffer or a uniform 64-bit index.
+    /// </summary>
+    private string GetLaneViewIndex(Value offset) =>
+        analysis.IsScalar(offset)
+            ? $"(long)({ResolveOperand(offset)})"
+            : ResolveOperand(offset);
 
     /// <summary>
     /// Returns the number of elements of each lane's private array if the view
@@ -129,6 +191,17 @@ sealed class CPUExpressionEmitter(
 
         if (load.Source is LoadElementAddress lea && lea.IsViewAccess)
         {
+            if (analysis.IsPerLaneView(lea.Source))
+            {
+                // Every active lane loads through its own view
+                context.WriteLine(
+                    "CPUVectorIntrinsics.ViewGatherLoad<" +
+                    $"{GetViewElementTypeName(lea.Source)}>({result}, " +
+                    $"{ResolveOperand(lea.Source)}, " +
+                    $"{GetLaneViewIndex(lea.Offset)}, {ActiveMaskName});");
+                return;
+            }
+
             var view = ResolveOperand(lea.Source);
             var index = ResolveOperand(lea.Offset);
 
@@ -158,35 +231,11 @@ sealed class CPUExpressionEmitter(
             return;
         }
 
-        // For pointer LEAs with per-lane base pointers and scalar offsets,
-        // compute per-lane offset pointers (same as in EmitStore).
-        string source;
-        if (load.Source is LoadElementAddress ptrLeaLoad
-            && !ptrLeaLoad.IsViewAccess
-            && ptrLeaLoad.Source.Type is PointerType
-            && !analysis.IsScalar(ptrLeaLoad.Source)
-            && analysis.IsScalar(ptrLeaLoad.Offset))
-        {
-            var ptrSrc = ResolveOperand(ptrLeaLoad.Source);
-            var offset = _sharedEmitter.EmitExpression(ptrLeaLoad.Offset);
-            var elemSize = ptrLeaLoad.Source.GetTypeAs<PointerType>()
-                .ElementType.Size;
-            var tmpPtrs = $"_ptroff_{ptrLeaLoad.Id}";
-            context.WriteLine($"var {tmpPtrs} = new nint[SIMDWidth];");
-            context.WriteLine(
-                $"CPUVectorIntrinsics.PointerOffset(" +
-                $"{tmpPtrs}, {ptrSrc}, {offset} * {elemSize});");
-            source = tmpPtrs;
-        }
-        else
-        {
-            source = ResolveOperand(load.Source);
-        }
-
         // Pointer-type sources (nint[]) use PointerLoad intrinsics
         // instead of MaskedLoad (which is a CPURuntimeView method).
         if (load.Source.Type is PointerType ptrLoad)
         {
+            var source = ResolveAddresses(load.Source, load);
             var elemType = GetTypeNameForCodegen(ptrLoad.ElementType);
             context.WriteLine(
                 $"CPUVectorIntrinsics.PointerLoad<{elemType}>(" +
@@ -194,6 +243,7 @@ sealed class CPUExpressionEmitter(
         }
         else
         {
+            var source = ResolveOperand(load.Source);
             context.WriteLine(
                 $"{source}.MaskedLoad(" +
                 $"{result}, {ActiveMaskName});");
@@ -211,6 +261,20 @@ sealed class CPUExpressionEmitter(
 
         if (store.Target is LoadElementAddress lea && lea.IsViewAccess)
         {
+            if (analysis.IsPerLaneView(lea.Source))
+            {
+                // Every active lane stores through its own view
+                var method = analysis.IsScalar(store.Value)
+                    ? "ViewScatterFill"
+                    : "ViewScatterStore";
+                context.WriteLine(
+                    $"CPUVectorIntrinsics.{method}<" +
+                    $"{GetViewElementTypeName(lea.Source)}>(" +
+                    $"{ResolveOperand(lea.Source)}, " +
+                    $"{GetLaneViewIndex(lea.Offset)}, {value}, {ActiveMaskName});");
+                return;
+            }
+
             var view = ResolveOperand(lea.Source);
             var index = ResolveOperand(lea.Offset);
 
@@ -263,32 +327,10 @@ sealed class CPUExpressionEmitter(
             return;
         }
 
-        // For pointer LEAs with per-lane base pointers and scalar offsets,
-        // compute per-lane offset pointers via PointerOffset instead of
-        // invalid inline arithmetic (nint[] + int).
-        string target;
-        if (store.Target is LoadElementAddress ptrLea
-            && !ptrLea.IsViewAccess
-            && ptrLea.Source.Type is PointerType
-            && !analysis.IsScalar(ptrLea.Source)
-            && analysis.IsScalar(ptrLea.Offset))
-        {
-            var ptrSource = ResolveOperand(ptrLea.Source);
-            var offset = _sharedEmitter.EmitExpression(ptrLea.Offset);
-            var elemSize = ptrLea.Source.GetTypeAs<PointerType>().ElementType.Size;
-            var tmpPtrs = $"_ptroff_{ptrLea.Id}";
-            context.WriteLine($"var {tmpPtrs} = new nint[SIMDWidth];");
-            context.WriteLine(
-                $"CPUVectorIntrinsics.PointerOffset(" +
-                $"{tmpPtrs}, {ptrSource}, {offset} * {elemSize});");
-            target = tmpPtrs;
-        }
-        else
-        {
-            target = ResolveOperand(store.Target);
-        }
-
         // Pointer-type targets (nint[]) use PointerStore intrinsics.
+        var target = store.Target.Type is PointerType
+            ? ResolveAddresses(store.Target, store)
+            : ResolveOperand(store.Target);
         if (store.Target.Type is PointerType ptrStore)
         {
             var storeValType = GetTypeNameForCodegen(ptrStore.ElementType);
@@ -310,6 +352,85 @@ sealed class CPUExpressionEmitter(
             context.WriteLine(
                 $"{target}.MaskedStore(" +
                 $"{value}, {ActiveMaskName});");
+        }
+    }
+
+    /// <summary>
+    /// Returns the per-lane addresses (<c>nint[]</c>) a memory operation
+    /// accesses through the given pointer. Element addresses fused into the
+    /// operation are computed into a scratch buffer of the consumer.
+    /// </summary>
+    private string ResolveAddresses(Value pointer, Value consumer)
+    {
+        if (pointer is LoadElementAddress lea && !lea.IsViewAccess
+            && !context.NeedsVariable(lea))
+        {
+            var addresses = $"_ptroff_{consumer.Id}";
+            context.WriteLine($"var {addresses} = new nint[SIMDWidth];");
+            EmitPointerAddresses(lea, addresses);
+            return addresses;
+        }
+        return ResolvePointers(pointer, consumer);
+    }
+
+    /// <summary>
+    /// Returns the per-lane addresses (<c>nint[]</c>) of a pointer value. A
+    /// uniform pointer is broadcast into a scratch buffer of the consumer.
+    /// </summary>
+    public string ResolvePointers(Value pointer, Value consumer)
+    {
+        if (!analysis.IsScalar(pointer))
+            return ResolveOperand(pointer);
+        var addresses = $"_ptrs_{consumer.Id}";
+        context.WriteLine($"var {addresses} = new nint[SIMDWidth];");
+        EmitPointerCopy(addresses, pointer);
+        return addresses;
+    }
+
+    /// <summary>
+    /// Writes the per-lane addresses of a pointer value into a buffer.
+    /// </summary>
+    public void EmitPointerCopy(string target, Value pointer)
+    {
+        if (analysis.IsScalar(pointer))
+        {
+            var address = _sharedEmitter.EmitExpression(pointer);
+            context.WriteLine(
+                $"CPUVectorIntrinsics.Broadcast<nint>({target}, (nint)({address}));");
+        }
+        else
+        {
+            context.WriteLine(
+                $"CPUVectorIntrinsics.CopyPointers({target}, " +
+                $"{ResolveOperand(pointer)});");
+        }
+    }
+
+    /// <summary>
+    /// Computes the per-lane addresses of an element address on a (uniform or
+    /// per-lane) pointer with a (uniform or per-lane) offset into a buffer.
+    /// </summary>
+    public void EmitPointerAddresses(LoadElementAddress lea, string target)
+    {
+        var elemSize = lea.Source.GetTypeAs<PointerType>().ElementType.Size;
+        var source = target;
+        if (analysis.IsScalar(lea.Source))
+            EmitPointerCopy(target, lea.Source);
+        else
+            source = ResolveOperand(lea.Source);
+
+        if (analysis.IsScalar(lea.Offset))
+        {
+            var offset = _sharedEmitter.EmitExpression(lea.Offset);
+            context.WriteLine(
+                $"CPUVectorIntrinsics.OffsetPointers({target}, {source}, " +
+                $"(long)({offset}) * {elemSize});");
+        }
+        else
+        {
+            context.WriteLine(
+                $"CPUVectorIntrinsics.OffsetPointers({target}, {source}, " +
+                $"{ResolveOperand(lea.Offset)}, {elemSize});");
         }
     }
 
@@ -1128,6 +1249,14 @@ sealed class CPUExpressionEmitter(
         // collisions when multiple Predicate values reuse the same pool slot.
         var uid = predicate.Id;
 
+        // Views select the view of every lane; views of local arrays become
+        // the views of the private arrays of all lanes
+        if (predicate.Type is ViewType)
+        {
+            trueVal = ResolveViews(predicate.TrueValue);
+            falseVal = ResolveViews(predicate.FalseValue);
+        }
+
         // A uniform condition selecting between per-lane operands is
         // broadcast to a lane mask; a plain ternary would assign one
         // operand array by reference (aliasing e.g. laneIdx).
@@ -1141,24 +1270,25 @@ sealed class CPUExpressionEmitter(
         }
 
         // Ensure true/false values are vectorized (broadcast if scalar)
-        if (analysis.IsScalar(predicate.TrueValue))
+        bool isView = predicate.Type is ViewType;
+        if (!isView && analysis.IsScalar(predicate.TrueValue))
         {
             var bcast = $"_sel_{uid}_t";
             context.WriteLine(
                 $"var {bcast} = new {elemType}[SIMDWidth];");
             context.WriteLine(
                 $"CPUVectorIntrinsics.Broadcast<{elemType}>(" +
-                $"{bcast}, {trueVal});");
+                $"{bcast}, {ToLaneElement(trueVal, elemType)});");
             trueVal = bcast;
         }
-        if (analysis.IsScalar(predicate.FalseValue))
+        if (!isView && analysis.IsScalar(predicate.FalseValue))
         {
             var bcast = $"_sel_{uid}_f";
             context.WriteLine(
                 $"var {bcast} = new {elemType}[SIMDWidth];");
             context.WriteLine(
                 $"CPUVectorIntrinsics.Broadcast<{elemType}>(" +
-                $"{bcast}, {falseVal});");
+                $"{bcast}, {ToLaneElement(falseVal, elemType)});");
             falseVal = bcast;
         }
 
@@ -1166,6 +1296,13 @@ sealed class CPUExpressionEmitter(
             $"CPUVectorIntrinsics.Select<{elemType}>(" +
             $"{result}, {condition}, {trueVal}, {falseVal});");
     }
+
+    /// <summary>
+    /// Converts a uniform operand to an element of a per-lane buffer of the
+    /// given element type: uniform pointers become addresses.
+    /// </summary>
+    internal static string ToLaneElement(string operand, string elementType) =>
+        elementType == "nint" ? $"(nint)({operand})" : operand;
 
     /// <summary>
     /// Emits a non-fusable vectorized LoadElementAddress on a view.
@@ -1184,6 +1321,16 @@ sealed class CPUExpressionEmitter(
         var elemType = lea.Source.Type is ViewType vt
             ? vt.ElementType : lea.Source.Type;
         var elemSize = elemType.Size;
+
+        if (analysis.IsPerLaneView(lea.Source))
+        {
+            // Every active lane addresses an element of its own view
+            context.WriteLine(
+                "CPUVectorIntrinsics.ComputeViewAddresses<" +
+                $"{GetViewElementTypeName(lea.Source)}>({result}, {view}, " +
+                $"{GetLaneViewIndex(lea.Offset)}, {elemSize}, {ActiveMaskName});");
+            return;
+        }
 
         // Scalar offset: broadcast to a per-lane array first
         if (analysis.IsScalar(lea.Offset))
@@ -1374,7 +1521,7 @@ sealed class CPUExpressionEmitter(
                 $"Sub-word atomic operations ({valueType}) are not supported " +
                 $"on the CPU backend. Use 32-bit or wider types for atomics.");
 
-        var target = ResolveOperand(atomic.Target);
+        var target = ResolvePointers(atomic.Target, atomic);
         var value = ResolveOperand(atomic.Value);
 
         string operation = atomic.Kind switch
@@ -1408,7 +1555,7 @@ sealed class CPUExpressionEmitter(
     /// </summary>
     public void EmitAtomicCAS(AtomicCAS atomic)
     {
-        var target = ResolveOperand(atomic.Target);
+        var target = ResolvePointers(atomic.Target, atomic);
         var storageType = GetStorageType(atomic.Value.BasicValueType);
         var opType = GetSemanticType(atomic.ArithmeticBasicValueType);
         var value = BroadcastAtomicOperand(
