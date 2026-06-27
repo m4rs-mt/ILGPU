@@ -98,6 +98,77 @@ public abstract class FloatSemanticsExecutionTests : ExecutionTestBase
     }
 
     /// <summary>
+    /// MathF.Pow and MathF.CopySign follow .NET on negative bases, signed
+    /// zeros, infinities and NaNs, for per-lane, uniform and mixed operands.
+    /// </summary>
+    [SkippableFact]
+    public async Task PowCopySign_ProducesCorrectOutput()
+    {
+        await VerifyProgramOutputAsync(
+            "TestPrograms/FloatSemantics/PowCopySign.cs",
+            ["Kernels.PowCopySignKernel"],
+            [
+                "1024 40000000 1024 C0000000 4",
+                "-8 40000000 -8 C0000000 4",
+                "4 40000000 4 C0000000 4",
+                "nan 40000000 nan C0000000 4",
+                "nan 41000000 nan C1000000 64",
+                "-inf 80000000 -0.5 80000000 0",
+                "inf 80000000 0.25 80000000 0",
+                "-inf 7F800000 -8 FF800000 inf",
+                "-0 FF800000 -0.125 FF800000 inf",
+                "1 3F800000 inf BF800000 1",
+                "1 7FC00000 1 FFC00000 nan",
+                "1 C0400000 1 C0400000 9",
+                "1 40400000 1 C0400000 9",
+                "0 C0400000 0 C0400000 9",
+                "0 FF800000 -0.5 FF800000 inf",
+                "nan C0000000 nan C0000000 4",
+                "nan 40A00000 nan C0A00000 25",
+                "nan 7FC00000 -2 FFC00000 nan",
+                "1 3F800000 nan BF800000 1",
+                "1 BF800000 0 BF800000 1",
+                "-0.125 C0000000",
+            ]);
+    }
+
+    /// <summary>
+    /// Math.Pow and Math.CopySign on doubles, with the same inputs as
+    /// <see cref="PowCopySign_ProducesCorrectOutput"/>.
+    /// </summary>
+    [SkippableFact]
+    public async Task PowCopySignDouble_ProducesCorrectOutput()
+    {
+        RequireCapability(Backend, BackendCapability.Float64);
+        await VerifyProgramOutputAsync(
+            "TestPrograms/FloatSemantics/PowCopySignDouble.cs",
+            ["Kernels.PowCopySignDoubleKernel"],
+            [
+                "1024 4000000000000000 1024 C000000000000000 4",
+                "-8 4000000000000000 -8 C000000000000000 4",
+                "4 4000000000000000 4 C000000000000000 4",
+                "nan 4000000000000000 nan C000000000000000 4",
+                "nan 4020000000000000 nan C020000000000000 64",
+                "-inf 8000000000000000 -0.5 8000000000000000 0",
+                "inf 8000000000000000 0.25 8000000000000000 0",
+                "-inf 7FF0000000000000 -8 FFF0000000000000 inf",
+                "-0 FFF0000000000000 -0.125 FFF0000000000000 inf",
+                "1 3FF0000000000000 inf BFF0000000000000 1",
+                "1 7FF8000000000000 1 FFF8000000000000 nan",
+                "1 C008000000000000 1 C008000000000000 9",
+                "1 4008000000000000 1 C008000000000000 9",
+                "0 C008000000000000 0 C008000000000000 9",
+                "0 FFF0000000000000 -0.5 FFF0000000000000 inf",
+                "nan C000000000000000 nan C000000000000000 4",
+                "nan 4014000000000000 nan C014000000000000 25",
+                "nan 7FF8000000000000 -2 FFF8000000000000 nan",
+                "1 3FF0000000000000 nan BFF0000000000000 1",
+                "1 BFF0000000000000 0 BFF0000000000000 1",
+                "-0.125 C000000000000000",
+            ]);
+    }
+
+    /// <summary>
     /// The fast math mode still compiles and computes ordinary values.
     /// </summary>
     [SkippableFact]

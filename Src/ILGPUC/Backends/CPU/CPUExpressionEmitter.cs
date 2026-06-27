@@ -528,6 +528,8 @@ sealed class CPUExpressionEmitter(
             BinaryArithmeticKind.Shr => "ShiftRight",
             BinaryArithmeticKind.Max => "Max",
             BinaryArithmeticKind.Min => "Min",
+            BinaryArithmeticKind.Pow => "Pow",
+            BinaryArithmeticKind.CopySign => "CopySign",
             _ => throw new System.NotSupportedException(
                 $"Binary op {binary.Kind} not supported")
         };
@@ -669,6 +671,14 @@ sealed class CPUExpressionEmitter(
             var r = CastScalar(right, storageType, opType);
             var function = binary.Kind == BinaryArithmeticKind.Max ? "Max" : "Min";
             expr = $"System.Math.{function}({l}, {r})";
+        }
+        else if (binary.Kind is BinaryArithmeticKind.Pow
+            or BinaryArithmeticKind.CopySign)
+        {
+            // The floating-point types implement both as static methods with
+            // the semantics of Math.Pow and Math.CopySign
+            var r = CastScalar(right, storageType, opType);
+            expr = $"{opType}.{binary.Kind}({l}, {r})";
         }
         else
         {
