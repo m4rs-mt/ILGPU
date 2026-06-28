@@ -1394,7 +1394,9 @@ sealed class CPUExpressionEmitter(
         {
             PredicateBarrierPredicateKind.PopCount => "BarrierPopCount",
             PredicateBarrierPredicateKind.And => "BarrierAnd",
-            _ => "BarrierOr",
+            PredicateBarrierPredicateKind.Or => "BarrierOr",
+            _ => throw new System.NotSupportedException(
+                $"Predicate barrier {barrier.PredicateKind} not supported")
         };
         context.WriteLine(
             $"CPUVectorIntrinsics.{method}({result}, {predicate}, " +

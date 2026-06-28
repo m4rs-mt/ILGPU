@@ -83,6 +83,26 @@ public abstract class GroupExecutionTests : ExecutionTestBase
     }
 
     /// <summary>
+    /// Group and warp predicate barriers in helper methods that are not inlined,
+    /// with per-thread and uniform predicates.
+    /// </summary>
+    [SkippableFact]
+    public async Task PredicateBarrierHelper_ProducesCorrectOutput()
+    {
+        RequireCapability(Backend, BackendCapability.PredicateBarriers);
+        Skip.If(
+            Backend == BackendType.Metal,
+            "Metal provides thread positions and threadgroup memory to kernels only");
+        await VerifyProgramOutputAsync(
+            "TestPrograms/Group/PredicateBarrierHelper.cs",
+            ["Kernels.PredicateBarrierHelperKernel"],
+            [
+                "group mismatches 0", "warp mismatches 0", "uniform mismatches 0",
+                "partial True", "groups True",
+            ]);
+    }
+
+    /// <summary>
     /// Predicate barriers that only some threads of a group reach. Barriers in
     /// divergent control flow are undefined on the GPU backends; the CPU
     /// backend combines the predicate across the lanes that reach them.
