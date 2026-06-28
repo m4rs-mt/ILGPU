@@ -103,6 +103,25 @@ public abstract class GroupExecutionTests : ExecutionTestBase
     }
 
     /// <summary>
+    /// Group predicate barriers, shared memory and launch geometry in
+    /// explicitly grouped launches with and without a KernelIndex, including
+    /// a group smaller than a warp and a group larger than the device allows.
+    /// </summary>
+    [SkippableFact]
+    public async Task GroupedLaunchBarriers_ProducesCorrectOutput()
+    {
+        RequireCapability(Backend, BackendCapability.PredicateBarriers);
+        await VerifyProgramOutputAsync(
+            "TestPrograms/Group/GroupedLaunchBarriers.cs",
+            ["Kernels.GroupedBarriersKernel", "Kernels.KernelIndexBarriersKernel"],
+            [
+                "grouped mismatches 0", "kernel index mismatches 0",
+                "grouped mismatches 0", "kernel index mismatches 0",
+                "oversized rejected True",
+            ]);
+    }
+
+    /// <summary>
     /// Predicate barriers that only some threads of a group reach. Barriers in
     /// divergent control flow are undefined on the GPU backends; the CPU
     /// backend combines the predicate across the lanes that reach them.

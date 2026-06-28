@@ -1369,9 +1369,9 @@ sealed class CPUExpressionEmitter(
 
     /// <summary>
     /// Emits a group or warp predicate barrier. The lanes of a vectorized call
-    /// form one group (and one warp) that runs in lockstep, so the barrier
-    /// itself needs no synchronization and the predicate is combined across
-    /// the active lanes.
+    /// form one warp that runs in lockstep, and the whole group of kernels
+    /// that synchronize their group, so the barrier itself needs no
+    /// synchronization and the predicate is combined across the active lanes.
     /// </summary>
     public void EmitPredicateBarrier(PredicateBarrier barrier)
     {

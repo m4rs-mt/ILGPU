@@ -253,16 +253,6 @@ static class Program
         // The tiled implementation requires all three dimensions to be
         // multiples of Kernels.TileSize. For non-aligned inputs the sample
         // falls back to reporting a skip rather than running the kernel.
-        //
-        // Correctness note: the ILGPUC CPU backend allocates each group's
-        // shared-memory tile inside KernelEntryPoint via `stackalloc` and
-        // invokes the kernel serially per thread, so Group.Barrier() does
-        // not synchronize writes across threads in the same group and the
-        // tiled kernel produces incorrect results. To compare against the
-        // expected output, build with a GPU backend
-        // (`-p:ILGPUBackend=Metal|Cuda|ROCm|OpenCL`); with the default
-        // `-p:ILGPUBackend=CPU` the tiled timing is still reported but the
-        // output is not verified.
         if (m % Kernels.TileSize == 0
             && ka % Kernels.TileSize == 0
             && n % Kernels.TileSize == 0)
