@@ -141,9 +141,6 @@ public abstract class ShortCircuitExecutionTests : ExecutionTestBase
     [SkippableFact]
     public async Task DivGuard_ProducesCorrectOutput()
     {
-        Skip.If(
-            Backend != BackendType.CPU,
-            "Not yet supported by the structured control flow reconstruction");
         await VerifyProgramOutputAsync(
             "TestPrograms/ShortCircuit/DivGuard.cs",
             ["Kernels.DivGuardKernel"],

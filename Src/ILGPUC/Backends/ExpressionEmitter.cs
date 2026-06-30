@@ -113,19 +113,6 @@ sealed class ExpressionEmitter(GenerationContext context, TypeEmitter typeEmitte
     public string EmitDefinition(Value value) => EmitDirect(value).Text;
 
     /// <summary>
-    /// Emits a fully inlined expression that recursively expands all operands.
-    /// Used for loop conditions where variables may be declared inside the body.
-    /// </summary>
-    public string EmitFullyInlined(Value value)
-    {
-        _forceInline = true;
-        try { return EmitDirect(value).Text; }
-        finally { _forceInline = false; }
-    }
-
-    private bool _forceInline;
-
-    /// <summary>
     /// Emits a statement for a value that doesn't produce a result.
     /// </summary>
     public string EmitStatement(Value value)
@@ -158,10 +145,7 @@ sealed class ExpressionEmitter(GenerationContext context, TypeEmitter typeEmitte
     private Emitted Emit(Value value)
     {
         // Multi-use values that have a declared variable → use the variable name
-        // Skip this shortcut when force-inlining (loop conditions)
-        if (!_forceInline
-            && context.NeedsVariable(value)
-            && value is not (Parameter or Global))
+        if (context.NeedsVariable(value) && value is not (Parameter or Global))
             return new Emitted(context.GetValueName(value), Prec.Atom);
 
         return EmitDirect(value);

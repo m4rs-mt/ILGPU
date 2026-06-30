@@ -23,12 +23,6 @@ public abstract class VectorStructuresExecutionTests : ExecutionTestBase
         ITestOutputHelper output, BackendType backend)
         : base(output, backend) { }
 
-    /// <summary>
-    /// Skips tests that the GPU backends do not translate correctly yet.
-    /// </summary>
-    private void SkipOnGpuBackends(string reason) =>
-        Skip.If(Backend != BackendType.CPU, reason);
-
     [SkippableFact]
     public async Task StructDivergentFieldUpdate_ProducesCorrectOutput()
     {
@@ -62,7 +56,6 @@ public abstract class VectorStructuresExecutionTests : ExecutionTestBase
     [SkippableFact]
     public async Task NestedStructInLoop_ProducesCorrectOutput()
     {
-        SkipOnGpuBackends("Struct updates in loops with breaks are not yet supported");
         await VerifyProgramOutputAsync(
             "TestPrograms/VectorStructures/NestedStructInLoop.cs",
             ["Kernels.NestedStructInLoopKernel"],
