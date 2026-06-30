@@ -1,5 +1,6 @@
 ﻿ArrayViews
 Arrays
+CudaGraphCapture
 DebugTests
 DisassemblerTests
 EnumValues
