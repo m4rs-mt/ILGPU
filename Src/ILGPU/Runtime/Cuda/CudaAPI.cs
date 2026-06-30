@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2020-2023 ILGPU Project
+//                        Copyright (c) 2020-2026 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CudaAPI.cs
@@ -527,6 +527,68 @@ namespace ILGPU.Runtime.Cuda
         /// <returns>The error status.</returns>
         public CudaError SynchronizeStream(IntPtr stream) =>
             cuStreamSynchronize(stream);
+
+        #endregion
+
+        #region Graph Methods
+
+        /// <summary>
+        /// Begins capturing the work submitted to the given stream into a graph.
+        /// </summary>
+        /// <param name="stream">The stream to capture.</param>
+        /// <param name="mode">The capture mode.</param>
+        /// <returns>The error status.</returns>
+        public CudaError BeginStreamCapture(
+            IntPtr stream,
+            CudaStreamCaptureMode mode) =>
+            cuStreamBeginCapture_v2(stream, mode);
+
+        /// <summary>
+        /// Ends a stream capture and returns the recorded graph.
+        /// </summary>
+        /// <param name="stream">The captured stream.</param>
+        /// <param name="graph">The resulting graph.</param>
+        /// <returns>The error status.</returns>
+        public CudaError EndStreamCapture(IntPtr stream, out IntPtr graph) =>
+            cuStreamEndCapture(stream, out graph);
+
+        /// <summary>
+        /// Instantiates a graph into an executable graph.
+        /// </summary>
+        /// <param name="graphExec">The resulting executable graph.</param>
+        /// <param name="graph">The graph to instantiate.</param>
+        /// <param name="flags">The instantiation flags.</param>
+        /// <returns>The error status.</returns>
+        public CudaError InstantiateGraph(
+            out IntPtr graphExec,
+            IntPtr graph,
+            long flags) =>
+            cuGraphInstantiateWithFlags(out graphExec, graph, flags);
+
+        /// <summary>
+        /// Launches an executable graph on the given stream.
+        /// </summary>
+        /// <param name="graphExec">The executable graph to launch.</param>
+        /// <param name="stream">The stream to launch on.</param>
+        /// <returns>The error status.</returns>
+        public CudaError LaunchGraph(IntPtr graphExec, IntPtr stream) =>
+            cuGraphLaunch(graphExec, stream);
+
+        /// <summary>
+        /// Destroys the given graph.
+        /// </summary>
+        /// <param name="graph">The graph to destroy.</param>
+        /// <returns>The error status.</returns>
+        public CudaError DestroyGraph(IntPtr graph) =>
+            cuGraphDestroy(graph);
+
+        /// <summary>
+        /// Destroys the given executable graph.
+        /// </summary>
+        /// <param name="graphExec">The executable graph to destroy.</param>
+        /// <returns>The error status.</returns>
+        public CudaError DestroyGraphExec(IntPtr graphExec) =>
+            cuGraphExecDestroy(graphExec);
 
         #endregion
 
