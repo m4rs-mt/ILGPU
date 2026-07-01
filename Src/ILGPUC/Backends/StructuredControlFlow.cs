@@ -93,12 +93,78 @@ sealed class StructuredControlFlow
     }
 
     /// <summary>
-    /// An endless loop headed by the given block. It is left by jumps only.
+    /// A loop headed by the given block whose body starts with the header.
+    /// Falling off the end of the body starts the next iteration; the loop is
+    /// left by jumps. The emitter may rebuild it as a <c>while</c> or
+    /// <c>do</c>-<c>while</c> loop through its <see cref="HeaderTest"/> or
+    /// <see cref="LatchTest"/>.
     /// </summary>
-    internal sealed class LoopNode(BasicBlock header, Node body) : Node
+    internal sealed class LoopNode(
+        BasicBlock header,
+        HashSet<BasicBlock> members,
+        Node body) : Node
     {
         public BasicBlock Header { get; } = header;
+        public HashSet<BasicBlock> Members { get; } = members;
         public Node Body { get; } = body;
+
+        /// <summary>
+        /// The branch of the header if the header branch leaves the loop on
+        /// one side: the loop may be emitted as <c>while (cond) { ... }</c>.
+        /// </summary>
+        /// <remarks>
+        /// The rule is deliberately conservative: it is only set if the
+        /// header owns no follow blocks inside the loop (so that the body is
+        /// exactly the code of the header) and the header code consists of
+        /// its values followed by the branch (see <c>GetLoopTest</c>).
+        /// </remarks>
+        public LoopTest? HeaderTest { get; set; }
+
+        /// <summary>
+        /// The branch of the only back edge if it is the last statement of the
+        /// body and leaves the loop on its other side: the loop may be emitted
+        /// as <c>do { ... } while (cond);</c>.
+        /// </summary>
+        public LoopTest? LatchTest { get; set; }
+
+        /// <summary>
+        /// Returns true if the loop is left by an edge other than the exit
+        /// edge of the given test.
+        /// </summary>
+        public bool HasOtherExits(LoopTest test)
+        {
+            var exit = ((SequenceNode)test.ExitNode).Nodes[0] as EdgeNode;
+            foreach (var member in Members)
+            {
+                foreach (var successor in member.Successors)
+                {
+                    if (Members.Contains(successor))
+                        continue;
+                    if (member != exit?.Source || successor != exit.Target)
+                        return true;
+                }
+            }
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// A two-way branch of a loop that leaves the loop on one side.
+    /// </summary>
+    /// <param name="Branch">The branch.</param>
+    /// <param name="ExitsOnTrue">True if the true side leaves the loop.</param>
+    internal readonly record struct LoopTest(IfNode Branch, bool ExitsOnTrue)
+    {
+        /// <summary>
+        /// Returns the side staying in the loop.
+        /// </summary>
+        public Node LoopNode => ExitsOnTrue ? Branch.FalseNode : Branch.TrueNode;
+
+        /// <summary>
+        /// Returns the side leaving the loop: the phi copies of the exit edge
+        /// followed by the jump to the exit block.
+        /// </summary>
+        public Node ExitNode => ExitsOnTrue ? Branch.TrueNode : Branch.FalseNode;
     }
 
     /// <summary>
@@ -310,9 +376,131 @@ sealed class StructuredControlFlow
         foreach (var follow in owned)
             (members.Contains(follow) ? inside : outside).Add(follow);
 
-        var loop = new LoopNode(block, Nest(inside, 0, BuildBlock(block)));
+        var header = BuildBlock(block);
+        var loop = new LoopNode(block, members, Nest(inside, 0, header));
+        if (inside.Count < 1)
+            loop.HeaderTest = GetLoopTest(header, members, block, isLatch: false);
+        loop.LatchTest = FindLatchTest(loop);
         return Nest(outside, 0, loop);
     }
+
+    /// <summary>
+    /// Returns the loop test of the given block statements if they end in a
+    /// two-way branch with one side leaving the loop. For a latch, the other
+    /// side must continue the loop directly.
+    /// </summary>
+    /// <remarks>
+    /// Only the exact shape of <see cref="BuildBlock"/> for a conditional
+    /// block is accepted: the block values followed by the branch, whose
+    /// exit side is the phi copies of the exit edge followed by the jump to
+    /// the exit block. Anything else keeps the endless loop form.
+    /// </remarks>
+    private static LoopTest? GetLoopTest(
+        SequenceNode statements,
+        HashSet<BasicBlock> members,
+        BasicBlock header,
+        bool isLatch)
+    {
+        if (statements.Nodes.Count != 2 || statements.Nodes[1] is not IfNode branch)
+            return null;
+
+        static bool IsExit(Node node, HashSet<BasicBlock> members) =>
+            node is SequenceNode { Nodes: [EdgeNode edge, JumpNode jump] }
+            && !jump.Target.IsContinue
+            && jump.Target.Block == edge.Target
+            && !members.Contains(edge.Target);
+        static bool IsContinue(Node node, BasicBlock header) =>
+            node is SequenceNode { Nodes: [EdgeNode, JumpNode jump] }
+            && jump.Target == new JumpTarget(header, IsContinue: true);
+        static bool StaysInLoop(Node node, HashSet<BasicBlock> members) =>
+            node is SequenceNode { Nodes: [EdgeNode edge, _] }
+            && members.Contains(edge.Target);
+
+        foreach (bool exitsOnTrue in new[] { true, false })
+        {
+            var exit = exitsOnTrue ? branch.TrueNode : branch.FalseNode;
+            var stay = exitsOnTrue ? branch.FalseNode : branch.TrueNode;
+            if (IsExit(exit, members) && (isLatch
+                ? IsContinue(stay, header)
+                : StaysInLoop(stay, members)))
+            {
+                return new LoopTest(branch, exitsOnTrue);
+            }
+        }
+        return null;
+    }
+
+    /// <summary>
+    /// Finds the branch of the only back edge of a loop if it is the last
+    /// statement on every path through the body that does not leave the body
+    /// by a jump or return.
+    /// </summary>
+    private static LoopTest? FindLatchTest(LoopNode loop)
+    {
+        // The loop must have a single back edge
+        BasicBlock? latch = null;
+        int backEdges = 0;
+        foreach (var member in loop.Members)
+        {
+            foreach (var successor in member.Successors)
+            {
+                if (successor != loop.Header)
+                    continue;
+                latch = member;
+                ++backEdges;
+            }
+        }
+        if (backEdges != 1 || latch is null)
+            return null;
+
+        // Follow the tail of the body: the last statement of sequences and the
+        // only side of branches whose other side never falls through
+        var node = loop.Body;
+        while (true)
+        {
+            switch (node)
+            {
+                case SequenceNode { Nodes.Count: > 0 } sequence:
+                    if (sequence.Nodes[^1] is IfNode last && last.Block == latch)
+                    {
+                        return GetLoopTest(
+                            sequence,
+                            loop.Members,
+                            loop.Header,
+                            isLatch: true);
+                    }
+                    node = sequence.Nodes[^1];
+                    break;
+                case IfNode branch when AlwaysLeaves(branch.TrueNode):
+                    node = branch.FalseNode;
+                    break;
+                case IfNode branch when AlwaysLeaves(branch.FalseNode):
+                    node = branch.TrueNode;
+                    break;
+                default:
+                    return null;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Returns true if every path through the given statement ends in a jump
+    /// or a return, i.e. never reaches the statement after it in the tree.
+    /// Unlike the emitter, this treats a jump to the next statement as a
+    /// jump as well.
+    /// </summary>
+    private static bool AlwaysLeaves(Node node) =>
+        node switch
+        {
+            SequenceNode sequence => sequence.Nodes.Count > 0
+                && AlwaysLeaves(sequence.Nodes[^1]),
+            BlockNode block =>
+                block.Block.TerminationKind == BlockTerminationKind.Return,
+            IfNode ifNode => AlwaysLeaves(ifNode.TrueNode)
+                && AlwaysLeaves(ifNode.FalseNode),
+            JumpNode => true,
+            _ => false
+        };
 
     /// <summary>
     /// Wraps the given node into labeled regions for the given follow blocks

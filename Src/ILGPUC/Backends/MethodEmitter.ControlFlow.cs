@@ -32,7 +32,8 @@ partial class MethodEmitter
     private enum ConstructKind
     {
         /// <summary>
-        /// A <c>while (true)</c> loop.
+        /// A <c>while (true)</c>, <c>while (cond)</c> or
+        /// <c>do { } while (cond)</c> loop.
         /// </summary>
         Loop,
 
@@ -84,6 +85,7 @@ partial class MethodEmitter
     private bool _printing;
     private bool _materialized;
     private bool _usesJumpVariable;
+    private IfNode? _latchTest;
 
     #endregion
 
@@ -163,6 +165,9 @@ partial class MethodEmitter
             case EdgeNode edge:
                 if (_printing)
                     EmitEdgeCopies(edge.Source, edge.Target);
+                break;
+            case IfNode ifNode when ifNode == _latchTest:
+                // Emitted as the condition of the enclosing do-while loop
                 break;
             case IfNode ifNode:
                 WalkIf(ifNode, fallthrough);
@@ -273,17 +278,47 @@ partial class MethodEmitter
         Walk(body, fallthrough);
         if (_printing)
         {
-            if (!Terminates(body, fallthrough))
+            if (!NeverFallsThrough(body, fallthrough))
                 context.WriteLine("break;");
             context.CloseScope();
         }
     }
 
     /// <summary>
-    /// Walks a loop. Falling off the end of the loop body starts the next
-    /// iteration; the loop is left by jumps only.
+    /// Walks a loop in the most structured form its shape allows.
     /// </summary>
     private void WalkLoop(LoopNode loop, JumpTarget? fallthrough)
+    {
+        // Code on the exit edge of the test runs after the loop, where other
+        // exits would have to skip it through the jump variable: such loops
+        // are better off with breaks.
+        //
+        // A header that is also the latch is a do-while loop: as a while loop,
+        // its values would be computed in front of the body and again after
+        // the loop.
+        bool isSelfLoop = loop.LatchTest?.Branch.Block == loop.Header;
+        if (loop.HeaderTest is { } headerTest
+            && !isSelfLoop
+            && IsTestOnly(loop.Header)
+            && (!loop.HasOtherExits(headerTest) || !HasExitCode(loop, headerTest)))
+        {
+            WalkWhileLoop(loop, headerTest, fallthrough);
+        }
+        else if (loop.LatchTest is { } latchTest
+            && TryOrderCopies(latchTest.Branch.Block, loop.Header, out var copies)
+            && (!loop.HasOtherExits(latchTest) || !HasExitCode(loop, latchTest)))
+        {
+            WalkDoWhileLoop(loop, latchTest, copies, fallthrough);
+        }
+        else
+            WalkEndlessLoop(loop, fallthrough);
+    }
+
+    /// <summary>
+    /// Walks a loop as <c>while (true)</c>. Falling off the end of the loop
+    /// body starts the next iteration; the loop is left by jumps only.
+    /// </summary>
+    private void WalkEndlessLoop(LoopNode loop, JumpTarget? fallthrough)
     {
         if (_printing)
         {
@@ -299,6 +334,260 @@ partial class MethodEmitter
         if (_printing)
             context.CloseScope();
         Dispatch(construct, fallthrough);
+    }
+
+    /// <summary>
+    /// Walks a loop whose header only computes the exit test as
+    /// <c>while (cond) { ... }</c>. Header values the test depends on are
+    /// computed in the condition, all other header values at the start of
+    /// the body and, if they are used after the loop, after the loop.
+    /// </summary>
+    private void WalkWhileLoop(
+        LoopNode loop,
+        LoopTest test,
+        JumpTarget? fallthrough)
+    {
+        var header = loop.Header;
+        var condition = header.TerminationCondition.AsNotNull();
+        var values = GetHeaderAssignments(header);
+
+        // Determine the values the test depends on
+        var needed = new HashSet<Value>(ReferenceEqualityComparer.Instance);
+        var reads = new HashSet<Value>(ReferenceEqualityComparer.Instance);
+        for (int i = values.Count - 1; i >= 0; --i)
+        {
+            reads.Clear();
+            reads.Add(values[i]);
+            bool isNeeded = ReadsAny(condition, reads);
+            foreach (var other in needed)
+                isNeeded |= ReadsAnyOperand(other, reads);
+            if (isNeeded)
+                needed.Add(values[i]);
+        }
+
+        var bodyValues = new List<Value>();
+        var exitValues = new List<Value>();
+        foreach (var value in values)
+        {
+            if (needed.Contains(value))
+                continue;
+            bodyValues.Add(value);
+            if (IsUsedOutside(value, loop.Members))
+                exitValues.Add(value);
+        }
+
+        // A break lands in front of the exit code, which may only be skipped
+        // if it consists of the exit jump alone
+        var exitJump = GetExitJump(test);
+        bool exitHasCode = exitValues.Count > 0
+            || GetEdgeCopies(header, exitJump.Block).Count > 0;
+        JumpTarget? after = exitHasCode ? null : exitJump;
+
+        if (_printing)
+        {
+            var parts = new List<string>();
+            foreach (var value in values)
+            {
+                if (needed.Contains(value))
+                    parts.Add(GetAssignment(value));
+            }
+            var check = expressionEmitter.EmitExpression(condition);
+            parts.Add(test.ExitsOnTrue ? $"!({check})" : check);
+            context.WriteLine($"while ({string.Join(", ", parts)})");
+            context.OpenScope();
+            foreach (var value in bodyValues)
+                context.WriteLine(GetAssignment(value) + ";");
+        }
+
+        var construct = new Construct(ConstructKind.Loop, after, header);
+        _constructs.Add(construct);
+        Walk(test.LoopNode, new JumpTarget(header, IsContinue: true));
+        _constructs.RemoveAt(_constructs.Count - 1);
+
+        if (_printing)
+            context.CloseScope();
+        Dispatch(construct, after);
+
+        if (_printing)
+        {
+            foreach (var value in exitValues)
+                context.WriteLine(GetAssignment(value) + ";");
+        }
+        Walk(test.ExitNode, fallthrough);
+    }
+
+    /// <summary>
+    /// Walks a loop whose only back edge is a branch at the end of its body as
+    /// <c>do { ... } while (cond);</c>. The phi copies of the back edge are
+    /// part of the condition and run only if the loop continues, so that the
+    /// exit sees the values of the last iteration.
+    /// </summary>
+    private void WalkDoWhileLoop(
+        LoopNode loop,
+        LoopTest test,
+        List<(PhiValue Phi, Value Argument)> copies,
+        JumpTarget? fallthrough)
+    {
+        var latch = test.Branch.Block;
+        var exitJump = GetExitJump(test);
+        JumpTarget? after = GetEdgeCopies(latch, exitJump.Block).Count > 0
+            ? null
+            : exitJump;
+
+        if (_printing)
+        {
+            context.WriteLine("do");
+            context.OpenScope();
+        }
+
+        // Without a header, a continue would jump to the condition: all jumps
+        // to the next iteration use the condition instead
+        var construct = new Construct(ConstructKind.Loop, after);
+        _constructs.Add(construct);
+        var previousTest = _latchTest;
+        _latchTest = test.Branch;
+        Walk(loop.Body, null);
+        _latchTest = previousTest;
+        _constructs.RemoveAt(_constructs.Count - 1);
+
+        if (_printing)
+        {
+            var condition = expressionEmitter.EmitExpression(
+                latch.TerminationCondition.AsNotNull());
+            if (test.ExitsOnTrue)
+                condition = $"!({condition})";
+            if (copies.Count > 0)
+            {
+                var assignments = new List<string>(copies.Count + 1);
+                foreach (var (phi, argument) in copies)
+                {
+                    var incoming = expressionEmitter.EmitExpression(argument);
+                    assignments.Add($"{context.GetValueName(phi)} = {incoming}");
+                }
+                assignments.Add("true");
+                condition = test.ExitsOnTrue
+                    ? $"{condition} && ({string.Join(", ", assignments)})"
+                    : $"({condition}) && ({string.Join(", ", assignments)})";
+            }
+            context.PopIndent();
+            context.WriteLine($"}} while ({condition});");
+        }
+        Dispatch(construct, after);
+        Walk(test.ExitNode, fallthrough);
+    }
+
+    /// <summary>
+    /// Returns true if leaving a loop through the given test runs code after
+    /// the loop: phi copies of the exit edge or, for a header test, header
+    /// values used after the loop.
+    /// </summary>
+    private bool HasExitCode(LoopNode loop, LoopTest test)
+    {
+        var block = test.Branch.Block;
+        if (GetEdgeCopies(block, GetExitJump(test).Block).Count > 0)
+            return true;
+        if (block != loop.Header || !IsTestOnly(block))
+            return false;
+        foreach (var value in GetHeaderAssignments(block))
+        {
+            if (IsUsedOutside(value, loop.Members))
+                return true;
+        }
+        return false;
+    }
+
+    /// <summary>
+    /// Returns the jump target of the exit side of a loop test.
+    /// </summary>
+    private static JumpTarget GetExitJump(LoopTest test) =>
+        ((JumpNode)((SequenceNode)test.ExitNode).Nodes[^1]).Target;
+
+    /// <summary>
+    /// Returns true if the emitted code of the given block consists of
+    /// assignments that can be evaluated as part of a loop condition.
+    /// </summary>
+    private bool IsTestOnly(BasicBlock block)
+    {
+        foreach (var value in _placement.AsNotNull().GetPlacedBlock(block))
+        {
+            switch (value)
+            {
+                case PhiValue:
+                    continue;
+                case SetField when context.NeedsVariable(value):
+                    return false;
+                case PureValue:
+                    continue;
+                case Load when context.NeedsVariable(value):
+                    continue;
+                case BasicBlockValue bbv when bbv.Type is VoidType
+                    || !context.NeedsVariable(bbv):
+                    if (!string.IsNullOrEmpty(expressionEmitter.EmitStatement(bbv)))
+                        return false;
+                    continue;
+                default:
+                    return false;
+            }
+        }
+        return true;
+    }
+
+    /// <summary>
+    /// Returns the values of a test-only block that are assigned to
+    /// variables, in emission order.
+    /// </summary>
+    private List<Value> GetHeaderAssignments(BasicBlock block)
+    {
+        var values = new List<Value>();
+        foreach (var value in _placement.AsNotNull().GetPlacedBlock(block))
+        {
+            if (value is PureValue or Load
+                && value.Type is not VoidType
+                && context.NeedsVariable(value)
+                && !values.Contains(value))
+            {
+                values.Add(value);
+            }
+        }
+        return values;
+    }
+
+    /// <summary>
+    /// Returns the assignment expression of a value with a variable.
+    /// </summary>
+    private string GetAssignment(Value value) =>
+        $"{context.GetValueName(value)} = {expressionEmitter.EmitDefinition(value)}";
+
+    /// <summary>
+    /// Returns true if the given value is used outside the given loop.
+    /// </summary>
+    private static bool IsUsedOutside(Value value, HashSet<BasicBlock> members)
+    {
+        var visited = new HashSet<Value>(ReferenceEqualityComparer.Instance);
+        var pending = new Stack<Value>();
+        pending.Push(value);
+        while (pending.Count > 0)
+        {
+            foreach (var use in pending.Pop().Uses)
+            {
+                switch (use.Target)
+                {
+                    case BasicBlock block when !members.Contains(block):
+                        return true;
+                    case PhiValue phi when use.Index >= 0 && use.Index < phi.NumArguments:
+                        // The argument is read on the incoming edge
+                        if (!members.Contains(phi.Sources[use.Index]))
+                            return true;
+                        break;
+                    case BasicBlockValue user when !members.Contains(user.BasicBlock):
+                        return true;
+                    case PureValue user when visited.Add(user):
+                        pending.Push(user);
+                        break;
+                }
+            }
+        }
+        return false;
     }
 
     /// <summary>
@@ -508,7 +797,7 @@ partial class MethodEmitter
     /// <summary>
     /// Returns true if the given statement emits no code.
     /// </summary>
-    private static bool IsEmpty(Node node, JumpTarget? fallthrough)
+    private bool IsEmpty(Node node, JumpTarget? fallthrough)
     {
         switch (node)
         {
@@ -519,8 +808,12 @@ partial class MethodEmitter
                         return false;
                 }
                 return true;
+            case BlockNode block:
+                return EmitsNoCode(block.Block);
             case EdgeNode edge:
                 return GetEdgeCopies(edge.Source, edge.Target).Count < 1;
+            case IfNode ifNode when ifNode == _latchTest:
+                return true;
             case IfNode ifNode:
                 return IsEmpty(ifNode.TrueNode, fallthrough)
                     && IsEmpty(ifNode.FalseNode, fallthrough);
@@ -536,17 +829,49 @@ partial class MethodEmitter
     }
 
     /// <summary>
-    /// Returns true if control never falls off the end of the given statement.
+    /// Returns true if <see cref="EmitBasicBlock"/> emits nothing for the
+    /// given block: it does not return and all of its values are inlined
+    /// into their uses.
     /// </summary>
-    private static bool Terminates(Node node, JumpTarget? fallthrough) =>
+    private bool EmitsNoCode(BasicBlock block)
+    {
+        if (block.TerminationKind == BlockTerminationKind.Return)
+            return false;
+        foreach (var value in _placement.AsNotNull().GetPlacedBlock(block))
+        {
+            switch (value)
+            {
+                case PhiValue:
+                    continue;
+                case PureValue when !context.NeedsVariable(value):
+                    continue;
+                case BasicBlockValue bbv and not Alloca
+                    when bbv.Type is VoidType || !context.NeedsVariable(bbv):
+                    if (!string.IsNullOrEmpty(expressionEmitter.EmitStatement(bbv)))
+                        return false;
+                    continue;
+                default:
+                    return false;
+            }
+        }
+        return true;
+    }
+
+    /// <summary>
+    /// Returns true if control never falls off the end of the emitted code of
+    /// the given statement. A jump to the fallthrough target emits nothing
+    /// and falls off the end.
+    /// </summary>
+    private bool NeverFallsThrough(Node node, JumpTarget? fallthrough) =>
         node switch
         {
+            IfNode ifNode when ifNode == _latchTest => false,
             SequenceNode sequence => sequence.Nodes.Count > 0
-                && Terminates(sequence.Nodes[^1], fallthrough),
+                && NeverFallsThrough(sequence.Nodes[^1], fallthrough),
             BlockNode block =>
                 block.Block.TerminationKind == BlockTerminationKind.Return,
-            IfNode ifNode => Terminates(ifNode.TrueNode, fallthrough)
-                && Terminates(ifNode.FalseNode, fallthrough),
+            IfNode ifNode => NeverFallsThrough(ifNode.TrueNode, fallthrough)
+                && NeverFallsThrough(ifNode.FalseNode, fallthrough),
             JumpNode jump => jump.Target != fallthrough,
             _ => false
         };
@@ -579,15 +904,15 @@ partial class MethodEmitter
     }
 
     /// <summary>
-    /// Emits the phi assignments of the edge from source to target as a
-    /// parallel copy: every argument is read before any phi is assigned.
-    /// Assignments whose phi is not read by another pending argument are
-    /// emitted first; the remaining cyclic assignments go through
-    /// temporaries.
+    /// Moves the phi assignments of an edge whose phi is not read by another
+    /// pending argument from the pending list to the ordered list, until only
+    /// cyclic assignments remain. Emitting the ordered assignments in order
+    /// reads every argument before its value is overwritten.
     /// </summary>
-    private void EmitEdgeCopies(BasicBlock source, BasicBlock target)
+    private void OrderCopies(
+        List<(PhiValue Phi, Value Argument)> pending,
+        List<(PhiValue Phi, Value Argument)> ordered)
     {
-        var pending = GetEdgeCopies(source, target);
         var phis = new HashSet<Value>(ReferenceEqualityComparer.Instance);
         bool progress = true;
         while (pending.Count > 0 && progress)
@@ -595,20 +920,50 @@ partial class MethodEmitter
             progress = false;
             for (int i = 0; i < pending.Count; i++)
             {
-                var (phi, argument) = pending[i];
                 phis.Clear();
-                phis.Add(phi);
+                phis.Add(pending[i].Phi);
                 bool isRead = false;
                 for (int j = 0; j < pending.Count && !isRead; j++)
                     isRead = j != i && ReadsAny(pending[j].Argument, phis);
                 if (isRead)
                     continue;
 
-                var incoming = expressionEmitter.EmitExpression(argument);
-                context.WriteLine($"{context.GetValueName(phi)} = {incoming};");
+                ordered.Add(pending[i]);
                 pending.RemoveAt(i--);
                 progress = true;
             }
+        }
+    }
+
+    /// <summary>
+    /// Returns the phi assignments of an edge in an order that needs no
+    /// temporaries, if there is one.
+    /// </summary>
+    private bool TryOrderCopies(
+        BasicBlock source,
+        BasicBlock target,
+        out List<(PhiValue Phi, Value Argument)> ordered)
+    {
+        var pending = GetEdgeCopies(source, target);
+        ordered = new(pending.Count);
+        OrderCopies(pending, ordered);
+        return pending.Count < 1;
+    }
+
+    /// <summary>
+    /// Emits the phi assignments of the edge from source to target as a
+    /// parallel copy: every argument is read before any phi is assigned.
+    /// Cyclic assignments go through temporaries.
+    /// </summary>
+    private void EmitEdgeCopies(BasicBlock source, BasicBlock target)
+    {
+        var pending = GetEdgeCopies(source, target);
+        var ordered = new List<(PhiValue Phi, Value Argument)>(pending.Count);
+        OrderCopies(pending, ordered);
+        foreach (var (phi, argument) in ordered)
+        {
+            var incoming = expressionEmitter.EmitExpression(argument);
+            context.WriteLine($"{context.GetValueName(phi)} = {incoming};");
         }
         if (pending.Count < 1)
             return;
@@ -632,19 +987,28 @@ partial class MethodEmitter
     }
 
     /// <summary>
-    /// Returns true if the emitted expression of the given value reads one of
-    /// the given phi variables. Values with their own variable are read from
-    /// that variable and do not read their operands.
+    /// Returns true if the emitted expression of the given value reads the
+    /// variable of one of the given values. Values with their own variable
+    /// are read from that variable and do not read their operands.
     /// </summary>
-    private bool ReadsAny(Value value, HashSet<Value> phis)
+    private bool ReadsAny(Value value, HashSet<Value> variables)
     {
-        if (value is PhiValue)
-            return phis.Contains(value);
+        if (variables.Contains(value))
+            return true;
         if (value is not PureValue || context.NeedsVariable(value))
             return false;
+        return ReadsAnyOperand(value, variables);
+    }
+
+    /// <summary>
+    /// Returns true if the defining expression of the given value reads the
+    /// variable of one of the given values.
+    /// </summary>
+    private bool ReadsAnyOperand(Value value, HashSet<Value> variables)
+    {
         foreach (var operand in value.Values)
         {
-            if (ReadsAny(operand, phis))
+            if (ReadsAny(operand, variables))
                 return true;
         }
         return false;

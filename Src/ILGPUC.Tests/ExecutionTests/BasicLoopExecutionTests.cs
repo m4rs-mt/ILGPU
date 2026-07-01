@@ -93,4 +93,49 @@ public abstract class BasicLoopExecutionTests : ExecutionTestBase
             ["Kernels.DivergentBreakKernel"],
             ["1", "6", "10", "10", "15", "21", "21", "28"]);
     }
+
+    [SkippableFact]
+    public async Task CountedReduction_ProducesCorrectOutput()
+    {
+        await VerifyProgramOutputAsync(
+            "TestPrograms/BasicLoop/CountedReduction.cs",
+            ["Kernels.CountedReductionKernel"],
+            [
+                "74973", "75091", "74973", "75023", "74973", "75091", "74973", "75023",
+                "74973", "75091", "74973", "75023"
+            ]);
+    }
+
+    [SkippableFact]
+    public async Task ConstantNest_ProducesCorrectOutput()
+    {
+        await VerifyProgramOutputAsync(
+            "TestPrograms/BasicLoop/ConstantNest.cs",
+            ["Kernels.ConstantNestKernel"],
+            [
+                "224", "2240", "4256", "6272", "8288", "10304", "12320", "14336",
+                "16352", "224", "2240", "4256"
+            ]);
+    }
+
+    [SkippableFact]
+    public async Task DoWhileDigits_ProducesCorrectOutput()
+    {
+        await VerifyProgramOutputAsync(
+            "TestPrograms/BasicLoop/DoWhileDigits.cs",
+            ["Kernels.DoWhileDigitsKernel"],
+            [
+                "701", "1305", "2805", "1605", "3105", "1905", "2505", "2205", "3705",
+                "701", "1305", "2805"
+            ]);
+    }
+
+    [SkippableFact]
+    public async Task WhileLoadSearch_ProducesCorrectOutput()
+    {
+        await VerifyProgramOutputAsync(
+            "TestPrograms/BasicLoop/WhileLoadSearch.cs",
+            ["Kernels.WhileLoadSearchKernel"],
+            ["0", "14", "28", "42", "56", "70", "84", "98", "11", "25", "39", "53"]);
+    }
 }
