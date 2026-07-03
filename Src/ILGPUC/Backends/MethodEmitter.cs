@@ -292,6 +292,7 @@ sealed partial class MethodEmitter(
         // Allocate variables for SSA values that need them
         var ssaAllocator = new SSAVariableAllocator(context, method);
         ssaAllocator.AllocateVariables();
+        EmitAllocaDeclarations(method, codePlacement);
 
         // Emit the control flow structure. Irreducible control flow has no
         // structured form and is emitted as a state machine instead.
@@ -299,6 +300,27 @@ sealed partial class MethodEmitter(
             EmitStructuredControlFlow(controlFlow, codePlacement);
         else
             EmitStateMachine(method, codePlacement);
+    }
+
+    /// <summary>
+    /// Declares the storage of all allocas at function scope, next to the
+    /// variables of the SSA values: an alloca may be used outside the scope
+    /// it is placed in, e.g. after a loop or in another state of a state
+    /// machine. The storage is initialized where the alloca is placed.
+    /// </summary>
+    private void EmitAllocaDeclarations(Method method, CodePlacement placement)
+    {
+        foreach (var block in method.Blocks)
+        {
+            foreach (var value in placement.GetPlacedBlock(block))
+            {
+                if (value is not Alloca alloca)
+                    continue;
+                var declaration = expressionEmitter.EmitAllocaDeclaration(alloca);
+                foreach (var line in declaration.Split('\n'))
+                    context.WriteLine(line);
+            }
+        }
     }
 
     /// <summary>
@@ -420,12 +442,15 @@ sealed partial class MethodEmitter(
     /// </summary>
     private void EmitBasicBlockValue(BasicBlockValue value)
     {
-        // Alloca needs special handling: emit as array + pointer pair
+        // Alloca storage is declared at function scope and only initialized
+        // here, every time control reaches the alloca
         if (value is Alloca alloca)
         {
-            var decl = expressionEmitter.EmitAllocaDeclaration(alloca);
-            foreach (var line in decl.Split('\n'))
-                context.WriteLine(line);
+            var initialization = expressionEmitter.EmitAllocaInitialization(
+                alloca,
+                $"_init{_emitterLocalId++}");
+            if (!string.IsNullOrEmpty(initialization))
+                context.WriteLine(initialization);
             return;
         }
 
@@ -449,7 +474,7 @@ sealed partial class MethodEmitter(
     /// Emits a variable assignment. All variables are pre-declared at
     /// function scope by SSAVariableAllocator, so this only emits the
     /// assignment. Alloca values never reach this path (they use
-    /// ExpressionEmitter.EmitAllocaDeclaration instead).
+    /// ExpressionEmitter.EmitAllocaInitialization instead).
     /// </summary>
     private void EmitVariableAssignment(Value value, string varName, string expr) =>
         context.WriteLine($"{varName} = {expr};");

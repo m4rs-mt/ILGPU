@@ -138,4 +138,28 @@ public abstract class BasicLoopExecutionTests : ExecutionTestBase
             ["Kernels.WhileLoadSearchKernel"],
             ["0", "14", "28", "42", "56", "70", "84", "98", "11", "25", "39", "53"]);
     }
+
+    [SkippableFact]
+    public async Task WhileExitRecompute_ProducesCorrectOutput()
+    {
+        await VerifyProgramOutputAsync(
+            "TestPrograms/BasicLoop/WhileExitRecompute.cs",
+            ["Kernels.WhileExitRecomputeKernel"],
+            [
+                "11003", "8012", "5026", "2045", "30069", "15013", "12027", "9046",
+                "6070", "3099", "19023", "16042"
+            ]);
+    }
+
+    [SkippableFact]
+    public async Task WhileExitReload_ProducesCorrectOutput()
+    {
+        await VerifyProgramOutputAsync(
+            "TestPrograms/BasicLoop/WhileExitReload.cs",
+            ["Kernels.WhileExitReloadKernel"],
+            [
+                "21130", "29301", "37542", "4853", "13234", "21135", "29306", "37547",
+                "4858", "13239", "21140", "29311"
+            ]);
+    }
 }

@@ -309,9 +309,9 @@ sealed class ExpressionEmitter(GenerationContext context, TypeEmitter typeEmitte
     }
 
     /// <summary>
-    /// Emits the full alloca declaration as a local array + pointer.
-    /// Called from <see cref="MethodEmitter"/> instead of the default
-    /// variable assignment path.
+    /// Emits the declaration of an alloca as a local array + pointer.
+    /// Called from <see cref="MethodEmitter"/> at function scope, so that the
+    /// storage is visible wherever the alloca is used.
     /// </summary>
     internal string EmitAllocaDeclaration(Alloca alloca)
     {
@@ -322,19 +322,11 @@ sealed class ExpressionEmitter(GenerationContext context, TypeEmitter typeEmitte
         var varName = context.GetValueName(alloca);
         var storageName = $"{varName}_storage";
 
-        int arraySize = 1;
-        if (alloca.ArrayLength.HasValue)
-            arraySize = alloca.ArrayLength.Value.Int32Value;
-
         var sb = new StringBuilder();
         // Emit the storage array
         if (!string.IsNullOrEmpty(addrSpace))
             sb.Append($"{addrSpace} ");
-        sb.Append($"{elemTypeName} {storageName}[{arraySize}]");
-        // Local storage starts zeroed, as .NET locals and arrays do
-        if (pointerType.AddressSpace == MemoryAddressSpace.Local)
-            sb.Append(" = {0}");
-        sb.Append(';');
+        sb.Append($"{elemTypeName} {storageName}[{GetAllocaLength(alloca)}];");
 
         // Emit the pointer variable. Build the pointer type via the
         // language config so backends that don't carry an address-space
@@ -350,6 +342,37 @@ sealed class ExpressionEmitter(GenerationContext context, TypeEmitter typeEmitte
 
         return sb.ToString();
     }
+
+    /// <summary>
+    /// Emits the statement initializing the storage of an alloca at its
+    /// position in the code, or an empty string if it needs none. Local
+    /// storage starts zeroed, as .NET locals and arrays do.
+    /// </summary>
+    /// <param name="alloca">The alloca.</param>
+    /// <param name="indexName">The name of a loop counter to zero arrays.</param>
+    internal string EmitAllocaInitialization(Alloca alloca, string indexName)
+    {
+        var pointerType = alloca.GetTypeAs<PointerType>();
+        if (pointerType.AddressSpace != MemoryAddressSpace.Local)
+            return string.Empty;
+
+        var zero = pointerType.ElementType is StructureType
+            ? context.LanguageConfig.FormatDefaultValue(
+                typeEmitter.GetTypeName(pointerType.ElementType))
+            : "0";
+        var storageName = $"{context.GetValueName(alloca)}_storage";
+        int length = GetAllocaLength(alloca);
+        if (length == 1)
+            return $"{storageName}[0] = {zero};";
+        return $"for (int {indexName} = 0; {indexName} < {length}; ++{indexName}) " +
+            $"{storageName}[{indexName}] = {zero};";
+    }
+
+    /// <summary>
+    /// Returns the number of elements of the storage of an alloca.
+    /// </summary>
+    private static int GetAllocaLength(Alloca alloca) =>
+        alloca.ArrayLength.HasValue ? alloca.ArrayLength.Value.Int32Value : 1;
 
     /// <summary>
     /// Emits an undefined value. For struct types, emits a zero-initialized

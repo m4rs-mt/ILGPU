@@ -340,7 +340,7 @@ partial class MethodEmitter
     /// Walks a loop whose header only computes the exit test as
     /// <c>while (cond) { ... }</c>. Header values the test depends on are
     /// computed in the condition, all other header values at the start of
-    /// the body and, if they are used after the loop, after the loop.
+    /// the body and, if the code after the loop needs them, after the loop.
     /// </summary>
     private void WalkWhileLoop(
         LoopNode loop,
@@ -365,6 +365,30 @@ partial class MethodEmitter
                 needed.Add(values[i]);
         }
 
+        // Determine the values to compute again after the loop, since the
+        // body is skipped when the test leaves the loop: values used after the
+        // loop or by the phi copies of the exit edge, and every other body
+        // value they read, as those still hold the previous iteration. The
+        // header stores nothing, so loads read the same memory again
+        var exitJump = GetExitJump(test);
+        var exitCopies = GetEdgeCopies(header, exitJump.Block);
+        var exits = new HashSet<Value>(ReferenceEqualityComparer.Instance);
+        for (int i = values.Count - 1; i >= 0; --i)
+        {
+            var value = values[i];
+            if (needed.Contains(value))
+                continue;
+            reads.Clear();
+            reads.Add(value);
+            bool isExit = IsUsedOutside(value, loop.Members);
+            foreach (var (_, argument) in exitCopies)
+                isExit |= ReadsAny(argument, reads);
+            foreach (var other in exits)
+                isExit |= ReadsAnyOperand(other, reads);
+            if (isExit)
+                exits.Add(value);
+        }
+
         var bodyValues = new List<Value>();
         var exitValues = new List<Value>();
         foreach (var value in values)
@@ -372,15 +396,13 @@ partial class MethodEmitter
             if (needed.Contains(value))
                 continue;
             bodyValues.Add(value);
-            if (IsUsedOutside(value, loop.Members))
+            if (exits.Contains(value))
                 exitValues.Add(value);
         }
 
         // A break lands in front of the exit code, which may only be skipped
         // if it consists of the exit jump alone
-        var exitJump = GetExitJump(test);
-        bool exitHasCode = exitValues.Count > 0
-            || GetEdgeCopies(header, exitJump.Block).Count > 0;
+        bool exitHasCode = exitValues.Count > 0 || exitCopies.Count > 0;
         JumpTarget? after = exitHasCode ? null : exitJump;
 
         if (_printing)

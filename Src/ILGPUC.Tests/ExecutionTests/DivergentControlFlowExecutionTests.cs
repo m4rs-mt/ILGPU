@@ -254,4 +254,28 @@ public abstract class DivergentControlFlowExecutionTests : ExecutionTestBase
                 "802", "36"
             ]);
     }
+
+    [SkippableFact]
+    public async Task FixedBufferAfterRegion_ProducesCorrectOutput()
+    {
+        await VerifyProgramOutputAsync(
+            "TestPrograms/DivergentControlFlow/FixedBufferAfterRegion.cs",
+            ["Kernels.FixedBufferAfterRegionKernel"],
+            [
+                "100", "302", "303", "104", "304", "310", "103", "304", "308", "118",
+                "303", "304"
+            ]);
+    }
+
+    [SkippableFact]
+    public async Task IrreducibleLoopFixedBuffer_ProducesCorrectOutput()
+    {
+        await VerifyProgramOutputAsync(
+            "TestPrograms/DivergentControlFlow/IrreducibleLoopFixedBuffer.cs",
+            ["Kernels.IrreducibleLoopFixedBufferKernel"],
+            [
+                "11", "43", "125", "117", "239", "411", "493", "585", "837", "139",
+                "31", "163"
+            ]);
+    }
 }
