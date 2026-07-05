@@ -216,7 +216,9 @@ public sealed partial class Context : DisposeBase
         : new DeviceCollection<TDevice>([]);
 
     /// <summary>
-    /// Attempts to return the most optimal single device.
+    /// Attempts to return the most optimal single device. Devices of accelerator
+    /// types without compiled kernels are skipped when kernels have been compiled
+    /// for other accelerator types.
     /// </summary>
     /// <param name="preferCPU">Always returns CPU device 0.</param>
     /// <returns>Selected device.</returns>
@@ -224,7 +226,9 @@ public sealed partial class Context : DisposeBase
         GetPreferredDevices(preferCPU, matchingDevicesOnly: false).First();
 
     /// <summary>
-    /// Attempts to return the most optimal set of devices.
+    /// Attempts to return the most optimal set of devices. Devices of accelerator
+    /// types without compiled kernels are skipped when kernels have been compiled
+    /// for other accelerator types.
     /// </summary>
     /// <param name="preferCPU">Always returns first CPU device.</param>
     /// <param name="matchingDevicesOnly">Only returns matching devices.</param>
@@ -243,7 +247,7 @@ public sealed partial class Context : DisposeBase
 
         var sorted = Devices
             .OrderByDescending(d => d.MemorySize)
-            .Where(d => d.AcceleratorType != AcceleratorType.CPU)
+            .Where(d => d.AcceleratorType != AcceleratorType.CPU && HasKernels(d))
             .ToList();
 
         if (sorted.Count > 0)
@@ -269,6 +273,13 @@ public sealed partial class Context : DisposeBase
                         RuntimeErrorMessages.NotSupportedTargetAccelerator);
         }
     }
+
+    /// <summary>
+    /// Returns true if kernels can run on the given device: no kernels have
+    /// been compiled yet, or some have been compiled for its accelerator type.
+    /// </summary>
+    private static bool HasKernels(Device device) =>
+        NumCompiledKernels == 0 || GetNumCompiledKernels(device.AcceleratorType) > 0;
 
     /// <summary>
     /// Raises the corresponding <see cref="AcceleratorCreated"/> event.
