@@ -262,6 +262,14 @@ sealed partial class CPUMethodEmitter(
             context.Write(
                 $"bool[] {CallerMaskName}, int[] {CallerLanesName}, " +
                 $"int[] {CallerGroupLanesName}, int[] {CallerWarpLanesName}");
+
+            // The local and shared memory of the entry point it uses
+            foreach (var global in context.GetHelperScopeGlobals(method))
+            {
+                context.Write(
+                    $", CPURuntimeView<{GetGlobalElementType(global)}> " +
+                    context.GetValueName(global));
+            }
         }
 
         // Append pool or activeLanes parameter for entry point
@@ -593,13 +601,7 @@ sealed partial class CPUMethodEmitter(
                 : $"{totalSize}";
             var name = context.GetValueName(global);
             var storageName = $"_gstorage_{global.Id}";
-            string elemType;
-            if (global.AllocType is PrimitiveType pt)
-                elemType = config.GetPrimitiveTypeName(pt.BasicValueType);
-            else if (global.AllocType is StructureType st)
-                elemType = $"struct_{st.Id}";
-            else
-                elemType = "byte";
+            var elemType = GetGlobalElementType(global);
 
             if (!hasGlobals)
             {
@@ -623,6 +625,19 @@ sealed partial class CPUMethodEmitter(
         if (hasGlobals)
             context.WriteLine();
     }
+
+    /// <summary>
+    /// Returns the element type of the view over the backing storage of a
+    /// global.
+    /// </summary>
+    private string GetGlobalElementType(Global global) =>
+        global.AllocType switch
+        {
+            PrimitiveType pt => ((CPULanguageConfiguration)context.LanguageConfig)
+                .GetPrimitiveTypeName(pt.BasicValueType),
+            StructureType st => $"struct_{st.Id}",
+            _ => "byte",
+        };
 
     /// <summary>
     /// Emits the <c>BufferPool</c> sealed class inside the kernel static class.
@@ -1507,6 +1522,8 @@ sealed partial class CPUMethodEmitter(
         arguments.Add("laneIdx");
         arguments.Add(CPUIntrinsicEmitter.GroupLanesName);
         arguments.Add(CPUIntrinsicEmitter.WarpLanesName);
+        foreach (var global in context.GetHelperScopeGlobals(target))
+            arguments.Add(context.GetValueName(global));
 
         var callText =
             $"{context.GetValueName(target)}({string.Join(", ", arguments)})";

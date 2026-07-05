@@ -12,6 +12,7 @@
 using ILGPUC.IR;
 using ILGPUC.IR.ModuleValues;
 using ILGPUC.IR.PureValues;
+using System;
 using System.Collections.Generic;
 
 namespace ILGPUC.Backends;
@@ -324,6 +325,22 @@ abstract class LanguageConfiguration
     /// with attribute qualifiers rather than accessed as pre-declared globals.
     /// </summary>
     public virtual IEnumerable<string> GetKernelBuiltInParameters() => [];
+
+    /// <summary>
+    /// Returns the kernel built-in parameters as parameters of helper methods,
+    /// which receive them from their callers: the declaration of each built-in
+    /// parameter without its attribute qualifier, and its name as the argument.
+    /// </summary>
+    public IEnumerable<HelperScopeParameter> GetHelperBuiltInParameters()
+    {
+        foreach (var builtIn in GetKernelBuiltInParameters())
+        {
+            int attribute = builtIn.IndexOf("[[", StringComparison.Ordinal);
+            var declaration = (attribute < 0 ? builtIn : builtIn[..attribute]).Trim();
+            var name = declaration[(declaration.LastIndexOf(' ') + 1)..];
+            yield return new(declaration, name);
+        }
+    }
 }
 
 /// <summary>

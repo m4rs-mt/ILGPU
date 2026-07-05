@@ -90,9 +90,6 @@ public abstract class GroupExecutionTests : ExecutionTestBase
     public async Task PredicateBarrierHelper_ProducesCorrectOutput()
     {
         RequireCapability(Backend, BackendCapability.PredicateBarriers);
-        Skip.If(
-            Backend == BackendType.Metal,
-            "Metal provides thread positions and threadgroup memory to kernels only");
         await VerifyProgramOutputAsync(
             "TestPrograms/Group/PredicateBarrierHelper.cs",
             ["Kernels.PredicateBarrierHelperKernel"],
