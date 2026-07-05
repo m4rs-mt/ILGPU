@@ -2,15 +2,17 @@
 #
 # ILGPUC.CompilerService — ROCm image
 #
-# Base: rocm/dev-ubuntu-24.04:7.1.1-complete (the `-complete` suffix is what
-#       bundles hipcc + amdclang++ + rocm-dev at /opt/rocm/bin/, matching
-#       what ILGPUC.Compilers/CompilerOptions.cs expects).
+# Base: ubuntu:24.04 + the ROCm 7.1.1 HIP toolchain from AMD's apt repository
+#       (rocm-hip-runtime-dev: hipcc, amdclang++, the HIP headers and the
+#       device libraries) at /opt/rocm/bin/, matching what
+#       ILGPUC.Compilers/CompilerOptions.cs expects. Same pattern as the CUDA
+#       and OpenCL images: a plain Ubuntu base plus only the vendor packages
+#       the compiler needs, installed from the vendor's own repository.
 #
-# Architectures supported by the base: linux/amd64 only. AMD has no
-# upstream multi-arch ROCm dev image.
+# Architectures: linux/amd64 only. AMD publishes no arm64 ROCm packages.
 #
 # NOTE: As of ROCm 7.2.0, hipcc is deprecated in favour of amdclang++ — it
-# still works but is now a thin wrapper. The 7.1.1-complete pin keeps hipcc
+# still works but is now a thin wrapper. The 7.1.1 pin keeps hipcc
 # fully functional. Migrate ILGPUC.Compilers later if needed.
 #
 # Build context: REPO ROOT (the parent of Src/), so the build can pick up
@@ -66,20 +68,45 @@ RUN dotnet publish Src/ILGPUC.CompilerService/ILGPUC.CompilerService.csproj \
         /p:UseAppHost=false
 
 ############################
-# Stage 2: runtime (ROCm dev complete)
+# Stage 2: runtime (Ubuntu + ROCm HIP toolchain)
 ############################
-FROM rocm/dev-ubuntu-24.04:7.1.1-complete AS runtime
+FROM ubuntu:24.04 AS runtime
 
-# OCI labels — auto-link the published GHCR package back to the source repo
-# (so it appears under the repo's Packages tab) and tag it with the compound
-# license set that actually applies: ILGPU code is NCSA; ROCm is a per-
-# component multi-license SDK — hipcc is MIT, amdclang++ derives from LLVM
-# (Apache-2.0 with LLVM exception), Comgr is NCSA, runtime libs are MIT/
-# Apache-2.0 mixed. AMD documents this at
+# Keep apt non-interactive for the toolchain install below (tzdata et al.);
+# the ENV of the same name further down only covers later layers.
+ARG DEBIAN_FRONTEND=noninteractive
+
+# OCI labels — auto-link the GHCR package back to the source repo (so it
+# appears under the repo's Packages tab) and tag it with the compound license
+# set that actually applies: ILGPU code is NCSA; ROCm is a per-component
+# multi-license SDK — hipcc is MIT, amdclang++ derives from LLVM (Apache-2.0
+# with LLVM exception), Comgr is NCSA, runtime libs are MIT/Apache-2.0 mixed.
+# AMD documents this at
 #   https://rocm.docs.amd.com/en/latest/about/license.html
 LABEL org.opencontainers.image.source="https://github.com/m4rs-mt/ILGPU"
 LABEL org.opencontainers.image.licenses="NCSA AND MIT AND Apache-2.0"
 LABEL org.opencontainers.image.description="ILGPUC CompilerService bundled with the ROCm 7.1.1 toolchain (hipcc + amdclang++). Used as a remote compile-only service AND as a CI test runner: `docker run image dotnet test ...` overrides the default CMD to run tests inside the container with the .NET 10 SDK preinstalled."
+
+# Install the ROCm 7.1.1 HIP toolchain from AMD's apt repository.
+# rocm-hip-runtime-dev pulls in hipcc, rocm-llvm (amdclang++), the HIP
+# headers, the device libraries and the HIP runtime; hipcc -c compiles host
+# and device code, so the libstdc++ development headers come along as
+# rocm-llvm dependencies. ROCm's lld links against libxml2 without declaring
+# it, so it is installed explicitly. The repository is pinned above Ubuntu's
+# own packages, as AMD's installation guide recommends.
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends ca-certificates curl gnupg \
+ && mkdir -p /etc/apt/keyrings \
+ && curl -fsSL https://repo.radeon.com/rocm/rocm.gpg.key \
+        | gpg --dearmor -o /etc/apt/keyrings/rocm.gpg \
+ && echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/rocm.gpg] https://repo.radeon.com/rocm/apt/7.1.1 noble main" \
+        > /etc/apt/sources.list.d/rocm.list \
+ && printf 'Package: *\nPin: release o=repo.radeon.com\nPin-Priority: 600\n' \
+        > /etc/apt/preferences.d/rocm-pin-600 \
+ && apt-get update \
+ && apt-get install -y --no-install-recommends rocm-hip-runtime-dev libxml2 \
+ && { [ -e /opt/rocm ] || ln -s /opt/rocm-7.1.1 /opt/rocm; } \
+ && rm -rf /var/lib/apt/lists/*
 
 # Bundle ILGPU's own license texts. Third-party licenses are already present
 # in the image: every apt-packaged ROCm and system component's copyright /
@@ -90,10 +117,10 @@ COPY LICENSE.txt LICENSE-3RD-PARTY.txt /usr/share/doc/ilgpuc/
 # Index pointing at every license text already present in the image
 # filesystem, so a consumer inspecting the image has a single starting point.
 RUN printf '%s\n' \
-    'This image is a derivative of rocm/dev-ubuntu-24.04:7.1.1-complete.' \
-    'ROCm is a multi-license SDK — core components are MIT, LLVM-derived' \
-    'components (amdclang++) are Apache-2.0 with LLVM exception, Comgr is' \
-    'NCSA. Per-component details:' \
+    'The ROCm components in this image were installed from AMD'"'"'s apt' \
+    'repository (rocm-hip-runtime-dev, ROCm 7.1.1). ROCm is a multi-license' \
+    'SDK — core components are MIT, LLVM-derived components (amdclang++) are' \
+    'Apache-2.0 with LLVM exception, Comgr is NCSA. Per-component details:' \
     '  https://rocm.docs.amd.com/en/latest/about/license.html' \
     'Per-package license texts are in the image at:' \
     '  /usr/share/doc/<package>/copyright' \
