@@ -94,6 +94,13 @@ public static partial class Warp
     /// <summary>
     /// Executes a thread barrier in the scope of a warp.
     /// </summary>
+    /// <remarks>
+    /// Only the lanes of the calling warp synchronize; other warps of the group are
+    /// not affected, so the barrier may be used in branches that are uniform per
+    /// warp. All lanes of the warp must reach the same barrier. Shared-memory writes
+    /// made by lanes of the warp before the barrier are visible to all lanes of the
+    /// warp after it. Use <see cref="Group.Barrier"/> to synchronize the whole group.
+    /// </remarks>
     [WarpIntrinsic]
     public static void Barrier() => throw new InvalidKernelOperationException();
 

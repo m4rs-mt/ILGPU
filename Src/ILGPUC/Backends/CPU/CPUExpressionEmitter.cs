@@ -1463,8 +1463,11 @@ sealed class CPUExpressionEmitter(
             variable = bcast;
         }
 
-        var text = context.IntrinsicEmitter.EmitWarpScan(
-            variable, op, scan.Kind, type);
+        var identity = scan.Identity is { } scanIdentity
+            ? ResolveOperand(scanIdentity)
+            : null;
+        var text = CPUIntrinsicEmitter.EmitWarpScan(
+            variable, op, scan.Kind, type, identity);
         context.WriteLine($"{result} = {text};");
     }
 
@@ -1514,6 +1517,57 @@ sealed class CPUExpressionEmitter(
 
         var text = context.IntrinsicEmitter.EmitShuffle(
             variable, origin, shuffle.Kind, type);
+        context.WriteLine($"{result} = {text};");
+    }
+
+    /// <summary>
+    /// Emits a warp or group broadcast as a shuffle from the origin lane. The
+    /// lanes of a call form one warp and, for kernels that synchronize their
+    /// group, the whole group, so the origin is a lane of the call.
+    /// </summary>
+    public void EmitBroadcast(Broadcast broadcast)
+    {
+        var variable = ResolveOperand(broadcast.Variable);
+        var origin = ResolveOperand(broadcast.Origin);
+        var result = context.GetValueName(broadcast);
+        var type = broadcast.BasicValueType.GetArithmeticBasicValueType(false);
+
+        var config = (CPULanguageConfiguration)context.LanguageConfig;
+        var elemType = config.GetPrimitiveTypeName(
+            ((PrimitiveType)broadcast.Type).BasicValueType);
+
+        // Group origins are relative to the first lane of the call
+        var lanes = $"_bc_org_{broadcast.Id}";
+        context.WriteLine($"var {lanes} = new int[SIMDWidth];");
+        if (analysis.IsScalar(broadcast.Origin))
+        {
+            context.WriteLine(
+                $"CPUVectorIntrinsics.Broadcast<int>({lanes}, {origin});");
+        }
+        else
+        {
+            context.WriteLine($"{origin}.CopyTo({lanes}, 0);");
+        }
+        if (broadcast.Kind == BroadcastKind.GroupLevel)
+        {
+            context.WriteLine(
+                $"for (int _bi = 0; _bi < SIMDWidth; _bi++) " +
+                $"{lanes}[_bi] -= {CPUIntrinsicEmitter.GroupOffsetName};");
+        }
+
+        if (analysis.IsScalar(broadcast.Variable))
+        {
+            var bcast = $"_bc_val_{broadcast.Id}";
+            context.WriteLine(
+                $"var {bcast} = new {elemType}[SIMDWidth];");
+            context.WriteLine(
+                $"CPUVectorIntrinsics.Broadcast<{elemType}>(" +
+                $"{bcast}, {variable});");
+            variable = bcast;
+        }
+
+        var text = context.IntrinsicEmitter.EmitShuffle(
+            variable, lanes, ShuffleKind.Generic, type);
         context.WriteLine($"{result} = {text};");
     }
 

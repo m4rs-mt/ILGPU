@@ -1036,6 +1036,10 @@ sealed partial class CPUMethodEmitter(
                 expressionEmitter.EmitShuffle(shuffle);
                 break;
 
+            case Broadcast broadcast:
+                expressionEmitter.EmitBroadcast(broadcast);
+                break;
+
             case PredicateBarrier barrier:
                 expressionEmitter.EmitPredicateBarrier(barrier);
                 break;
