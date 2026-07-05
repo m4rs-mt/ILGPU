@@ -94,6 +94,18 @@ public abstract class DivergentControlFlowExecutionTests : ExecutionTestBase
     }
 
     [SkippableFact]
+    public async Task NestedLoopGotoTargets_ProducesCorrectOutput()
+    {
+        await VerifyProgramOutputAsync(
+            "TestPrograms/DivergentControlFlow/NestedLoopGotoTargets.cs",
+            ["Kernels.NestedLoopGotoTargetsKernel"],
+            [
+                "21236", "21457", "28423", "14473", "14133", "28231", "27898", "7216",
+                "7170", "28377", "68", "-167"
+            ]);
+    }
+
+    [SkippableFact]
     public async Task LoopSwitchSelector_ProducesCorrectOutput()
     {
         await VerifyProgramOutputAsync(
@@ -240,6 +252,18 @@ public abstract class DivergentControlFlowExecutionTests : ExecutionTestBase
             [
                 "86", "213", "422", "529", "934", "1725", "1788", "2600", "3481", "86",
                 "213", "422"
+            ]);
+    }
+
+    [SkippableFact]
+    public async Task IrreducibleGotoInKernel_ProducesCorrectOutput()
+    {
+        await VerifyProgramOutputAsync(
+            "TestPrograms/DivergentControlFlow/IrreducibleGotoInKernel.cs",
+            ["Kernels.IrreducibleGotoInKernelKernel"],
+            [
+                "5114", "701", "5112", "703", "2804", "6412", "6614", "7512", "2801",
+                "7009", "9112", "9612"
             ]);
     }
 
