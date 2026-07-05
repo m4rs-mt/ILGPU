@@ -1,0 +1,107 @@
+// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                           Copyright (c) 2026 ILGPU Project
+//                                    www.ilgpu.net
+//
+// File: BackendTests.Generated.tt/BackendTests.Generated.cs
+//
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details.
+// ---------------------------------------------------------------------------------------
+
+
+// disable: max_line_length
+<#@ template debug="false" hostspecific="false" language="C#" #>
+<#@ assembly name="System.Core" #>
+<#@ import namespace="System.Linq" #>
+<#@ output extension=".cs" #>
+<#
+// Class name prefix, backend type and native compiler (null if the backend has
+// no native compilation)
+var backends = new[]
+{
+    new[] { "Cpu", "CPU", null },
+    new[] { "Metal", "Metal", "xcrun metal" },
+    new[] { "Cuda", "Cuda", "nvcc" },
+    new[] { "ROCm", "ROCm", "hipcc" },
+    new[] { "OpenCL", "OpenCL", "ocloc" },
+};
+
+// xUnit runs the tests of a class one after another and different classes in
+// parallel, so the kernels are split over several native compilation classes.
+const int NativeShards = 4;
+#>
+// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                           Copyright (c) 2026 ILGPU Project
+//                                    www.ilgpu.net
+//
+// File: BackendTests.Generated.tt/BackendTests.Generated.cs
+//
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details.
+// ---------------------------------------------------------------------------------------
+
+// disable: max_line_length
+using ILGPUC.Backends;
+using ILGPUC.Tests.Framework;
+using System.Threading.Tasks;
+using Xunit;
+using Xunit.Abstractions;
+
+namespace ILGPUC.Tests.BackendTests;
+
+<# foreach (var entry in backends) {
+    var name = entry[0];
+    var backend = entry[1];
+    var compiler = entry[2];
+#>
+/// <summary>
+/// Generates the source of every registered kernel for the <#= backend #> backend<#= compiler == null ? "." : "," #>
+<#  if (compiler != null) { #>
+/// and compiles it with <#= compiler #>. Native compilation is skipped if <#= compiler #> is
+/// unavailable or the kernel requires unsupported capabilities.
+<#  } #>
+/// </summary>
+public static class <#= name #>BackendTests
+{
+    public sealed class Debug(ITestOutputHelper output)
+        : BackendTestBase(output, BackendType.<#= backend #>)
+    {
+        [SkippableTheory]
+        [MemberData(nameof(KernelRegistry.AllKernelNames), MemberType = typeof(KernelRegistry))]
+        public void SourceGeneration(string kernelName) =>
+            AssertSourceGenerationSucceeds(
+                KernelRegistry.Resolve(kernelName),
+                required: KernelRegistry.GetRequiredCapabilities(kernelName));
+    }
+
+    public sealed class Release(ITestOutputHelper output)
+        : BackendTestBase(output, BackendType.<#= backend #>)
+    {
+        [SkippableTheory]
+        [MemberData(nameof(KernelRegistry.AllKernelNames), MemberType = typeof(KernelRegistry))]
+        public void SourceGeneration_Release(string kernelName) =>
+            AssertSourceGenerationSucceeds(
+                KernelRegistry.Resolve(kernelName),
+                new CompilationProperties().WithMode(CompilationMode.Release),
+                required: KernelRegistry.GetRequiredCapabilities(kernelName));
+    }
+<#  if (compiler != null) { #>
+<#      for (int shard = 0; shard < NativeShards; ++shard) { #>
+
+    public sealed class Native<#= shard #>(ITestOutputHelper output)
+        : BackendTestBase(output, BackendType.<#= backend #>)
+    {
+        [SkippableTheory]
+        [MemberData(nameof(KernelRegistry.KernelNameShard), <#= shard #>, <#= NativeShards #>, MemberType = typeof(KernelRegistry))]
+        public Task NativeCompilation(string kernelName) =>
+            AssertNativeCompilationSucceeds(
+                KernelRegistry.Resolve(kernelName),
+                required: KernelRegistry.GetRequiredCapabilities(kernelName));
+    }
+<#      } #>
+<#  } #>
+}
+
+<# } #>
