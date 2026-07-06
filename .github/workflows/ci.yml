@@ -18,10 +18,9 @@ name: CI
 #                                                                                          ▼
 #                                                                                   package-library
 #                                                                                          │
-#                                                                              ┌───────────┴───────────┐
-#                                                                              ▼                       ▼
-#                                                                      publish-preview          publish-release
-#                                                                      (push to master)         (push to refs/tags/v*)
+#                                                                                          ▼
+#                                                                                   publish-release
+#                                                                                (push to refs/tags/v*)
 #
 # Key invariants:
 #  - publishing CANNOT happen unless `checks-completed` succeeded
@@ -1525,8 +1524,7 @@ jobs:
   #
   # Runs on every push (any branch) once tests pass. Produces the
   # `nuget-packages` artifact attached to the workflow run, available for
-  # download in the Actions UI. publish-preview / publish-release consume
-  # this artifact.
+  # download in the Actions UI. publish-release consumes this artifact.
 
   package-library:
     needs:
@@ -1594,26 +1592,6 @@ jobs:
   # Tier 6: Publishing (gated by package-library, which is gated by tests)
   # ===========================================================================
 
-  publish-preview:
-    # Push to FeedzIO preview feed on master push (not forks).
-    if: github.event_name == 'push' && github.ref == 'refs/heads/master' && !github.event.repository.fork
-    needs: package-library
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - name: Setup .NET SDK
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: 10.0.x
-
-      - name: Download NuGet package artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: nuget-packages
-
-      - name: Publish to FeedzIO
-        run: dotnet nuget push "*.nupkg" --api-key ${{ secrets.FEEDZIO_API_KEY }} --source https://f.feedz.io/ilgpu/preview/nuget/index.json
-
   publish-release:
     # Create a draft GitHub release and publish to nuget.org on tag push
     # (not forks).
@@ -1623,6 +1601,13 @@ jobs:
       - check-version
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    # contents: write creates the draft GitHub release; id-token: write lets
+    # NuGet/login exchange GitHub's OIDC token for a short-lived nuget.org
+    # API key (Trusted Publishing, no stored API key secret). Listing any
+    # permission here drops the repository defaults, so both are explicit.
+    permissions:
+      contents: write
+      id-token: write
     steps:
       - name: Setup .NET SDK
         uses: actions/setup-dotnet@v4
@@ -1653,5 +1638,15 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      # Trusted Publishing: requires a policy on nuget.org (account m4rs-mt,
+      # which owns the ILGPU packages) for repository m4rs-mt/ILGPU and
+      # workflow file ci.yml. The temporary key is valid for one hour and is
+      # requested right before the push.
+      - name: NuGet login (OIDC → temporary API key)
+        id: nuget-login
+        uses: NuGet/login@v1
+        with:
+          user: m4rs-mt
+
       - name: Publish to NuGet
-        run: dotnet nuget push "*.nupkg" --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json
+        run: dotnet nuget push "*.nupkg" --api-key ${{ steps.nuget-login.outputs.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json
