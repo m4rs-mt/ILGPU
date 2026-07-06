@@ -482,7 +482,9 @@ internal static class XMatrix4x4
     /// closed-form algorithm: row-magnitude scale extraction with
     /// determinant-sign disambiguation, then Shepperd's method for the
     /// rotation quaternion (via <see cref="XQuaternion.CreateFromRotationMatrix"/>).
-    /// Assumes the upper-left 3×3 columns are orthogonal up to scaling.
+    /// Assumes the upper-left 3×3 columns are orthogonal up to scaling;
+    /// for non-aligned inputs, see
+    /// <c>Matrix4x4Extensions.TryDecomposeIterative</c>.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static bool Decompose(

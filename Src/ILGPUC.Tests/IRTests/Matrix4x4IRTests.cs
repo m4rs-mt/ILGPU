@@ -73,4 +73,8 @@ public sealed class Matrix4x4IRTests : CompilationTestBase
     [Fact]
     public void Matrix4x4Decompose_AfterFrontend() =>
         VerifyAfterFrontend(GetKernel(typeof(Matrix4x4Kernels), nameof(Matrix4x4Kernels.Matrix4x4DecomposeKernel)));
+
+    [Fact]
+    public void Matrix4x4DecomposeIterative_AfterFrontend() =>
+        VerifyAfterFrontend(GetKernel(typeof(Matrix4x4Kernels), nameof(Matrix4x4Kernels.Matrix4x4DecomposeIterativeKernel)));
 }

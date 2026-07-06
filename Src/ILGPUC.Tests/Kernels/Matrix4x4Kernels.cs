@@ -11,6 +11,7 @@
 
 using System.Numerics;
 using ILGPU;
+using ILGPU.Numerics;
 using ILGPU.Runtime;
 
 namespace ILGPUC.Tests.Kernels;
@@ -154,6 +155,20 @@ static class Matrix4x4Kernels
         Matrix4x4 a)
     {
         if (Matrix4x4.Decompose(a, out var scale, out var rot, out var trans))
+            output[index] =
+                scale.X + scale.Y + scale.Z +
+                rot.X + rot.Y + rot.Z + rot.W +
+                trans.X + trans.Y + trans.Z;
+        else
+            output[index] = -1.0f;
+    }
+
+    public static void Matrix4x4DecomposeIterativeKernel(
+        Index1D index,
+        ArrayView1D<float, Stride1D.Dense> output,
+        Matrix4x4 a)
+    {
+        if (a.TryDecomposeIterative(out var scale, out var rot, out var trans))
             output[index] =
                 scale.X + scale.Y + scale.Z +
                 rot.X + rot.Y + rot.Z + rot.W +
