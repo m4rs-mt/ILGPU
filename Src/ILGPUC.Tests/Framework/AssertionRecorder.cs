@@ -13,6 +13,8 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading;
+using System.Threading.Tasks;
+using Xunit;
 
 namespace ILGPUC.Tests.Framework;
 
@@ -68,6 +70,44 @@ sealed class AssertionRecorder : IDisposable
     /// The messages of the recorded assertion failures.
     /// </summary>
     public IReadOnlyList<string> Failures => _failures;
+
+    /// <summary>
+    /// Runs <paramref name="compile"/> and fails the current test if it tripped a
+    /// compiler assertion, also when the compiler recovered from it.
+    /// </summary>
+    public static T Run<T>(Func<T> compile)
+    {
+        using var recorder = Start();
+        var result = compile();
+        recorder.AssertNoFailures();
+        return result;
+    }
+
+    /// <summary>
+    /// Runs <paramref name="compile"/> and fails the current test if it tripped a
+    /// compiler assertion, also when the compiler recovered from it.
+    /// </summary>
+    public static async Task<T> RunAsync<T>(Func<Task<T>> compile)
+    {
+        using var recorder = Start();
+        var result = await compile().ConfigureAwait(false);
+        recorder.AssertNoFailures();
+        return result;
+    }
+
+    /// <summary>
+    /// Stops recording and fails the current test if an assertion failed.
+    /// </summary>
+    public void AssertNoFailures()
+    {
+        Dispose();
+        if (_failures.Count > 0)
+        {
+            Assert.Fail(
+                "Compiler assertions failed:" + Environment.NewLine +
+                string.Join(Environment.NewLine, _failures));
+        }
+    }
 
     /// <summary>
     /// Stops recording.
