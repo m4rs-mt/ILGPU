@@ -40,6 +40,33 @@ public abstract class LaunchGeometryExecutionTests : ExecutionTestBase
             ]);
     }
 
+    /// <summary>
+    /// Grouped kernels without an index parameter whose first parameter has
+    /// the type of an index keep it as a kernel argument.
+    /// </summary>
+    [SkippableFact]
+    public async Task GroupedScalarFirstParameter_ProducesCorrectOutput()
+    {
+        await VerifyProgramOutputAsync(
+            "TestPrograms/LaunchGeometry/GroupedScalarFirstParameter.cs",
+            [
+                "Kernels.IntFirstKernel",
+                "Kernels.StructFirstKernel",
+                "Kernels.WideStructFirstKernel",
+                "Kernels.TripleStructFirstKernel",
+                "Kernels.LongStructFirstKernel",
+                "Kernels.LongTripleStructFirstKernel",
+            ],
+            [
+                "1000 1003 1006 1009 1100 1103 1106 1109",
+                "2000 2005 2010 2015 2100 2105 2110 2115",
+                "3000 3007 3014 3021 3100 3107 3114 3121",
+                "4000 4002 4004 4006 4300 4302 4304 4306",
+                "5000 5011 5022 5033 5100 5111 5122 5133",
+                "6000 6013 6026 6039 6400 6413 6426 6439",
+            ]);
+    }
+
     [SkippableFact]
     public async Task GroupedKernelIndex_ProducesCorrectOutput()
     {
