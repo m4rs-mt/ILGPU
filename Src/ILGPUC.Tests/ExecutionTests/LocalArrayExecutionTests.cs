@@ -49,6 +49,21 @@ public abstract class LocalArrayExecutionTests : ExecutionTestBase
             ["6", "6", "6", "6"]);
     }
 
+    /// <summary>
+    /// The scratch buffer must be private per thread. The other programs in this
+    /// family write thread-independent values, so a backend that shares one buffer
+    /// across threads (or across the lanes of a vectorized CPU group) still yields
+    /// the right answer; this one does not.
+    /// </summary>
+    [SkippableFact]
+    public async Task ThreadVaryingScratch_ProducesCorrectOutput()
+    {
+        await VerifyProgramOutputAsync(
+            "TestPrograms/LocalArray/ThreadVaryingScratch.cs",
+            ["Kernels.ThreadVaryingScratchKernel"],
+            ["0", "11", "22", "33"]);
+    }
+
     [SkippableFact]
     public async Task IndexCompute_ProducesCorrectOutput()
     {
