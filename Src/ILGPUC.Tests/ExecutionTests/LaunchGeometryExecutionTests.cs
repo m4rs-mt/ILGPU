@@ -113,6 +113,31 @@ public abstract class LaunchGeometryExecutionTests : ExecutionTestBase
             ["mismatches 0", "clobbered 0"]);
     }
 
+    /// <summary>
+    /// Implicitly grouped launches over <c>LongIndex1D</c>, <c>LongIndex2D</c>
+    /// and <c>LongIndex3D</c> extents give every thread its own index.
+    /// </summary>
+    [SkippableFact]
+    public async Task LongIndexLaunches_ProducesCorrectOutput()
+    {
+        await VerifyProgramOutputAsync(
+            "TestPrograms/LaunchGeometry/LongIndexLaunches.cs",
+            [
+                "Kernels.Long1DKernel",
+                "Kernels.Long1DCopyKernel",
+                "Kernels.Long2DKernel",
+                "Kernels.Long3DKernel",
+            ],
+            [
+                "7 10 13 16 19 22 25 28 31 34 37 40 43 46 49 52 55 58 61",
+                "0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18",
+                "0 1 2 3 4 100 101 102 103 104 200 201 202 203 204",
+                "0 1 2 3 4 100 101 102 103 104 200 201 202 203 204 " +
+                    "10000 10001 10002 10003 10004 10100 10101 10102 10103 10104 " +
+                    "10200 10201 10202 10203 10204",
+            ]);
+    }
+
     [SkippableFact]
     public async Task Implicit2DBounds_ProducesCorrectOutput()
     {

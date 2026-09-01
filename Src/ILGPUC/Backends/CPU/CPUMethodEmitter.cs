@@ -162,6 +162,13 @@ sealed partial class CPUMethodEmitter(
                 // 1D index (Index1D → int): alias to laneIdx
                 context.SetValueName(param0, "laneIdx");
             }
+            else if (param0.Type is PrimitiveType
+                { BasicValueType: BasicValueType.Int64 })
+            {
+                // 1D long index (LongIndex1D → long): alias to the lane
+                // indices widened to long
+                EmitLongLaneIndices(param0);
+            }
             // else: an index type that is not decomposed or aliased
         }
 
@@ -235,12 +242,15 @@ sealed partial class CPUMethodEmitter(
             first = false;
 
             var typeName = typeEmitter.GetTypeName(param.Type);
-            // Entry point's first param: for multi-dim kernels (Index2D/3D),
-            // emit as int (the linear base index) instead of the struct type.
-            // The decomposition into X/Y/Z happens in EmitIndexDecomposition.
+            // Entry point's first param: for multi-dim kernels (Index2D/3D)
+            // and long indices, emit as int (the linear base index of the
+            // launcher) instead of the index type. The decomposition into
+            // X/Y/Z happens in EmitIndexDecomposition, the widening of long
+            // indices in EmitLongLaneIndices.
             if (IsEntryPointIndex(param)
-                && param.Type is StructureType pSt
-                && IsIndexStructType(pSt))
+                && (param.Type is StructureType pSt && IsIndexStructType(pSt)
+                    || param.Type is PrimitiveType
+                        { BasicValueType: BasicValueType.Int64 }))
             {
                 typeName = "int";
             }
@@ -514,13 +524,15 @@ sealed partial class CPUMethodEmitter(
         var config = (CPULanguageConfiguration)context.LanguageConfig;
 
         context.WriteLine("// Decompose linear index into multi-dim components");
-        // Declare per-field arrays
+        // Declare per-field arrays of the field type: int for Index2D/3D and
+        // long for LongIndex2D/3D
+        var fieldType = new TypeEmitter(context).GetTypeName(indexStruct.Fields[0]);
         var fieldNames = new string[numFields];
         for (int f = 0; f < numFields; f++)
         {
             var fieldName = $"_idx_{StructureType.GetFieldName(f)}";
             fieldNames[f] = fieldName;
-            context.WriteLine($"var {fieldName} = new int[SIMDWidth];");
+            context.WriteLine($"var {fieldName} = new {fieldType}[SIMDWidth];");
         }
 
         // Decompose linear index into multi-dim components.
@@ -553,6 +565,21 @@ sealed partial class CPUMethodEmitter(
                 context.MarkNeedsVariable(gf);
             }
         });
+    }
+
+    /// <summary>
+    /// Aliases the long index parameter of a <c>LongIndex1D</c> launch to the
+    /// lane indices widened to long.
+    /// </summary>
+    private void EmitLongLaneIndices(Parameter param0)
+    {
+        const string lanes = "_idx_long";
+        context.WriteLine("// Widen the lane indices to the long index");
+        context.WriteLine($"var {lanes} = new long[SIMDWidth];");
+        context.WriteLine("for (int _d = 0; _d < SIMDWidth; _d++)");
+        context.WriteLine($"    {lanes}[_d] = laneIdx[_d];");
+        context.WriteLine();
+        context.SetValueName(param0, lanes);
     }
 
     /// <summary>
@@ -1395,7 +1422,7 @@ sealed partial class CPUMethodEmitter(
         // parameter, param0 is a real parameter and must NOT be vectorized.
         bool hasIndexParam = HasEntryPointIndex(method)
             && (method.Parameters[0].Type is PrimitiveType
-                    { BasicValueType: BasicValueType.Int32 }
+                    { BasicValueType: BasicValueType.Int32 or BasicValueType.Int64 }
                 || (method.Parameters[0].Type is StructureType st
                     && IsDecomposedIndexType(st)));
         analysis = new VectorizationAnalysis(
