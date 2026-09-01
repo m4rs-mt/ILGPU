@@ -192,7 +192,9 @@ sealed class LowerAtomicSites(
         if (site is CustomAtomic customAtomic)
         {
             // Call the user's binary operation via the MethodCall.Builder API.
-            var operationMethod = customAtomic.Operation.AsNotNullCast<Method>();
+            var operationMethod =
+                loopBuilder.Rewrite(customAtomic.Operation) as Method
+                ?? customAtomic.Operation.AsNotNullCast<Method>();
             var callBuilder = loopBuilder.CreateCall(location, operationMethod);
             callBuilder.Add(current);
             callBuilder.Add(value);
@@ -251,8 +253,14 @@ sealed class LowerAtomicSites(
         preHeader.UpdateLastByTerminatingAfter(site);
         transform.AppendTo(exitBuilder, toAppend: site.Next);
 
+        // The loop is built by hand, so every operand it embeds must be resolved
+        // into the new generation first. BitCastForAtomic returns its inputs
+        // unchanged on the integer path, so resolving here covers both paths.
+        var newTarget = transform.Rewrite(site.Target).AsNotNull();
+        var newValue = transform.Rewrite(site.Value).AsNotNull();
+
         var (castPtr, castValue, isBitcast) =
-            BitCastForAtomic(preHeader, location, site.Target, site.Value);
+            BitCastForAtomic(preHeader, location, newTarget, newValue);
 
         var intElemType = ((PointerType)castPtr.Type).ElementType;
 
@@ -278,7 +286,7 @@ sealed class LowerAtomicSites(
             currentTyped,
             isBitcast
                 ? loopBuilder.CreateIntAsFloatCast(location, castValue).AsNotNull()
-                : site.Value);
+                : newValue);
 
         var newValueInt = isBitcast
             ? loopBuilder.CreateFloatAsIntCast(location, newValueTyped).AsNotNull()

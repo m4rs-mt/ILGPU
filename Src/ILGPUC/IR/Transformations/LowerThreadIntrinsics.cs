@@ -197,7 +197,8 @@ sealed class LowerThreadIntrinsics(TransformationArgs args) : Transformation(arg
                 ? transform.CreateWarpReduce(
                     source.Location, field, source.IntrinsicOp!.Value, source.Kind)
                 : transform.CreateWarpReduce(
-                    source.Location, field, source.Operation!, source.Kind));
+                    source.Location, field,
+                    transform.Rewrite(source.Operation!), source.Kind));
     }
 
     /// <summary>
@@ -226,7 +227,7 @@ sealed class LowerThreadIntrinsics(TransformationArgs args) : Transformation(arg
                 if (source.Identity is not null)
                 {
                     // TODO: decompose struct identity per-field
-                    fieldIdentity = source.Identity;
+                    fieldIdentity = transform.Rewrite(source.Identity);
                 }
 
                 return source.HasIntrinsicOperation
@@ -235,7 +236,8 @@ sealed class LowerThreadIntrinsics(TransformationArgs args) : Transformation(arg
                         source.IntrinsicOp!.Value, source.Kind, fieldIdentity)
                     : transform.CreateWarpScan(
                         source.Location, field,
-                        source.Operation!, source.Kind, fieldIdentity);
+                        transform.Rewrite(source.Operation!), source.Kind,
+                        fieldIdentity);
             });
     }
 
@@ -260,10 +262,10 @@ sealed class LowerThreadIntrinsics(TransformationArgs args) : Transformation(arg
                 source.HasIntrinsicOperation
                 ? transform.CreateGroupReduce(
                     source.Location, field, source.IntrinsicOp!.Value,
-                    source.Kind, source.Identity)
+                    source.Kind, RewriteOrNull(transform, source.Identity))
                 : transform.CreateGroupReduce(
-                    source.Location, field, source.Operation!,
-                    source.Kind, source.Identity));
+                    source.Location, field, transform.Rewrite(source.Operation!),
+                    source.Kind, RewriteOrNull(transform, source.Identity)));
     }
 
     /// <summary>
@@ -287,10 +289,19 @@ sealed class LowerThreadIntrinsics(TransformationArgs args) : Transformation(arg
                 source.HasIntrinsicOperation
                 ? transform.CreateGroupScan(
                     source.Location, field, source.IntrinsicOp!.Value,
-                    source.Kind, source.Identity)
+                    source.Kind, RewriteOrNull(transform, source.Identity))
                 : transform.CreateGroupScan(
-                    source.Location, field, source.Operation!,
-                    source.Kind, source.Identity));
+                    source.Location, field, transform.Rewrite(source.Operation!),
+                    source.Kind, RewriteOrNull(transform, source.Identity)));
     }
+
+    /// <summary>
+    /// Resolves an optional operand into the current generation, preserving null.
+    /// </summary>
+    /// <param name="transform">The block transform.</param>
+    /// <param name="value">The operand, or null.</param>
+    /// <returns>The resolved operand, or null.</returns>
+    private static Value? RewriteOrNull(BasicBlockTransform transform, Value? value) =>
+        value is null ? null : transform.Rewrite(value);
 
 }

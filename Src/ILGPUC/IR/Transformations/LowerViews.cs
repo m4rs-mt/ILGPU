@@ -69,10 +69,10 @@ sealed class LowerViews(TransformationArgs args) : LowerTypes<ViewType>(args)
     {
         var longLength = transform.CreateConvertToInt64(
             value.Location,
-            value.Length);
+            transform.Rewrite(value.Length));
         var viewInstance = transform.CreateDynamicStructure(
             value.Location,
-            value.Pointer,
+            transform.Rewrite(value.Pointer),
             longLength);
         return viewInstance;
     }
@@ -112,9 +112,9 @@ sealed class LowerViews(TransformationArgs args) : LowerTypes<ViewType>(args)
         var newPointer = transform.CreateLoadElementAddress(
             location,
             pointer,
-            value.Offset);
+            transform.Rewrite(value.Offset));
 
-        var length = value.Length;
+        var length = transform.Rewrite(value.Length)!;
         if (length.BasicValueType != BasicValueType.Int64)
         {
             length = transform.CreateConvertToInt64(
