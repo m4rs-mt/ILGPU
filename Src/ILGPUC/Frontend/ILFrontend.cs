@@ -107,6 +107,12 @@ sealed class ILFrontend
     private readonly ILFrontendCache? _cache;
 
     /// <summary>
+    /// Cached <see cref="LoadSequencePoints"/> delegate passed to
+    /// <see cref="DisassembledMethod.EnsureLocationsAttached"/>.
+    /// </summary>
+    private readonly Func<MethodBase, SequencePointEnumerator> _loadSequencePoints;
+
+    /// <summary>
     /// Constructs a new IL frontend using the given paths to resolve debug
     /// information. The frontend operates in standalone (uncached) mode.
     /// </summary>
@@ -135,6 +141,7 @@ sealed class ILFrontend
     {
         BackendType = backendType;
         _cache = cache;
+        _loadSequencePoints = LoadSequencePoints;
 
         // Determine pdb lookup directories
         var currentDirectory = Directory.GetCurrentDirectory();
@@ -301,23 +308,26 @@ sealed class ILFrontend
             _methods.Keys.Select(t => t.Module.Assembly).Distinct(),
             LoadDebugSymbols);
 
-        // Process all methods and get debug info assigned to them.
-        // TryClaimLocationAttachment skips bodies whose instructions were
-        // already location-tagged by an earlier compile that shared the same
-        // cached DisassembledMethod — sequence-point merging is value-
-        // deterministic for a given PDB so reattaching is wasted work.
-        Parallel.ForEach(_methods, method =>
-        {
-            if (method.Value is null) return;
-            if (!method.Value.TryClaimLocationAttachment()) return;
-
-            var sequencePoints = LoadSequencePoints(method.Key);
-            if (!sequencePoints.IsValid) return;
-
-            foreach (var instruction in method.Value)
-                instruction.UpdateLocation(sequencePoints);
-        });
+        // Process all methods and get debug info assigned to them
+        AttachSequencePoints();
     }
+
+    /// <summary>
+    /// Attaches sequence-point locations to all disassembled methods in parallel.
+    /// </summary>
+    /// <remarks>
+    /// Bodies shared through <see cref="ILFrontendCache"/> are attached only once:
+    /// bodies already attached by an earlier compile are skipped, and bodies
+    /// another frontend is attaching concurrently are waited for, so code
+    /// generation never reads partially attached locations. Locations come from
+    /// the method that was actually disassembled, not from the key it is
+    /// registered under, so intrinsic remappings keep the locations of their
+    /// implementation.
+    /// </remarks>
+    private void AttachSequencePoints() =>
+        Parallel.ForEach(
+            _methods.Values,
+            method => method?.EnsureLocationsAttached(_loadSequencePoints));
 
     /// <summary>
     /// Instrumented variant of <see cref="LoadMethods"/> that records the
@@ -374,20 +384,10 @@ sealed class ILFrontend
         timings.LoadDebugSymbolsMs = sw.Elapsed.TotalMilliseconds;
 
         // Sub-phase 3: sequence-point attachment for each disassembled method.
-        // The TryClaimLocationAttachment gate matches the production
-        // LoadMethods path so warm runs measured by the bench correctly
-        // reflect the no-op cost.
+        // Shares the production LoadMethods path so warm runs measured by the
+        // bench correctly reflect the no-op cost.
         sw.Restart();
-        Parallel.ForEach(_methods, method =>
-        {
-            if (method.Value is null) return;
-            if (!method.Value.TryClaimLocationAttachment()) return;
-
-            var sequencePoints = LoadSequencePoints(method.Key);
-            if (!sequencePoints.IsValid) return;
-            foreach (var instruction in method.Value)
-                instruction.UpdateLocation(sequencePoints);
-        });
+        AttachSequencePoints();
         sw.Stop();
         timings.AttachSequencePointsMs = sw.Elapsed.TotalMilliseconds;
     }
@@ -786,6 +786,14 @@ sealed class ILFrontend
                     methodBuilder.Method.AddFlags(MethodFlags.External);
                     return;
                 }
+            }
+
+            // Bodies disassembled on the fly above carry no locations yet, and
+            // cached bodies may still be attached by a concurrent frontend
+            if (!disassembled.LocationsAttached)
+            {
+                LoadDebugSymbols(disassembled.Method.Module.Assembly);
+                disassembled.EnsureLocationsAttached(_loadSequencePoints);
             }
 
             try

@@ -9,9 +9,11 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
+using ILGPUC.Frontend.DebugInformation;
 using ILGPUC.IR;
 using System;
 using System.Reflection;
+using System.Threading;
 
 namespace ILGPUC.Frontend;
 
@@ -82,7 +84,11 @@ enum DisassembledMethodFlags
 /// <summary>
 /// Represents a disassembled method.
 /// </summary>
-/// <remarks>Members of this class are not thread safe.</remarks>
+/// <remarks>
+/// Instances are shared across frontends through <see cref="ILFrontendCache"/>.
+/// Apart from <see cref="EnsureLocationsAttached"/>, members of this class are not
+/// thread safe.
+/// </remarks>
 sealed class DisassembledMethod(
     MethodBase method,
     DisassembledMethodFlags flags,
@@ -93,28 +99,52 @@ sealed class DisassembledMethod(
 {
     private readonly ReadOnlyMemory<ILInstruction> _instructions = instructions;
 
-    // 0 = sequence points not yet attached; 1 = attached.
-    // Flipped exactly once by the first ILFrontend that successfully runs
-    // sequence-point attachment for this body; later frontends sharing the
-    // same cached body see 1 and skip the redundant per-instruction merges.
-    private int _locationsAttached;
+    /// <summary>
+    /// Serializes the one-time attachment of sequence-point locations.
+    /// </summary>
+    private readonly Lock _locationLock = new();
 
     /// <summary>
-    /// Atomically claims the right to attach sequence-point locations to
-    /// this body's instructions. Returns <see langword="true"/> only on the
-    /// first call across all threads; subsequent calls return
-    /// <see langword="false"/> and the caller must skip attachment.
+    /// Set once all sequence-point locations have been attached. Written inside
+    /// <see cref="_locationLock"/> after the last location update, so any reader
+    /// observing <see langword="true"/> also observes every attached location.
     /// </summary>
-    /// <remarks>
-    /// Used by <see cref="ILFrontend"/> when a <see cref="DisassembledMethod"/>
-    /// is reused across multiple compilations through
-    /// <see cref="ILFrontendCache"/>: location merging is value-deterministic
-    /// for the same PDB so re-running it would be wasted work, and it would
-    /// also race other frontends concurrently mutating the same instructions.
-    /// </remarks>
-    public bool TryClaimLocationAttachment() =>
-        System.Threading.Interlocked.CompareExchange(
-            ref _locationsAttached, 1, 0) == 0;
+    private volatile bool _locationsAttached;
+
+    /// <summary>
+    /// Returns true if all sequence-point locations have been attached to the
+    /// instructions of this method.
+    /// </summary>
+    public bool LocationsAttached => _locationsAttached;
+
+    /// <summary>
+    /// Attaches the sequence-point locations of <see cref="Method"/> to all
+    /// instructions exactly once. Callers racing with the first attachment block
+    /// until it has completed, so every caller observes the complete set of
+    /// locations once this method returns.
+    /// </summary>
+    /// <param name="loadSequencePoints">
+    /// Loads the sequence points of the given method. Invoked at most once per
+    /// successful attachment.
+    /// </param>
+    public void EnsureLocationsAttached(
+        Func<MethodBase, SequencePointEnumerator> loadSequencePoints)
+    {
+        if (_locationsAttached) return;
+
+        lock (_locationLock)
+        {
+            if (_locationsAttached) return;
+
+            var sequencePoints = loadSequencePoints(Method);
+            if (sequencePoints.IsValid)
+            {
+                foreach (var instruction in Instructions)
+                    instruction.UpdateLocation(sequencePoints);
+            }
+            _locationsAttached = true;
+        }
+    }
 
     /// <summary>
     /// Returns method that was disassembled.
