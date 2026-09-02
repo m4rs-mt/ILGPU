@@ -102,6 +102,44 @@ public sealed class FrontendLocationTests
     }
 
     /// <summary>
+    /// A failing first attachment must release callers waiting on it, which then
+    /// attach the locations themselves.
+    /// </summary>
+    [Fact]
+    public async Task SharedBody_FailedAttachment_ReleasesWaiters()
+    {
+        using var helper = new CompilationHelper();
+        var kernel = typeof(PerfRegressionKernels)
+            .GetMethod(nameof(PerfRegressionKernels.VectorMul))!;
+
+        var reference = LoadMethods(kernel, cache: null);
+        var expected = GetLocations(reference.GetDisassembledMethod(kernel)!);
+        var body = Disassembler.TryDisassemble(kernel)!;
+
+        using var attaching = new ManualResetEventSlim();
+        using var release = new ManualResetEventSlim();
+        var failingAttachment = Task.Run(() =>
+            body.EnsureLocationsAttached(method =>
+            {
+                attaching.Set();
+                release.Wait();
+                throw new InvalidOperationException();
+            }));
+        attaching.Wait();
+
+        var waiter = Task.Run(() =>
+            body.EnsureLocationsAttached(reference.LoadSequencePoints));
+        var winner = await Task.WhenAny(waiter, Task.Delay(PendingAttachmentWindow));
+        Assert.NotSame(waiter, winner);
+
+        release.Set();
+        await Assert.ThrowsAsync<InvalidOperationException>(() => failingAttachment);
+        await waiter;
+        Assert.True(body.LocationsAttached);
+        Assert.Equal(expected, GetLocations(body));
+    }
+
+    /// <summary>
     /// Intrinsic remappings register the implementation body under the remapped
     /// method as well; the body must receive the locations of the implementation
     /// regardless of which registration is processed first.
