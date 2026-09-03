@@ -17,6 +17,7 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 namespace ILGPUC.IR;
@@ -358,14 +359,21 @@ sealed class TypeInformationManager
                 // padding bytes.
                 size = type.SizeOf();
             }
-            else
+            else if (type.StructLayoutAttribute.Value == LayoutKind.Sequential)
             {
-                size = type.StructLayoutAttribute.Value == LayoutKind.Sequential
-                    ? type.StructLayoutAttribute.Size
-                    : throw new NotSupportedException(
-                        string.Format(
-                            ErrorMessages.NotSupportedStructureLayout,
-                            type));
+                size = type.StructLayoutAttribute.Size;
+            }
+            // Closure structs the C# compiler generates for local functions
+            // use LayoutKind.Auto. They only live inside kernels and never
+            // cross the host boundary, so their fields are laid out in
+            // declaration order like sequential structures.
+            else if (type.StructLayoutAttribute.Value != LayoutKind.Auto
+                || !type.IsDefined(typeof(CompilerGeneratedAttribute), false))
+            {
+                throw new NotSupportedException(
+                    string.Format(
+                        ErrorMessages.NotSupportedStructureLayout,
+                        type));
             }
         }
 

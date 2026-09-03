@@ -31,6 +31,19 @@ public abstract class LambdaExecutionTests : ExecutionTestBase
             ["10", "11", "12", "13"]);
     }
 
+    /// <summary>
+    /// A local function capturing a parameter and a local of the kernel, which
+    /// the C# compiler passes through a closure struct with auto layout.
+    /// </summary>
+    [SkippableFact]
+    public async Task LocalFunctionCapture_ProducesCorrectOutput()
+    {
+        await VerifyProgramOutputAsync(
+            "TestPrograms/Lambda/LocalFunctionCapture.cs",
+            ["Kernels.LocalFunctionCaptureKernel"],
+            ["5", "15", "25", "35"]);
+    }
+
     [SkippableFact]
     public async Task MultiCapture_ProducesCorrectOutput()
     {
