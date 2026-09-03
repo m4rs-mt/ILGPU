@@ -30,11 +30,17 @@ namespace ILGPUC.Roslyn.Generation;
 ///     a.View,
 ///     b.View,
 ///     c.View);
+///
+/// Inline lambda kernels are launched the same way with their captured
+/// values as arguments. When lifting is enabled, the launch is additionally
+/// wrapped in a block that declares the lambda body as a static local
+/// function, which makes the kernel resolvable from the emitted assembly.
 /// </summary>
 sealed class CallSiteRewriter : CSharpSyntaxRewriter
 {
     private readonly Dictionary<SyntaxNode, KernelDescriptor> _launchSiteMap = [];
     private readonly bool _emitLineDirectives;
+    private readonly bool _liftInlineKernels;
 
     /// <summary>
     /// Initializes a new <see cref="CallSiteRewriter"/> that rewrites all launch
@@ -47,11 +53,17 @@ sealed class CallSiteRewriter : CSharpSyntaxRewriter
     /// When <see langword="true"/>, emits <c>#line</c> directives so the rewritten
     /// code maps back to the original source for debugging.
     /// </param>
+    /// <param name="liftInlineKernels">
+    /// When <see langword="true"/>, declares the lifted body of each inline
+    /// lambda kernel as a static local function next to its launch site.
+    /// </param>
     public CallSiteRewriter(
         List<KernelDescriptor> kernels,
-        bool emitLineDirectives = false)
+        bool emitLineDirectives = false,
+        bool liftInlineKernels = false)
     {
         _emitLineDirectives = emitLineDirectives;
+        _liftInlineKernels = liftInlineKernels;
         foreach (var kernel in kernels)
             _launchSiteMap[kernel.LaunchInfo.Invocation] = kernel;
     }
@@ -66,7 +78,15 @@ sealed class CallSiteRewriter : CSharpSyntaxRewriter
         if (node.Expression is InvocationExpressionSyntax invocation
             && _launchSiteMap.TryGetValue(invocation, out var kernel))
         {
-            return RewriteLaunchCall(node, invocation, kernel);
+            var launch = RewriteLaunchCall(node, invocation, kernel);
+            if (!_liftInlineKernels || kernel.LiftedKernel is null)
+                return launch;
+
+            // { static void InlineKernel_...(...) { ... } Launch(...); }
+            return SyntaxFactory.Block(
+                    kernel.LiftedKernel,
+                    launch.WithoutLeadingTrivia())
+                .WithLeadingTrivia(launch.GetLeadingTrivia());
         }
 
         return base.VisitExpressionStatement(node);

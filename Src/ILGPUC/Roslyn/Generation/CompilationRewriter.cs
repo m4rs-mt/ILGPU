@@ -84,7 +84,8 @@ sealed class CompilationRewriter(ICompiledKernelProvider? kernelProvider = null)
         var launchSites = analyzer.FindAllLaunchSites();
 
         var extractor = new KernelExtractor(compilation);
-        var kernels = launchSites.Select(extractor.Extract).ToList();
+        var kernels = MakeInlineKernelNamesUnique(
+            launchSites.Select(extractor.Extract).ToList());
 
         // Monomorphize generic kernels with open type parameters.
         // For each kernel whose method has ITypeParameterSymbol type args,
@@ -124,7 +125,42 @@ sealed class CompilationRewriter(ICompiledKernelProvider? kernelProvider = null)
 
         var uniqueKernels = DeduplicateKernels(expandedKernels);
 
-        return new AnalysisResult(kernels, uniqueKernels, dispatchKernels);
+        // A local function launched from several sites is reported once
+        return new AnalysisResult(
+            kernels,
+            uniqueKernels,
+            dispatchKernels,
+            extractor.Diagnostics.Distinct().ToList());
+    }
+
+    /// <summary>
+    /// Appends a counter to inline kernels whose position-based names collide
+    /// (e.g. lambdas at the same position of equally named files), so every
+    /// inline lambda is compiled into its own kernel.
+    /// </summary>
+    private static List<KernelDescriptor> MakeInlineKernelNamesUnique(
+        List<KernelDescriptor> kernels)
+    {
+        var names = new HashSet<string>(
+            kernels.Where(k => k.KernelBody is null).Select(k => k.KernelName));
+        for (int i = 0; i < kernels.Count; i++)
+        {
+            var kernel = kernels[i];
+            if (kernel.KernelBody is null || names.Add(kernel.KernelName))
+                continue;
+
+            int counter = 2;
+            while (!names.Add($"{kernel.KernelName}_{counter}"))
+                ++counter;
+            var name = $"{kernel.KernelName}_{counter}";
+            kernels[i] = kernel with
+            {
+                KernelName = name,
+                LiftedKernel = kernel.LiftedKernel?.WithIdentifier(
+                    SyntaxFactory.Identifier(name)),
+            };
+        }
+        return kernels;
     }
 
     /// <summary>
@@ -180,9 +216,19 @@ sealed class CompilationRewriter(ICompiledKernelProvider? kernelProvider = null)
     /// Phase 2: Given analysis results + CompiledKernel source (from ILGPUC
     /// or stubs), inject generated code and rewrite call sites.
     /// </summary>
+    /// <param name="compilation">The compilation to rewrite.</param>
+    /// <param name="analysis">The analysis results of the compilation.</param>
+    /// <param name="liftInlineKernels">
+    /// When <see langword="true"/>, the bodies of inline lambda kernels are
+    /// lifted into static local functions next to their launch sites, so the
+    /// emitted assembly contains a method for each of them that can be
+    /// resolved and compiled. Compiled kernels do not need these methods, so
+    /// the final rewrite leaves them out.
+    /// </param>
     public RewriteResult Rewrite(
         CSharpCompilation compilation,
-        AnalysisResult analysis)
+        AnalysisResult analysis,
+        bool liftInlineKernels = false)
     {
         var generatedSources = new List<string>();
 
@@ -214,7 +260,9 @@ sealed class CompilationRewriter(ICompiledKernelProvider? kernelProvider = null)
         }
 
         // Rewrite call sites in original trees
-        var rewriter = new CallSiteRewriter(analysis.AllKernels);
+        var rewriter = new CallSiteRewriter(
+            analysis.AllKernels,
+            liftInlineKernels: liftInlineKernels);
         foreach (var tree in compilation.SyntaxTrees)
         {
             var newRoot = rewriter.Visit(tree.GetRoot());
@@ -340,10 +388,15 @@ sealed class CompilationRewriter(ICompiledKernelProvider? kernelProvider = null)
 /// Original open-generic kernel descriptors that were expanded into concrete
 /// specializations. Used to generate dispatch stubs and skip registration.
 /// </param>
+/// <param name="Diagnostics">
+/// Errors found at launch sites, such as inline kernels capturing values that
+/// cannot be passed to a kernel. Kernels must not be compiled if any exist.
+/// </param>
 record AnalysisResult(
     List<KernelDescriptor> AllKernels,
     List<KernelDescriptor> UniqueKernels,
-    List<KernelDescriptor> DispatchKernels);
+    List<KernelDescriptor> DispatchKernels,
+    List<KernelDiagnostic> Diagnostics);
 
 /// <summary>
 /// Holds the results of the rewrite phase.

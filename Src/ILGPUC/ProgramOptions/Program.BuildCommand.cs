@@ -220,7 +220,10 @@ sealed partial class Program
         /// </summary>
         /// <param name="parseResult">The command-line parse result.</param>
         /// <param name="ct">Cancellation token.</param>
-        async Task Execute(ParseResult parseResult, CancellationToken ct)
+        /// <returns>
+        /// The process exit code: non-zero if a launch site has errors.
+        /// </returns>
+        async Task<int> Execute(ParseResult parseResult, CancellationToken ct)
         {
             var compileItems = parseResult.GetValue(_compileItemsOption) ?? [];
             var references = parseResult.GetValue(_referencesOption) ?? [];
@@ -231,7 +234,7 @@ sealed partial class Program
             {
                 await Console.Error.WriteLineAsync(
                     "Error: --compile-items requires at least one source file.");
-                return;
+                return 0;
             }
 
             // Parse source files
@@ -261,7 +264,7 @@ sealed partial class Program
             {
                 await Console.Error.WriteLineAsync(
                     "Error: No valid source files found.");
-                return;
+                return 0;
             }
 
             // Collect references
@@ -329,6 +332,15 @@ sealed partial class Program
             var compiler = new KernelCompiler(properties);
             var analysis = CompilationRewriter.Analyze(compilation);
 
+            // Report invalid launch sites in the canonical error format that
+            // MSBuild surfaces as build errors, and fail without compiling
+            if (analysis.Diagnostics.Count > 0)
+            {
+                foreach (var diagnostic in analysis.Diagnostics)
+                    await Console.Error.WriteLineAsync(diagnostic.ToString());
+                return 1;
+            }
+
             if (analysis.AllKernels.Count == 0)
             {
                 // No launch sites — write empty manifest
@@ -338,7 +350,7 @@ sealed partial class Program
                     cancellationToken: ct);
                 await Console.Out.WriteLineAsync(
                     "ILGPU build: No kernel launch sites found.");
-                return;
+                return 0;
             }
 
             Console.WriteLine(
@@ -432,6 +444,8 @@ sealed partial class Program
             Console.WriteLine(
                 $"ILGPU build: {rewrittenCount} file(s) rewritten, " +
                 $"output -> {outputDir}");
+
+            return 0;
         }
 
         /// <summary>

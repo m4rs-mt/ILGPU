@@ -10,6 +10,7 @@
 // ---------------------------------------------------------------------------------------
 
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System.Collections.Immutable;
 using ILGPUC.Backends;
 using System.Linq;
@@ -41,6 +42,12 @@ namespace ILGPUC.Roslyn.Analysis;
 /// The concrete Roslyn type symbols substituted for the kernel's type parameters.
 /// Null for non-specialized kernels.
 /// </param>
+/// <param name="LiftedKernel">
+/// For inline lambdas, the static local function the lambda body is lifted
+/// into, which is declared next to the launch site so the kernel can be
+/// resolved and compiled like a named method. Null for named kernels and for
+/// inline lambdas that were rejected with a diagnostic.
+/// </param>
 record KernelDescriptor(
     string KernelName,
     IMethodSymbol? KernelMethod,
@@ -49,7 +56,8 @@ record KernelDescriptor(
     LaunchVariant Variant,
     KernelLaunchInfo LaunchInfo,
     string? GenericOriginName = null,
-    ImmutableArray<ITypeSymbol>? ConcreteTypeArgs = null)
+    ImmutableArray<ITypeSymbol>? ConcreteTypeArgs = null,
+    LocalFunctionStatementSyntax? LiftedKernel = null)
 {
     /// <summary>
     /// Returns how the kernel is launched, which the generated device code,
@@ -61,9 +69,11 @@ record KernelDescriptor(
     {
         if (Variant == LaunchVariant.Grouped)
         {
+            // Lifted inline lambdas always take the KernelIndex of the lambda
             var firstParam = KernelMethod?.Parameters.FirstOrDefault();
             return EntryPointLaunch.Grouped(
-                hasKernelIndex: firstParam?.Type.Name is "KernelIndex");
+                hasKernelIndex: LiftedKernel is not null
+                    || firstParam?.Type.Name is "KernelIndex");
         }
 
         return EntryPointLaunch.Implicit(Variant switch

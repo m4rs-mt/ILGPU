@@ -417,6 +417,102 @@ public sealed class MsBuildIntegrationTests
     }
 
     // -----------------------------------------------------------------------
+    // Test 9: InlineLambdaKernels — kernels written inline as lambdas at the
+    // launch site are compiled into real kernels. The lambdas capture views,
+    // buffers, scalars, structs and parameters, and cover 1D, 2D and grouped
+    // launches from static and instance methods across two source files.
+    // -----------------------------------------------------------------------
+
+    [SkippableTheory]
+    [InlineData(BackendType.CPU)]
+    [InlineData(BackendType.Metal)]
+    public async Task Build_InlineLambdaKernels_CompilesAndRuns(BackendType backend)
+    {
+        await RequireBackendAsync(backend);
+
+        using var project = new IntegrationProjectFixture(
+            "InlineLambdaKernels", backend, _output);
+        try
+        {
+            var build = await project.BuildAsync();
+            Assert.True(build.Succeeded,
+                $"dotnet build failed (exit {build.ExitCode}). " +
+                $"Stdout: {build.FullStdOut}\nStderr: {build.StdErr}");
+
+            // Every inline kernel must be compiled, none may fall back to a
+            // launcher stub that throws at runtime.
+            foreach (var file in Directory.GetFiles(
+                project.GeneratedDir, "*_CompiledKernel.cs"))
+            {
+                Assert.DoesNotContain(
+                    "No Kernel", File.ReadAllText(file), StringComparison.Ordinal);
+            }
+
+            var run = await project.RunAsync();
+            Assert.False(run.TimedOut, "Binary timed out");
+            Assert.True(run.ExitCode == 0,
+                $"Binary failed (exit {run.ExitCode}). Stderr: {run.StdErr}");
+            OutputVerifier.Verify(
+                run.StdOutLines,
+                expected:
+                [
+                    "A: done",
+                    "B: 0 3 6 9",
+                    "C: 10 11 12 13",
+                    "D: 0 1 4 9",
+                    "E: 5 6 7 8",
+                    "F: 1 3 5 7",
+                    "G: 10 110 210 310",
+                    "H: 0 7 14 21",
+                    "I: 0 1 10 11",
+                    "J: 10 12 14 16",
+                    "K: -1 2 5 8",
+                ]);
+        }
+        catch
+        {
+            project.MarkFailed();
+            throw;
+        }
+    }
+
+    // -----------------------------------------------------------------------
+    // Test 10: InlineLambdaCaptureError — an inline lambda kernel that
+    // captures 'this' fails the build with an ILGPUC diagnostic at the
+    // offending source location instead of producing a binary.
+    // -----------------------------------------------------------------------
+
+    [SkippableFact]
+    public async Task Build_InlineLambdaCaptureError_FailsWithDiagnostic()
+    {
+        await RequireBackendAsync(BackendType.CPU);
+
+        using var project = new IntegrationProjectFixture(
+            "InlineLambdaCaptureError", BackendType.CPU, _output);
+        try
+        {
+            var build = await project.BuildAsync();
+
+            Assert.False(build.Succeeded,
+                "Expected dotnet build to FAIL for the inline kernel capturing " +
+                "'this', but it succeeded.");
+            Assert.NotEqual(0, build.ExitCode);
+
+            var combined = build.FullStdOut + "\n" + build.StdErr;
+            Assert.True(
+                combined.Contains(
+                    "Program.cs(18,70): error ILGPU1101", StringComparison.Ordinal),
+                $"Expected an ILGPU1101 error at Program.cs(18,70), " +
+                $"got:\n{combined}");
+        }
+        catch
+        {
+            project.MarkFailed();
+            throw;
+        }
+    }
+
+    // -----------------------------------------------------------------------
     // Helpers
     // -----------------------------------------------------------------------
 

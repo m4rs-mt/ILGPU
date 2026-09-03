@@ -70,10 +70,19 @@ sealed class MainKernelProvider : ICompiledKernelProvider
         IRDumpSettings dump = default,
         CancellationToken ct = default)
     {
-        // Phase 1: Rewrite with stubs so the compilation is valid
+        if (analysis.Diagnostics.Count > 0)
+        {
+            throw new InvalidOperationException(
+                "Kernel launch sites have errors:\n" +
+                string.Join("\n", analysis.Diagnostics));
+        }
+
+        // Phase 1: Rewrite with stubs so the compilation is valid, lifting
+        // inline lambda kernels into methods that can be resolved below
         var stubProvider = new StubCompiledKernelProvider();
         var rewriter = new CompilationRewriter(stubProvider);
-        var rewriteResult = rewriter.Rewrite(compilation, analysis);
+        var rewriteResult = rewriter.Rewrite(
+            compilation, analysis, liftInlineKernels: true);
 
         // Emit to in-memory assembly
         var emitResult = CompilationEmitter.EmitToMemory(
@@ -98,16 +107,8 @@ sealed class MainKernelProvider : ICompiledKernelProvider
 
         foreach (var kernel in analysis.UniqueKernels)
         {
-            if (kernel.KernelMethod is null)
-            {
-                // Inline kernels can't be resolved via reflection — use stubs
-                compiledSources[kernel.KernelName] =
-                    stubProvider.GetCompiledKernelSource(kernel);
-                continue;
-            }
-
             // Resolve MethodInfo from the temp assembly
-            var method = ResolveMethod(tempAssembly, kernel.KernelMethod);
+            var method = ResolveKernelMethod(tempAssembly, kernel);
             if (method is null)
             {
                 await Console.Error.WriteLineAsync(
@@ -175,7 +176,7 @@ sealed class MainKernelProvider : ICompiledKernelProvider
     /// Returns the pre-compiled C# source for <paramref name="kernel"/>.
     /// </summary>
     /// <remarks>
-    /// If the kernel was not compiled (e.g., an inline lambda that could not be
+    /// If the kernel was not compiled (e.g., a method that could not be
     /// resolved via reflection), falls back to a generated stub so the rewritten
     /// code still compiles.
     /// </remarks>
@@ -221,6 +222,57 @@ sealed class MainKernelProvider : ICompiledKernelProvider
     }
 
     /// <summary>
+    /// Resolves the method to compile for <paramref name="kernel"/> from an
+    /// assembly emitted from a compilation rewritten with lifted inline
+    /// kernels: the named kernel method, or the static local function an
+    /// inline lambda was lifted into.
+    /// </summary>
+    internal static MethodInfo? ResolveKernelMethod(
+        Assembly assembly,
+        KernelDescriptor kernel)
+    {
+        if (kernel.KernelMethod is { } symbol)
+            return ResolveMethod(assembly, symbol);
+        if (kernel.LiftedKernel is null)
+            return null;
+
+        // Lifted kernel names are unique within the compilation
+        return FindLocalFunction(assembly.GetTypes(), owner: null, kernel.KernelName);
+    }
+
+    /// <summary>
+    /// Finds a compiled local function in the given types. The C# compiler
+    /// emits local functions as methods named
+    /// <c>&lt;Owner&gt;g__Name|i_j</c>, where <c>Owner</c> is the member
+    /// declaring them.
+    /// </summary>
+    /// <param name="types">The types to search.</param>
+    /// <param name="owner">
+    /// The name of the declaring member, or <see langword="null"/> to accept
+    /// any member.
+    /// </param>
+    /// <param name="name">The name of the local function.</param>
+    /// <returns>The method if exactly one matches; otherwise null.</returns>
+    private static MethodInfo? FindLocalFunction(
+        IEnumerable<Type> types,
+        string? owner,
+        string name)
+    {
+        var marker = $">g__{name}|";
+        var prefix = owner is null ? "<" : $"<{owner}>";
+        var matches = types
+            .SelectMany(t => t.GetMethods(
+                BindingFlags.Public | BindingFlags.NonPublic |
+                BindingFlags.Static | BindingFlags.Instance |
+                BindingFlags.DeclaredOnly))
+            .Where(m => m.Name.StartsWith(prefix, StringComparison.Ordinal)
+                && m.Name.Contains(marker, StringComparison.Ordinal))
+            .Take(2)
+            .ToArray();
+        return matches.Length == 1 ? matches[0] : null;
+    }
+
+    /// <summary>
     /// Resolves a MethodInfo from a loaded assembly using Roslyn symbol info.
     /// For generic methods (e.g. <c>Kernel&lt;LambdaClosure, long&gt;</c>),
     /// the open generic definition is specialized with concrete type arguments.
@@ -234,10 +286,31 @@ sealed class MainKernelProvider : ICompiledKernelProvider
         if (type == null)
             return null;
 
-        var method = type.GetMethod(
-            symbol.Name,
-            BindingFlags.Public | BindingFlags.NonPublic |
-            BindingFlags.Static | BindingFlags.Instance);
+        MethodInfo? method;
+        if (symbol.MethodKind == MethodKind.LocalFunction)
+        {
+            // Local functions are emitted under mangled names on the type
+            // (or a closure type nested in it) containing their owner
+            var owner = symbol.ContainingSymbol;
+            while (owner is IMethodSymbol
+                {
+                    MethodKind: MethodKind.LocalFunction
+                        or MethodKind.AnonymousFunction,
+                })
+            {
+                owner = owner.ContainingSymbol;
+            }
+            var types = assembly.GetTypes()
+                .Where(t => t == type || IsNestedIn(t, type));
+            method = FindLocalFunction(types, owner.Name, symbol.Name);
+        }
+        else
+        {
+            method = type.GetMethod(
+                symbol.Name,
+                BindingFlags.Public | BindingFlags.NonPublic |
+                BindingFlags.Static | BindingFlags.Instance);
+        }
 
         if (method is null)
             return null;
@@ -257,6 +330,21 @@ sealed class MainKernelProvider : ICompiledKernelProvider
         }
 
         return method;
+    }
+
+    /// <summary>
+    /// Returns <see langword="true"/> if <paramref name="type"/> is nested,
+    /// directly or transitively, in <paramref name="outer"/>.
+    /// </summary>
+    private static bool IsNestedIn(Type type, Type outer)
+    {
+        for (var current = type.DeclaringType; current != null;
+            current = current.DeclaringType)
+        {
+            if (current == outer)
+                return true;
+        }
+        return false;
     }
 
     /// <summary>
