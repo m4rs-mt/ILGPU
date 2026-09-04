@@ -476,6 +476,7 @@ public sealed class MsBuildIntegrationTests
                     "I: 0 1 10 11",
                     "J: 10 12 14 16",
                     "K: -1 2 5 8",
+                    "L: 0 1 8 27",
                 ]);
         }
         catch

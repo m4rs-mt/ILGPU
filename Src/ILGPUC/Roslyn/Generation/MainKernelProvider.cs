@@ -109,6 +109,14 @@ sealed class MainKernelProvider : ICompiledKernelProvider
         {
             // Resolve MethodInfo from the temp assembly
             var method = ResolveKernelMethod(tempAssembly, kernel);
+            if (method is null && kernel.LiftedKernel is not null)
+            {
+                // Lifted inline kernels are emitted by the rewrite above, so a
+                // stub would only hide that the kernel was not compiled
+                throw new InvalidOperationException(
+                    $"Could not resolve the lifted inline kernel " +
+                    $"'{kernel.KernelName}'.");
+            }
             if (method is null)
             {
                 await Console.Error.WriteLineAsync(
@@ -236,8 +244,15 @@ sealed class MainKernelProvider : ICompiledKernelProvider
         if (kernel.LiftedKernel is null)
             return null;
 
-        // Lifted kernel names are unique within the compilation
-        return FindLocalFunction(assembly.GetTypes(), owner: null, kernel.KernelName);
+        // Lifted kernel names are unique within the compilation. The lifted
+        // kernel must not capture anything, which would add a closure
+        // parameter to the index and the captured values.
+        var method = FindLocalFunction(
+            assembly.GetTypes(), owner: null, kernel.KernelName);
+        return method is { IsStatic: true }
+            && method.GetParameters().Length == kernel.Parameters.Length + 1
+            ? method
+            : null;
     }
 
     /// <summary>

@@ -43,8 +43,8 @@ record KernelDiagnostic(string Id, string Message, Location Location)
     public const string GenericContextId = "ILGPU1104";
 
     /// <summary>
-    /// A local function used as a kernel captures variables of its enclosing
-    /// method.
+    /// A local function used as a kernel, or called by an inline kernel,
+    /// captures variables of its enclosing method.
     /// </summary>
     public const string LocalFunctionCapturesId = "ILGPU1105";
 

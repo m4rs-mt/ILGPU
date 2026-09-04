@@ -1,8 +1,8 @@
 // InlineLambdaKernels: kernels written inline as lambdas at the launch site.
 // The lambdas capture views, buffers, scalars, structs and method parameters,
-// call helpers of their enclosing type, declare nested local functions, and
-// are launched with 1D, 2D and grouped configurations. Each line of the
-// output is produced by a different launch.
+// call helpers of their enclosing type and local functions, declare nested
+// local functions, and are launched with 1D, 2D and grouped configurations.
+// Each line of the output is produced by a different launch.
 
 using System;
 using ILGPU;
@@ -115,5 +115,11 @@ static class Program
         new Worker(stream).Run(view, 3);
         stream.Synchronize();
         Print("K", buffer.GetAsArray1D());
+
+        // A lambda calling a local function that is not static.
+        int Cube(int x) => x * x * x;
+        stream.Launch(Length, index => view[index] = Cube(index));
+        stream.Synchronize();
+        Print("L", buffer.GetAsArray1D());
     }
 }

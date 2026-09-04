@@ -15,7 +15,9 @@ using ILGPUC.Tests.Framework;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Text;
+using System.IO;
 using System.Linq;
+using System.Reflection;
 using Xunit;
 
 namespace ILGPUC.Tests.NonKernelTests;
@@ -31,6 +33,15 @@ public sealed class InlineLambdaDiagnosticTests
     /// Helper: analyzes a program source and returns the analysis result.
     /// </summary>
     private static AnalysisResult AnalyzeSource(string mainBody) =>
+        AnalyzeSource(mainBody, out _);
+
+    /// <summary>
+    /// Helper: analyzes a program source and returns the analysis result and
+    /// the analyzed compilation.
+    /// </summary>
+    private static AnalysisResult AnalyzeSource(
+        string mainBody,
+        out CSharpCompilation compilation) =>
         AnalyzeProgram($$"""
             static class Program
             {
@@ -49,13 +60,23 @@ public sealed class InlineLambdaDiagnosticTests
                     stream.Synchronize();
                 }
             }
-            """);
+            """,
+            out compilation);
 
     /// <summary>
     /// Helper: analyzes the given type declarations, preceded by the usual
     /// ILGPU using directives.
     /// </summary>
-    private static AnalysisResult AnalyzeProgram(string declarations)
+    private static AnalysisResult AnalyzeProgram(string declarations) =>
+        AnalyzeProgram(declarations, out _);
+
+    /// <summary>
+    /// Helper: analyzes the given type declarations and returns the analysis
+    /// result and the analyzed compilation.
+    /// </summary>
+    private static AnalysisResult AnalyzeProgram(
+        string declarations,
+        out CSharpCompilation compilation)
     {
         var source = $"""
             using System;
@@ -65,7 +86,7 @@ public sealed class InlineLambdaDiagnosticTests
             {declarations}
             """;
 
-        var compilation = RoslynCompiler.CreateCompilation(
+        compilation = RoslynCompiler.CreateCompilation(
             [source], "DiagnosticTest");
         return CompilationRewriter.Analyze(compilation);
     }
@@ -317,6 +338,87 @@ public sealed class InlineLambdaDiagnosticTests
             """);
 
         Assert.Empty(analysis.Diagnostics);
+    }
+
+    /// <summary>
+    /// An inline kernel calling a local function that captures a variable of
+    /// the enclosing method is rejected at the call.
+    /// </summary>
+    [Fact]
+    public void InlineKernelCallingCapturingLocalFunction_ReportsCapture()
+    {
+        var analysis = AnalyzeSource("""
+            int factor = 3;
+            int Scale(int x) => x * factor;
+            int Twice(int x) => Scale(x) * 2;
+            stream.Launch((Index1D)4, index => view[index] = Twice(index));
+            """);
+
+        var diagnostic = AssertSingleDiagnostic(
+            analysis, KernelDiagnostic.LocalFunctionCapturesId, "Twice(index)");
+        Assert.Contains("'Twice'", diagnostic.Message);
+        Assert.Contains("'factor'", diagnostic.Message);
+    }
+
+    /// <summary>
+    /// A local function used as a kernel that captures a variable through a
+    /// local function it calls is rejected at that call.
+    /// </summary>
+    [Fact]
+    public void LocalFunctionKernelCapturingThroughCall_ReportsCapture()
+    {
+        var analysis = AnalyzeSource("""
+            int factor = 3;
+            int Scale(int x) => x * factor;
+            void LocalKernel(Index1D index, ArrayView1D<int, Stride1D.Dense> data) =>
+                data[index] = Scale(index);
+            stream.Launch((Index1D)4, index => LocalKernel(index, view));
+            """);
+
+        var diagnostic = AssertSingleDiagnostic(
+            analysis, KernelDiagnostic.LocalFunctionCapturesId, "Scale(index)");
+        Assert.Contains("through the local function 'Scale'", diagnostic.Message);
+    }
+
+    /// <summary>
+    /// Inline kernels calling non-static local functions that capture nothing
+    /// and capturing variables named like C# keywords or like the leading
+    /// launcher parameters are lifted into resolvable kernels.
+    /// </summary>
+    [Fact]
+    public void LiftedKernels_CompileAndResolve()
+    {
+        var analysis = AnalyzeSource("""
+            int Square(int x) => x * x;
+            stream.Launch((Index1D)4, index => view[index] = Square(index));
+
+            int @class = 2;
+            int config = 3;
+            int userExtent = 4;
+            stream.Launch((Index1D)4, @event =>
+                view[@event] = @class + config + userExtent);
+            """,
+            out var compilation);
+        Assert.Empty(analysis.Diagnostics);
+        Assert.Equal(2, analysis.UniqueKernels.Count);
+
+        var rewritten = new CompilationRewriter().Rewrite(
+            compilation, analysis, liftInlineKernels: true);
+        using var stream = new MemoryStream();
+        var emitResult = rewritten.Compilation.Emit(stream);
+        Assert.True(
+            emitResult.Success,
+            string.Join("\n", emitResult.Diagnostics));
+
+        var assembly = Assembly.Load(stream.ToArray());
+        foreach (var kernel in analysis.UniqueKernels)
+        {
+            var method = MainKernelProvider.ResolveKernelMethod(assembly, kernel);
+            Assert.NotNull(method);
+            Assert.Equal(
+                kernel.Parameters.Length + 1,
+                method!.GetParameters().Length);
+        }
     }
 
     /// <summary>

@@ -195,32 +195,26 @@ sealed class KernelExtractor(CSharpCompilation compilation)
             return;
 
         var seen = new HashSet<ISymbol>(SymbolEqualityComparer.Default);
-        foreach (var op in operation.Descendants().OrderBy(o => o.Syntax.SpanStart))
+        foreach (var (symbol, reference) in EnumerateOuterReferences(operation, syntax))
         {
-            ISymbol? captured = op switch
-            {
-                ILocalReferenceOperation { Local.IsConst: false } local => local.Local,
-                IParameterReferenceOperation param => param.Parameter,
-                IInstanceReferenceOperation
-                {
-                    ReferenceKind: InstanceReferenceKind.ContainingTypeInstance,
-                } => method.ContainingType,
-                _ => null,
-            };
-            if (captured is null
-                || captured is not ITypeSymbol && IsDeclaredInside(captured, syntax)
-                || !seen.Add(captured))
-            {
+            // Captures of called local functions are captured by the kernel
+            var callee = symbol as IMethodSymbol;
+            var captured = callee is null
+                ? symbol
+                : FindLocalFunctionCapture(model.Compilation, callee);
+            if (captured is null || !seen.Add(captured))
                 continue;
-            }
 
-            var name = captured is ITypeSymbol ? "this" : captured.Name;
+            var through = callee is null
+                ? ""
+                : $" through the local function '{callee.Name}'";
             diagnostics.Add(new KernelDiagnostic(
                 KernelDiagnostic.LocalFunctionCapturesId,
                 $"Local function '{method.Name}' cannot be used as a kernel " +
-                $"because it captures '{name}' from its enclosing scope. Make " +
-                $"it static and pass the value as a parameter instead.",
-                op.Syntax.GetLocation()));
+                $"because it captures '{GetCaptureName(captured)}' from its " +
+                $"enclosing scope{through}. Make it static and pass the value " +
+                $"as a parameter instead.",
+                reference.GetLocation()));
         }
     }
 
@@ -357,11 +351,18 @@ sealed class KernelExtractor(CSharpCompilation compilation)
         var bufferViewAccesses = new Dictionary<SyntaxNode, string>();
 
         bool isValid = lambdaSymbol is { Parameters.Length: 1 } && operation is not null;
+        bool callsLocalFunctions = false;
         if (isValid)
         {
             isValid &= ValidateEnclosingContext(lambda, lambdaSymbol!, diagnostics);
             isValid &= ValidateInstanceUses(
                 lambda, lambdaSymbol!, operation!, diagnostics);
+            isValid &= ValidateLocalFunctionUses(
+                model.Compilation,
+                lambda,
+                operation!,
+                diagnostics,
+                out callsLocalFunctions);
         }
 
         var dataFlow = model.AnalyzeDataFlow(lambda);
@@ -390,14 +391,14 @@ sealed class KernelExtractor(CSharpCompilation compilation)
             // If the captured variable is a MemoryBuffer, lower it to its
             // .View (ArrayView) — buffers are reference types that cannot be
             // kernel parameters, but their views can.
-            var name = EscapeIdentifier(captured.Name);
+            var name = captured.Name;
             ExpressionSyntax sourceExpr;
             ITypeSymbol effectiveType;
             if (TryGetBufferViewType(type, out var viewType))
             {
                 sourceExpr = SyntaxFactory.MemberAccessExpression(
                     SyntaxKind.SimpleMemberAccessExpression,
-                    SyntaxFactory.IdentifierName(name),
+                    SyntaxFactory.IdentifierName(CreateIdentifier(name)),
                     SyntaxFactory.IdentifierName("View"));
                 effectiveType = viewType!;
                 foreach (var access in FindViewAccesses(operation!, captured))
@@ -405,7 +406,7 @@ sealed class KernelExtractor(CSharpCompilation compilation)
             }
             else
             {
-                sourceExpr = SyntaxFactory.IdentifierName(name);
+                sourceExpr = SyntaxFactory.IdentifierName(CreateIdentifier(name));
                 effectiveType = type;
             }
 
@@ -419,7 +420,12 @@ sealed class KernelExtractor(CSharpCompilation compilation)
 
         var liftedKernel = isValid
             ? LiftInlineKernel(
-                lambda, lambdaSymbol!, kernelName, parameters, bufferViewAccesses)
+                lambda,
+                lambdaSymbol!,
+                kernelName,
+                parameters,
+                bufferViewAccesses,
+                isStatic: !callsLocalFunctions)
             : null;
 
         return new KernelDescriptor(
@@ -461,21 +467,134 @@ sealed class KernelExtractor(CSharpCompilation compilation)
             return captures;
 
         var seen = new HashSet<ISymbol>(SymbolEqualityComparer.Default);
-        foreach (var op in operation.Descendants()
-            .OrderBy(o => o.Syntax.SpanStart))
+        foreach (var (symbol, reference) in EnumerateOuterReferences(operation, lambda))
+        {
+            if (symbol is ILocalSymbol or IParameterSymbol && seen.Add(symbol))
+                captures.Add((symbol, reference));
+        }
+        return captures;
+    }
+
+    /// <summary>
+    /// Returns the references of <paramref name="operation"/> to symbols declared
+    /// outside of <paramref name="scope"/> in source order: non-constant locals
+    /// and parameters, the enclosing instance (as its type), and non-static
+    /// local functions, which may capture variables themselves.
+    /// </summary>
+    private static IEnumerable<(ISymbol Symbol, SyntaxNode Reference)>
+        EnumerateOuterReferences(IOperation operation, SyntaxNode scope)
+    {
+        foreach (var op in operation.Descendants().OrderBy(o => o.Syntax.SpanStart))
         {
             ISymbol? symbol = op switch
             {
                 ILocalReferenceOperation { Local.IsConst: false } local => local.Local,
                 IParameterReferenceOperation param => param.Parameter,
+                IInstanceReferenceOperation
+                {
+                    ReferenceKind: InstanceReferenceKind.ContainingTypeInstance,
+                } instance => instance.Type,
+                IInvocationOperation invocation =>
+                    AsNonStaticLocalFunction(invocation.TargetMethod),
+                IMethodReferenceOperation reference =>
+                    AsNonStaticLocalFunction(reference.Method),
                 _ => null,
             };
-            if (symbol is null || IsDeclaredInside(symbol, lambda))
+            if (symbol is null
+                || symbol is not ITypeSymbol && IsDeclaredInside(symbol, scope))
+            {
                 continue;
-            if (seen.Add(symbol))
-                captures.Add((symbol, op.Syntax));
+            }
+            yield return (symbol, op.Syntax);
         }
-        return captures;
+    }
+
+    /// <summary>
+    /// Returns the definition of <paramref name="method"/> if it is a local
+    /// function that is not declared <see langword="static"/>.
+    /// </summary>
+    private static IMethodSymbol? AsNonStaticLocalFunction(IMethodSymbol method) =>
+        method.OriginalDefinition is
+        {
+            MethodKind: MethodKind.LocalFunction,
+            IsStatic: false,
+        } definition
+            ? definition
+            : null;
+
+    /// <summary>
+    /// Returns the first variable of an enclosing scope, or the type of the
+    /// enclosing instance, that the given non-static local function uses,
+    /// directly or through the local functions it calls. Returns
+    /// <see langword="null"/> if the local function captures nothing.
+    /// </summary>
+    private static ISymbol? FindLocalFunctionCapture(
+        Compilation compilation,
+        IMethodSymbol function,
+        HashSet<ISymbol>? visited = null)
+    {
+        visited ??= new HashSet<ISymbol>(SymbolEqualityComparer.Default);
+        if (!visited.Add(function)
+            || function.DeclaringSyntaxReferences.FirstOrDefault()?.GetSyntax()
+                is not LocalFunctionStatementSyntax syntax
+            || compilation.GetSemanticModel(syntax.SyntaxTree).GetOperation(syntax)
+                is not { } operation)
+        {
+            return null;
+        }
+
+        foreach (var (symbol, _) in EnumerateOuterReferences(operation, syntax))
+        {
+            var captured = symbol is IMethodSymbol callee
+                ? FindLocalFunctionCapture(compilation, callee, visited)
+                : symbol;
+            if (captured is not null)
+                return captured;
+        }
+        return null;
+    }
+
+    /// <summary>
+    /// Returns the name of a captured symbol for diagnostics, which is
+    /// <c>this</c> for the enclosing instance.
+    /// </summary>
+    private static string GetCaptureName(ISymbol captured) =>
+        captured is ITypeSymbol ? "this" : captured.Name;
+
+    /// <summary>
+    /// Reports the non-static local functions of the enclosing scopes called by
+    /// an inline kernel that capture variables: the lifted kernel cannot pass
+    /// them on. Non-capturing ones can be called, but only from a lifted
+    /// kernel that is not declared static itself.
+    /// </summary>
+    private static bool ValidateLocalFunctionUses(
+        Compilation compilation,
+        LambdaExpressionSyntax lambda,
+        IOperation operation,
+        List<KernelDiagnostic> diagnostics,
+        out bool callsLocalFunctions)
+    {
+        callsLocalFunctions = false;
+        bool isValid = true;
+        var seen = new HashSet<ISymbol>(SymbolEqualityComparer.Default);
+        foreach (var (symbol, reference) in EnumerateOuterReferences(operation, lambda))
+        {
+            if (symbol is not IMethodSymbol function || !seen.Add(function))
+                continue;
+
+            callsLocalFunctions = true;
+            if (FindLocalFunctionCapture(compilation, function) is not { } captured)
+                continue;
+
+            diagnostics.Add(new KernelDiagnostic(
+                KernelDiagnostic.LocalFunctionCapturesId,
+                $"Inline kernel calls the local function '{function.Name}', which " +
+                $"captures '{GetCaptureName(captured)}' from its enclosing scope. " +
+                $"Make it static and pass the value as a parameter instead.",
+                reference.GetLocation()));
+            isValid = false;
+        }
+        return isValid;
     }
 
     /// <summary>
@@ -702,22 +821,25 @@ sealed class KernelExtractor(CSharpCompilation compilation)
             .Select(p => p.Syntax);
 
     /// <summary>
-    /// Lifts the body of an inline kernel into a static local function that
-    /// takes the kernel index followed by all captured values:
+    /// Lifts the body of an inline kernel into a local function that takes the
+    /// kernel index followed by all captured values:
     /// <code>
     /// static void InlineKernel_Program_L12_C31(
     ///     global::ILGPU.Index1D index, int offset) { ... }
     /// </code>
     /// Declared next to the launch site, the body keeps its lexical scope
     /// (usings, helpers and nested types of the enclosing type), while the
-    /// parameters shadow the captured variables they replace.
+    /// parameters shadow the captured variables they replace. The function is
+    /// declared <see langword="static"/> unless it calls (non-capturing) local
+    /// functions of the enclosing scopes that are not static themselves.
     /// </summary>
     private static LocalFunctionStatementSyntax LiftInlineKernel(
         LambdaExpressionSyntax lambda,
         IMethodSymbol lambdaSymbol,
         string kernelName,
         IEnumerable<CapturedParameterInfo> parameters,
-        Dictionary<SyntaxNode, string> bufferViewAccesses)
+        Dictionary<SyntaxNode, string> bufferViewAccesses,
+        bool isStatic)
     {
         var indexParameter = lambdaSymbol.Parameters[0];
         var parameterList = new List<ParameterSyntax>
@@ -731,14 +853,18 @@ sealed class KernelExtractor(CSharpCompilation compilation)
                 SyntaxFactory.PredefinedType(
                     SyntaxFactory.Token(SyntaxKind.VoidKeyword)),
                 SyntaxFactory.Identifier(kernelName))
-            .WithModifiers(SyntaxFactory.TokenList(
-                SyntaxFactory.Token(SyntaxKind.StaticKeyword)))
             .WithParameterList(SyntaxFactory.ParameterList(
                 SyntaxFactory.SeparatedList(parameterList)));
+        if (isStatic)
+        {
+            function = function.WithModifiers(SyntaxFactory.TokenList(
+                SyntaxFactory.Token(SyntaxKind.StaticKeyword)));
+        }
 
         var body = lambda.Body.ReplaceNodes(
             bufferViewAccesses.Keys,
-            (original, _) => SyntaxFactory.IdentifierName(bufferViewAccesses[original])
+            (original, _) => SyntaxFactory.IdentifierName(
+                    CreateIdentifier(bufferViewAccesses[original]))
                 .WithTriviaFrom(original));
         function = body switch
         {
@@ -757,15 +883,18 @@ sealed class KernelExtractor(CSharpCompilation compilation)
     /// binds independently of the using directives of the launch site.
     /// </summary>
     private static ParameterSyntax CreateParameter(string name, ITypeSymbol type) =>
-        SyntaxFactory.Parameter(SyntaxFactory.Identifier(EscapeIdentifier(name)))
+        SyntaxFactory.Parameter(CreateIdentifier(name))
             .WithType(SyntaxFactory.ParseTypeName(
                 type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)));
 
     /// <summary>
-    /// Prefixes C# keywords with <c>@</c> so they can be used as identifiers.
+    /// Creates an identifier token for <paramref name="name"/>, written as a
+    /// verbatim <c>@</c> identifier if the name is a C# keyword.
     /// </summary>
-    private static string EscapeIdentifier(string name) =>
-        SyntaxFacts.GetKeywordKind(name) != SyntaxKind.None ? $"@{name}" : name;
+    private static SyntaxToken CreateIdentifier(string name) =>
+        SyntaxFacts.GetKeywordKind(name) != SyntaxKind.None
+            ? SyntaxFactory.ParseToken($"@{name}")
+            : SyntaxFactory.Identifier(name);
 
     /// <summary>
     /// Returns <see langword="true"/> if the type is a known ILGPU index type.
