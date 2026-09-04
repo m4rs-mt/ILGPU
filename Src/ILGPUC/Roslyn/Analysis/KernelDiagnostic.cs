@@ -49,6 +49,11 @@ record KernelDiagnostic(string Id, string Message, Location Location)
     public const string LocalFunctionCapturesId = "ILGPU1105";
 
     /// <summary>
+    /// A kernel launch is part of an expression instead of a statement.
+    /// </summary>
+    public const string LaunchNotStatementId = "ILGPU1106";
+
+    /// <summary>
     /// Formats this diagnostic in the canonical
     /// <c>file(line,column): error ID: message</c> form that MSBuild and IDEs
     /// pick up from tool output.

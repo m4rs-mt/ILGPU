@@ -381,6 +381,23 @@ public sealed class InlineLambdaDiagnosticTests
     }
 
     /// <summary>
+    /// A launch inside an expression is not rewritten and is rejected.
+    /// </summary>
+    [Fact]
+    public void ExpressionBodiedLaunch_ReportsLaunchNotStatement()
+    {
+        var analysis = AnalyzeSource("""
+            Action launch = () => stream.Launch((Index1D)4, index => view[index] = 1);
+            launch();
+            """);
+
+        AssertSingleDiagnostic(
+            analysis,
+            KernelDiagnostic.LaunchNotStatementId,
+            "stream.Launch((Index1D)4, index => view[index] = 1)");
+    }
+
+    /// <summary>
     /// Inline kernels calling non-static local functions that capture nothing
     /// and capturing variables named like C# keywords or like the leading
     /// launcher parameters are lifted into resolvable kernels.

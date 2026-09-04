@@ -42,6 +42,18 @@ sealed class KernelExtractor(CSharpCompilation compilation)
     {
         var model = compilation.GetSemanticModel(launchInfo.Invocation.SyntaxTree);
 
+        // Launches are replaced statement by statement, a launch nested in an
+        // expression (e.g. an expression-bodied member) would remain unrewritten
+        if (launchInfo.Invocation.Parent is not ExpressionStatementSyntax)
+        {
+            Diagnostics.Add(new KernelDiagnostic(
+                KernelDiagnostic.LaunchNotStatementId,
+                $"Kernel launch '{launchInfo.Invocation.Expression}' must be a " +
+                $"statement of its own to be compiled. Use a block body " +
+                $"instead of an expression body.",
+                launchInfo.Invocation.GetLocation()));
+        }
+
         return launchInfo.KernelArgument switch
         {
             ParenthesizedLambdaExpressionSyntax lambda =>
