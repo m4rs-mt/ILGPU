@@ -131,12 +131,15 @@ sealed class CallSiteRewriter : CSharpSyntaxRewriter
 
         var arguments = new List<ArgumentSyntax>();
 
-        // First arg: the stream expression
-        arguments.Add(SyntaxFactory.Argument(launchInfo.StreamExpression));
+        // First arg: the stream expression. As the first token of the launch
+        // statement it carries the statement's leading trivia (comments,
+        // directives), which must not be repeated inside the argument list.
+        var streamExpr = launchInfo.StreamExpression.WithoutTrivia();
+        arguments.Add(SyntaxFactory.Argument(streamExpr));
 
         // Second arg: kernel config
         var configExpr = BuildConfigExpression(
-            launchInfo.StreamExpression,
+            streamExpr,
             launchInfo.ExtentOrConfig,
             kernel.Variant);
         arguments.Add(SyntaxFactory.Argument(configExpr));

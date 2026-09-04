@@ -439,6 +439,15 @@ public sealed class MsBuildIntegrationTests
                 $"dotnet build failed (exit {build.ExitCode}). " +
                 $"Stdout: {build.FullStdOut}\nStderr: {build.StdErr}");
 
+            // Comments in front of a launch stay in front of the rewritten
+            // launch and are not repeated inside its argument list.
+            var rewrittenProgram = File.ReadAllText(
+                Path.Combine(project.RewrittenDir, "Program.cs"));
+            Assert.Single(
+                rewrittenProgram.Split('\n'),
+                line => line.Contains(
+                    "// A single captured view.", StringComparison.Ordinal));
+
             // Every inline kernel must be compiled, none may fall back to a
             // launcher stub that throws at runtime.
             foreach (var file in Directory.GetFiles(
