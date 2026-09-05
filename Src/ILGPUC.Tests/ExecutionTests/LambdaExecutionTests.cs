@@ -265,4 +265,17 @@ public abstract class LambdaExecutionTests : ExecutionTestBase
             ["Kernels.DelegateParameterReassignedKernel"],
             ["1", "2", "20", "30"]);
     }
+
+    /// <summary>
+    /// A lambda captures a view of global memory, which closures may capture
+    /// unlike views of shared or local memory.
+    /// </summary>
+    [SkippableFact]
+    public async Task ClosureCapturesView_ProducesCorrectOutput()
+    {
+        await VerifyProgramOutputAsync(
+            "TestPrograms/Lambda/ClosureCapturesView.cs",
+            ["Kernels.ClosureCapturesViewKernel"],
+            ["30", "20", "10", "0"]);
+    }
 }

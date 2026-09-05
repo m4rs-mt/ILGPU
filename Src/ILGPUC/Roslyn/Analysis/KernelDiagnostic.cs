@@ -99,6 +99,12 @@ record KernelDiagnostic(string Id, string Message, Location Location)
     public const string AddressTakenDelegateId = "ILGPU1203";
 
     /// <summary>
+    /// A lambda or local function captures a view or a pointer of shared or
+    /// local memory.
+    /// </summary>
+    public const string GroupMemoryCaptureId = "ILGPU1204";
+
+    /// <summary>
     /// Formats this diagnostic in the canonical
     /// <c>file(line,column): error ID: message</c> form that MSBuild and IDEs
     /// pick up from tool output.

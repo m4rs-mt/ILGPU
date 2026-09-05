@@ -533,4 +533,8 @@
     <value>The delegate variable '{0}' in method '{1}' is passed by reference or used through a reference. Kernel code can only use delegate variables directly; pass the delegate by value instead.</value>
     <comment/>
   </data>
+  <data name="KernelDiagnosticGroupMemoryCapture" xml:space="preserve">
+    <value>A lambda or local function in method '{0}' captures '{1}', which points to shared or local memory. Closures can only capture values and views of global memory; pass the view as a parameter of a static local function instead.</value>
+    <comment/>
+  </data>
 </root>

@@ -17,6 +17,7 @@ using ILGPUC.IR.PureValues;
 using ILGPUC.Util;
 using System;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 
 namespace ILGPUC.Frontend;
 
@@ -189,6 +190,23 @@ partial class CodeGenerator
     /// <param name="field">The field.</param>
     private void MakeStoreField(FieldInfo field)
     {
+        // Values captured by closures are verified once all methods have been
+        // generated (see ClosureCaptures)
+        var declaringType = field.DeclaringType;
+        if (ClosureCaptures is not null &&
+            declaringType is not null &&
+            !field.FieldType.IsClass &&
+            declaringType.IsDefined(typeof(CompilerGeneratedAttribute), false))
+        {
+            ClosureCaptures.Add(
+                Block.GetValue(new VariableRef(
+                    Block.StackCounter - 1,
+                    VariableRefType.Stack)),
+                Method.Name,
+                field.Name,
+                Location);
+        }
+
         var fieldType = ModuleBuilder.CreateType(field.FieldType);
         var value = Block.Pop(
             fieldType,

@@ -157,6 +157,47 @@ public sealed class KernelDiagnosticTests
             data[index] = f(data[index]);
         }
 
+        // k26_capshared: crashed with an access violation on CPU and failed to
+        // load the kernel on Metal
+        public static void ClosureCapturesSharedMemoryKernel(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data)
+        {
+            var shared = Group.GetSharedMemory<int>(4); // ClosureCapturesSharedMemory
+            shared[Group.Index] = Group.Index * 3;
+            Group.Barrier();
+            Func<int, int> read = j => shared[j];
+            data[index] = read(3 - Group.Index);
+        }
+
+        // Captured parameters are copied into the closure on entry
+        private static int ReadThroughClosure(ArrayView<int> view, int j)
+        { // ClosureCapturesSharedMemoryParameter
+            Func<int, int> read = k => view[k];
+            return read(j);
+        }
+
+        public static void ClosureCapturesSharedMemoryParameterKernel(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data)
+        {
+            var shared = Group.GetSharedMemory<int>(4);
+            shared[Group.Index] = Group.Index * 3;
+            Group.Barrier();
+            data[index] = ReadThroughClosure(shared, 3 - Group.Index);
+        }
+
+        public static void LocalFunctionCapturesLocalMemoryKernel(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data)
+        {
+            var local = Group.GetLocalMemoryPerThread<int>(4); // LocalMemoryCapture
+            for (int k = 0; k < 4; ++k)
+                local[k] = k * 3;
+            int Read(int j) => local[j];
+            data[index] = Read(index.X);
+        }
+
         public static void DelegateMemberKernel(
             Index1D index,
             ArrayView1D<int, Stride1D.Dense> data)
@@ -523,6 +564,58 @@ public sealed class KernelDiagnosticTests
             """,
             "ILGPU1201",
             "('==' in method 'Kern')");
+
+    #endregion
+
+    #region Group and Local Memory Captures (ILGPU1204)
+
+    [Fact]
+    public void ClosureCapturesSharedMemory_Reports1204() =>
+        AssertDiagnostic(
+            Compile(nameof(Kernels.ClosureCapturesSharedMemoryKernel)),
+            "ILGPU1204",
+            "A lambda or local function in method " +
+            "'ClosureCapturesSharedMemoryKernel' captures 'shared', which points " +
+            "to shared or local memory.",
+            "ClosureCapturesSharedMemory");
+
+    [Fact]
+    public void ClosureCapturesSharedMemoryParameter_Reports1204() =>
+        AssertDiagnostic(
+            Compile(nameof(Kernels.ClosureCapturesSharedMemoryParameterKernel)),
+            "ILGPU1204",
+            "in method 'ReadThroughClosure' captures 'view'",
+            "ClosureCapturesSharedMemoryParameter");
+
+    [Fact]
+    public void LocalFunctionCapturesLocalMemory_Reports1204() =>
+        AssertDiagnostic(
+            Compile(nameof(Kernels.LocalFunctionCapturesLocalMemoryKernel)),
+            "ILGPU1204",
+            "in method 'LocalFunctionCapturesLocalMemoryKernel' captures 'local'",
+            "LocalMemoryCapture");
+
+    // k26_capshared: crashed with an access violation on CPU and failed to load
+    // the kernel on Metal
+    [Fact]
+    public Task ClosureCapturesSharedMemory_FailsBuild() =>
+        AssertBuildErrorAsync(
+            """
+            static class K
+            {
+                public static void Kern(Index1D i, ArrayView1D<int, Stride1D.Dense> d)
+                {
+                    var sh = Group.GetSharedMemory<int>(4); // error
+                    sh[Group.Index] = Group.Index * 3;
+                    Group.Barrier();
+                    Func<int, int> rd = j => sh[j];
+                    d[i] = rd(3 - Group.Index);
+                }
+            }
+            """,
+            "ILGPU1204",
+            "A lambda or local function in method 'Kern' captures 'sh', which " +
+            "points to shared or local memory.");
 
     #endregion
 

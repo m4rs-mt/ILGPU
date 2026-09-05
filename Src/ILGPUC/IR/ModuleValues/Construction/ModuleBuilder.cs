@@ -238,6 +238,15 @@ partial class ModuleBuilder : IGenerationObject
     public HandleType HandleType { get; }
 
     /// <summary>
+    /// Returns all methods created so far.
+    /// </summary>
+    public IEnumerable<Method> GetMethods()
+    {
+        foreach (var builder in _methods.Values)
+            yield return builder.Method;
+    }
+
+    /// <summary>
     /// Returns the opaque element type of delegate handles, which is created
     /// on first use.
     /// </summary>

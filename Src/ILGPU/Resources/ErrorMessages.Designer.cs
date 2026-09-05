@@ -959,5 +959,14 @@ namespace ILGPU.Resources {
                 return ResourceManager.GetString("KernelDiagnosticAddressTakenDelegate", resourceCulture);
             }
         }
+
+        /// <summary>
+        ///   Looks up a localized string similar to A lambda or local function in method &apos;{0}&apos; captures &apos;{1}&apos;, which points to shared or local memory. Closures can only capture values and views of global memory; pass the view as a parameter of a static local function instead..
+        /// </summary>
+        internal static string KernelDiagnosticGroupMemoryCapture {
+            get {
+                return ResourceManager.GetString("KernelDiagnosticGroupMemoryCapture", resourceCulture);
+            }
+        }
     }
 }

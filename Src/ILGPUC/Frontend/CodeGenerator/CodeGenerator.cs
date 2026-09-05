@@ -316,6 +316,12 @@ sealed partial class CodeGenerator
     public Func<int, string?>? LocalVariableNames { get; set; }
 
     /// <summary>
+    /// Gets or sets the collection of values captured by closures, which are
+    /// verified once all methods of the module have been generated (if any).
+    /// </summary>
+    public ClosureCaptures? ClosureCaptures { get; set; }
+
+    /// <summary>
     /// Returns compilation properties.
     /// </summary>
     public CompilationProperties Properties => ModuleBuilder.Properties;

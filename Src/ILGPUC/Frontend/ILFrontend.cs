@@ -716,6 +716,7 @@ sealed class ILFrontend
         var queue = new Queue<MethodBase>(capacity: 32);
         var processed = new HashSet<MethodBase>();
         var specializations = new DelegateSpecializations(moduleBuilder);
+        var closureCaptures = new ClosureCaptures(moduleBuilder);
 
         // Generates code for the given method
         [MethodImpl(MethodImplOptions.AggressiveOptimization)]
@@ -819,6 +820,7 @@ sealed class ILFrontend
                     specializations,
                     delegateTargets);
                 codeGenerator.OnNewMethodCalled += (_, e) => queue.Enqueue(e);
+                codeGenerator.ClosureCaptures = closureCaptures;
                 codeGenerator.LocalVariableNames = index =>
                     TryLoadDebugInformation(method, out var debugInformation) &&
                     debugInformation.TryGetLocalVariableName(index, out var name)
@@ -864,6 +866,10 @@ sealed class ILFrontend
                 break;
             }
         }
+
+        // Closures can be verified once their captured values can be traced
+        // through all calls
+        closureCaptures.Verify();
 
         return processed.Count > 0;
     }
