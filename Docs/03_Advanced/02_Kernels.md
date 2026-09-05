@@ -45,6 +45,25 @@ selected target when they are invoked or passed to a method.
 Delegates that cannot be traced back to lambdas or static methods in kernel code, such as delegates returned from
 methods, are rejected by the compiler.
 
+The compiler rejects all other uses of delegates in kernel code at build time, with an error at the offending source
+line in the form `File.cs(line,column): error ILGPU12xx: message`:
+
+| Diagnostic | Rejected kernel code |
+|---|---|
+| `ILGPU1200` | Other constructs kernels do not support, such as `Expression<Func<...>>` or `object`, and `DynamicInvoke`, whose argument array is an `object[]` |
+| `ILGPU1201` | Null tests and comparisons of delegates (`f?.Invoke(x)`, `f != null`, `f == null`, `f == g`, `Equals`), casts and type tests to delegate types, and delegate members other than `Invoke`, such as `+=`/`Delegate.Combine`, `Method` or `Target` |
+| `ILGPU1202` | Invoking a delegate, or passing it to a method, that cannot be traced to a lambda or a static method in kernel code, such as a delegate returned from a method |
+| `ILGPU1203` | Delegate variables passed as `ref`, `out` or `in` arguments, or used through a reference |
+| `ILGPU1204` | Lambdas and local functions capturing views or pointers of shared or local memory, also when the view is a parameter of the capturing method |
+| `ILGPU1205` | Delegates stored in fields of closures (a lambda capturing a delegate, or a capturing lambda creating another lambda), structures or tuples, and arrays of delegates |
+| `ILGPU1206` | Delegates loaded from static fields, including `static readonly` fields |
+| `ILGPU1207` | Delegates created from instance methods of structs, such as `Func<int, int> f = value.Add` |
+| `ILGPU1208` | Lambdas and local functions whose closure is allocated inside a loop, such as a lambda capturing a variable declared in the loop body |
+| `ILGPU1209` | Methods taking delegates that call themselves, directly or through the delegates passed to them |
+
+Invoking a delegate variable that is still `null` on some path, without a null test, is undefined behavior in kernels.
+To call an optional operation, pass a separate flag instead of testing the delegate for null.
+
 A launch lambda can also capture a delegate parameter of the method that launches the kernel:
 
 ```c#
