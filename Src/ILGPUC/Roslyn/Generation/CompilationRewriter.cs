@@ -89,7 +89,10 @@ sealed class CompilationRewriter(ICompiledKernelProvider? kernelProvider = null)
 
         var extractor = new KernelExtractor(compilation);
         var kernels = MakeInlineKernelNamesUnique(
-            launchSites.Select(extractor.Extract).ToList());
+            launchSites
+                .Select(extractor.Extract)
+                .OfType<KernelDescriptor>()
+                .ToList());
 
         // Monomorphize generic kernels with open type parameters.
         // For each kernel whose method has ITypeParameterSymbol type args,

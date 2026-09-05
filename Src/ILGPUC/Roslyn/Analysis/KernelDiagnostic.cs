@@ -157,6 +157,12 @@ record KernelDiagnostic(
     public const string LaunchNotRewritableId = "ILGPU1112";
 
     /// <summary>
+    /// The kernel passed to a launch is neither a lambda expression nor a
+    /// method group.
+    /// </summary>
+    public const string UnsupportedKernelArgumentId = "ILGPU1113";
+
+    /// <summary>
     /// Formats this diagnostic in the canonical
     /// <c>file(line,column): error ID: message</c> form (or <c>warning</c>)
     /// that MSBuild and IDEs pick up from tool output.

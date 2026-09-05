@@ -770,6 +770,58 @@ public sealed class InlineLambdaDiagnosticTests
     }
 
     /// <summary>
+    /// A delegate variable passed as the kernel is rejected at the argument.
+    /// </summary>
+    [Fact]
+    public void DelegateVariableKernel_Reports1113()
+    {
+        var analysis = AnalyzeSource("""
+            Action<Index1D> kernel = index => view[index] = 1;
+            stream.Launch((Index1D)4, kernel);
+            """);
+
+        var diagnostic = AssertSingleDiagnostic(
+            analysis, KernelDiagnostic.UnsupportedKernelArgumentId, "kernel");
+        Assert.Contains("delegate variable 'kernel'", diagnostic.Message);
+        Assert.Empty(analysis.AllKernels);
+    }
+
+    /// <summary>
+    /// A conditional expression selecting the kernel is rejected.
+    /// </summary>
+    [Fact]
+    public void ConditionalKernel_Reports1113()
+    {
+        var analysis = AnalyzeSource("""
+            bool flag = view.Length > 2;
+            stream.Launch(
+                (Index1D)4,
+                flag ? (Action<Index1D>)(i => view[i] = 1) : i => view[i] = 2);
+            """);
+
+        var diagnostic = Assert.Single(analysis.Diagnostics);
+        Assert.Equal(KernelDiagnostic.UnsupportedKernelArgumentId, diagnostic.Id);
+        Assert.Contains("a conditional expression", diagnostic.Message);
+    }
+
+    /// <summary>
+    /// An anonymous method passed as the kernel is rejected with a hint to
+    /// write it as a lambda expression.
+    /// </summary>
+    [Fact]
+    public void AnonymousMethodKernel_Reports1113()
+    {
+        var analysis = AnalyzeSource("""
+            stream.Launch((Index1D)4, delegate (Index1D index) { view[index] = 1; });
+            """);
+
+        var diagnostic = Assert.Single(analysis.Diagnostics);
+        Assert.Equal(KernelDiagnostic.UnsupportedKernelArgumentId, diagnostic.Id);
+        Assert.Contains("an anonymous method", diagnostic.Message);
+        Assert.Contains("lambda expression instead", diagnostic.Message);
+    }
+
+    /// <summary>
     /// The struct with a delegate field shared by the tests below.
     /// </summary>
     private const string HolderTypes = """

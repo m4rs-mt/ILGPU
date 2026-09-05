@@ -37,8 +37,9 @@ sealed class KernelExtractor(CSharpCompilation compilation)
     /// <summary>
     /// Extracts a <see cref="KernelDescriptor"/> from the given launch site by
     /// dispatching on the kernel argument syntax (lambda, simple lambda, or method group).
+    /// Returns null if the kernel argument is not supported, which is reported.
     /// </summary>
-    public KernelDescriptor Extract(KernelLaunchInfo launchInfo)
+    public KernelDescriptor? Extract(KernelLaunchInfo launchInfo)
     {
         var model = compilation.GetSemanticModel(launchInfo.Invocation.SyntaxTree);
 
@@ -60,14 +61,55 @@ sealed class KernelExtractor(CSharpCompilation compilation)
                 ExtractFromLambda(model, lambda, launchInfo, Diagnostics),
             SimpleLambdaExpressionSyntax lambda =>
                 ExtractFromSimpleLambda(model, lambda, launchInfo, Diagnostics),
-            IdentifierNameSyntax methodGroup =>
-                ExtractFromMethodGroup(model, methodGroup, launchInfo, Diagnostics),
-            MemberAccessExpressionSyntax methodGroup =>
-                ExtractFromMethodGroup(model, methodGroup, launchInfo, Diagnostics),
-            _ => throw new InvalidOperationException(
-                $"Unsupported kernel argument syntax: " +
-                $"{launchInfo.KernelArgument.GetType().Name}"),
+            IdentifierNameSyntax or MemberAccessExpressionSyntax
+                when model.GetSymbolInfo(launchInfo.KernelArgument).Symbol
+                    is IMethodSymbol =>
+                ExtractFromMethodGroup(
+                    model,
+                    (ExpressionSyntax)launchInfo.KernelArgument,
+                    launchInfo,
+                    Diagnostics),
+            _ => ReportUnsupportedKernel(model, launchInfo),
         };
+    }
+
+    /// <summary>
+    /// Reports a kernel argument that is neither a lambda expression nor a
+    /// method group, such as an anonymous method, a delegate variable or a
+    /// conditional expression. Its target is only known at runtime (or not
+    /// supported), so no kernel can be compiled for it.
+    /// </summary>
+    private KernelDescriptor? ReportUnsupportedKernel(
+        SemanticModel model,
+        KernelLaunchInfo launchInfo)
+    {
+        const string PassDirectly =
+            "Pass a lambda expression or a method group directly at the launch.";
+        var argument = launchInfo.KernelArgument;
+        var (description, hint) = argument switch
+        {
+            AnonymousMethodExpressionSyntax =>
+                ("an anonymous method", "Write it as a lambda expression instead."),
+            ConditionalExpressionSyntax =>
+                ("a conditional expression",
+                    "Launch each kernel in a branch of its own instead."),
+            _ => model.GetSymbolInfo(argument).Symbol switch
+            {
+                ILocalSymbol local => ($"the delegate variable '{local.Name}'", PassDirectly),
+                IParameterSymbol param =>
+                    ($"the delegate parameter '{param.Name}'", PassDirectly),
+                IFieldSymbol or IPropertySymbol =>
+                    ($"the delegate stored in '{argument}'", PassDirectly),
+                _ => ($"the expression '{argument}'", PassDirectly),
+            },
+        };
+        Diagnostics.Add(new KernelDiagnostic(
+            KernelDiagnostic.UnsupportedKernelArgumentId,
+            $"The kernel passed to '{launchInfo.Invocation.Expression}' must be a " +
+            $"lambda expression or a method group; {description} is not " +
+            $"supported. {hint}",
+            argument.GetLocation()));
+        return null;
     }
 
     /// <summary>
