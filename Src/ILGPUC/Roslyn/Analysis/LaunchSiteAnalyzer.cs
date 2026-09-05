@@ -12,6 +12,8 @@
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Microsoft.CodeAnalysis.Operations;
+using Microsoft.CodeAnalysis.Text;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -24,6 +26,11 @@ namespace ILGPUC.Roslyn.Analysis;
 /// <param name="compilation">The parent compilation.</param>
 sealed class LaunchSiteAnalyzer(CSharpCompilation compilation)
 {
+    /// <summary>
+    /// Returns all diagnostics reported for launches that cannot be rewritten.
+    /// </summary>
+    public List<KernelDiagnostic> Diagnostics { get; } = [];
+
     /// <summary>
     /// Scans every syntax tree in the compilation and returns all
     /// <c>AcceleratorStream.Launch*</c> call sites annotated with
@@ -38,7 +45,7 @@ sealed class LaunchSiteAnalyzer(CSharpCompilation compilation)
         foreach (var tree in compilation.SyntaxTrees)
         {
             var model = compilation.GetSemanticModel(tree);
-            var walker = new LaunchSiteWalker(model, results);
+            var walker = new LaunchSiteWalker(model, results, Diagnostics);
             walker.Visit(tree.GetRoot());
         }
         return results;
@@ -49,9 +56,11 @@ sealed class LaunchSiteAnalyzer(CSharpCompilation compilation)
     /// </summary>
     /// <param name="model">The semantic model.</param>
     /// <param name="results">The list of results.</param>
+    /// <param name="diagnostics">The list of diagnostics.</param>
     private sealed class LaunchSiteWalker(
         SemanticModel model,
-        List<KernelLaunchInfo> results) : CSharpSyntaxWalker
+        List<KernelLaunchInfo> results,
+        List<KernelDiagnostic> diagnostics) : CSharpSyntaxWalker
     {
         /// <summary>
         /// Checks each invocation expression to determine whether it is a
@@ -65,33 +74,29 @@ sealed class LaunchSiteAnalyzer(CSharpCompilation compilation)
             if (symbolInfo.Symbol is not IMethodSymbol method)
                 return;
 
-            var containingType = method.ContainingType;
-            if (containingType?.Name != "AcceleratorStream")
+            if (!IsLaunchMethod(method))
                 return;
 
-            // Check for [ReplaceWithLauncher] attribute
-            bool hasReplaceAttr = method.GetAttributes().Any(a =>
-                a.AttributeClass?.Name is "ReplaceWithLauncherAttribute"
-                    or "ReplaceWithLauncher");
-            if (!hasReplaceAttr)
-                return;
-
-            // Extract the stream expression (receiver of the method call)
-            ExpressionSyntax? streamExpr = node.Expression switch
+            // Extract the stream expression (receiver of the method call).
+            // Launches that are not called on a member access, such as
+            // conditional accesses, cannot be replaced and would throw at
+            // runtime.
+            if (node.Expression is not MemberAccessExpressionSyntax
+                {
+                    Expression: var streamExpr,
+                })
             {
-                MemberAccessExpressionSyntax memberAccess => memberAccess.Expression,
-                _ => null,
-            };
-            if (streamExpr == null)
+                ReportNotRewritable(node);
                 return;
+            }
 
-            // Extract arguments: (extent/config, kernelDelegate)
-            var args = node.ArgumentList.Arguments;
-            if (args.Count < 2)
+            // Extract arguments by parameter: (extent/config, kernelDelegate)
+            if (model.GetOperation(node) is not IInvocationOperation call
+                || GetArgument(call, 0) is not { } extentOrConfig
+                || GetArgument(call, 1) is not { } kernelArg)
+            {
                 return;
-
-            var extentOrConfig = args[0].Expression;
-            var kernelArg = args[1].Expression;
+            }
 
             var variant = ClassifyVariant(method);
 
@@ -103,6 +108,97 @@ sealed class LaunchSiteAnalyzer(CSharpCompilation compilation)
                 KernelArgument: kernelArg,
                 Variant: variant));
         }
+
+        /// <summary>
+        /// Reports launch methods used as delegates (e.g. <c>stream.Launch</c>
+        /// converted to an <c>Action</c>), whose launches cannot be replaced.
+        /// </summary>
+        public override void VisitMemberAccessExpression(
+            MemberAccessExpressionSyntax node)
+        {
+            base.VisitMemberAccessExpression(node);
+
+            if (!node.Name.Identifier.ValueText.StartsWith(
+                    "Launch",
+                    System.StringComparison.Ordinal)
+                || node.Parent is InvocationExpressionSyntax invocation
+                    && invocation.Expression == node
+                || model.GetOperation(node) is not IMethodReferenceOperation
+                {
+                    Method: var method,
+                }
+                || !IsLaunchMethod(method))
+            {
+                return;
+            }
+
+            diagnostics.Add(new KernelDiagnostic(
+                KernelDiagnostic.LaunchNotRewritableId,
+                FormatNotRewritable(node.ToString()),
+                node.GetLocation()));
+        }
+
+        /// <summary>
+        /// Returns <see langword="true"/> if the given method is a launch method
+        /// of <c>AcceleratorStream</c> marked with <c>[ReplaceWithLauncher]</c>.
+        /// </summary>
+        private static bool IsLaunchMethod(IMethodSymbol method) =>
+            method.ContainingType?.Name == "AcceleratorStream"
+            && method.GetAttributes().Any(a =>
+                a.AttributeClass?.Name is "ReplaceWithLauncherAttribute"
+                    or "ReplaceWithLauncher");
+
+        /// <summary>
+        /// Returns the expression passed for the parameter with the given
+        /// ordinal, also for named arguments in a different order. Parentheses
+        /// around the kernel (the second parameter) are removed.
+        /// </summary>
+        private static ExpressionSyntax? GetArgument(
+            IInvocationOperation call,
+            int ordinal)
+        {
+            var argument = call.Arguments.FirstOrDefault(
+                a => a.Parameter?.Ordinal == ordinal);
+            if (argument?.Syntax is not ArgumentSyntax { Expression: var expression })
+                return null;
+            while (ordinal > 0
+                && expression is ParenthesizedExpressionSyntax parenthesized)
+            {
+                expression = parenthesized.Expression;
+            }
+            return expression;
+        }
+
+        /// <summary>
+        /// Reports a launch invocation that is not called on a member access.
+        /// </summary>
+        private void ReportNotRewritable(InvocationExpressionSyntax node)
+        {
+            // Point at 'stream?.Launch' for conditional accesses
+            var location = node.Expression.GetLocation();
+            var display = node.Expression.ToString();
+            if (node.Expression is MemberBindingExpressionSyntax
+                && node.Parent is ConditionalAccessExpressionSyntax conditional)
+            {
+                var span = TextSpan.FromBounds(
+                    conditional.SpanStart,
+                    node.Expression.Span.End);
+                location = Location.Create(node.SyntaxTree, span);
+                display = node.SyntaxTree.GetText().ToString(span);
+            }
+            diagnostics.Add(new KernelDiagnostic(
+                KernelDiagnostic.LaunchNotRewritableId,
+                FormatNotRewritable(display),
+                location));
+        }
+
+        /// <summary>
+        /// Formats the message of a launch that cannot be rewritten.
+        /// </summary>
+        private static string FormatNotRewritable(string launch) =>
+            $"Kernel launch '{launch}' cannot be compiled: launches must be " +
+            $"direct calls on a stream expression (e.g. 'stream.Launch(...)'). " +
+            $"Conditional access and calls through delegates are not supported.";
 
         /// <summary>
         /// Classifies the launch variant based on the method name and first parameter

@@ -163,7 +163,8 @@ sealed class CompilationRewriter(ICompiledKernelProvider? kernelProvider = null)
             kernels,
             uniqueKernels,
             dispatchKernels,
-            extractor.Diagnostics
+            analyzer.Diagnostics
+                .Concat(extractor.Diagnostics)
                 .Concat(delegateDiscoverer.Diagnostics)
                 .Distinct()
                 .ToList(),

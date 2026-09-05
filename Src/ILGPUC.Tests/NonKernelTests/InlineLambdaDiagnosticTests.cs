@@ -14,6 +14,7 @@ using ILGPUC.Roslyn.Generation;
 using ILGPUC.Tests.Framework;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Text;
 using System.IO;
 using System.Linq;
@@ -541,6 +542,54 @@ public sealed class InlineLambdaDiagnosticTests
         var kernel = Assert.Single(analysis.UniqueKernels);
         Assert.NotNull(kernel.LiftedKernel);
         Assert.Equal(["view", "offset"], kernel.Parameters.Select(p => p.Name));
+    }
+
+    /// <summary>
+    /// A launch called through a conditional access is not rewritten and
+    /// would throw at runtime, so it is rejected.
+    /// </summary>
+    [Fact]
+    public void ConditionalAccessLaunch_Reports1112()
+    {
+        var analysis = AnalyzeSource("""
+            AcceleratorStream? maybe = stream;
+            maybe?.Launch(view.IntExtent, index => view[index] = 3);
+            """);
+
+        var diagnostic = AssertSingleDiagnostic(
+            analysis, KernelDiagnostic.LaunchNotRewritableId, "maybe?.Launch");
+        Assert.Contains("direct calls on a stream expression", diagnostic.Message);
+        Assert.Empty(analysis.AllKernels);
+    }
+
+    /// <summary>
+    /// A launch method converted to a delegate cannot be rewritten either.
+    /// </summary>
+    [Fact]
+    public void LaunchMethodGroup_Reports1112()
+    {
+        var analysis = AnalyzeSource("""
+            Action<Index1D, Action<Index1D>> launch = stream.Launch;
+            """);
+
+        AssertSingleDiagnostic(
+            analysis, KernelDiagnostic.LaunchNotRewritableId, "stream.Launch");
+    }
+
+    /// <summary>
+    /// Named arguments in a different order are mapped to their parameters.
+    /// </summary>
+    [Fact]
+    public void NamedArgumentsLaunch_Extracted()
+    {
+        var analysis = AnalyzeSource("""
+            stream.Launch(kernel: index => view[index] = 1, extent: (Index1D)4);
+            """);
+
+        Assert.Empty(analysis.Diagnostics);
+        var launch = Assert.Single(analysis.AllKernels).LaunchInfo;
+        Assert.Equal("(Index1D)4", launch.ExtentOrConfig.ToString());
+        Assert.IsAssignableFrom<LambdaExpressionSyntax>(launch.KernelArgument);
     }
 
     /// <summary>
