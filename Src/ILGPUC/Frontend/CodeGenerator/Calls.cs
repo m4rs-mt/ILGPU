@@ -80,10 +80,14 @@ partial class CodeGenerator
         if (result.Type is VoidType or KindType)
             return;
 
-        var flags = method.GetReturnType().IsUnsignedInt()
+        var returnType = method.GetReturnType();
+        var flags = returnType.IsUnsignedInt()
             ? ConvertFlags.SourceUnsigned
             : ConvertFlags.None;
         Block.Push(LoadOntoEvaluationStack(result, flags));
+        RecordDelegateOrigin(
+            returnType,
+            string.Format(ErrorMessages.KernelDiagnosticDelegateReturned, method.Name));
     }
 
     /// <summary>
@@ -385,11 +389,11 @@ partial class CodeGenerator
 
     /// <summary>
     /// Tries to resolve the lambda MethodBase behind a delegate handle value.
-    /// Checks the direct value table (same-block resolution), traces phi
-    /// merges back to registered handles (cross-block resolution), and only
-    /// falls back to the recorded delegate state when that state is
-    /// unambiguous. If several distinct lambda bodies are candidates for the
-    /// handle, the resolution fails instead of guessing.
+    /// Checks the direct value table (same-block resolution) and traces
+    /// conversions and phi merges back to registered handles (cross-block
+    /// resolution). The resolution fails for handles that cannot be traced,
+    /// such as delegates returned from methods, and for handles selecting
+    /// between several lambda bodies, which dispatch on their tags instead.
     /// </summary>
     internal bool TryResolveDelegateMethod(
         Value handle,
@@ -399,54 +403,37 @@ partial class CodeGenerator
         if (_delegateTable.TryGetValue(handle, out method))
             return true;
 
-        // Cross-block resolution: a handle that crossed a block boundary on
-        // the evaluation stack arrives here as a phi value that is not
-        // registered in _delegateTable. Trace the phi arguments back to
-        // registered handles (ignoring the null constants produced by the
-        // static delegate-cache diamond); this succeeds only when all
-        // incoming paths agree on a single lambda body.
-        if (handle is PhiValue &&
-            TryTraceDelegateHandle(handle, out method) &&
-            method is not null)
-        {
+        // Trace converted handles and handles that crossed a block boundary on
+        // the evaluation stack (phi values) back to registered handles,
+        // ignoring the null constants of empty delegate caches. This succeeds
+        // only when all incoming paths agree on a single lambda body.
+        if (TryTraceDelegateHandle(handle, out method) && method is not null)
             return true;
-        }
         method = null;
+        return false;
+    }
 
-        // Delegate parameters are only bound in specializations (see above), and
-        // phis that cannot be traced are selections or depend on open loops
-        if (handle is Parameter or PhiValue)
-            return false;
-
-        // Last-resort fallback for handles that cannot be traced (e.g. a
-        // delegate that was passed directly as a call argument without a
-        // stloc, as in Warp.Reduce(value, (a, b) => a + b)). Guessing is
-        // only sound when every delegate observed in this method refers to
-        // the same lambda body; with multiple distinct candidates the
-        // resolution fails so that the caller reports the call as
-        // non-devirtualizable instead of silently binding the wrong body.
-        var candidate = _pendingDelegateForLocal;
-        foreach (var kv in _delegateLocalTable)
-        {
-            if (candidate is null)
-                candidate = kv.Value;
-            else if (!candidate.Equals(kv.Value))
-                return false;
-        }
-        foreach (var kv in _delegateTable)
-        {
-            if (candidate is null)
-                candidate = kv.Value;
-            else if (!candidate.Equals(kv.Value))
-                return false;
-        }
-        if (candidate is null)
-            return false;
-
-        if (candidate.Equals(_pendingDelegateForLocal))
-            _pendingDelegateForLocal = null;
-        method = candidate;
-        return true;
+    /// <summary>
+    /// Resolves the delegate passed to an intrinsic method to its single
+    /// lambda body, or reports it as a delegate that cannot be resolved.
+    /// </summary>
+    /// <param name="handle">The delegate handle.</param>
+    /// <param name="intrinsic">The intrinsic method.</param>
+    /// <param name="argumentIndex">
+    /// The index of the argument, including the instance argument.
+    /// </param>
+    /// <returns>The resolved lambda body.</returns>
+    internal MethodBase ResolveIntrinsicDelegate(
+        Value handle,
+        MethodBase intrinsic,
+        int argumentIndex)
+    {
+        if (TryResolveDelegateMethod(handle, out var method))
+            return method;
+        throw GetUnresolvedDelegateException(
+            intrinsic,
+            argumentIndex - intrinsic.GetParameterOffset(),
+            handle);
     }
 
     /// <summary>

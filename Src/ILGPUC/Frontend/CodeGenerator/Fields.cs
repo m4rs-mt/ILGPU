@@ -9,6 +9,7 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
+using ILGPU.Resources;
 using ILGPU.Util;
 using ILGPUC.IR;
 using ILGPUC.IR.ModuleValues;
@@ -78,6 +79,11 @@ partial class CodeGenerator
                 Block.Push(getField);
             }
         }
+        RecordDelegateOrigin(
+            field.FieldType,
+            string.Format(
+                ErrorMessages.KernelDiagnosticDelegateLoadedFromField,
+                field.Name));
     }
 
     /// <summary>
@@ -149,7 +155,10 @@ partial class CodeGenerator
             var delegatePointerType = ModuleBuilder.CreatePointerType(
                 ModuleBuilder.IntPointerType,
                 MemoryAddressSpace.Generic);
-            return Builder.CreateNull(Location, delegatePointerType);
+            var nullValue = Builder.CreateNull(Location, delegatePointerType);
+            if (field.FieldType.IsDelegate())
+                _delegateCacheLoads.Add(nullValue);
+            return nullValue;
         }
 
         var fieldValue = field.GetValue(null);

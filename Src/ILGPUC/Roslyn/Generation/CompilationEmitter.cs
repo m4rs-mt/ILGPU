@@ -12,9 +12,11 @@
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Emit;
+using Microsoft.CodeAnalysis.Text;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Text;
 
 namespace ILGPUC.Roslyn.Generation;
 
@@ -42,6 +44,19 @@ static class CompilationEmitter
     {
         using var peStream = new MemoryStream();
         using var pdbStream = new MemoryStream();
+
+        // Debug information requires the encoding of every source text
+        foreach (var tree in compilation.SyntaxTrees)
+        {
+            var text = tree.GetText();
+            if (text.Encoding is null)
+            {
+                compilation = compilation.ReplaceSyntaxTree(
+                    tree,
+                    tree.WithChangedText(
+                        SourceText.From(text.ToString(), Encoding.UTF8)));
+            }
+        }
 
         // Portable PDBs carry the source locations of kernel code, which the
         // kernel compiler reports errors at

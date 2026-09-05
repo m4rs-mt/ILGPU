@@ -81,6 +81,12 @@ record KernelDiagnostic(string Id, string Message, Location Location)
     public const string UnsupportedConstructId = "ILGPU1200";
 
     /// <summary>
+    /// Kernel code invokes a delegate, or passes it to a method, that cannot be
+    /// traced to a lambda expression or a static method.
+    /// </summary>
+    public const string UnresolvedDelegateId = "ILGPU1202";
+
+    /// <summary>
     /// Formats this diagnostic in the canonical
     /// <c>file(line,column): error ID: message</c> form that MSBuild and IDEs
     /// pick up from tool output.

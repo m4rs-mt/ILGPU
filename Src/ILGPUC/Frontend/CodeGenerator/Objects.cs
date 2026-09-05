@@ -168,10 +168,6 @@ partial class CodeGenerator
         // Record: this closure pointer maps to this lambda body
         _delegateTable[closurePtr] = method;
 
-        // Also record as a "pending" delegate for the last-resort fallback of
-        // TryResolveDelegateMethod
-        _pendingDelegateForLocal = method;
-
         // Push the closure pointer as the delegate handle (type-erased)
         Block.Push(closurePtr);
     }
@@ -206,11 +202,26 @@ partial class CodeGenerator
     private void MakeLoadObject(Type type)
     {
         var address = Block.Pop();
+
+        // ldind.ref loads the reference stored at the address, such as a
+        // delegate passed by reference
+        if (type == typeof(object) &&
+            address.Type is PointerType { ElementType: PointerType })
+        {
+            Block.Push(Builder.CreateLoad(Location, address));
+            RecordDelegateOrigin(
+                ErrorMessages.KernelDiagnosticDelegateLoadedThroughReference);
+            return;
+        }
+
         var targetElementType = ModuleBuilder.CreateType(type);
         Block.Push(CreateLoad(
             address,
             targetElementType,
             type.ToTargetUnsignedFlags()));
+        RecordDelegateOrigin(
+            type,
+            ErrorMessages.KernelDiagnosticDelegateLoadedThroughReference);
     }
 
     /// <summary>

@@ -844,24 +844,6 @@ namespace ILGPU.Resources {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Cannot statically devirtualize delegate invocation '{0}'.
-        /// </summary>
-        internal static string NotSupportedCannotDevirtualizeDelegate {
-            get {
-                return ResourceManager.GetString("NotSupportedCannotDevirtualizeDelegate", resourceCulture);
-            }
-        }
-
-        /// <summary>
-        ///   Looks up a localized string similar to Cannot statically resolve the delegate passed to parameter '{0}' of method '{1}'.
-        /// </summary>
-        internal static string NotSupportedUnresolvedDelegateArgument {
-            get {
-                return ResourceManager.GetString("NotSupportedUnresolvedDelegateArgument", resourceCulture);
-            }
-        }
-
-        /// <summary>
         ///   Looks up a localized string similar to Cannot resolve the delegate registered under the key &apos;{0}&apos; in assembly &apos;{1}&apos;.
         /// </summary>
         internal static string NotSupportedUnresolvedKernelDelegate {
@@ -885,6 +867,69 @@ namespace ILGPU.Resources {
         internal static string KernelDiagnosticUnsupportedConstruct {
             get {
                 return ResourceManager.GetString("KernelDiagnosticUnsupportedConstruct", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Cannot statically resolve the delegate invoked in method &apos;{0}&apos;: it is {1}. Kernels can only invoke delegates created from a lambda expression or a static method in kernel code, also when they are passed to a called method..
+        /// </summary>
+        internal static string KernelDiagnosticUnresolvedDelegateInvocation {
+            get {
+                return ResourceManager.GetString("KernelDiagnosticUnresolvedDelegateInvocation", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Cannot statically resolve the delegate passed to parameter &apos;{0}&apos; of method &apos;{1}&apos;: it is {2}. Pass a lambda expression or a static method directly at the call, or use a generic struct implementing an interface instead of the delegate..
+        /// </summary>
+        internal static string KernelDiagnosticUnresolvedDelegateArgument {
+            get {
+                return ResourceManager.GetString("KernelDiagnosticUnresolvedDelegateArgument", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to the parameter &apos;{0}&apos; of method &apos;{1}&apos;, which is not bound to a lambda expression or a static method.
+        /// </summary>
+        internal static string KernelDiagnosticDelegateUnboundParameter {
+            get {
+                return ResourceManager.GetString("KernelDiagnosticDelegateUnboundParameter", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to produced by an unsupported operation.
+        /// </summary>
+        internal static string KernelDiagnosticDelegateUnsupportedOperation {
+            get {
+                return ResourceManager.GetString("KernelDiagnosticDelegateUnsupportedOperation", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to returned from method &apos;{0}&apos;.
+        /// </summary>
+        internal static string KernelDiagnosticDelegateReturned {
+            get {
+                return ResourceManager.GetString("KernelDiagnosticDelegateReturned", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to loaded from field &apos;{0}&apos;.
+        /// </summary>
+        internal static string KernelDiagnosticDelegateLoadedFromField {
+            get {
+                return ResourceManager.GetString("KernelDiagnosticDelegateLoadedFromField", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to loaded through a reference.
+        /// </summary>
+        internal static string KernelDiagnosticDelegateLoadedThroughReference {
+            get {
+                return ResourceManager.GetString("KernelDiagnosticDelegateLoadedThroughReference", resourceCulture);
             }
         }
     }

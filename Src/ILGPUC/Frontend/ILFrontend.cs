@@ -809,10 +809,9 @@ sealed class ILFrontend
                 disassembled.EnsureLocationsAttached(_loadSequencePoints);
             }
 
-            CodeGenerator? codeGenerator = null;
             try
             {
-                codeGenerator = new CodeGenerator(
+                var codeGenerator = new CodeGenerator(
                     methodBuilder,
                     disassembled,
                     BackendType,
@@ -825,9 +824,7 @@ sealed class ILFrontend
                 methodBuilder.Seal();
             }
             catch (Exception exception) when (
-                !isEntryPoint &&
-                exception is not KernelCompilationException &&
-                codeGenerator?.HasUnresolvedDelegate != true)
+                !isEntryPoint && exception is not KernelCompilationException)
             {
                 // Transitively called methods may use types unsupported in GPU IR
                 // or hit other compilation issues. Mark them as external and

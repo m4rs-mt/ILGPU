@@ -87,28 +87,33 @@ public sealed class LambdaCompilationErrorTests
     }
 
     [Fact]
-    public void ReturnedDelegate_ThrowsNotSupportedException()
+    public void ReturnedDelegate_ReportsUnresolvedDelegate()
     {
         using var helper = new CompilationHelper(BackendType.CPU);
         var kernel = GetKernel(nameof(LambdaErrorKernels.ReturnedDelegateKernel));
 
-        var exception = Assert.Throws<InternalCompilerException>(() =>
+        var exception = Assert.Throws<KernelCompilationException>(() =>
             helper.GetNormalizedIR(kernel, IRDumpPoint.AfterBackendTransforms));
-        var inner = Assert.IsType<NotSupportedException>(exception.InnerException);
-        Assert.Contains("'ReturnedDelegateKernel'", inner.Message);
+        Assert.Equal("ILGPU1202", exception.Id);
+        Assert.Contains(
+            "invoked in method 'ReturnedDelegateKernel': it is returned from " +
+            "method 'Select'",
+            exception.Message);
     }
 
     [Fact]
-    public void ReturnedDelegateArgument_ThrowsNotSupportedException()
+    public void ReturnedDelegateArgument_ReportsUnresolvedDelegate()
     {
         using var helper = new CompilationHelper(BackendType.CPU);
         var kernel = GetKernel(
             nameof(LambdaErrorKernels.ReturnedDelegateArgumentKernel));
 
         // Reported although the call is in a helper instead of the kernel
-        var exception = Assert.Throws<InternalCompilerException>(() =>
+        var exception = Assert.Throws<KernelCompilationException>(() =>
             helper.GetNormalizedIR(kernel, IRDumpPoint.AfterBackendTransforms));
-        var inner = Assert.IsType<NotSupportedException>(exception.InnerException);
-        Assert.Contains("parameter 'f' of method 'Apply'", inner.Message);
+        Assert.Equal("ILGPU1202", exception.Id);
+        Assert.Contains(
+            "parameter 'f' of method 'Apply': it is returned from method 'Select'",
+            exception.Message);
     }
 }

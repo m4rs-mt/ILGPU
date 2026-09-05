@@ -481,14 +481,6 @@
     <value>Closure allocation of type '{0}' inside a loop is not supported. Move the closure allocation outside the loop.</value>
     <comment/>
   </data>
-  <data name="NotSupportedCannotDevirtualizeDelegate" xml:space="preserve">
-    <value>Cannot statically devirtualize delegate invocation '{0}' in method '{1}'. Kernels can only invoke delegates created from a lambda expression or a static method in kernel code, also when they are passed to a called method.</value>
-    <comment/>
-  </data>
-  <data name="NotSupportedUnresolvedDelegateArgument" xml:space="preserve">
-    <value>Cannot statically resolve the delegate passed to parameter '{0}' of method '{1}'. Pass a lambda expression or a static method directly at the call, or use a generic struct implementing an interface instead of the delegate.</value>
-    <comment/>
-  </data>
   <data name="NotSupportedUnresolvedKernelDelegate" xml:space="preserve">
     <value>Cannot resolve the delegate registered under the key '{0}' in assembly '{1}'.</value>
     <comment/>
@@ -499,6 +491,34 @@
   </data>
   <data name="KernelDiagnosticUnsupportedConstruct" xml:space="preserve">
     <value>Kernel code uses an unsupported construct: {0}</value>
+    <comment/>
+  </data>
+  <data name="KernelDiagnosticUnresolvedDelegateInvocation" xml:space="preserve">
+    <value>Cannot statically resolve the delegate invoked in method '{0}': it is {1}. Kernels can only invoke delegates created from a lambda expression or a static method in kernel code, also when they are passed to a called method.</value>
+    <comment/>
+  </data>
+  <data name="KernelDiagnosticUnresolvedDelegateArgument" xml:space="preserve">
+    <value>Cannot statically resolve the delegate passed to parameter '{0}' of method '{1}': it is {2}. Pass a lambda expression or a static method directly at the call, or use a generic struct implementing an interface instead of the delegate.</value>
+    <comment/>
+  </data>
+  <data name="KernelDiagnosticDelegateUnboundParameter" xml:space="preserve">
+    <value>the parameter '{0}' of method '{1}', which is not bound to a lambda expression or a static method</value>
+    <comment/>
+  </data>
+  <data name="KernelDiagnosticDelegateUnsupportedOperation" xml:space="preserve">
+    <value>produced by an unsupported operation</value>
+    <comment/>
+  </data>
+  <data name="KernelDiagnosticDelegateReturned" xml:space="preserve">
+    <value>returned from method '{0}'</value>
+    <comment/>
+  </data>
+  <data name="KernelDiagnosticDelegateLoadedFromField" xml:space="preserve">
+    <value>loaded from field '{0}'</value>
+    <comment/>
+  </data>
+  <data name="KernelDiagnosticDelegateLoadedThroughReference" xml:space="preserve">
+    <value>loaded through a reference</value>
     <comment/>
   </data>
 </root>

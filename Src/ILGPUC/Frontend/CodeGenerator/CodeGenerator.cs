@@ -52,14 +52,6 @@ sealed partial class CodeGenerator
     /// </summary>
     private MethodBase? _pendingLdFunctionMethod;
 
-
-    /// <summary>
-    /// Most recent delegate method from <see cref="MakeNewDelegate"/>. Used as
-    /// a candidate of the last-resort fallback in
-    /// <see cref="TryResolveDelegateMethod"/>.
-    /// </summary>
-    private MethodBase? _pendingDelegateForLocal;
-
     /// <summary>
     /// Maps a delegate handle Value to the underlying lambda MethodBase.
     /// Used for same-block resolution.
@@ -79,6 +71,20 @@ sealed partial class CodeGenerator
     /// delegates can be traced back to their sources.
     /// </summary>
     private readonly Dictionary<Value, Value> _delegateAliases = [];
+
+    /// <summary>
+    /// The values loaded from the static delegate caches that the C# compiler
+    /// generates for lambdas and method groups (<c>&lt;&gt;9__*</c> and
+    /// <c>&lt;&gt;O</c> fields). Kernels always take the path creating the
+    /// delegate, as these caches are empty in kernel code.
+    /// </summary>
+    private readonly HashSet<Value> _delegateCacheLoads = [];
+
+    /// <summary>
+    /// Describes where delegate handles that cannot be traced to their targets
+    /// come from, such as calls returning delegates, for diagnostics.
+    /// </summary>
+    private readonly Dictionary<Value, string> _delegateOrigins = [];
 
     /// <summary>
     /// The specializations of called methods for statically known delegate
@@ -299,13 +305,6 @@ sealed partial class CodeGenerator
     /// methods can be inlined into a loop of their caller.
     /// </summary>
     public bool IsEntryPoint { get; }
-
-    /// <summary>
-    /// Returns true if code generation failed on a delegate that cannot be
-    /// resolved statically. Such errors are reported for all methods instead of
-    /// turning the method into an external declaration that fails later.
-    /// </summary>
-    public bool HasUnresolvedDelegate { get; private set; }
 
     /// <summary>
     /// Returns compilation properties.

@@ -18,6 +18,7 @@ using ILGPUC.IR.MethodValues;
 using ILGPUC.IR.ModuleValues;
 using ILGPUC.IR.ModuleValues.Construction;
 using ILGPUC.IR.PureValues;
+using ILGPUC.Roslyn.Analysis;
 using ILGPUC.Util;
 using System;
 using System.Collections.Generic;
@@ -101,6 +102,12 @@ partial class CodeGenerator
     #region Delegate Tags
 
     /// <summary>
+    /// The tag of null handles and of handles whose targets are unknown, which
+    /// differs from the tags of all targets.
+    /// </summary>
+    private const int NoTargetTag = -1;
+
+    /// <summary>
     /// Returns the variable holding the tag of the given delegate variable.
     /// </summary>
     /// <param name="var">The delegate variable.</param>
@@ -117,7 +124,7 @@ partial class CodeGenerator
     /// <returns>The tag constant.</returns>
     private PrimitiveValue CreateDelegateTag(MethodBase? target)
     {
-        int tagValue = 0;
+        int tagValue = NoTargetTag;
         if (target is not null &&
             !_delegateTagValues.TryGetValue(target, out tagValue))
         {
@@ -200,10 +207,18 @@ partial class CodeGenerator
             return CreateDelegateTag(target);
         if (_delegateAliases.TryGetValue(handle, out var source))
             return CreateDelegateTag(source, tags);
-        if (handle is not PhiValue { NumArguments: > 0 } phi)
+        if (handle is PhiValue { NumArguments: 0 })
         {
-            // A null or untraceable handle: calls on it are never reached or
-            // reported once the handle is traced
+            // Selections are traced when they are created or after all loops
+            // have been closed, so a phi without arguments would leave its tag
+            // undefined. C# keeps the evaluation stack empty at loop headers.
+            throw Location.GetInvalidOperationException(
+                "Delegate tag of an incomplete phi value");
+        }
+        if (handle is not PhiValue phi)
+        {
+            // A null or untraceable handle: calls on it are never reached, or
+            // they are reported when the handle is traced for the call
             return CreateDelegateTag(target: null);
         }
 
@@ -573,7 +588,9 @@ partial class CodeGenerator
             if (delegateTargets[i] is null &&
                 parameters[i].ParameterType.IsDelegate())
             {
-                throw GetUnresolvedDelegateException(method, i);
+                // Unbound delegate arguments are selections (see above)
+                throw Location.GetInvalidOperationException(
+                    "Unbound delegate argument of a specialization");
             }
         }
 
@@ -589,22 +606,92 @@ partial class CodeGenerator
     /// The method the delegate is passed to (null for an invoked delegate).
     /// </param>
     /// <param name="parameterIndex">The index of the delegate parameter.</param>
+    /// <param name="handle">The delegate handle.</param>
     /// <returns>The created exception.</returns>
-    private InternalCompilerException GetUnresolvedDelegateException(
+    private KernelCompilationException GetUnresolvedDelegateException(
         MethodBase? callee,
-        int parameterIndex)
+        int parameterIndex,
+        Value handle)
     {
-        HasUnresolvedDelegate = true;
-        return callee is null
-            ? Location.GetNotSupportedException(
-                ErrorMessages.NotSupportedCannotDevirtualizeDelegate,
-                "Invoke",
-                Method.Name)
-            : Location.GetNotSupportedException(
-                ErrorMessages.NotSupportedUnresolvedDelegateArgument,
+        var origin = DescribeDelegateOrigin(handle);
+        var message = callee is null
+            ? string.Format(
+                ErrorMessages.KernelDiagnosticUnresolvedDelegateInvocation,
+                Method.Name,
+                origin)
+            : string.Format(
+                ErrorMessages.KernelDiagnosticUnresolvedDelegateArgument,
                 callee.GetParameters()[parameterIndex].Name ??
                     parameterIndex.ToString(CultureInfo.InvariantCulture),
-                callee.Name);
+                callee.Name,
+                origin);
+        return new KernelCompilationException(
+            KernelDiagnostic.UnresolvedDelegateId,
+            message,
+            Location);
+    }
+
+    /// <summary>
+    /// Records where the value on top of the evaluation stack comes from if it
+    /// is a delegate, as delegates loaded from memory or returned from methods
+    /// cannot be traced to their targets.
+    /// </summary>
+    /// <param name="type">The managed type of the value.</param>
+    /// <param name="origin">The description of its origin.</param>
+    private void RecordDelegateOrigin(Type type, string origin)
+    {
+        if (type.IsDelegate())
+            RecordDelegateOrigin(origin);
+    }
+
+    /// <summary>
+    /// Records where the value on top of the evaluation stack comes from (see
+    /// above), if it is a delegate.
+    /// </summary>
+    /// <param name="origin">The description of its origin.</param>
+    private void RecordDelegateOrigin(string origin)
+    {
+        var value = Block.GetValue(
+            new VariableRef(Block.StackCounter - 1, VariableRefType.Stack));
+        _delegateOrigins[value] = origin;
+    }
+
+    /// <summary>
+    /// Describes why the given delegate handle cannot be traced to its targets,
+    /// based on the first handle it is merged from that cannot be traced.
+    /// </summary>
+    /// <param name="handle">The delegate handle.</param>
+    /// <returns>The description of its origin.</returns>
+    private string DescribeDelegateOrigin(Value handle)
+    {
+        var visited = new HashSet<Value>();
+        var worklist = new Stack<Value>();
+        worklist.Push(handle);
+        while (worklist.TryPop(out var current))
+        {
+            if (!visited.Add(current))
+                continue;
+            if (_delegateOrigins.TryGetValue(current, out var origin))
+                return origin;
+            if (_delegateAliases.TryGetValue(current, out var source))
+            {
+                worklist.Push(source);
+            }
+            else if (current is PhiValue phi)
+            {
+                foreach (var argument in phi.Arguments)
+                    worklist.Push(argument);
+            }
+            else if (current is Parameter parameter &&
+                !_delegateTable.ContainsKey(parameter))
+            {
+                return string.Format(
+                    ErrorMessages.KernelDiagnosticDelegateUnboundParameter,
+                    parameter.Name,
+                    Method.Name);
+            }
+        }
+        return ErrorMessages.KernelDiagnosticDelegateUnsupportedOperation;
     }
 
     #endregion
@@ -670,7 +757,8 @@ partial class CodeGenerator
                 {
                     throw GetUnresolvedDelegateException(
                         callee,
-                        selections[i].ParameterIndex);
+                        selections[i].ParameterIndex,
+                        selections[i].Handle);
                 }
             }
             ImplementDispatcher(
