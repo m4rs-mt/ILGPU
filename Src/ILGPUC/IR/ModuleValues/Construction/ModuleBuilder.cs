@@ -546,6 +546,7 @@ partial class ModuleBuilder : IGenerationObject
 
         try
         {
+            VerifyNoDelegateFields(type, type, []);
             var typeInfo = GetTypeInfo(type);
             var builder = new StructureType.Builder(
                 this,
@@ -602,6 +603,7 @@ partial class ModuleBuilder : IGenerationObject
                     type));
         }
 
+        VerifyNoDelegateFields(type, type, []);
         var typeInfo = GetTypeInfo(type);
         builder = new StructureType.Builder(
             this,
@@ -609,6 +611,36 @@ partial class ModuleBuilder : IGenerationObject
             typeInfo.Size);
         foreach (var field in typeInfo.Fields)
             builder.Add(CreateType(field.FieldType, addressSpace));
+    }
+
+    /// <summary>
+    /// Rejects types with fields of delegate types, including the fields of
+    /// nested structures: delegates are bound to their targets at compile time
+    /// and have no representation in memory.
+    /// </summary>
+    /// <param name="type">The type to verify.</param>
+    /// <param name="containingType">The type the verified type is part of.</param>
+    /// <param name="visited">The structure types visited so far.</param>
+    private static void VerifyNoDelegateFields(
+        Type type,
+        Type containingType,
+        HashSet<Type> visited)
+    {
+        const BindingFlags FieldFlags = BindingFlags.Instance |
+            BindingFlags.Public | BindingFlags.NonPublic;
+        foreach (var field in type.GetFields(FieldFlags))
+        {
+            var fieldType = field.FieldType;
+            if (fieldType.IsDelegate())
+                throw new DelegateFieldException(containingType, field);
+            if (fieldType.IsValueType &&
+                !fieldType.IsPrimitive &&
+                !fieldType.IsEnum &&
+                visited.Add(fieldType))
+            {
+                VerifyNoDelegateFields(fieldType, containingType, visited);
+            }
+        }
     }
 
     /// <summary>

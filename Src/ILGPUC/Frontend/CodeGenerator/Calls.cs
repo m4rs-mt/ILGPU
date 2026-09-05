@@ -17,6 +17,7 @@ using ILGPUC.IR.BasicBlockValues;
 using ILGPUC.IR.MethodValues;
 using ILGPUC.IR.ModuleValues;
 using ILGPUC.IR.PureValues;
+using ILGPUC.Roslyn.Analysis;
 using ILGPUC.Util;
 using System;
 using System.Collections.Generic;
@@ -59,11 +60,18 @@ partial class CodeGenerator
             result ??= Builder.UndefinedValue;
             MakeCallReturnValue(method, result);
         }
+        else if (delegateArguments is null)
+        {
+            var target = GetMethod(method);
+            _specializations?.RecordCall(target, MethodBuilder.Method, Location);
+            result = Builder.CreateCall(Location, target, ref arguments);
+
+            // Setup result
+            MakeCallReturnValue(method, result);
+        }
         else
         {
-            result = delegateArguments is null
-                ? Builder.CreateCall(Location, GetMethod(method), ref arguments)
-                : CreateSpecializedCall(method, ref arguments, delegateArguments);
+            result = CreateSpecializedCall(method, ref arguments, delegateArguments);
 
             // Setup result
             MakeCallReturnValue(method, result);
@@ -87,7 +95,9 @@ partial class CodeGenerator
         Block.Push(LoadOntoEvaluationStack(result, flags));
         RecordDelegateOrigin(
             returnType,
-            string.Format(ErrorMessages.KernelDiagnosticDelegateReturned, method.Name));
+            string.Format(
+                ErrorMessages.KernelDiagnosticDelegateReturned,
+                method.GetDisplayName()));
     }
 
     /// <summary>
@@ -272,6 +282,8 @@ partial class CodeGenerator
     /// <param name="method">The target method whose function pointer is loaded.</param>
     private void MakeLdFunction(MethodBase method)
     {
+        VerifyNoStructMethodGroup(method);
+
         // Register the method so ILFrontend generates IR for it
         GetMethod(method);
         _pendingLdFunctionMethod = method;
@@ -285,6 +297,23 @@ partial class CodeGenerator
 
         // Push a null IntPtr placeholder — the real value is the closure pointer
         Block.Push(Builder.CreateNull(Location, ModuleBuilder.IntPointerType));
+    }
+
+    /// <summary>
+    /// Rejects delegates created from instance methods of structs, whose
+    /// targets are boxed copies of the struct instances.
+    /// </summary>
+    /// <param name="method">The target method of the delegate.</param>
+    private void VerifyNoStructMethodGroup(MethodBase method)
+    {
+        if (method.IsStatic || method.DeclaringType?.IsValueType != true)
+            return;
+        throw new KernelCompilationException(
+            KernelDiagnostic.StructMethodGroupId,
+            string.Format(
+                ErrorMessages.KernelDiagnosticStructMethodGroup,
+                $"{method.DeclaringType.Name}.{method.Name}"),
+            Location);
     }
 
     /// <summary>

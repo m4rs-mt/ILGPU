@@ -32,6 +32,33 @@ static class MethodExtensions
         method.IsStatic || method.IsNotCapturingLambda() ? 0 : 1;
 
     /// <summary>
+    /// Returns the name of the given method as written in source code, which
+    /// diagnostics refer to: the name of a local function, or the name of the
+    /// method containing a lambda or an inline kernel.
+    /// </summary>
+    /// <param name="method">The method.</param>
+    /// <returns>The display name of the method.</returns>
+    public static string GetDisplayName(this MethodBase method)
+    {
+        // Compiler-generated names have the form '<Outer>k__Inner|...'
+        var name = method.Name;
+        int end = name.IndexOf('>', StringComparison.Ordinal);
+        if (!name.StartsWith('<') || end < 1)
+            return name;
+        var outer = name[1..end];
+        if (string.CompareOrdinal(name, end + 1, "g__", 0, 3) == 0)
+        {
+            var inner = name[(end + 4)..];
+            int separator = inner.IndexOf('|', StringComparison.Ordinal);
+            if (separator >= 0)
+                inner = inner[..separator];
+            if (!inner.StartsWith("InlineKernel_", StringComparison.Ordinal))
+                return inner;
+        }
+        return outer.Length > 0 ? outer : name;
+    }
+
+    /// <summary>
     /// Returns the number of parameters including the main parameter offset.
     /// methods.
     /// </summary>

@@ -100,7 +100,7 @@ partial class CodeGenerator
             string.Format(
                 ErrorMessages.KernelDiagnosticAddressTakenDelegate,
                 name,
-                Method.Name),
+                Method.GetDisplayName()),
             _addressLocations.GetValueOrDefault(var, Location));
     }
 

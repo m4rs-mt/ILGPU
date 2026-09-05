@@ -867,9 +867,9 @@ sealed class ILFrontend
             }
         }
 
-        // Closures can be verified once their captured values can be traced
-        // through all calls
+        // Closures and recursion can be verified once all calls are known
         closureCaptures.Verify();
+        specializations.VerifyNoRecursion();
 
         return processed.Count > 0;
     }

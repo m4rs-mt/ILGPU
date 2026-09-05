@@ -477,10 +477,6 @@
     <value>The {0} view is larger than the {1} view.</value>
     <comment/>
   </data>
-  <data name="NotSupportedClosureAllocationInLoop" xml:space="preserve">
-    <value>Closure allocation of type '{0}' inside a loop is not supported. Move the closure allocation outside the loop.</value>
-    <comment/>
-  </data>
   <data name="NotSupportedUnresolvedKernelDelegate" xml:space="preserve">
     <value>Cannot resolve the delegate registered under the key '{0}' in assembly '{1}'.</value>
     <comment/>
@@ -535,6 +531,50 @@
   </data>
   <data name="KernelDiagnosticGroupMemoryCapture" xml:space="preserve">
     <value>A lambda or local function in method '{0}' captures '{1}', which points to shared or local memory. Closures can only capture values and views of global memory; pass the view as a parameter of a static local function instead.</value>
+    <comment/>
+  </data>
+  <data name="KernelDiagnosticDelegateFieldType" xml:space="preserve">
+    <value>Type '{0}' stores a delegate in its field '{1}', which kernels do not support</value>
+    <comment/>
+  </data>
+  <data name="KernelDiagnosticDelegateStorage" xml:space="preserve">
+    <value>Method '{0}' uses a delegate stored in {1}. Kernels can only pass delegates directly as arguments; use a generic struct implementing an interface to store an operation.</value>
+    <comment/>
+  </data>
+  <data name="KernelDiagnosticDelegateInField" xml:space="preserve">
+    <value>the field '{0}' of '{1}'</value>
+    <comment/>
+  </data>
+  <data name="KernelDiagnosticDelegateInTuple" xml:space="preserve">
+    <value>the tuple '{0}'</value>
+    <comment/>
+  </data>
+  <data name="KernelDiagnosticDelegateInArray" xml:space="preserve">
+    <value>an array of '{0}'</value>
+    <comment/>
+  </data>
+  <data name="KernelDiagnosticDelegateInClosure" xml:space="preserve">
+    <value>the closure of a lambda or local function capturing '{0}'</value>
+    <comment/>
+  </data>
+  <data name="KernelDiagnosticNestedLambda" xml:space="preserve">
+    <value>Method '{0}' creates a lambda inside a lambda or local function that captures variables, which is not supported. Declare the inner lambda outside of it, or pass the captured values to it as parameters.</value>
+    <comment/>
+  </data>
+  <data name="KernelDiagnosticDelegateStaticField" xml:space="preserve">
+    <value>Static field '{0}' holds a delegate, which kernels cannot load. Pass a lambda expression or a static method as an argument instead.</value>
+    <comment/>
+  </data>
+  <data name="KernelDiagnosticStructMethodGroup" xml:space="preserve">
+    <value>Delegate created from the instance method '{0}' of a struct value is not supported. Use a lambda expression that captures the value instead.</value>
+    <comment/>
+  </data>
+  <data name="KernelDiagnosticClosureInLoop" xml:space="preserve">
+    <value>A lambda or local function in method '{0}' allocates its closure inside a loop, which is not supported. Move the closure allocation outside the loop.</value>
+    <comment/>
+  </data>
+  <data name="KernelDiagnosticDelegateRecursion" xml:space="preserve">
+    <value>Method '{0}' calls itself while passing delegates, directly or through the delegates passed to it. Recursion is not supported in kernels.</value>
     <comment/>
   </data>
 </root>

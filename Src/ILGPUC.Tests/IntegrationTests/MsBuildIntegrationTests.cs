@@ -287,14 +287,15 @@ public sealed class MsBuildIntegrationTests
             Assert.NotEqual(0, build.ExitCode);
 
             // The rejection from LowerGCInit is reported in the canonical
-            // error format at the launch site, without an unhandled exception
+            // error format at the loop, without an unhandled exception
             var combined = build.FullStdOut + "\n" + build.StdErr;
             Assert.True(
                 combined.Contains(
-                    "Program.cs(41,9): error ILGPU1200: Kernel code uses an " +
-                    "unsupported construct: Closure allocation",
+                    "Program.cs(21,14): error ILGPU1208: A lambda or local " +
+                    "function in method 'LambdaInLoopKernel' allocates its " +
+                    "closure inside a loop",
                     StringComparison.Ordinal),
-                $"Expected an ILGPU1200 error at Program.cs(41,9), " +
+                $"Expected an ILGPU1208 error at Program.cs(21,14), " +
                 $"got:\n{combined}");
             Assert.DoesNotContain("Unhandled exception", combined);
         }

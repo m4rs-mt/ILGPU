@@ -24,6 +24,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 
 namespace ILGPUC.Frontend;
 
@@ -268,7 +269,7 @@ partial class CodeGenerator
             string.Format(
                 ErrorMessages.KernelDiagnosticDelegateIdentity,
                 operation,
-                Method.Name),
+                Method.GetDisplayName()),
             Location);
 
     /// <summary>
@@ -284,7 +285,7 @@ partial class CodeGenerator
             string.Format(
                 ErrorMessages.KernelDiagnosticDelegateOperation,
                 operation,
-                Method.Name),
+                Method.GetDisplayName()),
             Location);
 
     /// <summary>
@@ -383,6 +384,76 @@ partial class CodeGenerator
         {
             throw GetDelegateOperationException(
                 $"{operation} {FormatTypeName(type)}");
+        }
+    }
+
+    /// <summary>
+    /// Creates the error for a delegate stored in memory: in a field of a
+    /// structure, a tuple or a closure, or in an array.
+    /// </summary>
+    /// <param name="storage">The description of the storage.</param>
+    /// <returns>The created exception.</returns>
+    private KernelCompilationException GetDelegateStorageException(string storage) =>
+        new(
+            KernelDiagnostic.DelegateStorageId,
+            string.Format(
+                ErrorMessages.KernelDiagnosticDelegateStorage,
+                Method.GetDisplayName(),
+                storage),
+            Location);
+
+    /// <summary>
+    /// Creates the error for a type with a delegate field (see
+    /// <see cref="DelegateFieldException"/>).
+    /// </summary>
+    /// <param name="exception">The rejected type and field.</param>
+    /// <returns>The created exception.</returns>
+    private KernelCompilationException GetDelegateStorageException(
+        DelegateFieldException exception)
+    {
+        var type = exception.ContainingType;
+        var field = exception.Field;
+        if (type.IsValueTuple())
+        {
+            return GetDelegateStorageException(string.Format(
+                ErrorMessages.KernelDiagnosticDelegateInTuple,
+                FormatTypeName(type)));
+        }
+        if (!type.IsDefined(typeof(CompilerGeneratedAttribute), false))
+        {
+            return GetDelegateStorageException(string.Format(
+                ErrorMessages.KernelDiagnosticDelegateInField,
+                field.Name,
+                FormatTypeName(type)));
+        }
+
+        // Capturing lambdas cache the delegates of lambdas they create in
+        // fields of their closures
+        if (field.Name.StartsWith("<>9__", StringComparison.Ordinal))
+        {
+            return new(
+                KernelDiagnostic.DelegateStorageId,
+                string.Format(
+                    ErrorMessages.KernelDiagnosticNestedLambda,
+                    Method.GetDisplayName()),
+                Location);
+        }
+        return GetDelegateStorageException(string.Format(
+            ErrorMessages.KernelDiagnosticDelegateInClosure,
+            field.Name));
+    }
+
+    /// <summary>
+    /// Rejects arrays of delegates.
+    /// </summary>
+    /// <param name="elementType">The element type of the array.</param>
+    private void VerifyNoDelegateArray(Type elementType)
+    {
+        if (elementType.IsDelegate())
+        {
+            throw GetDelegateStorageException(string.Format(
+                ErrorMessages.KernelDiagnosticDelegateInArray,
+                FormatTypeName(elementType)));
         }
     }
 
@@ -759,7 +830,9 @@ partial class CodeGenerator
 
         var specializations = _specializations ??
             throw Location.GetInvalidOperationException();
-        return specializations.GetOrCreate(method, delegateTargets);
+        var specialized = specializations.GetOrCreate(method, delegateTargets);
+        specializations.RecordCall(specialized, MethodBuilder.Method, Location);
+        return specialized;
     }
 
     /// <summary>
@@ -780,13 +853,13 @@ partial class CodeGenerator
         var message = callee is null
             ? string.Format(
                 ErrorMessages.KernelDiagnosticUnresolvedDelegateInvocation,
-                Method.Name,
+                Method.GetDisplayName(),
                 origin)
             : string.Format(
                 ErrorMessages.KernelDiagnosticUnresolvedDelegateArgument,
                 callee.GetParameters()[parameterIndex].Name ??
                     parameterIndex.ToString(CultureInfo.InvariantCulture),
-                callee.Name,
+                callee.GetDisplayName(),
                 origin);
         return new KernelCompilationException(
             KernelDiagnostic.UnresolvedDelegateId,
@@ -851,7 +924,7 @@ partial class CodeGenerator
                 return string.Format(
                     ErrorMessages.KernelDiagnosticDelegateUnboundParameter,
                     parameter.Name,
-                    Method.Name);
+                    Method.GetDisplayName());
             }
         }
         return ErrorMessages.KernelDiagnosticDelegateUnsupportedOperation;

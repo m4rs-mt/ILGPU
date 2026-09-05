@@ -198,6 +198,124 @@ public sealed class KernelDiagnosticTests
             data[index] = Read(index.X);
         }
 
+        // r3_capdelegate: a closure capturing a delegate
+        // Closures are allocated at the start of the scope of their variables
+        public static void ClosureCapturesDelegateKernel(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data)
+        { // ClosureCapturesDelegate
+            Func<int, int> f = x => x + 1;
+            Func<int, int> g = y => f(y) * 2;
+            data[index] = g(data[index]);
+        }
+
+        private struct Holder
+        {
+            public Func<int, int> F;
+            public int B;
+        }
+
+        // r5_structret: a structure with a delegate field
+        public static void StructWithDelegateFieldKernel(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data)
+        {
+            var holder = new Holder { F = x => x * 2, B = 1 }; // StructWithDelegateField
+            data[index] = holder.F(data[index]) + holder.B;
+        }
+
+        // k24_tuple: a tuple with a delegate element
+        public static void TupleWithDelegateKernel(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data)
+        {
+            (Func<int, int> F, int B) t = (x => x + 1, 3); // TupleWithDelegate
+            data[index] = t.F(data[index]) + t.B;
+        }
+
+        // k23_array: an array of delegates
+        public static void DelegateArrayKernel(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data)
+        {
+            var array = new Func<int, int>[] { x => x + 1 }; // DelegateArray
+            data[index] = array[0](data[index]);
+        }
+
+        // k36_nestedlambda: a capturing lambda creating another lambda
+        public static void NestedLambdaKernel(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data)
+        { // NestedLambda
+            int k = 3;
+            Func<int, int> outer = x =>
+            {
+                Func<int, int> inner = y => y * k;
+                return inner(x) + 1;
+            };
+            data[index] = outer(data[index]);
+        }
+
+        private static readonly Func<int, int> StaticOperation = x => x * 3;
+
+        // p06_staticfield: a static readonly delegate field
+        public static void DelegateStaticFieldKernel(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data)
+        {
+            data[index] = StaticOperation(data[index]); // DelegateStaticField
+        }
+
+        private struct Adder
+        {
+            public int K;
+            public readonly int Add(int x) => x + K;
+        }
+
+        // k19_structmethodgroup: a delegate created from a struct method
+        public static void StructMethodGroupKernel(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data)
+        {
+            var adder = new Adder { K = 5 };
+            Func<int, int> f = adder.Add; // StructMethodGroup
+            data[index] = f(data[index]);
+        }
+
+        // p15_loopcapture: a closure allocated in a loop
+        public static void ClosureInLoopKernel(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data)
+        {
+            int sum = 0;
+            for (int i = 0; i < 4; i++) // ClosureInLoop
+            {
+                int captured = i;
+                Func<int> f = () => captured;
+                sum += f();
+            }
+            data[index] = sum;
+        }
+
+        private static int SumOver(Func<int, int> f, int n) =>
+            n <= 0 ? 0 : f(n) + SumOver(f, n - 1); // DelegateRecursion
+
+        public static void DelegateRecursionKernel(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data)
+        {
+            data[index] = SumOver(x => x * 2, data[index]);
+        }
+
+        // k27_expression: an expression tree
+        public static void ExpressionKernel(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data)
+        {
+            System.Linq.Expressions.Expression<Func<int, int>> e = x => x + 1;
+            data[index] = e.Parameters.Count;
+        }
+
         public static void DelegateMemberKernel(
             Index1D index,
             ArrayView1D<int, Stride1D.Dense> data)
@@ -616,6 +734,105 @@ public sealed class KernelDiagnosticTests
             "ILGPU1204",
             "A lambda or local function in method 'Kern' captures 'sh', which " +
             "points to shared or local memory.");
+
+    #endregion
+
+    #region Delegate Storage and Other Frontend Diagnostics (ILGPU1205-1209, 1200)
+
+    [Fact]
+    public void ClosureCapturesDelegate_Reports1205() =>
+        AssertDiagnostic(
+            Compile(nameof(Kernels.ClosureCapturesDelegateKernel)),
+            "ILGPU1205",
+            "Method 'ClosureCapturesDelegateKernel' uses a delegate stored in the " +
+            "closure of a lambda or local function capturing 'f'.",
+            "ClosureCapturesDelegate");
+
+    [Fact]
+    public void StructWithDelegateField_Reports1205() =>
+        AssertDiagnostic(
+            Compile(nameof(Kernels.StructWithDelegateFieldKernel)),
+            "ILGPU1205",
+            "uses a delegate stored in the field 'F' of 'Holder'.",
+            "StructWithDelegateField");
+
+    [Fact]
+    public void TupleWithDelegate_Reports1205() =>
+        AssertDiagnostic(
+            Compile(nameof(Kernels.TupleWithDelegateKernel)),
+            "ILGPU1205",
+            "uses a delegate stored in the tuple " +
+            "'ValueTuple<Func<Int32, Int32>, Int32>'.",
+            "TupleWithDelegate");
+
+    [Fact]
+    public void DelegateArray_Reports1205() =>
+        AssertDiagnostic(
+            Compile(nameof(Kernels.DelegateArrayKernel)),
+            "ILGPU1205",
+            "uses a delegate stored in an array of 'Func<Int32, Int32>'.",
+            "DelegateArray");
+
+    [Fact]
+    public void NestedLambda_Reports1205() =>
+        AssertDiagnostic(
+            Compile(nameof(Kernels.NestedLambdaKernel)),
+            "ILGPU1205",
+            "Method 'NestedLambdaKernel' creates a lambda inside a lambda or " +
+            "local function that captures variables, which is not supported.",
+            "NestedLambda");
+
+    [Fact]
+    public void DelegateStaticField_Reports1206() =>
+        AssertDiagnostic(
+            Compile(nameof(Kernels.DelegateStaticFieldKernel)),
+            "ILGPU1206",
+            "Static field 'Kernels.StaticOperation' holds a delegate, which " +
+            "kernels cannot load.",
+            "DelegateStaticField");
+
+    [Fact]
+    public void StructMethodGroup_Reports1207() =>
+        AssertDiagnostic(
+            Compile(nameof(Kernels.StructMethodGroupKernel)),
+            "ILGPU1207",
+            "Delegate created from the instance method 'Adder.Add' of a struct " +
+            "value is not supported.",
+            "StructMethodGroup");
+
+    [Fact]
+    public void ClosureInLoop_Reports1208() =>
+        AssertDiagnostic(
+            Compile(nameof(Kernels.ClosureInLoopKernel)),
+            "ILGPU1208",
+            "A lambda or local function in method 'ClosureInLoopKernel' allocates " +
+            "its closure inside a loop, which is not supported.",
+            "ClosureInLoop");
+
+    [Fact]
+    public void DelegateRecursion_Reports1209() =>
+        AssertDiagnostic(
+            Compile(nameof(Kernels.DelegateRecursionKernel)),
+            "ILGPU1209",
+            "Method 'SumOver' calls itself while passing delegates",
+            "DelegateRecursion");
+
+    [Fact]
+    public void Expression_ReportsUnsupportedConstruct()
+    {
+        using var helper = new CompilationHelper(BackendType.CPU);
+        var kernel = typeof(Kernels).GetMethod(
+            nameof(Kernels.ExpressionKernel),
+            BindingFlags.Public | BindingFlags.Static)!;
+        var exception = Assert.ThrowsAny<Exception>(() =>
+            helper.GetNormalizedIR(kernel, IRDumpPoint.AfterBackendTransforms));
+        Assert.True(KernelCompilationErrors.TryCreateDiagnostic(
+            exception,
+            LaunchSite,
+            out var diagnostic));
+        Assert.Equal("ILGPU1200", diagnostic!.Id);
+        Assert.Contains("Expression`1", diagnostic.Message);
+    }
 
     #endregion
 

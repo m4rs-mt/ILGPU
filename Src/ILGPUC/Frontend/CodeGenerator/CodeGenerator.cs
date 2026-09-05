@@ -148,6 +148,10 @@ sealed partial class CodeGenerator
         {
             SetupVariables();
         }
+        catch (DelegateFieldException exception)
+        {
+            throw GetDelegateStorageException(exception);
+        }
         catch (Exception exception) when (
             exception is not InternalCompilerException and
                 not KernelCompilationException)
@@ -257,7 +261,17 @@ sealed partial class CodeGenerator
         for (int i = 0, e = localVariables.Count; i < e; ++i)
         {
             var variable = localVariables[i];
-            var variableType = ModuleBuilder.CreateType(variable.LocalType);
+            TypeValue variableType;
+            try
+            {
+                variableType = ModuleBuilder.CreateType(variable.LocalType);
+            }
+            catch (DelegateFieldException exception)
+            {
+                // Report variables of rejected types at their first use
+                Location = FindLocalVariableLocation(i) ?? Location;
+                throw GetDelegateStorageException(exception);
+            }
             var localRef = new VariableRef(i, VariableRefType.Local);
             Value initValue = builder.CreateNull(
                 Location,
@@ -283,6 +297,26 @@ sealed partial class CodeGenerator
                 variableType,
                 variable.LocalType.ToTargetUnsignedFlags());
         }
+    }
+
+    /// <summary>
+    /// Returns the location of the first instruction using the local variable
+    /// with the given index (if any).
+    /// </summary>
+    /// <param name="index">The index of the local variable.</param>
+    private Location? FindLocalVariableLocation(int index)
+    {
+        foreach (var instruction in DisassembledMethod.Instructions)
+        {
+            if (instruction.InstructionType is ILInstructionType.Ldloc or
+                    ILInstructionType.Ldloca or ILInstructionType.Stloc &&
+                instruction.GetArgumentAs<int>() == index &&
+                instruction.Location.IsKnown)
+            {
+                return instruction.Location;
+            }
+        }
+        return null;
     }
 
     #endregion
@@ -374,6 +408,11 @@ sealed partial class CodeGenerator
     /// Gets or sets the IL offset of the instruction being generated.
     /// </summary>
     private int CurrentInstructionOffset { get; set; }
+
+    /// <summary>
+    /// Gets or sets the index of the instruction being generated.
+    /// </summary>
+    private int CurrentInstructionIndex { get; set; }
 
     /// <summary>
     /// Gets or sets the offset for load/store argument instructions in a lambda.
@@ -554,6 +593,7 @@ sealed partial class CodeGenerator
         {
             var instruction = DisassembledMethod[i];
             CurrentInstructionOffset = instruction.Offset;
+            CurrentInstructionIndex = i;
 
             // Setup debug information
             Location = instruction.Location;
@@ -564,10 +604,19 @@ sealed partial class CodeGenerator
             {
                 generated = TryGenerateCode(instruction);
             }
+            catch (InternalCompilerException exception) when (
+                exception.InnerException is DelegateFieldException fieldException)
+            {
+                throw GetDelegateStorageException(fieldException);
+            }
             catch (InternalCompilerException)
             {
                 // If we already have an internal compiler exception, re-throw it.
                 throw;
+            }
+            catch (DelegateFieldException exception)
+            {
+                throw GetDelegateStorageException(exception);
             }
             catch (KernelCompilationException)
             {

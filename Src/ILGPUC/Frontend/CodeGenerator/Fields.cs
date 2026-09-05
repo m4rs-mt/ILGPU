@@ -14,6 +14,7 @@ using ILGPU.Util;
 using ILGPUC.IR;
 using ILGPUC.IR.ModuleValues;
 using ILGPUC.IR.PureValues;
+using ILGPUC.Roslyn.Analysis;
 using ILGPUC.Util;
 using System;
 using System.Reflection;
@@ -140,6 +141,18 @@ partial class CodeGenerator
     /// <returns>The loaded field value.</returns>
     private Value CreateLoadStaticFieldValue(FieldInfo field)
     {
+        bool isCompilerGenerated = field.DeclaringType?.Name.StartsWith(
+            "<>",
+            StringComparison.Ordinal) == true;
+        if (!isCompilerGenerated && field.FieldType.IsDelegate())
+        {
+            throw new KernelCompilationException(
+                KernelDiagnostic.DelegateStaticFieldId,
+                string.Format(
+                    ErrorMessages.KernelDiagnosticDelegateStaticField,
+                    $"{field.DeclaringType?.Name}.{field.Name}"),
+                Location);
+        }
         VerifyStaticFieldLoad(field);
 
         // Compiler-generated static fields in closure/display classes (<>c):
@@ -202,7 +215,7 @@ partial class CodeGenerator
                 Block.GetValue(new VariableRef(
                     Block.StackCounter - 1,
                     VariableRefType.Stack)),
-                Method.Name,
+                Method.GetDisplayName(),
                 field.Name,
                 Location);
         }

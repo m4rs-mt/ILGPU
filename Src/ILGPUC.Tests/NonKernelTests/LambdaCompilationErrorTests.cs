@@ -73,7 +73,7 @@ public sealed class LambdaCompilationErrorTests
         ?? throw new InvalidOperationException($"Kernel method '{name}' not found.");
 
     [Fact]
-    public void LambdaInLoop_ThrowsNotSupportedException()
+    public void LambdaInLoop_ReportsClosureInLoop()
     {
         using var helper = new CompilationHelper(BackendType.CPU);
         var kernel = typeof(LambdaErrorKernels).GetMethod(
@@ -82,8 +82,9 @@ public sealed class LambdaCompilationErrorTests
             ?? throw new InvalidOperationException(
                 "Kernel method 'LambdaInLoopKernel' not found.");
 
-        Assert.Throws<NotSupportedException>(() =>
+        var exception = Assert.Throws<KernelCompilationException>(() =>
             helper.GetNormalizedIR(kernel, IRDumpPoint.AfterBackendTransforms));
+        Assert.Equal("ILGPU1208", exception.Id);
     }
 
     [Fact]

@@ -835,15 +835,6 @@ namespace ILGPU.Resources {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Closure allocation of type '{0}' inside a loop is not supported.
-        /// </summary>
-        internal static string NotSupportedClosureAllocationInLoop {
-            get {
-                return ResourceManager.GetString("NotSupportedClosureAllocationInLoop", resourceCulture);
-            }
-        }
-
-        /// <summary>
         ///   Looks up a localized string similar to Cannot resolve the delegate registered under the key &apos;{0}&apos; in assembly &apos;{1}&apos;.
         /// </summary>
         internal static string NotSupportedUnresolvedKernelDelegate {
@@ -966,6 +957,105 @@ namespace ILGPU.Resources {
         internal static string KernelDiagnosticGroupMemoryCapture {
             get {
                 return ResourceManager.GetString("KernelDiagnosticGroupMemoryCapture", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Type &apos;{0}&apos; stores a delegate in its field &apos;{1}&apos;, which kernels do not support.
+        /// </summary>
+        internal static string KernelDiagnosticDelegateFieldType {
+            get {
+                return ResourceManager.GetString("KernelDiagnosticDelegateFieldType", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Method &apos;{0}&apos; uses a delegate stored in {1}. Kernels can only pass delegates directly as arguments; use a generic struct implementing an interface to store an operation..
+        /// </summary>
+        internal static string KernelDiagnosticDelegateStorage {
+            get {
+                return ResourceManager.GetString("KernelDiagnosticDelegateStorage", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to the field &apos;{0}&apos; of &apos;{1}&apos;.
+        /// </summary>
+        internal static string KernelDiagnosticDelegateInField {
+            get {
+                return ResourceManager.GetString("KernelDiagnosticDelegateInField", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to the tuple &apos;{0}&apos;.
+        /// </summary>
+        internal static string KernelDiagnosticDelegateInTuple {
+            get {
+                return ResourceManager.GetString("KernelDiagnosticDelegateInTuple", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to an array of &apos;{0}&apos;.
+        /// </summary>
+        internal static string KernelDiagnosticDelegateInArray {
+            get {
+                return ResourceManager.GetString("KernelDiagnosticDelegateInArray", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to the closure of a lambda or local function capturing &apos;{0}&apos;.
+        /// </summary>
+        internal static string KernelDiagnosticDelegateInClosure {
+            get {
+                return ResourceManager.GetString("KernelDiagnosticDelegateInClosure", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Method &apos;{0}&apos; creates a lambda inside a lambda or local function that captures variables, which is not supported. Declare the inner lambda outside of it, or pass the captured values to it as parameters..
+        /// </summary>
+        internal static string KernelDiagnosticNestedLambda {
+            get {
+                return ResourceManager.GetString("KernelDiagnosticNestedLambda", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Static field &apos;{0}&apos; holds a delegate, which kernels cannot load. Pass a lambda expression or a static method as an argument instead..
+        /// </summary>
+        internal static string KernelDiagnosticDelegateStaticField {
+            get {
+                return ResourceManager.GetString("KernelDiagnosticDelegateStaticField", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Delegate created from the instance method &apos;{0}&apos; of a struct value is not supported. Use a lambda expression that captures the value instead..
+        /// </summary>
+        internal static string KernelDiagnosticStructMethodGroup {
+            get {
+                return ResourceManager.GetString("KernelDiagnosticStructMethodGroup", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to A lambda or local function in method &apos;{0}&apos; allocates its closure inside a loop, which is not supported. Move the closure allocation outside the loop..
+        /// </summary>
+        internal static string KernelDiagnosticClosureInLoop {
+            get {
+                return ResourceManager.GetString("KernelDiagnosticClosureInLoop", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Method &apos;{0}&apos; calls itself while passing delegates, directly or through the delegates passed to it. Recursion is not supported in kernels..
+        /// </summary>
+        internal static string KernelDiagnosticDelegateRecursion {
+            get {
+                return ResourceManager.GetString("KernelDiagnosticDelegateRecursion", resourceCulture);
             }
         }
     }

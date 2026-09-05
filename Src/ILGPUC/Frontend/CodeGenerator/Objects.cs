@@ -29,6 +29,16 @@ partial class CodeGenerator
     /// </summary>
     private void MakeBox()
     {
+        // Delegates created from instance methods of structs box the instance
+        int nextIndex = CurrentInstructionIndex + 1;
+        if (nextIndex < DisassembledMethod.Count &&
+            DisassembledMethod[nextIndex].InstructionType is
+                ILInstructionType.LdFunction or ILInstructionType.LdVirtualFunction)
+        {
+            VerifyNoStructMethodGroup(
+                DisassembledMethod[nextIndex].GetArgumentAs<MethodBase>());
+        }
+
         var value = Block.Pop();
         if (value.Type is not ObjectType)
             throw Location.GetInvalidOperationException();

@@ -105,6 +105,33 @@ record KernelDiagnostic(string Id, string Message, Location Location)
     public const string GroupMemoryCaptureId = "ILGPU1204";
 
     /// <summary>
+    /// Kernel code stores a delegate in a field of a structure, a tuple or a
+    /// closure, or in an array.
+    /// </summary>
+    public const string DelegateStorageId = "ILGPU1205";
+
+    /// <summary>
+    /// Kernel code loads a delegate from a static field.
+    /// </summary>
+    public const string DelegateStaticFieldId = "ILGPU1206";
+
+    /// <summary>
+    /// Kernel code creates a delegate from an instance method of a struct.
+    /// </summary>
+    public const string StructMethodGroupId = "ILGPU1207";
+
+    /// <summary>
+    /// Kernel code allocates the closure of a lambda or local function inside
+    /// a loop.
+    /// </summary>
+    public const string ClosureInLoopId = "ILGPU1208";
+
+    /// <summary>
+    /// Kernel code calls itself through the delegates passed to it.
+    /// </summary>
+    public const string DelegateRecursionId = "ILGPU1209";
+
+    /// <summary>
     /// Formats this diagnostic in the canonical
     /// <c>file(line,column): error ID: message</c> form that MSBuild and IDEs
     /// pick up from tool output.
