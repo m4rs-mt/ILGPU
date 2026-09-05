@@ -489,6 +489,10 @@
     <value>Cannot statically resolve the delegate passed to parameter '{0}' of method '{1}'. Pass a lambda expression or a static method directly at the call, or use a generic struct implementing an interface instead of the delegate.</value>
     <comment/>
   </data>
+  <data name="NotSupportedUnresolvedKernelDelegate" xml:space="preserve">
+    <value>Cannot resolve the delegate registered under the key '{0}' in assembly '{1}'.</value>
+    <comment/>
+  </data>
   <data name="NotSupportedRecursiveReferenceType" xml:space="preserve">
     <value>Recursive reference type '{0}' is not supported in GPU kernels.</value>
     <comment/>

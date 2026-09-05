@@ -25,4 +25,7 @@ sealed class Worker(AcceleratorStream stream)
             target[index] = index * factor - bias;
         });
     }
+
+    public void Square(ArrayView<int> target) =>
+        DelegateOps.UnaryOp(stream, target, DelegateOps.Square);
 }

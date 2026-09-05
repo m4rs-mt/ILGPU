@@ -1,7 +1,8 @@
 // InlineLambdaKernels: kernels written inline as lambdas at the launch site.
 // The lambdas capture views, buffers, scalars, structs and method parameters,
 // call helpers of their enclosing type and local functions, declare nested
-// local functions, and are launched with 1D, 2D and grouped configurations.
+// local functions, and are launched with 1D, 2D and grouped configurations,
+// also from a method launching a kernel method with the delegate it receives.
 // Each line of the output is produced by a different launch.
 
 using System;
@@ -121,5 +122,14 @@ static class Program
         stream.Launch(Length, index => view[index] = Cube(index));
         stream.Synchronize();
         Print("L", buffer.GetAsArray1D());
+
+        // A delegate parameter passed to a kernel method, bound to the lambda
+        // passed here and to the static method passed by the worker.
+        DelegateOps.UnaryOp(stream, view, v => v - 20);
+        stream.Synchronize();
+        Print("M", buffer.GetAsArray1D());
+        new Worker(stream).Square(view);
+        stream.Synchronize();
+        Print("N", buffer.GetAsArray1D());
     }
 }

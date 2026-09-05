@@ -38,7 +38,8 @@ record KernelDiagnostic(string Id, string Message, Location Location)
     public const string UnsupportedCaptureId = "ILGPU1103";
 
     /// <summary>
-    /// An inline kernel is declared in a generic method or type.
+    /// An inline kernel, or a lambda passed for a delegate it captures, is
+    /// declared in a generic method or type.
     /// </summary>
     public const string GenericContextId = "ILGPU1104";
 
@@ -52,6 +53,24 @@ record KernelDiagnostic(string Id, string Message, Location Location)
     /// A kernel launch is part of an expression instead of a statement.
     /// </summary>
     public const string LaunchNotStatementId = "ILGPU1106";
+
+    /// <summary>
+    /// A lambda passed for a delegate parameter captured by an inline kernel
+    /// captures variables itself.
+    /// </summary>
+    public const string CapturingDelegateArgumentId = "ILGPU1107";
+
+    /// <summary>
+    /// An argument passed for a delegate parameter captured by an inline kernel
+    /// cannot be traced to a lambda or a static method.
+    /// </summary>
+    public const string UntraceableDelegateArgumentId = "ILGPU1108";
+
+    /// <summary>
+    /// An inline kernel captures a delegate parameter that no call passes a
+    /// lambda or a static method to.
+    /// </summary>
+    public const string UnboundDelegateParameterId = "ILGPU1109";
 
     /// <summary>
     /// Formats this diagnostic in the canonical

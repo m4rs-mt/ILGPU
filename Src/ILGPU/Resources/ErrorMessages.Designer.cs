@@ -862,6 +862,15 @@ namespace ILGPU.Resources {
         }
 
         /// <summary>
+        ///   Looks up a localized string similar to Cannot resolve the delegate registered under the key &apos;{0}&apos; in assembly &apos;{1}&apos;.
+        /// </summary>
+        internal static string NotSupportedUnresolvedKernelDelegate {
+            get {
+                return ResourceManager.GetString("NotSupportedUnresolvedKernelDelegate", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to Recursive reference type '{0}' is not supported.
         /// </summary>
         internal static string NotSupportedRecursiveReferenceType {

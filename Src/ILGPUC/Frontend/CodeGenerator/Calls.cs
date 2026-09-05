@@ -119,6 +119,13 @@ partial class CodeGenerator
             return;
         }
 
+        // Delegates bound by ILGPUC to the targets registered at call sites
+        if (KernelDelegateTargets.IsBind(target))
+        {
+            MakeKernelDelegateBinding();
+            return;
+        }
+
         var delegateArguments = PeekDelegateArguments(target);
         var values = Block.PopMethodArgs(Location, target, null);
         CreateCall(target, ref values, delegateArguments);

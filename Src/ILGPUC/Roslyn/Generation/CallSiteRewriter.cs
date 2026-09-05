@@ -34,11 +34,23 @@ namespace ILGPUC.Roslyn.Generation;
 /// Inline lambda kernels are launched the same way with their captured
 /// values as arguments. When lifting is enabled, the launch is additionally
 /// wrapped in a block that declares the lambda body as a static local
-/// function, which makes the kernel resolvable from the emitted assembly.
+/// function, which makes the kernel resolvable from the emitted assembly,
+/// followed by the lifted kernels binding its captured delegates.
+///
+/// Delegates passed to delegate parameters captured by inline kernels are
+/// registered under the keys of their targets at their call sites:
+///   Host.UnaryOp(stream, view, v => -v);
+/// After:
+///   Host.UnaryOp(stream, view,
+///     global::ILGPU.Runtime.KernelDelegates.Register&lt;...&gt;(
+///       v => -v, "Host.UnaryOp.op#0"));
 /// </summary>
 sealed class CallSiteRewriter : CSharpSyntaxRewriter
 {
     private readonly Dictionary<SyntaxNode, KernelDescriptor> _launchSiteMap = [];
+    private readonly Dictionary<SyntaxNode, List<KernelDescriptor>> _boundKernels =
+        [];
+    private readonly Dictionary<ArgumentSyntax, DelegateRegistration> _registrations;
     private readonly bool _emitLineDirectives;
     private readonly bool _liftInlineKernels;
 
@@ -46,8 +58,9 @@ sealed class CallSiteRewriter : CSharpSyntaxRewriter
     /// Initializes a new <see cref="CallSiteRewriter"/> that rewrites all launch
     /// call sites for the supplied kernels.
     /// </summary>
-    /// <param name="kernels">
-    /// Kernel descriptors whose launch sites will be rewritten.
+    /// <param name="analysis">
+    /// The analysis results whose launch sites and delegate registrations will
+    /// be rewritten.
     /// </param>
     /// <param name="emitLineDirectives">
     /// When <see langword="true"/>, emits <c>#line</c> directives so the rewritten
@@ -58,14 +71,24 @@ sealed class CallSiteRewriter : CSharpSyntaxRewriter
     /// lambda kernel as a static local function next to its launch site.
     /// </param>
     public CallSiteRewriter(
-        List<KernelDescriptor> kernels,
+        AnalysisResult analysis,
         bool emitLineDirectives = false,
         bool liftInlineKernels = false)
     {
         _emitLineDirectives = emitLineDirectives;
         _liftInlineKernels = liftInlineKernels;
-        foreach (var kernel in kernels)
+        _registrations = analysis.DelegateRegistrations;
+        foreach (var kernel in analysis.AllKernels)
             _launchSiteMap[kernel.LaunchInfo.Invocation] = kernel;
+        foreach (var kernel in analysis.UniqueKernels)
+        {
+            if (kernel.DelegateKeys is null || kernel.LiftedKernel is null)
+                continue;
+            var invocation = kernel.LaunchInfo.Invocation;
+            if (!_boundKernels.TryGetValue(invocation, out var bound))
+                _boundKernels.Add(invocation, bound = []);
+            bound.Add(kernel);
+        }
     }
 
     /// <summary>
@@ -83,13 +106,54 @@ sealed class CallSiteRewriter : CSharpSyntaxRewriter
                 return launch;
 
             // { static void InlineKernel_...(...) { ... } Launch(...); }
-            return SyntaxFactory.Block(
-                    kernel.LiftedKernel,
-                    launch.WithoutLeadingTrivia())
+            var statements = new List<StatementSyntax> { kernel.LiftedKernel };
+            if (_boundKernels.TryGetValue(invocation, out var bound))
+                statements.AddRange(bound.Select(k => k.LiftedKernel!));
+            statements.Add(launch.WithoutLeadingTrivia());
+            return SyntaxFactory.Block(statements)
                 .WithLeadingTrivia(launch.GetLeadingTrivia());
         }
 
         return base.VisitExpressionStatement(node);
+    }
+
+    /// <summary>
+    /// Visits an argument and registers the delegate it passes under the keys
+    /// of its target if it is passed to a delegate parameter captured by an
+    /// inline kernel.
+    /// </summary>
+    public override SyntaxNode? VisitArgument(ArgumentSyntax node)
+    {
+        var visited = (ArgumentSyntax)base.VisitArgument(node)!;
+        if (!_registrations.TryGetValue(node, out var registration))
+            return visited;
+
+        // KernelDelegates.Register<TDelegate>(..., "key") for each key
+        var delegateType = SyntaxFactory.ParseTypeName(
+            registration.DelegateType.ToDisplayString(
+                SymbolDisplayFormat.FullyQualifiedFormat));
+        var expression = visited.Expression.WithoutTrivia();
+        foreach (var key in registration.Keys)
+        {
+            expression = SyntaxFactory.InvocationExpression(
+                SyntaxFactory.MemberAccessExpression(
+                    SyntaxKind.SimpleMemberAccessExpression,
+                    SyntaxFactory.ParseExpression(
+                        "global::ILGPU.Runtime.KernelDelegates"),
+                    SyntaxFactory.GenericName(
+                        SyntaxFactory.Identifier("Register"),
+                        SyntaxFactory.TypeArgumentList(
+                            SyntaxFactory.SingletonSeparatedList(delegateType)))),
+                SyntaxFactory.ArgumentList(SyntaxFactory.SeparatedList(
+                [
+                    SyntaxFactory.Argument(expression),
+                    SyntaxFactory.Argument(SyntaxFactory.LiteralExpression(
+                        SyntaxKind.StringLiteralExpression,
+                        SyntaxFactory.Literal(key))),
+                ])));
+        }
+        return visited.WithExpression(
+            expression.WithTriviaFrom(visited.Expression));
     }
 
     /// <summary>

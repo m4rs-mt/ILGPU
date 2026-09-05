@@ -12,6 +12,7 @@
 using ILGPUC.Roslyn.Analysis;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Text;
 using System;
 using System.Collections.Generic;
@@ -76,7 +77,10 @@ sealed class CompilationRewriter(ICompiledKernelProvider? kernelProvider = null)
 
     /// <summary>
     /// Phase 1: Analyze the compilation to find launch sites and extract
-    /// kernel descriptors. No modifications are made to the compilation.
+    /// kernel descriptors. Generic kernels are expanded into one kernel per
+    /// concrete specialization, and inline kernels capturing delegate
+    /// parameters into one kernel per delegate target. No modifications are
+    /// made to the compilation.
     /// </summary>
     public static AnalysisResult Analyze(CSharpCompilation compilation)
     {
@@ -93,6 +97,7 @@ sealed class CompilationRewriter(ICompiledKernelProvider? kernelProvider = null)
         // per-specialization descriptors.
         var expandedKernels = new List<KernelDescriptor>();
         var dispatchKernels = new List<KernelDescriptor>();
+        var delegateDiscoverer = new DelegateTargetDiscoverer(compilation);
 
         foreach (var kernel in kernels)
         {
@@ -117,6 +122,34 @@ sealed class CompilationRewriter(ICompiledKernelProvider? kernelProvider = null)
                     expandedKernels.Add(kernel);
                 }
             }
+            else if (kernel is
+                {
+                    DelegateCaptures: { } captures,
+                    LiftedKernel: not null,
+                })
+            {
+                // Bind captured delegate parameters to the targets passed by
+                // the callers of the launching method, one kernel for each
+                // combination of targets
+                var keys = captures
+                    .Select(delegateDiscoverer.DiscoverTargets)
+                    .ToArray();
+                if (keys.All(k => k is not null))
+                {
+                    dispatchKernels.Add(kernel);
+                    var combinations = GetCombinations(
+                        [.. keys.Select(k => k!.Value)]);
+                    for (int i = 0; i < combinations.Count; i++)
+                    {
+                        expandedKernels.Add(
+                            CreateBoundDescriptor(kernel, combinations[i], i));
+                    }
+                }
+                else
+                {
+                    expandedKernels.Add(kernel);
+                }
+            }
             else
             {
                 expandedKernels.Add(kernel);
@@ -130,7 +163,116 @@ sealed class CompilationRewriter(ICompiledKernelProvider? kernelProvider = null)
             kernels,
             uniqueKernels,
             dispatchKernels,
-            extractor.Diagnostics.Distinct().ToList());
+            extractor.Diagnostics
+                .Concat(delegateDiscoverer.Diagnostics)
+                .Distinct()
+                .ToList(),
+            delegateDiscoverer.Registrations);
+    }
+
+    /// <summary>
+    /// Returns all combinations that pick one key of each delegate capture.
+    /// </summary>
+    private static List<ImmutableArray<string>> GetCombinations(
+        ImmutableArray<string>[] keys)
+    {
+        var combinations = new List<ImmutableArray<string>>
+        {
+            ImmutableArray<string>.Empty,
+        };
+        foreach (var captureKeys in keys)
+        {
+            combinations =
+            [
+                .. combinations.SelectMany(
+                    combination => captureKeys.Select(key => combination.Add(key))),
+            ];
+        }
+        return combinations;
+    }
+
+    /// <summary>
+    /// Creates a <see cref="KernelDescriptor"/> that binds the delegate
+    /// captures of an inline kernel to the targets registered under the given
+    /// keys. Its lifted kernel takes the remaining captures and calls the
+    /// lifted kernel of the original with the bound delegates:
+    /// <code>
+    /// static void InlineKernel_Host_L12_C31_D0(
+    ///     global::ILGPU.Index1D index, ArrayView&lt;int&gt; view) =>
+    ///     InlineKernel_Host_L12_C31(
+    ///         index,
+    ///         view,
+    ///         KernelDelegates.Bind&lt;Func&lt;int, int&gt;&gt;("Host.UnaryOp.op#0"));
+    /// </code>
+    /// </summary>
+    private static KernelDescriptor CreateBoundDescriptor(
+        KernelDescriptor original,
+        ImmutableArray<string> keys,
+        int index)
+    {
+        var captures = original.DelegateCaptures!.Value;
+        var lifted = original.LiftedKernel!;
+        var name = $"{original.KernelName}_D{index}";
+
+        // The first parameter of the lifted kernel is the index
+        var parameters = lifted.ParameterList.Parameters;
+        var wrapperParameters = new List<ParameterSyntax> { parameters[0] };
+        var arguments = new List<ArgumentSyntax>
+        {
+            SyntaxFactory.Argument(
+                SyntaxFactory.IdentifierName(parameters[0].Identifier)),
+        };
+        var boundParameters = ImmutableArray.CreateBuilder<CapturedParameterInfo>();
+        var captureIndices = Enumerable.Range(0, captures.Length)
+            .ToDictionary(i => captures[i].ParameterIndex);
+        for (int i = 0; i < original.Parameters.Length; i++)
+        {
+            if (!captureIndices.TryGetValue(i, out int captureIndex))
+            {
+                var parameter = parameters[i + 1];
+                wrapperParameters.Add(parameter);
+                arguments.Add(SyntaxFactory.Argument(
+                    SyntaxFactory.IdentifierName(parameter.Identifier)));
+                boundParameters.Add(original.Parameters[i]);
+                continue;
+            }
+
+            // KernelDelegates.Bind<TDelegate>("key")
+            var delegateType = captures[captureIndex].Parameter.Type
+                .ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+            var bind = SyntaxFactory.InvocationExpression(
+                SyntaxFactory.ParseExpression(
+                    $"global::ILGPU.Runtime.KernelDelegates.Bind<{delegateType}>"),
+                SyntaxFactory.ArgumentList(SyntaxFactory.SingletonSeparatedList(
+                    SyntaxFactory.Argument(SyntaxFactory.LiteralExpression(
+                        SyntaxKind.StringLiteralExpression,
+                        SyntaxFactory.Literal(keys[captureIndex]))))));
+            arguments.Add(SyntaxFactory.Argument(bind));
+        }
+
+        var wrapper = SyntaxFactory.LocalFunctionStatement(
+                lifted.ReturnType,
+                SyntaxFactory.Identifier(name))
+            .WithModifiers(lifted.Modifiers)
+            .WithParameterList(SyntaxFactory.ParameterList(
+                SyntaxFactory.SeparatedList(wrapperParameters)))
+            .WithExpressionBody(SyntaxFactory.ArrowExpressionClause(
+                SyntaxFactory.InvocationExpression(
+                    SyntaxFactory.IdentifierName(lifted.Identifier),
+                    SyntaxFactory.ArgumentList(
+                        SyntaxFactory.SeparatedList(arguments)))))
+            .WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.SemicolonToken))
+            .NormalizeWhitespace();
+
+        return original with
+        {
+            KernelName = name,
+            Parameters = boundParameters.ToImmutable(),
+            GenericOriginName = original.KernelName,
+            LiftedKernel = wrapper,
+            DelegateCaptures = null,
+            DelegateKeys = keys,
+        };
     }
 
     /// <summary>
@@ -261,7 +403,7 @@ sealed class CompilationRewriter(ICompiledKernelProvider? kernelProvider = null)
 
         // Rewrite call sites in original trees
         var rewriter = new CallSiteRewriter(
-            analysis.AllKernels,
+            analysis,
             liftInlineKernels: liftInlineKernels);
         foreach (var tree in compilation.SyntaxTrees)
         {
@@ -327,7 +469,7 @@ sealed class CompilationRewriter(ICompiledKernelProvider? kernelProvider = null)
 
         // Rewrite call sites with #line directives enabled
         var rewriter = new CallSiteRewriter(
-            analysis.AllKernels,
+            analysis,
             emitLineDirectives: true);
         var rewrittenFiles = new Dictionary<string, SyntaxTree>();
 
@@ -392,11 +534,16 @@ sealed class CompilationRewriter(ICompiledKernelProvider? kernelProvider = null)
 /// Errors found at launch sites, such as inline kernels capturing values that
 /// cannot be passed to a kernel. Kernels must not be compiled if any exist.
 /// </param>
+/// <param name="DelegateRegistrations">
+/// The delegates passed to delegate parameters captured by inline kernels,
+/// which are registered under the keys of their targets at their call sites.
+/// </param>
 record AnalysisResult(
     List<KernelDescriptor> AllKernels,
     List<KernelDescriptor> UniqueKernels,
     List<KernelDescriptor> DispatchKernels,
-    List<KernelDiagnostic> Diagnostics);
+    List<KernelDiagnostic> Diagnostics,
+    Dictionary<ArgumentSyntax, DelegateRegistration> DelegateRegistrations);
 
 /// <summary>
 /// Holds the results of the rewrite phase.

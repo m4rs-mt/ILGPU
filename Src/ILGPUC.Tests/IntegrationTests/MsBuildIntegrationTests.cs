@@ -420,7 +420,8 @@ public sealed class MsBuildIntegrationTests
     // Test 9: InlineLambdaKernels — kernels written inline as lambdas at the
     // launch site are compiled into real kernels. The lambdas capture views,
     // buffers, scalars, structs and parameters, and cover 1D, 2D and grouped
-    // launches from static and instance methods across two source files.
+    // launches from static and instance methods across three source files,
+    // including a delegate parameter bound to the targets of its callers.
     // -----------------------------------------------------------------------
 
     [SkippableTheory]
@@ -477,6 +478,8 @@ public sealed class MsBuildIntegrationTests
                     "J: 10 12 14 16",
                     "K: -1 2 5 8",
                     "L: 0 1 8 27",
+                    "M: -20 -19 -12 7",
+                    "N: 400 361 144 49",
                 ]);
         }
         catch

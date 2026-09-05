@@ -44,8 +44,34 @@ Delegates selected at runtime, such as `flag ? f : g` or a delegate variable rea
 selected target when they are invoked or passed to a method.
 Delegates that cannot be traced back to lambdas or static methods in kernel code, such as delegates returned from
 methods, are rejected by the compiler.
-Delegates cannot be passed from the CPU to a kernel either: a delegate captured by a launch lambda is reported at build
-time (`ILGPU1103`).
+
+A launch lambda can also capture a delegate parameter of the method that launches the kernel:
+
+```c#
+static class Host
+{
+    public static void UnaryOp(AcceleratorStream stream, ArrayView<int> view, Func<int, int> op) =>
+        stream.Launch(view.IntExtent, index => UnaryOpKernel(index, view, op));
+}
+
+Host.UnaryOp(stream, view, v => -v);
+Host.UnaryOp(stream, view, v => ~v);
+Host.UnaryOp(stream, view, MyOps.Square);
+```
+
+The compiler traces all calls of the launching method in the project and compiles one kernel for each lambda
+expression, anonymous method and static method passed to it, also when a calling method forwards a delegate parameter
+of its own.
+At runtime, the launch selects the kernel compiled for the target of the delegate it receives.
+The passed lambdas must not capture variables (`ILGPU1107`); pass the values as separate arguments of the launching
+method instead.
+Arguments that cannot be traced to a lambda or a static method, such as delegates returned from methods, instance
+methods or a launching method used as a delegate itself, are reported at build time (`ILGPU1108`), as well as a
+captured delegate parameter of a launching method that no call passes a lambda or a static method to (`ILGPU1109`).
+Delegates passed by callers the compiler cannot see, such as other assemblies or reflection, throw a
+`NotSupportedException` at the launch.
+Other delegates captured by a launch lambda, such as delegate variables of the launching method, cannot be passed from
+the CPU to a kernel and are reported at build time (`ILGPU1103`).
 Use a generic struct implementing an interface instead:
 
 ```c#

@@ -34,9 +34,9 @@ namespace ILGPUC.Roslyn.Analysis;
 /// <param name="Variant">The launch variant (1D, 2D, 3D, grouped, etc.).</param>
 /// <param name="LaunchInfo">The originating launch call site.</param>
 /// <param name="GenericOriginName">
-/// For concrete specializations of a generic kernel, the original kernel name
-/// used for the dispatch stub (e.g., <c>CalculatorKernel</c>). Null for
-/// non-specialized kernels.
+/// For concrete specializations of a generic kernel and for kernels bound to
+/// delegate targets, the original kernel name used for the dispatch stub
+/// (e.g., <c>CalculatorKernel</c>). Null for non-specialized kernels.
 /// </param>
 /// <param name="ConcreteTypeArgs">
 /// The concrete Roslyn type symbols substituted for the kernel's type parameters.
@@ -48,6 +48,15 @@ namespace ILGPUC.Roslyn.Analysis;
 /// resolved and compiled like a named method. Null for named kernels and for
 /// inline lambdas that were rejected with a diagnostic.
 /// </param>
+/// <param name="DelegateCaptures">
+/// For inline lambdas, the delegate parameters of the launching method that
+/// the lambda captures. Such a kernel is compiled once for each combination of
+/// the targets passed to these parameters. Null if there are none.
+/// </param>
+/// <param name="DelegateKeys">
+/// For kernels bound to delegate targets, the key of the target bound to each
+/// delegate capture of the original kernel. Null for all other kernels.
+/// </param>
 record KernelDescriptor(
     string KernelName,
     IMethodSymbol? KernelMethod,
@@ -57,7 +66,9 @@ record KernelDescriptor(
     KernelLaunchInfo LaunchInfo,
     string? GenericOriginName = null,
     ImmutableArray<ITypeSymbol>? ConcreteTypeArgs = null,
-    LocalFunctionStatementSyntax? LiftedKernel = null)
+    LocalFunctionStatementSyntax? LiftedKernel = null,
+    ImmutableArray<DelegateCapture>? DelegateCaptures = null,
+    ImmutableArray<string>? DelegateKeys = null)
 {
     /// <summary>
     /// Returns how the kernel is launched, which the generated device code,
@@ -88,3 +99,16 @@ record KernelDescriptor(
         });
     }
 }
+
+/// <summary>
+/// A delegate parameter of the launching method captured by an inline kernel.
+/// </summary>
+/// <param name="ParameterIndex">
+/// The index of the capture in <see cref="KernelDescriptor.Parameters"/>.
+/// </param>
+/// <param name="Parameter">The captured delegate parameter.</param>
+/// <param name="Reference">The first reference to it in the inline kernel.</param>
+record DelegateCapture(
+    int ParameterIndex,
+    IParameterSymbol Parameter,
+    SyntaxNode Reference);

@@ -224,6 +224,38 @@ partial class CodeGenerator
 
     #endregion
 
+    #region Kernel Delegate Bindings
+
+    /// <summary>
+    /// Realizes a call to <c>KernelDelegates.Bind</c>, which ILGPUC emits into
+    /// the kernels it compiles for each target of a delegate passed to a method
+    /// launching a kernel. The handle is bound to the target registered under
+    /// the given key in the assembly of the current method, like a delegate
+    /// created from a non-capturing lambda.
+    /// </summary>
+    private void MakeKernelDelegateBinding()
+    {
+        if (Block.Pop() is not StringValue key)
+            throw Location.GetInvalidOperationException();
+
+        var assembly = DisassembledMethod.Method.Module.Assembly;
+        var target = KernelDelegateTargets.Resolve(assembly, key.String) ??
+            throw Location.GetNotSupportedException(
+                ErrorMessages.NotSupportedUnresolvedKernelDelegate,
+                key.String,
+                assembly.GetName().Name ?? string.Empty);
+
+        var handle = Builder.CreateNull(
+            Location,
+            ModuleBuilder.CreatePointerType(
+                ModuleBuilder.IntPointerType,
+                MemoryAddressSpace.Generic));
+        _delegateTable[handle] = target;
+        Block.Push(handle);
+    }
+
+    #endregion
+
     #region Delegate Selections
 
     /// <summary>

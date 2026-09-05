@@ -218,38 +218,283 @@ public sealed class InlineLambdaDiagnosticTests
     }
 
     /// <summary>
-    /// A launch lambda passing a delegate variable of the launching method to a
-    /// kernel method would make the delegate a kernel argument, which is
-    /// rejected at the captured variable.
+    /// The kernel and launching method of issue #463, shared by the tests of
+    /// captured delegate parameters below.
+    /// </summary>
+    private const string UnaryOpHost = """
+        static class Kernels
+        {
+            public static void UnaryOpKernel(
+                Index1D index, ArrayView<int> data, Func<int, int> op) =>
+                data[index] = op(data[index]);
+        }
+
+        static class Host
+        {
+            public static void UnaryOp(
+                AcceleratorStream stream, ArrayView<int> view, Func<int, int> op)
+            {
+                stream.Launch(
+                    view.IntExtent,
+                    index => Kernels.UnaryOpKernel(index, view, op));
+            }
+        }
+        """;
+
+    /// <summary>
+    /// Helper: analyzes <see cref="UnaryOpHost"/> called from the given
+    /// statements, which can use <c>stream</c> and <c>view</c>.
+    /// </summary>
+    private static AnalysisResult AnalyzeUnaryOpCalls(
+        string statements,
+        string declarations = "") =>
+        AnalyzeProgram($$"""
+            {{UnaryOpHost}}
+
+            static class Callers
+            {
+                {{declarations}}
+
+                static void Run(AcceleratorStream stream, ArrayView<int> view)
+                {
+                    {{statements}}
+                }
+            }
+            """);
+
+    /// <summary>
+    /// A launch lambda passing a delegate parameter of the launching method to
+    /// a kernel method (issue #463) is compiled into one kernel for each
+    /// target passed by the callers, and the delegates passed are registered
+    /// under the keys of their targets. The same static method passed twice
+    /// shares a target.
     /// </summary>
     [Fact]
-    public void CapturedDelegate_ReportsUnsupportedCapture()
+    public void CapturedDelegateParameter_BoundToCallerTargets()
+    {
+        var analysis = AnalyzeUnaryOpCalls(
+            """
+            Host.UnaryOp(stream, view, v => -v);
+            Host.UnaryOp(stream, view, v => ~v);
+            Host.UnaryOp(stream, view, Negate);
+            Host.UnaryOp(stream, view, Negate);
+            """,
+            "static int Negate(int value) => -value;");
+
+        Assert.Empty(analysis.Diagnostics);
+        var dispatch = Assert.Single(analysis.DispatchKernels);
+        var capture = Assert.Single(dispatch.DelegateCaptures!.Value);
+        Assert.Equal("op", capture.Parameter.Name);
+
+        Assert.Equal(3, analysis.UniqueKernels.Count);
+        foreach (var kernel in analysis.UniqueKernels)
+        {
+            Assert.Equal(dispatch.KernelName, kernel.GenericOriginName);
+            Assert.Equal(["view"], kernel.Parameters.Select(p => p.Name));
+            Assert.Contains(
+                "KernelDelegates.Bind",
+                kernel.LiftedKernel!.ToFullString());
+        }
+        Assert.Equal(
+            ["Host.UnaryOp.op#0", "Host.UnaryOp.op#1", "Host.UnaryOp.op#2"],
+            analysis.UniqueKernels.Select(k => Assert.Single(k.DelegateKeys!.Value)));
+
+        // Four call sites, the last two register the shared key
+        Assert.Equal(4, analysis.DelegateRegistrations.Count);
+        Assert.Equal(
+            ["Host.UnaryOp.op#0", "Host.UnaryOp.op#1",
+                "Host.UnaryOp.op#2", "Host.UnaryOp.op#2"],
+            analysis.DelegateRegistrations
+                .OrderBy(r => r.Key.SpanStart)
+                .Select(r => Assert.Single(r.Value.Keys)));
+    }
+
+    /// <summary>
+    /// Delegates forwarded by delegate parameters of calling methods are traced
+    /// to the callers of these methods, also through recursive forwarding.
+    /// </summary>
+    [Fact]
+    public void ForwardedDelegateParameter_TracedToCallers()
+    {
+        var analysis = AnalyzeUnaryOpCalls(
+            "Forward(stream, view, v => v + 1, 2);",
+            """
+            static void Forward(
+                AcceleratorStream stream,
+                ArrayView<int> view,
+                Func<int, int> op,
+                int depth)
+            {
+                if (depth > 0)
+                    Forward(stream, view, op, depth - 1);
+                else
+                    Host.UnaryOp(stream, view, op);
+            }
+            """);
+
+        Assert.Empty(analysis.Diagnostics);
+        var kernel = Assert.Single(analysis.UniqueKernels);
+        Assert.Equal("Host.UnaryOp.op#0", Assert.Single(kernel.DelegateKeys!.Value));
+        var registration = Assert.Single(analysis.DelegateRegistrations);
+        Assert.Equal("v => v + 1", registration.Key.ToString());
+    }
+
+    /// <summary>
+    /// A lambda passed to a captured delegate parameter that captures a
+    /// variable cannot be bound to a kernel and is reported at the capture.
+    /// </summary>
+    [Fact]
+    public void CapturingDelegateArgument_ReportsCapture()
+    {
+        var analysis = AnalyzeUnaryOpCalls("""
+            int offset = 3;
+            Host.UnaryOp(stream, view, v => v + offset);
+            """);
+
+        var diagnostic = AssertSingleDiagnostic(
+            analysis, KernelDiagnostic.CapturingDelegateArgumentId, "offset");
+        Assert.Contains(
+            "lambda passed to 'Host.UnaryOp' for 'op' must not capture variables",
+            diagnostic.Message);
+        Assert.Contains("separate arguments", diagnostic.Message);
+    }
+
+    /// <summary>
+    /// An argument that cannot be traced to a lambda or a static method, such
+    /// as a delegate returned from a method, is reported at the argument.
+    /// </summary>
+    [Fact]
+    public void UntraceableDelegateArgument_ReportsArgument()
+    {
+        var analysis = AnalyzeUnaryOpCalls(
+            "Host.UnaryOp(stream, view, Create());",
+            "static Func<int, int> Create() => v => v;");
+
+        var diagnostic = AssertSingleDiagnostic(
+            analysis, KernelDiagnostic.UntraceableDelegateArgumentId, "Create()");
+        Assert.Contains(
+            "delegate passed to 'Host.UnaryOp' for 'op' cannot be traced",
+            diagnostic.Message);
+    }
+
+    /// <summary>
+    /// An instance method passed to a captured delegate parameter captures its
+    /// instance and is reported at the argument.
+    /// </summary>
+    [Fact]
+    public void InstanceMethodDelegateArgument_ReportsArgument()
+    {
+        var analysis = AnalyzeUnaryOpCalls(
+            "Host.UnaryOp(stream, view, new Callers2().Negate);",
+            """
+            sealed class Callers2
+            {
+                public int Negate(int value) => -value;
+            }
+            """);
+
+        var diagnostic = AssertSingleDiagnostic(
+            analysis,
+            KernelDiagnostic.UntraceableDelegateArgumentId,
+            "new Callers2().Negate");
+        Assert.Contains("is not static", diagnostic.Message);
+    }
+
+    /// <summary>
+    /// A launching method that is used as a delegate itself hides the
+    /// delegates passed to it, which is reported at the reference.
+    /// </summary>
+    [Fact]
+    public void LaunchingMethodUsedAsDelegate_ReportsReference()
+    {
+        var analysis = AnalyzeUnaryOpCalls("""
+            Host.UnaryOp(stream, view, v => -v);
+            Action<AcceleratorStream, ArrayView<int>, Func<int, int>> launch =
+                Host.UnaryOp;
+            """);
+
+        var diagnostic = AssertSingleDiagnostic(
+            analysis, KernelDiagnostic.UntraceableDelegateArgumentId, "UnaryOp");
+        Assert.Contains("is used as a delegate", diagnostic.Message);
+    }
+
+    /// <summary>
+    /// A lambda declared in a generic method cannot be bound to a kernel.
+    /// </summary>
+    [Fact]
+    public void GenericDelegateArgument_ReportsGenericContext()
+    {
+        var analysis = AnalyzeUnaryOpCalls(
+            "Generic<int>(stream, view);",
+            """
+            static void Generic<T>(AcceleratorStream stream, ArrayView<int> view) =>
+                Host.UnaryOp(stream, view, v => v + 1);
+            """);
+
+        var diagnostic = AssertSingleDiagnostic(
+            analysis, KernelDiagnostic.GenericContextId, "v => v + 1");
+        Assert.Contains("generic method", diagnostic.Message);
+    }
+
+    /// <summary>
+    /// A captured delegate parameter of a launching method that is never
+    /// called has no targets, so no kernel can be compiled, which is reported
+    /// at the capture.
+    /// </summary>
+    [Fact]
+    public void UncalledDelegateParameter_ReportsCapture()
+    {
+        var analysis = AnalyzeProgram(UnaryOpHost);
+
+        var diagnostic = AssertSingleDiagnostic(
+            analysis, KernelDiagnostic.UnboundDelegateParameterId, "op");
+        Assert.Contains("no call of 'Host.UnaryOp'", diagnostic.Message);
+    }
+
+    /// <summary>
+    /// A delegate parameter assigned in the launching method no longer holds
+    /// the delegate passed by its callers and remains rejected.
+    /// </summary>
+    [Fact]
+    public void AssignedDelegateParameter_ReportsUnsupportedCapture()
     {
         var analysis = AnalyzeProgram("""
-            static class Kernels
-            {
-                public static void UnaryOpKernel(
-                    Index1D index, ArrayView<int> data, Func<int, int> op) =>
-                    data[index] = op(data[index]);
-            }
-
             static class Host
             {
                 public static void UnaryOp(
                     AcceleratorStream stream, ArrayView<int> view, Func<int, int> op)
                 {
-                    stream.Launch(
-                        view.IntExtent,
-                        index => Kernels.UnaryOpKernel(index, view, op));
+                    op ??= v => v;
+                    stream.Launch(view.IntExtent, index => view[index] = op(index));
                 }
+
+                static void Run(AcceleratorStream stream, ArrayView<int> view) =>
+                    UnaryOp(stream, view, v => -v);
             }
             """);
 
         var diagnostic = AssertSingleDiagnostic(
             analysis, KernelDiagnostic.UnsupportedCaptureId, "op");
         Assert.Contains("delegate 'op'", diagnostic.Message);
+        Assert.Contains("does not assign", diagnostic.Message);
+    }
+
+    /// <summary>
+    /// A delegate variable of the launching method remains rejected at the
+    /// captured variable.
+    /// </summary>
+    [Fact]
+    public void CapturedDelegateLocal_ReportsUnsupportedCapture()
+    {
+        var analysis = AnalyzeSource("""
+            Func<int, int> op = v => -v;
+            stream.Launch((Index1D)4, index => view[index] = op(index));
+            """);
+
+        var diagnostic = AssertSingleDiagnostic(
+            analysis, KernelDiagnostic.UnsupportedCaptureId, "op");
+        Assert.Contains("delegate 'op'", diagnostic.Message);
         Assert.Contains("lambda expression", diagnostic.Message);
-        Assert.Contains("generic struct", diagnostic.Message);
     }
 
     /// <summary>

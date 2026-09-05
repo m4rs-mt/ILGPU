@@ -215,20 +215,21 @@ sealed class CPULauncherEmitter : LauncherEmitter
                         System.StringComparison.Ordinal)
                         ? entryViewType[prefix.Length..^1]
                         : elemType;
+                    var baseView = param.BaseViewExpression;
                     ctx.WriteLine(
-                        $"var {viewVar} = {param.Name}.BaseView.IsValid" +
+                        $"var {viewVar} = {baseView}.IsValid" +
                         $" ? Unsafe.BitCast<CPURuntimeView<byte>," +
                         $" CPURuntimeView<{entryElemType}>>" +
                         $"(new CPURuntimeView<byte>((byte*)" +
-                        $"Unsafe.AsPointer(ref {param.Name}" +
-                        $".BaseView.LoadEffectiveAddress()), {param.Name}.Length))" +
+                        $"Unsafe.AsPointer(ref {baseView}" +
+                        $".LoadEffectiveAddress()), {param.Name}.Length))" +
                         $" : default(CPURuntimeView<{entryElemType}>);");
                 }
                 else
                 {
                     ctx.WriteLine(
                         $"var {viewVar} = CPURuntimeView<{elemType}>.FromView(" +
-                        $"{param.Name}.BaseView);");
+                        $"{param.BaseViewExpression});");
                 }
                 return viewVar;
 

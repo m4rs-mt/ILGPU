@@ -289,7 +289,8 @@ sealed class KernelExtractor(CSharpCompilation compilation)
     /// delegate. Delegates cannot be kernel arguments, so a launch lambda
     /// calling such a method is lifted as an inline kernel instead: the
     /// compiler then binds lambdas and method groups passed at the call, and
-    /// captured delegate variables are reported.
+    /// captured delegate parameters of the launching method are bound to the
+    /// targets passed by its callers.
     /// </summary>
     private static bool HasDelegateParameters(IMethodSymbol method) =>
         method.Parameters.Any(p => p.Type.TypeKind == TypeKind.Delegate);
@@ -374,6 +375,7 @@ sealed class KernelExtractor(CSharpCompilation compilation)
         var operation = model.GetOperation(lambda);
         var kernelName = GetInlineKernelName(lambda);
         var parameters = ImmutableArray.CreateBuilder<CapturedParameterInfo>();
+        var delegateCaptures = ImmutableArray.CreateBuilder<DelegateCapture>();
         var bufferViewAccesses = new Dictionary<SyntaxNode, string>();
 
         bool isValid = lambdaSymbol is { Parameters.Length: 1 } && operation is not null;
@@ -408,10 +410,26 @@ sealed class KernelExtractor(CSharpCompilation compilation)
                 continue;
 
             if (!ValidateCapture(
-                lambda, captured, type, reference, written, diagnostics))
+                model.Compilation,
+                lambda,
+                captured,
+                type,
+                reference,
+                written,
+                diagnostics))
             {
                 isValid = false;
                 continue;
+            }
+
+            // Delegate parameters of the launching method are bound to the
+            // targets passed by its callers, one kernel for each target
+            if (type.TypeKind == TypeKind.Delegate)
+            {
+                delegateCaptures.Add(new DelegateCapture(
+                    parameters.Count,
+                    (IParameterSymbol)captured,
+                    reference));
             }
 
             // If the captured variable is a MemoryBuffer, lower it to its
@@ -461,7 +479,10 @@ sealed class KernelExtractor(CSharpCompilation compilation)
             Parameters: parameters.ToImmutable(),
             Variant: launchInfo.Variant,
             LaunchInfo: launchInfo,
-            LiftedKernel: liftedKernel);
+            LiftedKernel: liftedKernel,
+            DelegateCaptures: delegateCaptures.Count > 0
+                ? delegateCaptures.ToImmutable()
+                : null);
     }
 
     /// <summary>
@@ -507,7 +528,7 @@ sealed class KernelExtractor(CSharpCompilation compilation)
     /// and parameters, the enclosing instance (as its type), and non-static
     /// local functions, which may capture variables themselves.
     /// </summary>
-    private static IEnumerable<(ISymbol Symbol, SyntaxNode Reference)>
+    internal static IEnumerable<(ISymbol Symbol, SyntaxNode Reference)>
         EnumerateOuterReferences(IOperation operation, SyntaxNode scope)
     {
         foreach (var op in operation.Descendants().OrderBy(o => o.Syntax.SpanStart))
@@ -554,7 +575,7 @@ sealed class KernelExtractor(CSharpCompilation compilation)
     /// directly or through the local functions it calls. Returns
     /// <see langword="null"/> if the local function captures nothing.
     /// </summary>
-    private static ISymbol? FindLocalFunctionCapture(
+    internal static ISymbol? FindLocalFunctionCapture(
         Compilation compilation,
         IMethodSymbol function,
         HashSet<ISymbol>? visited = null)
@@ -584,7 +605,7 @@ sealed class KernelExtractor(CSharpCompilation compilation)
     /// Returns the name of a captured symbol for diagnostics, which is
     /// <c>this</c> for the enclosing instance.
     /// </summary>
-    private static string GetCaptureName(ISymbol captured) =>
+    internal static string GetCaptureName(ISymbol captured) =>
         captured is ITypeSymbol ? "this" : captured.Name;
 
     /// <summary>
@@ -743,9 +764,12 @@ sealed class KernelExtractor(CSharpCompilation compilation)
     /// <summary>
     /// Validates a single captured variable of an inline kernel: it must not
     /// be assigned inside the kernel and its type must be passable as a kernel
-    /// argument (a value type or a buffer that is lowered to its view).
+    /// argument (a value type or a buffer that is lowered to its view), or it
+    /// must be a delegate parameter of the launching method that is bound to
+    /// the targets its callers pass.
     /// </summary>
     private static bool ValidateCapture(
+        Compilation compilation,
         LambdaExpressionSyntax lambda,
         ISymbol captured,
         ITypeSymbol type,
@@ -770,15 +794,20 @@ sealed class KernelExtractor(CSharpCompilation compilation)
                 (isByRef ? "by reference" : $"of ref struct type '{type}'") +
                 ", which cannot be passed to a kernel.";
         }
-        else if (type.TypeKind == TypeKind.Delegate)
+        else if (type.TypeKind == TypeKind.Delegate
+            && !DelegateTargetDiscoverer.IsBindableParameter(compilation, captured))
         {
             message =
                 $"Inline kernel captures the delegate '{captured.Name}', which " +
-                $"cannot be passed to a kernel. Pass a lambda expression or a " +
-                $"static method directly at the call inside the kernel, or use " +
-                $"a generic struct implementing an interface instead.";
+                $"cannot be passed to a kernel. Only delegate parameters of the " +
+                $"launching method that it does not assign can be captured; pass " +
+                $"a lambda expression or a static method directly at the call " +
+                $"inside the kernel, or use a generic struct implementing an " +
+                $"interface instead.";
         }
-        else if (type.IsReferenceType && !TryGetBufferViewType(type, out _))
+        else if (type.TypeKind != TypeKind.Delegate
+            && type.IsReferenceType
+            && !TryGetBufferViewType(type, out _))
         {
             message =
                 $"Inline kernel captures '{captured.Name}' of reference type " +
