@@ -13,6 +13,7 @@ using ILGPUC.Roslyn.Analysis;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Microsoft.CodeAnalysis.Text;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -243,32 +244,58 @@ sealed class CallSiteRewriter : CSharpSyntaxRewriter
     }
 
     /// <summary>
-    /// Prepends a #line directive to map a rewritten statement back to its
-    /// original source location for debugging.
+    /// Surrounds a rewritten statement with #line directives that map it, and
+    /// the code following it, back to their original source locations. The
+    /// rewritten statement may span fewer lines than the original, so the
+    /// mapping is restored right after it. Directives must start a line of
+    /// their own, so line breaks are inserted where the statement shares its
+    /// lines with other code.
     /// </summary>
     private static ExpressionStatementSyntax PrependLineDirective(
         ExpressionStatementSyntax rewritten,
         ExpressionStatementSyntax originalStmt)
     {
-        var location = originalStmt.GetLocation();
-        var lineSpan = location.GetLineSpan();
-        if (!lineSpan.IsValid)
+        var tree = originalStmt.SyntaxTree;
+        var fullSpan = originalStmt.FullSpan;
+        var startSpan = tree.GetLineSpan(new TextSpan(fullSpan.Start, 0));
+        var endSpan = tree.GetLineSpan(originalStmt.Span);
+        if (!startSpan.IsValid || !endSpan.IsValid)
             return rewritten;
 
-        var originalLine = lineSpan.StartLinePosition.Line + 1; // 1-based
-        var originalFile = lineSpan.Path;
+        var originalFile = startSpan.Path;
         if (string.IsNullOrEmpty(originalFile))
             return rewritten;
 
-        var directive = BuildLineDirective(originalLine, originalFile);
-        var lineTrivia = SyntaxFactory.Trivia(directive);
+        // The leading trivia starts the line it is on (1-based) unless the
+        // previous token ends on the same line
         var eol = SyntaxFactory.EndOfLine("\n");
+        var previous = originalStmt.GetFirstToken().GetPreviousToken();
+        bool atLineStart = previous == default
+            || previous.TrailingTrivia.Any(SyntaxKind.EndOfLineTrivia);
+        var leading = SyntaxFactory.TriviaList(
+            SyntaxFactory.Trivia(BuildLineDirective(
+                startSpan.StartLinePosition.Line + 1,
+                originalFile)),
+            eol);
+        if (!atLineStart)
+            leading = leading.Insert(0, eol);
+        leading = leading.AddRange(rewritten.GetLeadingTrivia());
 
-        var existingTrivia = rewritten.GetLeadingTrivia();
-        var newTrivia = SyntaxFactory.TriviaList(lineTrivia, eol)
-            .AddRange(existingTrivia);
+        // The code after the statement continues on the line after the end of
+        // the statement, or on its last line if the statement does not end it
+        var trailing = rewritten.GetTrailingTrivia();
+        int endLine = endSpan.EndLinePosition.Line + 1;
+        if (trailing.Any(SyntaxKind.EndOfLineTrivia))
+            ++endLine;
+        else
+            trailing = trailing.Add(eol);
+        trailing = trailing
+            .Add(SyntaxFactory.Trivia(BuildLineDirective(endLine, originalFile)))
+            .Add(eol);
 
-        return rewritten.WithLeadingTrivia(newTrivia);
+        return rewritten
+            .WithLeadingTrivia(leading)
+            .WithTrailingTrivia(trailing);
     }
 
     /// <summary>
