@@ -824,12 +824,16 @@ sealed class ILFrontend
                 codeGenerator.GenerateCode();
                 methodBuilder.Seal();
             }
-            catch (Exception) when (
-                !isEntryPoint && codeGenerator?.HasUnresolvedDelegate != true)
+            catch (Exception exception) when (
+                !isEntryPoint &&
+                exception is not KernelCompilationException &&
+                codeGenerator?.HasUnresolvedDelegate != true)
             {
                 // Transitively called methods may use types unsupported in GPU IR
                 // or hit other compilation issues. Mark them as external and
-                // continue.
+                // continue. Rejected kernel constructs (such as unsupported uses
+                // of delegates) are reported instead, as an external declaration
+                // would only fail later without pointing at the cause.
                 methodBuilder.Method.AddFlags(MethodFlags.External);
             }
         }

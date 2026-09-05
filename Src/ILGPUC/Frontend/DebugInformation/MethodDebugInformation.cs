@@ -43,9 +43,14 @@ readonly struct MethodDebugInformation
         {
             if (sequencePoint.IsHidden || sequencePoint.Document.IsNil)
                 continue;
+            // Sources without a path, such as sources generated in memory,
+            // have no locations to report
             var doc = reader.GetDocument(sequencePoint.Document);
+            var fileName = doc.Name.IsNil ? string.Empty : reader.GetString(doc.Name);
+            if (string.IsNullOrWhiteSpace(fileName))
+                continue;
             sequencePoints.Add(new SequencePoint(
-                doc.Name.IsNil ? string.Empty : reader.GetString(doc.Name),
+                fileName,
                 sequencePoint.Offset,
                 sequencePoint.StartColumn,
                 sequencePoint.EndColumn,

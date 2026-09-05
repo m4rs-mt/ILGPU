@@ -43,7 +43,13 @@ static class CompilationEmitter
         using var peStream = new MemoryStream();
         using var pdbStream = new MemoryStream();
 
-        var result = compilation.Emit(peStream, pdbStream);
+        // Portable PDBs carry the source locations of kernel code, which the
+        // kernel compiler reports errors at
+        var result = compilation.Emit(
+            peStream,
+            pdbStream,
+            options: new EmitOptions(
+                debugInformationFormat: DebugInformationFormat.PortablePdb));
 
         assemblyBytes = result.Success ? peStream.ToArray() : null;
         pdbBytes = result.Success ? pdbStream.ToArray() : null;

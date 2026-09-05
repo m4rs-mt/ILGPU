@@ -88,9 +88,9 @@ sealed class MainKernelProvider : ICompiledKernelProvider
         var emitResult = CompilationEmitter.EmitToMemory(
             rewriteResult.Compilation,
             out var assemblyBytes,
-            out _);
+            out var pdbBytes);
 
-        if (!emitResult.Success || assemblyBytes == null)
+        if (!emitResult.Success || assemblyBytes == null || pdbBytes == null)
         {
             throw new InvalidOperationException(
                 "Failed to emit temp assembly for kernel resolution. Errors:\n" +
@@ -102,6 +102,10 @@ sealed class MainKernelProvider : ICompiledKernelProvider
 
         // Phase 2: Load temp assembly and resolve methods
         var tempAssembly = Assembly.Load(assemblyBytes);
+
+        // Errors in kernel code are reported at their source locations, which
+        // come from the debug information of the temp assembly
+        compiler.RegisterDebugInformation(tempAssembly, pdbBytes);
         var compiledSources = new Dictionary<string, string>();
         var kernelsToCompile = new List<KernelCompileJob>();
 
@@ -143,7 +147,8 @@ sealed class MainKernelProvider : ICompiledKernelProvider
             // rewritten call site.
             kernelsToCompile.Add(new KernelCompileJob(
                 kernel.KernelName, method, paramTypeNames, fieldAccessors,
-                kernel.GetEntryPointLaunch()));
+                kernel.GetEntryPointLaunch(),
+                kernel.LaunchInfo.Invocation.GetLocation()));
         }
 
         if (parallel)
@@ -178,7 +183,8 @@ sealed class MainKernelProvider : ICompiledKernelProvider
         MethodInfo Method,
         string[]? LaunchParamTypeNames,
         string[]?[]? LaunchParamFieldAccessors,
-        EntryPointLaunch Launch);
+        EntryPointLaunch Launch,
+        Location LaunchSite);
 
     /// <summary>
     /// Returns the pre-compiled C# source for <paramref name="kernel"/>.
@@ -212,18 +218,31 @@ sealed class MainKernelProvider : ICompiledKernelProvider
         foreach (var backend in backends)
         {
             ct.ThrowIfCancellationRequested();
-            var result = await compiler
-                .CompileKernelAsync(
-                    job.Method,
-                    backend,
-                    compilerManager,
-                    dump,
-                    job.LaunchParamTypeNames,
-                    job.LaunchParamFieldAccessors,
-                    job.Name,
-                    job.Launch,
-                    ct)
-                .ConfigureAwait(false);
+            KernelCompilationResult result;
+            try
+            {
+                result = await compiler
+                    .CompileKernelAsync(
+                        job.Method,
+                        backend,
+                        compilerManager,
+                        dump,
+                        job.LaunchParamTypeNames,
+                        job.LaunchParamFieldAccessors,
+                        job.Name,
+                        job.Launch,
+                        ct)
+                    .ConfigureAwait(false);
+            }
+            catch (Exception exception) when (
+                KernelCompilationErrors.TryCreateDiagnostic(
+                    exception,
+                    job.LaunchSite,
+                    out var diagnostic))
+            {
+                // Reported as a build error at the offending source location
+                throw new KernelDiagnosticException(diagnostic!, exception);
+            }
             sb.AppendLine(result.SourceCode);
         }
         return (job.Name, sb.ToString());

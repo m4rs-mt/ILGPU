@@ -137,8 +137,18 @@ sealed partial class CodeGenerator
 
         SSABuilder = SSABuilder<VariableRef>.Create(methodBuilder, _cfgBuilder.Blocks);
 
-        // Setup variables and inlining attributes
-        SetupVariables();
+        // Setup variables and inlining attributes. Variables of unsupported
+        // types are reported at the start of the method.
+        try
+        {
+            SetupVariables();
+        }
+        catch (Exception exception) when (
+            exception is not InternalCompilerException and
+                not KernelCompilationException)
+        {
+            throw Location.GetException(exception);
+        }
         Inliner.SetupInliningAttributes(
             Properties,
             methodBuilder.Method,
@@ -543,6 +553,11 @@ sealed partial class CodeGenerator
             catch (InternalCompilerException)
             {
                 // If we already have an internal compiler exception, re-throw it.
+                throw;
+            }
+            catch (KernelCompilationException)
+            {
+                // Diagnostics already carry their locations
                 throw;
             }
             catch (Exception e)

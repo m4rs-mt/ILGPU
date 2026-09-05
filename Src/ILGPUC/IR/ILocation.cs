@@ -53,7 +53,10 @@ static class Locations
         var message = (location?.FormatErrorMessage(
             ErrorMessages.InternalCompilerError))
             ?? ErrorMessages.InternalCompilerError;
-        return new InternalCompilerException(message, exception);
+        return new InternalCompilerException(
+            message,
+            exception,
+            location as Location);
     }
 
     /// <summary>

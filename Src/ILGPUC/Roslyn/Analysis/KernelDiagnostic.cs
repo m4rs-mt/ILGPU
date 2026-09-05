@@ -72,6 +72,14 @@ record KernelDiagnostic(string Id, string Message, Location Location)
     /// </summary>
     public const string UnboundDelegateParameterId = "ILGPU1109";
 
+    // Errors reported by the IL frontend while compiling kernel code (ILGPU12xx),
+    // which it throws as KernelCompilationException
+
+    /// <summary>
+    /// Kernel code uses a construct that is not supported in kernels.
+    /// </summary>
+    public const string UnsupportedConstructId = "ILGPU1200";
+
     /// <summary>
     /// Formats this diagnostic in the canonical
     /// <c>file(line,column): error ID: message</c> form that MSBuild and IDEs

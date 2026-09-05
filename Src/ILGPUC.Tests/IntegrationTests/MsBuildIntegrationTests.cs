@@ -286,14 +286,17 @@ public sealed class MsBuildIntegrationTests
                 "pattern, but it succeeded.");
             Assert.NotEqual(0, build.ExitCode);
 
-            // The NotSupportedException from LowerGCInit should appear in
-            // build output (combined stdout + stderr).
+            // The rejection from LowerGCInit is reported in the canonical
+            // error format at the launch site, without an unhandled exception
             var combined = build.FullStdOut + "\n" + build.StdErr;
             Assert.True(
-                combined.Contains("NotSupportedException", StringComparison.Ordinal)
-                || combined.Contains("not supported", StringComparison.OrdinalIgnoreCase),
-                $"Expected NotSupportedException diagnostic in build output, " +
+                combined.Contains(
+                    "Program.cs(41,9): error ILGPU1200: Kernel code uses an " +
+                    "unsupported construct: Closure allocation",
+                    StringComparison.Ordinal),
+                $"Expected an ILGPU1200 error at Program.cs(41,9), " +
                 $"got:\n{combined}");
+            Assert.DoesNotContain("Unhandled exception", combined);
         }
         catch
         {

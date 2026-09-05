@@ -878,5 +878,14 @@ namespace ILGPU.Resources {
                 return ResourceManager.GetString("NotSupportedRecursiveReferenceType", resourceCulture);
             }
         }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Kernel code uses an unsupported construct: {0}.
+        /// </summary>
+        internal static string KernelDiagnosticUnsupportedConstruct {
+            get {
+                return ResourceManager.GetString("KernelDiagnosticUnsupportedConstruct", resourceCulture);
+            }
+        }
     }
 }

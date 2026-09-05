@@ -370,18 +370,28 @@ sealed partial class Program
 
             // Two-phase compile: stubs -> temp assembly -> resolve -> real kernels
             var parallel = parseResult.GetValue(_parallelOption);
-            var provider =
-                await MainKernelProvider
-                    .CreateAsync(
-                        compilation,
-                        analysis,
-                        backends,
-                        compiler,
-                        compilerManager,
-                        parallel,
-                        dump,
-                        ct)
-                    .ConfigureAwait(false);
+            MainKernelProvider provider;
+            try
+            {
+                provider =
+                    await MainKernelProvider
+                        .CreateAsync(
+                            compilation,
+                            analysis,
+                            backends,
+                            compiler,
+                            compilerManager,
+                            parallel,
+                            dump,
+                            ct)
+                        .ConfigureAwait(false);
+            }
+            catch (KernelDiagnosticException exception)
+            {
+                // Errors in kernel code are reported like invalid launch sites
+                await Console.Error.WriteLineAsync(exception.Diagnostic.ToString());
+                return 1;
+            }
 
             // Rewrite to disk with real compiled kernel sources
             var realRewriter = new CompilationRewriter(provider);

@@ -497,4 +497,8 @@
     <value>Recursive reference type '{0}' is not supported in GPU kernels.</value>
     <comment/>
   </data>
+  <data name="KernelDiagnosticUnsupportedConstruct" xml:space="preserve">
+    <value>Kernel code uses an unsupported construct: {0}</value>
+    <comment/>
+  </data>
 </root>
