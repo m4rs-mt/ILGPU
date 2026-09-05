@@ -283,7 +283,6 @@ public sealed class InlineLambdaDiagnosticTests
             "static int Negate(int value) => -value;");
 
         Assert.Empty(analysis.Diagnostics);
-        Assert.Empty(analysis.Warnings);
         var dispatch = Assert.Single(analysis.DispatchKernels);
         var capture = Assert.Single(dispatch.DelegateCaptures!.Value);
         Assert.Equal("op", capture.Parameter.Name);
@@ -740,12 +739,13 @@ public sealed class InlineLambdaDiagnosticTests
     }
 
     /// <summary>
-    /// A public launching method can be called from other assemblies, whose
-    /// delegates cannot be traced. Its kernels are compiled for the callers
-    /// in this assembly and a warning is reported at the method.
+    /// A public launching method of a library can be called from other
+    /// assemblies, whose delegates cannot be traced, so it is rejected at the
+    /// method. Other assemblies do not call executables, which bind it to the
+    /// delegates of their own callers.
     /// </summary>
     [Fact]
-    public void PublicLaunchingMethod_Warns1111()
+    public void PublicLaunchingMethod_Reports1111InLibraries()
     {
         var analysis = AnalyzeProgram("""
             public static class Host
@@ -762,19 +762,23 @@ public sealed class InlineLambdaDiagnosticTests
                 static void Run(AcceleratorStream stream, ArrayView<int> view) =>
                     Host.UnaryOp(stream, view, v => -v);
             }
-            """);
+            """,
+            out var compilation);
 
-        Assert.Empty(analysis.Diagnostics);
-        Assert.Single(analysis.UniqueKernels);
-        var warning = Assert.Single(analysis.Warnings);
-        Assert.Equal(KernelDiagnostic.VisibleLaunchingMethodId, warning.Id);
-        Assert.True(warning.IsWarning);
-        Assert.Contains("visible outside this assembly", warning.Message);
-        Assert.Contains(": warning ILGPU1111: ", warning.ToString());
-        var location = warning.Location;
+        var diagnostic = Assert.Single(analysis.Diagnostics);
+        Assert.Equal(KernelDiagnostic.VisibleLaunchingMethodId, diagnostic.Id);
+        Assert.Contains("visible outside this assembly", diagnostic.Message);
+        Assert.Contains(": error ILGPU1111: ", diagnostic.ToString());
+        var location = diagnostic.Location;
         Assert.Equal(
             "UnaryOp",
             location.SourceTree!.GetText().ToString(location.SourceSpan));
+
+        var executable = CompilationRewriter.Analyze(compilation, isLibrary: false);
+        Assert.Empty(executable.Diagnostics);
+        var dispatch = Assert.Single(executable.DispatchKernels);
+        var capture = Assert.Single(dispatch.DelegateCaptures!.Value);
+        Assert.Equal("op", capture.Parameter.Name);
     }
 
     /// <summary>
@@ -784,7 +788,7 @@ public sealed class InlineLambdaDiagnosticTests
     /// protected methods of a public unsealed type are reported.
     /// </summary>
     [Fact]
-    public void ProtectedLaunchingMethods_WarnOnlyIfDerivable()
+    public void ProtectedLaunchingMethods_ReportedOnlyIfDerivable()
     {
         const string Method = """
                 protected static void UnaryOp(
@@ -815,9 +819,9 @@ public sealed class InlineLambdaDiagnosticTests
             }
             """);
 
-        Assert.Empty(analysis.Diagnostics);
-        var warning = Assert.Single(analysis.Warnings);
-        Assert.Contains("'DerivableHost.UnaryOp'", warning.Message);
+        var diagnostic = Assert.Single(analysis.Diagnostics);
+        Assert.Equal(KernelDiagnostic.VisibleLaunchingMethodId, diagnostic.Id);
+        Assert.Contains("'DerivableHost.UnaryOp'", diagnostic.Message);
     }
 
     /// <summary>
@@ -826,7 +830,7 @@ public sealed class InlineLambdaDiagnosticTests
     /// Methods forwarding delegates to it are checked too.
     /// </summary>
     [Fact]
-    public void InternalsVisibleToLaunchingMethod_Warns1111()
+    public void InternalsVisibleToLaunchingMethod_Reports1111()
     {
         var analysis = AnalyzeProgram($$"""
             [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Other")]
@@ -844,9 +848,9 @@ public sealed class InlineLambdaDiagnosticTests
             }
             """);
 
-        Assert.Empty(analysis.Diagnostics);
-        var warning = Assert.Single(analysis.Warnings);
-        Assert.Contains("'Host.UnaryOp' captures", warning.Message);
+        var diagnostic = Assert.Single(analysis.Diagnostics);
+        Assert.Equal(KernelDiagnostic.VisibleLaunchingMethodId, diagnostic.Id);
+        Assert.Contains("'Host.UnaryOp' captures", diagnostic.Message);
     }
 
     /// <summary>

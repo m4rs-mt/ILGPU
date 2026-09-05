@@ -37,7 +37,11 @@ record DelegateRegistration(ITypeSymbol DelegateType, List<string> Keys);
 /// compiled.
 /// </summary>
 /// <param name="compilation">The Roslyn compilation.</param>
-sealed class DelegateTargetDiscoverer(Compilation compilation)
+/// <param name="isLibrary">
+/// True if the compilation builds a library, whose methods other assemblies can
+/// call; false for an executable.
+/// </param>
+sealed class DelegateTargetDiscoverer(Compilation compilation, bool isLibrary = true)
 {
     /// <summary>
     /// The keys of the targets of each traced parameter (null if the targets
@@ -67,11 +71,6 @@ sealed class DelegateTargetDiscoverer(Compilation compilation)
     /// Returns all diagnostics reported while tracing targets.
     /// </summary>
     public List<KernelDiagnostic> Diagnostics { get; } = [];
-
-    /// <summary>
-    /// Returns all warnings reported while tracing targets.
-    /// </summary>
-    public List<KernelDiagnostic> Warnings { get; } = [];
 
     /// <summary>
     /// Returns the delegates to register at runtime by their argument syntax.
@@ -249,14 +248,13 @@ sealed class DelegateTargetDiscoverer(Compilation compilation)
         }
         else if (IsVisibleOutsideAssembly(method))
         {
-            Warnings.Add(new KernelDiagnostic(
+            Diagnostics.Add(new KernelDiagnostic(
                 KernelDiagnostic.VisibleLaunchingMethodId,
-                $"'{display}' {usage} and is visible outside this assembly. " +
-                $"Calls from other assemblies or through reflection are not " +
-                $"traced and throw NotSupportedException at the launch. Make " +
-                $"the method internal, or wrap it in an internal method.",
-                location,
-                IsWarning: true));
+                $"'{display}' {usage} but is visible outside this assembly, " +
+                $"where the delegates passed by other assemblies cannot be " +
+                $"traced. Make the method internal or private, together with " +
+                $"the methods forwarding delegates to it.",
+                location));
         }
         _checkedMethods.Add(method, isValid);
         return isValid;
@@ -357,11 +355,12 @@ sealed class DelegateTargetDiscoverer(Compilation compilation)
     /// types, or it is not private and the assembly grants other assemblies
     /// access to its internals. Protected methods are only accessible through
     /// derived types, so they are not visible if their type cannot be derived
-    /// from in other assemblies.
+    /// from in other assemblies. Other assemblies do not call the methods of an
+    /// executable, so none of them is visible.
     /// </summary>
     private bool IsVisibleOutsideAssembly(IMethodSymbol method)
     {
-        if (method.MethodKind == MethodKind.LocalFunction)
+        if (!isLibrary || method.MethodKind == MethodKind.LocalFunction)
             return false;
 
         bool isPublic = true;

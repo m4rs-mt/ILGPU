@@ -103,13 +103,14 @@ captured delegate parameter of a launching method that no call passes a lambda o
 Launching methods, and methods forwarding a delegate parameter to them, must be called directly: methods that are
 virtual, abstract or overrides, or that implement an interface member, can be called through a base type or an
 interface, where the passed delegates cannot be traced, and are reported at build time (`ILGPU1110`).
-Delegates passed by callers the compiler cannot see, such as other assemblies or reflection, throw a
-`NotSupportedException` at the launch.
-Launching methods that other assemblies can call (public methods of public types, protected methods of public types
-that other assemblies can derive from, or any non-private method when the assembly declares `InternalsVisibleTo`) are
-therefore reported as a build warning (`ILGPU1111`).
-Make them internal or wrap them in an internal method, or turn the warning into an error with
-`<WarningsAsErrors>ILGPU1111</WarningsAsErrors>`.
+Delegates passed by callers the compiler cannot see cannot be traced either.
+In library projects, launching methods that other assemblies can call (public methods of public types, protected
+methods of public types that other assemblies can derive from, or any non-private method when the assembly declares
+`InternalsVisibleTo`), and methods forwarding delegates to them, are therefore reported at build time (`ILGPU1111`):
+make them internal or private.
+Other assemblies do not call executables (an `OutputType` of `Exe` or `WinExe`), so their launching methods can be
+public.
+Delegates passed through reflection throw a `NotSupportedException` at the launch.
 Other delegates captured by a launch lambda, such as delegate variables of the launching method or structs holding
 delegate fields (also in nested structs), cannot be passed from the CPU to a kernel and are reported at build time
 (`ILGPU1103`), as are such structs passed to a kernel method by a launch lambda.

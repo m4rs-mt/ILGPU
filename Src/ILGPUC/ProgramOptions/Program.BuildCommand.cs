@@ -62,6 +62,18 @@ sealed partial class Program
             Description = "Project root for relative path computation",
         };
 
+        /// <summary>
+        /// The output type of the project (for example Library, Exe or WinExe).
+        /// Executables are not referenced by other assemblies, so their public
+        /// methods are treated like internal ones.
+        /// </summary>
+        readonly Option<string?> _outputTypeOption = new("--output-type")
+        {
+            Description =
+                "Output type of the project: Exe and WinExe are executables, " +
+                "anything else is a library (default: Library)",
+        };
+
         /// <summary>Target backend type(s) (Cuda, ROCm, OpenCL, Metal, or CPU).</summary>
         readonly Option<BackendType[]> _backendTypeOption = new("-b", "--backend")
         {
@@ -192,6 +204,7 @@ sealed partial class Program
                 _referencesOption,
                 _outputDirOption,
                 _projectDirOption,
+                _outputTypeOption,
                 _backendTypeOption,
                 _compileOption,
                 _compilerServiceOption,
@@ -330,12 +343,9 @@ sealed partial class Program
 
             // Analyze the compilation
             var compiler = new KernelCompiler(properties);
-            var analysis = CompilationRewriter.Analyze(compilation);
-
-            // Report warnings in the canonical format that MSBuild surfaces
-            // as build warnings
-            foreach (var warning in analysis.Warnings)
-                await Console.Error.WriteLineAsync(warning.ToString());
+            var analysis = CompilationRewriter.Analyze(
+                compilation,
+                IsLibrary(parseResult.GetValue(_outputTypeOption)));
 
             // Report invalid launch sites in the canonical error format that
             // MSBuild surfaces as build errors, and fail without compiling
@@ -475,5 +485,15 @@ sealed partial class Program
                 || fileName.StartsWith("ILGPU", StringComparison.OrdinalIgnoreCase)
                 || fileName is "mscorlib.dll" or "netstandard.dll";
         }
+
+        /// <summary>
+        /// Returns <see langword="true"/> if <paramref name="outputType"/> is the
+        /// output type of a library: anything but an executable (Exe or WinExe),
+        /// including no output type at all.
+        /// </summary>
+        /// <param name="outputType">The output type of the project, or null.</param>
+        private static bool IsLibrary(string? outputType) =>
+            !string.Equals(outputType, "Exe", StringComparison.OrdinalIgnoreCase)
+            && !string.Equals(outputType, "WinExe", StringComparison.OrdinalIgnoreCase);
     }
 }

@@ -1,9 +1,9 @@
-// LaunchSiteShapes: launch sites that ilgpuc compiles with a warning or that
-// need special care when rewritten. A public method capturing its delegate
-// parameter in a kernel builds with an ILGPU1111 warning, launches share
-// their lines with other code, and a grouped launch passes values computed
-// from its index to a kernel method. Each line of the output is produced by
-// a different launch.
+// LaunchSiteShapes: launch sites that need special care when rewritten. A
+// public method capturing its delegate parameter in a kernel is called from
+// another class, which other assemblies cannot do since this is an executable,
+// launches share their lines with other code, and a grouped launch passes
+// values computed from its index to a kernel method. Each line of the output is
+// produced by a different launch.
 
 using System;
 using ILGPU;

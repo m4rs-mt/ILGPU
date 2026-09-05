@@ -531,16 +531,16 @@ public sealed class MsBuildIntegrationTests
 
     // -----------------------------------------------------------------------
     // Test 11: LaunchSiteShapes — a public launching method capturing its
-    // delegate parameter builds with an ILGPU1111 warning in the canonical
-    // MSBuild format, launches sharing their lines with other code keep the
-    // rewritten source compilable, and a grouped launch passing values
-    // computed from its index runs correctly.
+    // delegate parameter builds in an executable and runs the delegate passed
+    // from another class, launches sharing their lines with other code keep the
+    // rewritten source compilable, and a grouped launch passing values computed
+    // from its index runs correctly.
     // -----------------------------------------------------------------------
 
     [SkippableTheory]
     [InlineData(BackendType.CPU)]
     [InlineData(BackendType.Metal)]
-    public async Task Build_LaunchSiteShapes_WarnsAndRuns(BackendType backend)
+    public async Task Build_LaunchSiteShapes_CompilesAndRuns(BackendType backend)
     {
         await RequireBackendAsync(backend);
 
@@ -552,13 +552,6 @@ public sealed class MsBuildIntegrationTests
             Assert.True(build.Succeeded,
                 $"dotnet build failed (exit {build.ExitCode}). " +
                 $"Stdout: {build.FullStdOut}\nStderr: {build.StdErr}");
-
-            var combined = build.FullStdOut + "\n" + build.StdErr;
-            Assert.True(
-                combined.Contains(
-                    "Program.cs(31,24): warning ILGPU1111", StringComparison.Ordinal),
-                $"Expected an ILGPU1111 warning at Program.cs(31,24), " +
-                $"got:\n{combined}");
 
             var run = await project.RunAsync();
             Assert.False(run.TimedOut, "Binary timed out");

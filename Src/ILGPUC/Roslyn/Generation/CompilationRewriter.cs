@@ -82,7 +82,14 @@ sealed class CompilationRewriter(ICompiledKernelProvider? kernelProvider = null)
     /// parameters into one kernel per delegate target. No modifications are
     /// made to the compilation.
     /// </summary>
-    public static AnalysisResult Analyze(CSharpCompilation compilation)
+    /// <param name="compilation">The compilation to analyze.</param>
+    /// <param name="isLibrary">
+    /// True if the compilation builds a library, whose methods other assemblies
+    /// can call; false for an executable.
+    /// </param>
+    public static AnalysisResult Analyze(
+        CSharpCompilation compilation,
+        bool isLibrary = true)
     {
         var analyzer = new LaunchSiteAnalyzer(compilation);
         var launchSites = analyzer.FindAllLaunchSites();
@@ -100,7 +107,7 @@ sealed class CompilationRewriter(ICompiledKernelProvider? kernelProvider = null)
         // per-specialization descriptors.
         var expandedKernels = new List<KernelDescriptor>();
         var dispatchKernels = new List<KernelDescriptor>();
-        var delegateDiscoverer = new DelegateTargetDiscoverer(compilation);
+        var delegateDiscoverer = new DelegateTargetDiscoverer(compilation, isLibrary);
 
         foreach (var kernel in kernels)
         {
@@ -171,8 +178,7 @@ sealed class CompilationRewriter(ICompiledKernelProvider? kernelProvider = null)
                 .Concat(delegateDiscoverer.Diagnostics)
                 .Distinct()
                 .ToList(),
-            delegateDiscoverer.Registrations,
-            delegateDiscoverer.Warnings.Distinct().ToList());
+            delegateDiscoverer.Registrations);
     }
 
     /// <summary>
@@ -544,16 +550,12 @@ sealed class CompilationRewriter(ICompiledKernelProvider? kernelProvider = null)
 /// The delegates passed to delegate parameters captured by inline kernels,
 /// which are registered under the keys of their targets at their call sites.
 /// </param>
-/// <param name="Warnings">
-/// Warnings found at launch sites, which do not prevent compiling kernels.
-/// </param>
 record AnalysisResult(
     List<KernelDescriptor> AllKernels,
     List<KernelDescriptor> UniqueKernels,
     List<KernelDescriptor> DispatchKernels,
     List<KernelDiagnostic> Diagnostics,
-    Dictionary<ArgumentSyntax, DelegateRegistration> DelegateRegistrations,
-    List<KernelDiagnostic> Warnings);
+    Dictionary<ArgumentSyntax, DelegateRegistration> DelegateRegistrations);
 
 /// <summary>
 /// Holds the results of the rewrite phase.

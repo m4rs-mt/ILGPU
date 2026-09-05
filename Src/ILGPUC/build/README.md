@@ -124,8 +124,13 @@ ilgpuc build \
   --references /path/to/ILGPU.dll ... \
   --output-dir obj/Debug/net10.0/ilgpu/ \
   --project-dir /path/to/project/ \
+  --output-type Exe \
   -b CPU
 ```
+
+`--output-type` takes the project's `OutputType`. Executables (`Exe` or `WinExe`) are
+not called by other assemblies, so their public methods are treated like internal
+ones; any other output type, or none, is a library.
 
 Use `ilgpuc build --help` for all available options.
 

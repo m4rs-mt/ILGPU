@@ -14,20 +14,13 @@ using Microsoft.CodeAnalysis;
 namespace ILGPUC.Roslyn.Analysis;
 
 /// <summary>
-/// An error (or a warning) found while analyzing a kernel launch site,
+/// An error found while analyzing a kernel launch site,
 /// reported at the offending source location before any kernel is compiled.
 /// </summary>
 /// <param name="Id">The diagnostic identifier (e.g. <c>ILGPU1101</c>).</param>
 /// <param name="Message">The human-readable description of the problem.</param>
 /// <param name="Location">The source location the diagnostic refers to.</param>
-/// <param name="IsWarning">
-/// True if this is a warning, which does not prevent compiling kernels.
-/// </param>
-record KernelDiagnostic(
-    string Id,
-    string Message,
-    Location Location,
-    bool IsWarning = false)
+record KernelDiagnostic(string Id, string Message, Location Location)
 {
     /// <summary>
     /// An inline kernel uses the enclosing instance.
@@ -146,7 +139,7 @@ record KernelDiagnostic(
 
     /// <summary>
     /// A launching method whose delegate parameter is captured by an inline
-    /// kernel is visible outside of its assembly (a warning).
+    /// kernel is visible outside of its assembly.
     /// </summary>
     public const string VisibleLaunchingMethodId = "ILGPU1111";
 
@@ -173,6 +166,6 @@ record KernelDiagnostic(
         var position = span.StartLinePosition;
         var path = string.IsNullOrEmpty(span.Path) ? "ILGPUC" : span.Path;
         return $"{path}({position.Line + 1},{position.Character + 1}): " +
-            $"{(IsWarning ? "warning" : "error")} {Id}: {Message}";
+            $"error {Id}: {Message}";
     }
 }
