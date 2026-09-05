@@ -587,7 +587,7 @@ partial class ModuleBuilder : IGenerationObject
             var typeInfo = GetTypeInfo(type);
             var builder = new StructureType.Builder(
                 this,
-                typeInfo.NumFlattenedFields,
+                typeInfo.NumFields,
                 typeInfo.Size);
             foreach (var field in typeInfo.Fields)
             {

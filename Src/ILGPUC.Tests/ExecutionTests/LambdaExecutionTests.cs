@@ -14,6 +14,7 @@ using ILGPUC.Tests.Framework;
 using System.Threading.Tasks;
 using Xunit;
 using Xunit.Abstractions;
+using RoslynOptimizationLevel = Microsoft.CodeAnalysis.OptimizationLevel;
 
 namespace ILGPUC.Tests.ExecutionTests;
 
@@ -42,6 +43,25 @@ public abstract class LambdaExecutionTests : ExecutionTestBase
             "TestPrograms/Lambda/LocalFunctionCapture.cs",
             ["Kernels.LocalFunctionCaptureKernel"],
             ["5", "15", "25", "35"]);
+    }
+
+    /// <summary>
+    /// A lambda capturing locals of two nested scopes, whose inner closure class
+    /// refers to the outer one through a field in debug builds. Regression guard:
+    /// that field was counted as all fields of the outer closure class, which
+    /// shifted the indices of the fields behind it in the inner closure class.
+    /// </summary>
+    [SkippableTheory]
+    [InlineData(RoslynOptimizationLevel.Release)]
+    [InlineData(RoslynOptimizationLevel.Debug)]
+    public async Task NestedScopeCapture_ProducesCorrectOutput(
+        RoslynOptimizationLevel programOptimization)
+    {
+        await VerifyProgramOutputAsync(
+            "TestPrograms/Lambda/NestedScopeCapture.cs",
+            ["Kernels.NestedScopeCaptureKernel"],
+            ["3", "15", "27", "39"],
+            programOptimization: programOptimization);
     }
 
     [SkippableFact]

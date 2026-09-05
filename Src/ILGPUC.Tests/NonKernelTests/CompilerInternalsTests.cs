@@ -203,6 +203,48 @@ public sealed class CompilerInternalsTests
 
     #endregion
 
+    #region TypeInformationManager class types
+
+    public sealed class Pair
+    {
+        public int A;
+        public int B;
+    }
+
+    public sealed class PairHolder
+    {
+        public Pair? First;
+        public int Second;
+    }
+
+    public struct PairStruct
+    {
+        public Pair? First;
+        public long Second;
+    }
+
+    /// <summary>
+    /// Values of class types are pointers occupying a single field, while the
+    /// fields of the classes themselves still describe their layouts. Fields of
+    /// class types were counted as all fields of their classes, which shifted the
+    /// indices of the fields behind them.
+    /// </summary>
+    [Theory]
+    [InlineData(typeof(Pair), 1, new[] { 0, 1 })]
+    [InlineData(typeof(PairHolder), 1, new[] { 0, 1 })]
+    [InlineData(typeof(PairStruct), 2, new[] { 0, 1 })]
+    public void TypeInfo_ClassField_OccupiesSingleField(
+        Type type,
+        int numFlattenedFields,
+        int[] fieldOffsets)
+    {
+        var typeInfo = new TypeInformationManager().GetTypeInfo(type);
+        Assert.Equal(numFlattenedFields, typeInfo.NumFlattenedFields);
+        Assert.Equal(fieldOffsets, typeInfo.FieldOffsets);
+    }
+
+    #endregion
+
     #region Non-capturing lambda detection
 
     /// <summary>

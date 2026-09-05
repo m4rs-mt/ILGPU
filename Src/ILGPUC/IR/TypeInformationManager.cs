@@ -125,7 +125,8 @@ sealed class TypeInformationManager
         internal bool IsValidKernelParameter { get; }
 
         /// <summary>
-        /// Returns the number of flattened fields.
+        /// Returns the number of flattened fields a value of this type occupies.
+        /// Values of reference types are pointers and occupy a single field.
         /// </summary>
         public int NumFlattenedFields { get; }
 
@@ -450,7 +451,7 @@ sealed class TypeInformationManager
             fields,
             fieldOffsetsBuilder.MoveToImmutable(),
             fieldTypesBuilder.MoveToImmutable(),
-            flattenedFields,
+            type.IsValueType ? flattenedFields : 1,
             isBlittable,
             isValidKernelParameter);
     }
