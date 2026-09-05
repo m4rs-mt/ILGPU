@@ -629,6 +629,39 @@ public sealed class InlineLambdaDiagnosticTests
     }
 
     /// <summary>
+    /// A launching method of a base class that implements an interface member
+    /// for a derived class can be called through the interface, so it is
+    /// rejected although its own class implements no interface.
+    /// </summary>
+    [Fact]
+    public void InheritedInterfaceLaunchingMethod_Reports1110()
+    {
+        var analysis = AnalyzeUnaryOpCalls(
+            "new RunnerBase().Run(stream, view, v => -v);",
+            """
+            interface IRunner
+            {
+                void Run(
+                    AcceleratorStream stream, ArrayView<int> view, Func<int, int> op);
+            }
+
+            class RunnerBase
+            {
+                public void Run(
+                    AcceleratorStream stream, ArrayView<int> view, Func<int, int> op) =>
+                    Host.UnaryOp(stream, view, op);
+            }
+
+            sealed class Runner : RunnerBase, IRunner { }
+            """);
+
+        var diagnostic = AssertSingleDiagnostic(
+            analysis, KernelDiagnostic.VirtualLaunchingMethodId, "Run");
+        Assert.Contains("'Callers.RunnerBase.Run' forwards", diagnostic.Message);
+        Assert.Contains("calls through 'Callers.IRunner.Run'", diagnostic.Message);
+    }
+
+    /// <summary>
     /// A virtual launching method can be overridden and called through the
     /// overrides, so it is rejected.
     /// </summary>

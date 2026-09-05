@@ -59,6 +59,11 @@ sealed class DelegateTargetDiscoverer(Compilation compilation)
         new(SymbolEqualityComparer.Default);
 
     /// <summary>
+    /// The types declared in this compilation, including nested types.
+    /// </summary>
+    private List<INamedTypeSymbol>? _sourceTypes;
+
+    /// <summary>
     /// Returns all diagnostics reported while tracing targets.
     /// </summary>
     public List<KernelDiagnostic> Diagnostics { get; } = [];
@@ -260,11 +265,12 @@ sealed class DelegateTargetDiscoverer(Compilation compilation)
     /// <summary>
     /// Returns the display name of the member that calls of the given method
     /// can be dispatched through without referring to the method itself: the
-    /// method if it is virtual or abstract, the overridden method, or the
-    /// implemented interface member. Returns null if the method is only
-    /// called directly.
+    /// method if it is virtual or abstract, the overridden method, or an
+    /// interface member it implements for its containing type or for any type
+    /// of this compilation deriving from it. Returns null if the method is
+    /// only called directly.
     /// </summary>
-    private static string? FindDispatchingMember(IMethodSymbol method)
+    private string? FindDispatchingMember(IMethodSymbol method)
     {
         if (method.IsOverride)
         {
@@ -279,21 +285,70 @@ sealed class DelegateTargetDiscoverer(Compilation compilation)
 
         if (method.MethodKind != MethodKind.Ordinary)
             return null;
-        foreach (var @interface in method.ContainingType.AllInterfaces)
+        var declaringType = method.ContainingType.OriginalDefinition;
+        foreach (var type in GetSourceTypes())
         {
-            foreach (var member in @interface.GetMembers().OfType<IMethodSymbol>())
+            if (!InheritsFrom(type, declaringType))
+                continue;
+            foreach (var @interface in type.AllInterfaces)
             {
-                var implementation = method.ContainingType
-                    .FindImplementationForInterfaceMember(member);
-                if (SymbolEqualityComparer.Default.Equals(
-                    implementation?.OriginalDefinition,
-                    method.OriginalDefinition))
+                foreach (var member in @interface.GetMembers().OfType<IMethodSymbol>())
                 {
-                    return GetDisplayName(member);
+                    var implementation =
+                        type.FindImplementationForInterfaceMember(member);
+                    if (SymbolEqualityComparer.Default.Equals(
+                        implementation?.OriginalDefinition,
+                        method.OriginalDefinition))
+                    {
+                        return GetDisplayName(member);
+                    }
                 }
             }
         }
         return null;
+    }
+
+    /// <summary>
+    /// Returns all types declared in this compilation, including nested types.
+    /// </summary>
+    private List<INamedTypeSymbol> GetSourceTypes()
+    {
+        if (_sourceTypes is not null)
+            return _sourceTypes;
+
+        _sourceTypes = [];
+        var pending = new Stack<INamespaceOrTypeSymbol>();
+        pending.Push(compilation.Assembly.GlobalNamespace);
+        while (pending.Count > 0)
+        {
+            foreach (var member in pending.Pop().GetMembers())
+            {
+                if (member is INamedTypeSymbol type)
+                    _sourceTypes.Add(type);
+                if (member is INamespaceOrTypeSymbol container)
+                    pending.Push(container);
+            }
+        }
+        return _sourceTypes;
+    }
+
+    /// <summary>
+    /// Returns <see langword="true"/> if the given type is the given type
+    /// definition or derives from it.
+    /// </summary>
+    private static bool InheritsFrom(INamedTypeSymbol type, INamedTypeSymbol definition)
+    {
+        for (INamedTypeSymbol? current = type; current is not null;
+            current = current.BaseType)
+        {
+            if (SymbolEqualityComparer.Default.Equals(
+                current.OriginalDefinition,
+                definition))
+            {
+                return true;
+            }
+        }
+        return false;
     }
 
     /// <summary>
