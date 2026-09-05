@@ -463,6 +463,28 @@ public sealed class InlineLambdaDiagnosticTests
     }
 
     /// <summary>
+    /// A launching method referred to in <c>nameof</c>, also in constants and
+    /// interpolated strings, is not used as a delegate, so its kernels are
+    /// compiled without diagnostics. Roslyn binds method groups in
+    /// <c>nameof</c> to candidate symbols only, which the reference search
+    /// skips.
+    /// </summary>
+    [Fact]
+    public void LaunchingMethodInNameOf_NoDiagnostics()
+    {
+        var analysis = AnalyzeUnaryOpCalls("""
+            Host.UnaryOp(stream, view, v => -v);
+            Console.WriteLine(nameof(Host.UnaryOp));
+            string text = nameof(Host.UnaryOp) + nameof(Callers.Run);
+            Console.WriteLine($"{nameof(Host.UnaryOp)}");
+            """,
+            "const string N = nameof(Host.UnaryOp);");
+
+        Assert.Empty(analysis.Diagnostics);
+        Assert.Single(analysis.UniqueKernels);
+    }
+
+    /// <summary>
     /// A lambda declared in a generic method cannot be bound to a kernel.
     /// </summary>
     [Fact]
