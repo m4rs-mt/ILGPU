@@ -202,7 +202,8 @@ sealed class CompilationRewriter(ICompiledKernelProvider? kernelProvider = null)
     ///     InlineKernel_Host_L12_C31(
     ///         index,
     ///         view,
-    ///         KernelDelegates.Bind&lt;Func&lt;int, int&gt;&gt;("Host.UnaryOp.op#0"));
+    ///         KernelDelegates.Bind&lt;Func&lt;int, int&gt;&gt;(
+    ///             "Program:Host.UnaryOp.op#0"));
     /// </code>
     /// </summary>
     private static KernelDescriptor CreateBoundDescriptor(

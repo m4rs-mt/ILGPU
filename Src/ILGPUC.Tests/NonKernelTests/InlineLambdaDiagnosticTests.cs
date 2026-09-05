@@ -295,15 +295,25 @@ public sealed class InlineLambdaDiagnosticTests
                 "KernelDelegates.Bind",
                 kernel.LiftedKernel!.ToFullString());
         }
+
+        // Keys are prefixed with the name of the assembly
         Assert.Equal(
-            ["Host.UnaryOp.op#0", "Host.UnaryOp.op#1", "Host.UnaryOp.op#2"],
+            [
+                "DiagnosticTest:Host.UnaryOp.op#0",
+                "DiagnosticTest:Host.UnaryOp.op#1",
+                "DiagnosticTest:Host.UnaryOp.op#2",
+            ],
             analysis.UniqueKernels.Select(k => Assert.Single(k.DelegateKeys!.Value)));
 
         // Four call sites, the last two register the shared key
         Assert.Equal(4, analysis.DelegateRegistrations.Count);
         Assert.Equal(
-            ["Host.UnaryOp.op#0", "Host.UnaryOp.op#1",
-                "Host.UnaryOp.op#2", "Host.UnaryOp.op#2"],
+            [
+                "DiagnosticTest:Host.UnaryOp.op#0",
+                "DiagnosticTest:Host.UnaryOp.op#1",
+                "DiagnosticTest:Host.UnaryOp.op#2",
+                "DiagnosticTest:Host.UnaryOp.op#2",
+            ],
             analysis.DelegateRegistrations
                 .OrderBy(r => r.Key.SpanStart)
                 .Select(r => Assert.Single(r.Value.Keys)));
@@ -334,7 +344,9 @@ public sealed class InlineLambdaDiagnosticTests
 
         Assert.Empty(analysis.Diagnostics);
         var kernel = Assert.Single(analysis.UniqueKernels);
-        Assert.Equal("Host.UnaryOp.op#0", Assert.Single(kernel.DelegateKeys!.Value));
+        Assert.Equal(
+            "DiagnosticTest:Host.UnaryOp.op#0",
+            Assert.Single(kernel.DelegateKeys!.Value));
         var registration = Assert.Single(analysis.DelegateRegistrations);
         Assert.Equal("v => v + 1", registration.Key.ToString());
     }

@@ -202,7 +202,7 @@ static class DispatchStubGenerator
     /// parameters, which forwards to the kernel bound to the targets of the
     /// passed delegates:
     /// <code>
-    /// if (KernelDelegates.IsRegistered(op, "Host.UnaryOp.op#0"))
+    /// if (KernelDelegates.IsRegistered(op, "Program:Host.UnaryOp.op#0"))
     /// {
     ///     InlineKernel_Host_L12_C31_D0_CompiledKernel.Launch(
     ///         stream, config, userExtent, view);

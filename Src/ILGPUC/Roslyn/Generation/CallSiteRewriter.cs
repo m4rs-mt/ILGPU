@@ -43,7 +43,7 @@ namespace ILGPUC.Roslyn.Generation;
 /// After:
 ///   Host.UnaryOp(stream, view,
 ///     global::ILGPU.Runtime.KernelDelegates.Register&lt;...&gt;(
-///       v => -v, "Host.UnaryOp.op#0"));
+///       v => -v, "Program:Host.UnaryOp.op#0"));
 /// </summary>
 sealed class CallSiteRewriter : CSharpSyntaxRewriter
 {

@@ -115,7 +115,10 @@ sealed class DelegateTargetDiscoverer(Compilation compilation)
         {
             if (!keysByTarget.TryGetValue(target, out var key))
             {
-                key = $"{method}.{parameter.Name}#{_numKeys++}";
+                // Keys are prefixed with the assembly name, as the runtime
+                // registry is shared by all assemblies of a process
+                key = $"{compilation.AssemblyName}:{method}.{parameter.Name}" +
+                    $"#{_numKeys++}";
                 keysByTarget.Add(target, key);
                 keys.Add(key);
             }
