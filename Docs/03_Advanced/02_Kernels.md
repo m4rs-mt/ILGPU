@@ -105,8 +105,9 @@ virtual, abstract or overrides, or that implement an interface member, can be ca
 interface, where the passed delegates cannot be traced, and are reported at build time (`ILGPU1110`).
 Delegates passed by callers the compiler cannot see, such as other assemblies or reflection, throw a
 `NotSupportedException` at the launch.
-Launching methods that other assemblies can call (public or protected methods of public types, or any non-private
-method when the assembly declares `InternalsVisibleTo`) are therefore reported as a build warning (`ILGPU1111`).
+Launching methods that other assemblies can call (public methods of public types, protected methods of public types
+that other assemblies can derive from, or any non-private method when the assembly declares `InternalsVisibleTo`) are
+therefore reported as a build warning (`ILGPU1111`).
 Make them internal or wrap them in an internal method, or turn the warning into an error with
 `<WarningsAsErrors>ILGPU1111</WarningsAsErrors>`.
 Other delegates captured by a launch lambda, such as delegate variables of the launching method or structs holding

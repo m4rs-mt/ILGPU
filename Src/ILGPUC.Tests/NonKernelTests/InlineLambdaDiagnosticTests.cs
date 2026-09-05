@@ -756,6 +756,49 @@ public sealed class InlineLambdaDiagnosticTests
     }
 
     /// <summary>
+    /// Protected launching methods are only accessible through derived types.
+    /// Types that other assemblies cannot derive from (sealed types and types
+    /// without accessible constructors) do not make them visible, while
+    /// protected methods of a public unsealed type are reported.
+    /// </summary>
+    [Fact]
+    public void ProtectedLaunchingMethods_WarnOnlyIfDerivable()
+    {
+        const string Method = """
+                protected static void UnaryOp(
+                    AcceleratorStream stream, ArrayView<int> view, Func<int, int> op)
+                {
+                    stream.Launch(view.IntExtent, index => view[index] = op(index));
+                }
+
+                static void Run(AcceleratorStream stream, ArrayView<int> view) =>
+                    UnaryOp(stream, view, v => -v);
+            """;
+        var analysis = AnalyzeProgram($$"""
+            public sealed class SealedHost
+            {
+                {{Method}}
+            }
+
+            public class InternalConstructorHost
+            {
+                internal InternalConstructorHost() { }
+
+                {{Method}}
+            }
+
+            public class DerivableHost
+            {
+                {{Method}}
+            }
+            """);
+
+        Assert.Empty(analysis.Diagnostics);
+        var warning = Assert.Single(analysis.Warnings);
+        Assert.Contains("'DerivableHost.UnaryOp'", warning.Message);
+    }
+
+    /// <summary>
     /// An internal launching method is visible outside the assembly when the
     /// assembly grants access to its internals, which is reported as well.
     /// Methods forwarding delegates to it are checked too.

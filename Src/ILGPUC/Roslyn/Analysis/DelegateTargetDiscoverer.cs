@@ -355,7 +355,9 @@ sealed class DelegateTargetDiscoverer(Compilation compilation)
     /// Returns <see langword="true"/> if the given method can be called from
     /// other assemblies: it is public or protected and so are all containing
     /// types, or it is not private and the assembly grants other assemblies
-    /// access to its internals.
+    /// access to its internals. Protected methods are only accessible through
+    /// derived types, so they are not visible if their type cannot be derived
+    /// from in other assemblies.
     /// </summary>
     private bool IsVisibleOutsideAssembly(IMethodSymbol method)
     {
@@ -381,8 +383,43 @@ sealed class DelegateTargetDiscoverer(Compilation compilation)
                     return false;
             }
         }
-        return isPublic || HasInternalsVisibleTo();
+
+        bool internalsVisible = HasInternalsVisibleTo();
+        if (!isPublic && !internalsVisible)
+            return false;
+
+        // Protected internal methods are accessible to friend assemblies
+        // without deriving from their type
+        bool onlyThroughDerivation = method.DeclaredAccessibility switch
+        {
+            Accessibility.Protected or Accessibility.ProtectedAndInternal => true,
+            Accessibility.ProtectedOrInternal => !internalsVisible,
+            _ => false,
+        };
+        return !onlyThroughDerivation
+            || CanDeriveOutsideAssembly(method.ContainingType, internalsVisible);
     }
+
+    /// <summary>
+    /// Returns <see langword="true"/> if other assemblies can derive from the
+    /// given type: it is neither sealed nor static and has a constructor they
+    /// can access.
+    /// </summary>
+    private static bool CanDeriveOutsideAssembly(
+        INamedTypeSymbol type,
+        bool internalsVisible) =>
+        type.TypeKind == TypeKind.Class
+        && !type.IsSealed
+        && !type.IsStatic
+        && type.InstanceConstructors.Any(constructor =>
+            constructor.DeclaredAccessibility switch
+            {
+                Accessibility.Public or Accessibility.Protected
+                    or Accessibility.ProtectedOrInternal => true,
+                Accessibility.Internal or Accessibility.ProtectedAndInternal =>
+                    internalsVisible,
+                _ => false,
+            });
 
     /// <summary>
     /// Returns <see langword="true"/> if the assembly grants other assemblies
