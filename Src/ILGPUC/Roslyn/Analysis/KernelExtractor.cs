@@ -131,7 +131,8 @@ sealed class KernelExtractor(CSharpCompilation compilation)
         // Check if body is a single method invocation
         if (TryExtractMethodCall(model, body, out var methodSymbol,
                 out var arguments)
-            && !HasDelegateParameters(methodSymbol!))
+            && !HasDelegateParameters(methodSymbol!)
+            && !UsesLambdaParameter(model, lambda, arguments))
         {
             return CreateFromMethodCall(
                 model, methodSymbol!, arguments, launchInfo, diagnostics);
@@ -157,7 +158,8 @@ sealed class KernelExtractor(CSharpCompilation compilation)
 
         if (TryExtractMethodCall(model, body, out var methodSymbol,
                 out var arguments)
-            && !HasDelegateParameters(methodSymbol!))
+            && !HasDelegateParameters(methodSymbol!)
+            && !UsesLambdaParameter(model, lambda, arguments))
         {
             return CreateFromMethodCall(
                 model, methodSymbol!, arguments, launchInfo, diagnostics);
@@ -336,6 +338,40 @@ sealed class KernelExtractor(CSharpCompilation compilation)
     /// </summary>
     private static bool HasDelegateParameters(IMethodSymbol method) =>
         method.Parameters.Any(p => p.Type.TypeKind == TypeKind.Delegate);
+
+    /// <summary>
+    /// Returns <see langword="true"/> if an argument of the single call in a
+    /// launch lambda uses the parameter of the lambda, other than passing it
+    /// unchanged as the first argument (e.g. <c>index.GroupIndex</c>). The
+    /// arguments of a direct call are evaluated at the launch site, where the
+    /// parameter does not exist, so such a lambda is lifted as an inline
+    /// kernel instead.
+    /// </summary>
+    private static bool UsesLambdaParameter(
+        SemanticModel model,
+        LambdaExpressionSyntax lambda,
+        SeparatedSyntaxList<ArgumentSyntax> arguments)
+    {
+        if (model.GetSymbolInfo(lambda).Symbol is not IMethodSymbol lambdaSymbol)
+            return false;
+
+        bool IsLambdaParameter(SyntaxNode node) =>
+            node is IdentifierNameSyntax
+            && model.GetSymbolInfo(node).Symbol is IParameterSymbol parameter
+            && lambdaSymbol.Parameters.Contains(
+                parameter,
+                SymbolEqualityComparer.Default);
+
+        for (int i = 0; i < arguments.Count; i++)
+        {
+            var expression = arguments[i].Expression;
+            if (i == 0 && IsLambdaParameter(expression))
+                continue;
+            if (expression.DescendantNodesAndSelf().Any(IsLambdaParameter))
+                return true;
+        }
+        return false;
+    }
 
     /// <summary>
     /// Returns the path of the first delegate field of the given value type,

@@ -907,6 +907,38 @@ public sealed class InlineLambdaDiagnosticTests
     }
 
     /// <summary>
+    /// A launch lambda whose single call passes a value computed from the
+    /// lambda parameter is lifted as an inline kernel, as the value only
+    /// exists inside the kernel.
+    /// </summary>
+    [Fact]
+    public void LambdaParameterArgument_LiftedAsInlineKernel()
+    {
+        var analysis = AnalyzeProgram("""
+            static class Kernels
+            {
+                public static void Write(ArrayView<int> data, int group) =>
+                    data[group] = group;
+            }
+
+            static class Host
+            {
+                static void Run(AcceleratorStream stream, ArrayView<int> view)
+                {
+                    stream.Launch(
+                        new KernelConfig(1, 4),
+                        index => Kernels.Write(view, index.GroupIndex));
+                }
+            }
+            """);
+
+        Assert.Empty(analysis.Diagnostics);
+        var kernel = Assert.Single(analysis.UniqueKernels);
+        Assert.NotNull(kernel.LiftedKernel);
+        Assert.Equal(["view"], kernel.Parameters.Select(p => p.Name));
+    }
+
+    /// <summary>
     /// Using an instance field captures <c>this</c>, which is rejected at
     /// the member access.
     /// </summary>

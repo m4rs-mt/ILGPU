@@ -73,6 +73,20 @@ public abstract class InlineLambdaExecutionTests : ExecutionTestBase
     }
 
     /// <summary>
+    /// Launch lambdas whose single call passes values computed from the lambda
+    /// parameter (index.GroupIndex, i * 3) are lifted as inline kernels, so
+    /// these values are computed inside the kernel.
+    /// </summary>
+    [SkippableFact]
+    public async Task LambdaParameterArgument_ProducesCorrectOutput()
+    {
+        await VerifyProgramOutputAsync(
+            "TestPrograms/Lambda/LambdaParameterArgument.cs",
+            [],
+            ["0 1 2 3 10 11 12 13", "0 3 6 9"]);
+    }
+
+    /// <summary>
     /// A launch lambda passes a delegate parameter of the launching method to a
     /// kernel method taking a Func (issue #463). One kernel is compiled for
     /// each lambda and static method its callers in two files pass, and a

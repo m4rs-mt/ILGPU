@@ -530,6 +530,57 @@ public sealed class MsBuildIntegrationTests
     }
 
     // -----------------------------------------------------------------------
+    // Test 11: LaunchSiteShapes — a public launching method capturing its
+    // delegate parameter builds with an ILGPU1111 warning in the canonical
+    // MSBuild format, launches sharing their lines with other code keep the
+    // rewritten source compilable, and a grouped launch passing values
+    // computed from its index runs correctly.
+    // -----------------------------------------------------------------------
+
+    [SkippableTheory]
+    [InlineData(BackendType.CPU)]
+    [InlineData(BackendType.Metal)]
+    public async Task Build_LaunchSiteShapes_WarnsAndRuns(BackendType backend)
+    {
+        await RequireBackendAsync(backend);
+
+        using var project = new IntegrationProjectFixture(
+            "LaunchSiteShapes", backend, _output);
+        try
+        {
+            var build = await project.BuildAsync();
+            Assert.True(build.Succeeded,
+                $"dotnet build failed (exit {build.ExitCode}). " +
+                $"Stdout: {build.FullStdOut}\nStderr: {build.StdErr}");
+
+            var combined = build.FullStdOut + "\n" + build.StdErr;
+            Assert.True(
+                combined.Contains(
+                    "Program.cs(31,24): warning ILGPU1111", StringComparison.Ordinal),
+                $"Expected an ILGPU1111 warning at Program.cs(31,24), " +
+                $"got:\n{combined}");
+
+            var run = await project.RunAsync();
+            Assert.False(run.TimedOut, "Binary timed out");
+            Assert.True(run.ExitCode == 0,
+                $"Binary failed (exit {run.ExitCode}). Stderr: {run.StdErr}");
+            OutputVerifier.Verify(
+                run.StdOutLines,
+                expected:
+                [
+                    "A: 5 6 7 8 9 10 11 12",
+                    "B: 9 11 13 15 17 19 21 23",
+                    "C: 0 1 2 3 10 11 12 13",
+                ]);
+        }
+        catch
+        {
+            project.MarkFailed();
+            throw;
+        }
+    }
+
+    // -----------------------------------------------------------------------
     // Helpers
     // -----------------------------------------------------------------------
 
