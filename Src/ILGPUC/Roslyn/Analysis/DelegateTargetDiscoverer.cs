@@ -52,6 +52,13 @@ sealed class DelegateTargetDiscoverer(Compilation compilation)
     private int _numKeys;
 
     /// <summary>
+    /// The methods checked for whether their callers can be traced, and the
+    /// result of each check.
+    /// </summary>
+    private readonly Dictionary<IMethodSymbol, bool> _checkedMethods =
+        new(SymbolEqualityComparer.Default);
+
+    /// <summary>
     /// Returns all diagnostics reported while tracing targets.
     /// </summary>
     public List<KernelDiagnostic> Diagnostics { get; } = [];
@@ -77,7 +84,8 @@ sealed class DelegateTargetDiscoverer(Compilation compilation)
         bool isValid = TraceParameter(
             parameter,
             new HashSet<IParameterSymbol>(SymbolEqualityComparer.Default),
-            targets);
+            targets,
+            isCaptured: true);
 
         ImmutableArray<string>? keys = null;
         var method = GetDisplayName((IMethodSymbol)parameter.ContainingSymbol);
@@ -144,17 +152,25 @@ sealed class DelegateTargetDiscoverer(Compilation compilation)
     /// The collected targets, together with the arguments they are passed by
     /// and the delegate types at these arguments.
     /// </param>
+    /// <param name="isCaptured">
+    /// True if the parameter is captured by an inline kernel, false if it is
+    /// forwarded to a method whose parameter is traced.
+    /// </param>
     /// <returns>True if all arguments could be traced.</returns>
     private bool TraceParameter(
         IParameterSymbol parameter,
         HashSet<IParameterSymbol> visited,
-        List<(ISymbol, ArgumentSyntax, ITypeSymbol)> targets)
+        List<(ISymbol, ArgumentSyntax, ITypeSymbol)> targets,
+        bool isCaptured = false)
     {
         // Forwarding cycles add no further targets
         if (!visited.Add(parameter))
             return true;
 
         var method = (IMethodSymbol)parameter.ContainingSymbol;
+        if (!ValidateCallers(method, parameter, isCaptured))
+            return false;
+
         bool isValid = true;
         foreach (var name in FindReferences(method))
         {
@@ -183,6 +199,83 @@ sealed class DelegateTargetDiscoverer(Compilation compilation)
                 targets);
         }
         return isValid;
+    }
+
+    /// <summary>
+    /// Checks that all calls of the given method that pass delegates for the
+    /// given parameter are visible to this compilation. Calls of virtual
+    /// methods, overrides and interface implementations through a base type or
+    /// an interface do not refer to the method itself and cannot be traced,
+    /// which is reported as an error. Each method is checked once.
+    /// </summary>
+    /// <returns>False if the callers cannot be traced.</returns>
+    private bool ValidateCallers(
+        IMethodSymbol method,
+        IParameterSymbol parameter,
+        bool isCaptured)
+    {
+        if (_checkedMethods.TryGetValue(method, out bool cached))
+            return cached;
+
+        var display = GetDisplayName(method);
+        var usage = isCaptured
+            ? $"captures its delegate parameter '{parameter.Name}' in a kernel"
+            : $"forwards its delegate parameter '{parameter.Name}' to a " +
+                $"method launching a kernel";
+        var location = method.Locations.FirstOrDefault() ?? Location.None;
+
+        bool isValid = true;
+        if (FindDispatchingMember(method) is { } member)
+        {
+            Diagnostics.Add(new KernelDiagnostic(
+                KernelDiagnostic.VirtualLaunchingMethodId,
+                $"'{display}' {usage} but is virtual or implements an interface " +
+                $"member, so calls through '{member}' cannot be traced. Make " +
+                $"the method non-virtual, or call it directly.",
+                location));
+            isValid = false;
+        }
+        _checkedMethods.Add(method, isValid);
+        return isValid;
+    }
+
+    /// <summary>
+    /// Returns the display name of the member that calls of the given method
+    /// can be dispatched through without referring to the method itself: the
+    /// method if it is virtual or abstract, the overridden method, or the
+    /// implemented interface member. Returns null if the method is only
+    /// called directly.
+    /// </summary>
+    private static string? FindDispatchingMember(IMethodSymbol method)
+    {
+        if (method.IsOverride)
+        {
+            var overridden = method.OverriddenMethod;
+            while (overridden?.OverriddenMethod is { } next)
+                overridden = next;
+            return overridden is null ? GetDisplayName(method) :
+                GetDisplayName(overridden);
+        }
+        if (method.IsVirtual || method.IsAbstract)
+            return GetDisplayName(method);
+
+        if (method.MethodKind != MethodKind.Ordinary)
+            return null;
+        foreach (var @interface in method.ContainingType.AllInterfaces)
+        {
+            foreach (var member in @interface.GetMembers().OfType<IMethodSymbol>())
+            {
+                var implementation = method.ContainingType
+                    .FindImplementationForInterfaceMember(member);
+                if (SymbolEqualityComparer.Default.Equals(
+                    implementation?.OriginalDefinition,
+                    method.OriginalDefinition))
+                {
+                    return GetDisplayName(member);
+                }
+            }
+        }
+        return null;
     }
 
     /// <summary>

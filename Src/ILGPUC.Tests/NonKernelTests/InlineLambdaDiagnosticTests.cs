@@ -545,6 +545,115 @@ public sealed class InlineLambdaDiagnosticTests
     }
 
     /// <summary>
+    /// A launching method that overrides an abstract method can be called
+    /// through the base type, where the delegates passed to it cannot be
+    /// traced, so it is rejected at the method even if it is called directly.
+    /// </summary>
+    [Fact]
+    public void VirtualLaunchingMethod_Reports1110()
+    {
+        var analysis = AnalyzeProgram("""
+            static class Kernels
+            {
+                public static void UnaryOpKernel(
+                    Index1D index, ArrayView<int> data, Func<int, int> op) =>
+                    data[index] = op(data[index]);
+            }
+
+            abstract class Base
+            {
+                public abstract void Run(
+                    AcceleratorStream stream, ArrayView<int> view, Func<int, int> op);
+            }
+
+            sealed class Derived : Base
+            {
+                public override void Run(
+                    AcceleratorStream stream, ArrayView<int> view, Func<int, int> op)
+                {
+                    stream.Launch(
+                        view.IntExtent,
+                        index => Kernels.UnaryOpKernel(index, view, op));
+                }
+            }
+
+            static class Callers
+            {
+                static void Run(AcceleratorStream stream, ArrayView<int> view)
+                {
+                    new Derived().Run(stream, view, x => x + 100);
+                    Base b = new Derived();
+                    b.Run(stream, view, x => -x);
+                }
+            }
+            """);
+
+        var diagnostic = AssertSingleDiagnostic(
+            analysis, KernelDiagnostic.VirtualLaunchingMethodId, "Run");
+        Assert.Contains("'Derived.Run' captures its delegate parameter 'op'",
+            diagnostic.Message);
+        Assert.Contains("calls through 'Base.Run' cannot be traced", diagnostic.Message);
+        Assert.Empty(analysis.DelegateRegistrations);
+    }
+
+    /// <summary>
+    /// A launching method implementing an interface member can be called
+    /// through the interface and is rejected as well.
+    /// </summary>
+    [Fact]
+    public void InterfaceLaunchingMethod_Reports1110()
+    {
+        var analysis = AnalyzeUnaryOpCalls(
+            "new Runner().Run(stream, view, v => -v);",
+            """
+            interface IRunner
+            {
+                void Run(
+                    AcceleratorStream stream, ArrayView<int> view, Func<int, int> op);
+            }
+
+            sealed class Runner : IRunner
+            {
+                public void Run(
+                    AcceleratorStream stream, ArrayView<int> view, Func<int, int> op) =>
+                    Host.UnaryOp(stream, view, op);
+            }
+            """);
+
+        var diagnostic = AssertSingleDiagnostic(
+            analysis, KernelDiagnostic.VirtualLaunchingMethodId, "Run");
+        Assert.Contains("'Callers.Runner.Run' forwards its delegate parameter 'op'",
+            diagnostic.Message);
+        Assert.Contains("calls through 'Callers.IRunner.Run'", diagnostic.Message);
+    }
+
+    /// <summary>
+    /// A virtual launching method can be overridden and called through the
+    /// overrides, so it is rejected.
+    /// </summary>
+    [Fact]
+    public void VirtualLaunchingMethodWithoutOverrides_Reports1110()
+    {
+        var analysis = AnalyzeProgram("""
+            class Host
+            {
+                public virtual void Run(
+                    AcceleratorStream stream, ArrayView<int> view, Func<int, int> op)
+                {
+                    stream.Launch(view.IntExtent, index => view[index] = op(index));
+                }
+
+                static void Call(AcceleratorStream stream, ArrayView<int> view) =>
+                    new Host().Run(stream, view, v => v * 2);
+            }
+            """);
+
+        var diagnostic = AssertSingleDiagnostic(
+            analysis, KernelDiagnostic.VirtualLaunchingMethodId, "Run");
+        Assert.Contains("calls through 'Host.Run'", diagnostic.Message);
+    }
+
+    /// <summary>
     /// A launch called through a conditional access is not rewritten and
     /// would throw at runtime, so it is rejected.
     /// </summary>

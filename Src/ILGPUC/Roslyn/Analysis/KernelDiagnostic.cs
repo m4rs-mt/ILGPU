@@ -132,6 +132,12 @@ record KernelDiagnostic(string Id, string Message, Location Location)
     public const string DelegateRecursionId = "ILGPU1209";
 
     /// <summary>
+    /// A launching method whose delegate parameter is captured by an inline
+    /// kernel is virtual or implements an interface member.
+    /// </summary>
+    public const string VirtualLaunchingMethodId = "ILGPU1110";
+
+    /// <summary>
     /// A kernel launch is not a direct call on a stream expression and cannot
     /// be rewritten.
     /// </summary>
