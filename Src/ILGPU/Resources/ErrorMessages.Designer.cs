@@ -950,5 +950,14 @@ namespace ILGPU.Resources {
                 return ResourceManager.GetString("KernelDiagnosticDelegateOperation", resourceCulture);
             }
         }
+
+        /// <summary>
+        ///   Looks up a localized string similar to The delegate variable &apos;{0}&apos; in method &apos;{1}&apos; is passed by reference or used through a reference. Kernel code can only use delegate variables directly; pass the delegate by value instead..
+        /// </summary>
+        internal static string KernelDiagnosticAddressTakenDelegate {
+            get {
+                return ResourceManager.GetString("KernelDiagnosticAddressTakenDelegate", resourceCulture);
+            }
+        }
     }
 }

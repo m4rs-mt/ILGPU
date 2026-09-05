@@ -59,11 +59,10 @@ sealed partial class CodeGenerator
     private readonly Dictionary<Value, MethodBase> _delegateTable = [];
 
     /// <summary>
-    /// Maps an address-taken variable to the lambda MethodBase when a delegate
-    /// value was stored to it. All other variables resolve their delegates
-    /// through their SSA values in <see cref="_delegateTable"/>.
+    /// The location of the first instruction taking the address of each
+    /// address-taken variable.
     /// </summary>
-    private readonly Dictionary<VariableRef, MethodBase> _delegateLocalTable = [];
+    private readonly Dictionary<VariableRef, Location> _addressLocations = [];
 
     /// <summary>
     /// Maps converted values stored to variables to the delegate handles they
@@ -180,14 +179,18 @@ sealed partial class CodeGenerator
             switch (instruction.InstructionType)
             {
                 case ILInstructionType.Ldarga:
-                    _variables.Add(new VariableRef(
+                    var argumentRef = new VariableRef(
                         instruction.GetArgumentAs<int>() - LambdaArgumentOffset,
-                        VariableRefType.Argument));
+                        VariableRefType.Argument);
+                    _variables.Add(argumentRef);
+                    _addressLocations.TryAdd(argumentRef, instruction.Location);
                     break;
                 case ILInstructionType.Ldloca:
-                    _variables.Add(new VariableRef(
+                    var localRef = new VariableRef(
                         instruction.GetArgumentAs<int>(),
-                        VariableRefType.Local));
+                        VariableRefType.Local);
+                    _variables.Add(localRef);
+                    _addressLocations.TryAdd(localRef, instruction.Location);
                     break;
             }
         }
@@ -305,6 +308,12 @@ sealed partial class CodeGenerator
     /// methods can be inlined into a loop of their caller.
     /// </summary>
     public bool IsEntryPoint { get; }
+
+    /// <summary>
+    /// Gets or sets the resolver of the names of local variables (if any),
+    /// which diagnostics refer to.
+    /// </summary>
+    public Func<int, string?>? LocalVariableNames { get; set; }
 
     /// <summary>
     /// Returns compilation properties.

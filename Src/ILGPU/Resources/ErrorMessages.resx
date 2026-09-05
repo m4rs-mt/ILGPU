@@ -529,4 +529,8 @@
     <value>Kernel code cannot use the delegate operation '{0}' in method '{1}'. Kernels can only invoke delegates and pass them to methods, as delegates are bound to their targets at compile time.</value>
     <comment/>
   </data>
+  <data name="KernelDiagnosticAddressTakenDelegate" xml:space="preserve">
+    <value>The delegate variable '{0}' in method '{1}' is passed by reference or used through a reference. Kernel code can only use delegate variables directly; pass the delegate by value instead.</value>
+    <comment/>
+  </data>
 </root>

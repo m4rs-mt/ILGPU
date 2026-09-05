@@ -93,6 +93,12 @@ record KernelDiagnostic(string Id, string Message, Location Location)
     public const string UnresolvedDelegateId = "ILGPU1202";
 
     /// <summary>
+    /// Kernel code passes a delegate variable by reference or uses it through
+    /// a reference.
+    /// </summary>
+    public const string AddressTakenDelegateId = "ILGPU1203";
+
+    /// <summary>
     /// Formats this diagnostic in the canonical
     /// <c>file(line,column): error ID: message</c> form that MSBuild and IDEs
     /// pick up from tool output.

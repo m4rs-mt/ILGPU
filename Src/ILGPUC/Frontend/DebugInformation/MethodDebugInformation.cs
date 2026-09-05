@@ -11,6 +11,7 @@
 
 using ILGPU.Util;
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Reflection.Metadata;
 using System.Runtime.CompilerServices;
@@ -104,6 +105,30 @@ readonly struct MethodDebugInformation
     #endregion
 
     #region Methods
+
+    /// <summary>
+    /// Tries to find the name of the local variable with the given index.
+    /// </summary>
+    /// <param name="index">The index of the local variable.</param>
+    /// <param name="name">The name of the variable (if any).</param>
+    /// <returns>True if the variable has a name.</returns>
+    public bool TryGetLocalVariableName(
+        int index,
+        [NotNullWhen(true)] out string? name)
+    {
+        foreach (var scope in _methodScopes.Span)
+        {
+            foreach (var variable in scope.Variables)
+            {
+                if (variable.Index != index)
+                    continue;
+                name = variable.Name;
+                return true;
+            }
+        }
+        name = null;
+        return false;
+    }
 
     /// <summary>
     /// Creates a new sequence-point enumerator for the current method.

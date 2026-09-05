@@ -252,4 +252,17 @@ public abstract class LambdaExecutionTests : ExecutionTestBase
             ["Kernels.ThreeCapturesLoopKernel"],
             ["-1", "-1", "0", "2"]);
     }
+
+    /// <summary>
+    /// A helper reassigns its delegate parameter in a branch and invokes it
+    /// after the merge, which dispatches on the selected target.
+    /// </summary>
+    [SkippableFact]
+    public async Task DelegateParameterReassigned_ProducesCorrectOutput()
+    {
+        await VerifyProgramOutputAsync(
+            "TestPrograms/Lambda/DelegateParameterReassigned.cs",
+            ["Kernels.DelegateParameterReassignedKernel"],
+            ["1", "2", "20", "30"]);
+    }
 }

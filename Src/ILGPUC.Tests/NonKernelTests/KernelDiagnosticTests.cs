@@ -54,15 +54,54 @@ public sealed class KernelDiagnosticTests
             data[index] = f(data[index]) + 100 * a; // ReturnedDelegateWithOtherLambda
         }
 
-        private static int ApplyIn(in Func<int, int> f, int x) =>
-            f(x); // DelegateFromRefParameter
+        private static int ApplyIn(in Func<int, int> f, int x) => f(x);
 
-        public static void DelegateFromRefParameterKernel(
+        public static void DelegatePassedByReferenceKernel(
             Index1D index,
             ArrayView1D<int, Stride1D.Dense> data)
         {
             Func<int, int> g = x => x + 1;
-            data[index] = ApplyIn(in g, data[index]);
+            data[index] = ApplyIn(in g, data[index]); // DelegatePassedByReference
+        }
+
+        private static void Touch(ref Func<int, int> f) { }
+
+        // r4_addrtaken: computed 0 10 20 30 instead of 1 2 20 30 on CPU and
+        // Metal, as the variable was bound to the last store in code order
+        public static void AddressTakenDelegateLocalKernel(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data)
+        {
+            Func<int, int> f = x => x + 1;
+            if (data[index] > 1)
+                f = x => x * 10;
+            Touch(ref f); // AddressTakenDelegateLocal
+            data[index] = f(data[index]);
+        }
+
+        private static int ApplyReassigned(Func<int, int> f, int x)
+        {
+            if (x > 1)
+                f = y => y * 10;
+            Touch(ref f); // AddressTakenDelegateParameter
+            return f(x);
+        }
+
+        public static void AddressTakenDelegateParameterKernel(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data)
+        {
+            data[index] = ApplyReassigned(x => x + 1, data[index]);
+        }
+
+        private static void Pick(int c, out Func<int, int> f) => f = x => x * c;
+
+        public static void OutDelegateKernel(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data)
+        {
+            Pick(data[index], out var f); // OutDelegate
+            data[index] = f(data[index]);
         }
 
         public static void NullConditionalInvokeKernel(
@@ -259,14 +298,84 @@ public sealed class KernelDiagnosticTests
             "method 'Make'.",
             "ReturnedDelegateWithOtherLambda");
 
+    #endregion
+
+    #region Address-Taken Delegates (ILGPU1203)
+
     [Fact]
-    public void DelegateFromRefParameter_ReportsUnresolved() =>
+    public void DelegatePassedByReference_Reports1203() =>
         AssertDiagnostic(
-            Compile(nameof(Kernels.DelegateFromRefParameterKernel)),
-            "ILGPU1202",
-            "Cannot statically resolve the delegate invoked in method " +
-            "'ApplyIn': it is loaded through a reference.",
-            "DelegateFromRefParameter");
+            Compile(nameof(Kernels.DelegatePassedByReferenceKernel)),
+            "ILGPU1203",
+            "The delegate variable 'g' in method 'DelegatePassedByReferenceKernel' " +
+            "is passed by reference or used through a reference.",
+            "DelegatePassedByReference");
+
+    [Fact]
+    public void AddressTakenDelegateLocal_Reports1203() =>
+        AssertDiagnostic(
+            Compile(nameof(Kernels.AddressTakenDelegateLocalKernel)),
+            "ILGPU1203",
+            "The delegate variable 'f' in method 'AddressTakenDelegateLocalKernel'",
+            "AddressTakenDelegateLocal");
+
+    [Fact]
+    public void AddressTakenDelegateParameter_Reports1203() =>
+        AssertDiagnostic(
+            Compile(nameof(Kernels.AddressTakenDelegateParameterKernel)),
+            "ILGPU1203",
+            "The delegate variable 'f' in method 'ApplyReassigned'",
+            "AddressTakenDelegateParameter");
+
+    [Fact]
+    public void OutDelegate_Reports1203() =>
+        AssertDiagnostic(
+            Compile(nameof(Kernels.OutDelegateKernel)),
+            "ILGPU1203",
+            "The delegate variable 'f' in method 'OutDelegateKernel'",
+            "OutDelegate");
+
+    // r4_addrtaken: computed 0 10 20 30 instead of 1 2 20 30 on CPU and Metal
+    [Fact]
+    public Task AddressTakenDelegateLocal_FailsBuild() =>
+        AssertBuildErrorAsync(
+            """
+            static class K
+            {
+                static void Touch(ref Func<int, int> f) { }
+                public static void Kern(Index1D i, ArrayView1D<int, Stride1D.Dense> data)
+                {
+                    Func<int, int> f = x => x + 1;
+                    if (data[i] > 1) f = x => x * 10;
+                    Touch(ref f); // error
+                    data[i] = f(data[i]);
+                }
+            }
+            """,
+            "ILGPU1203",
+            "The delegate variable 'f' in method 'Kern' is passed by reference " +
+            "or used through a reference.");
+
+    // f8_paramreassign: computed 0 10 20 30 instead of 1 2 20 30 on CPU and Metal
+    [Fact]
+    public Task AddressTakenDelegateParameter_FailsBuild() =>
+        AssertBuildErrorAsync(
+            """
+            static class K
+            {
+                static void Touch(ref Func<int, int> f) { }
+                static int Apply(Func<int, int> f, int x)
+                {
+                    if (x > 1) f = y => y * 10;
+                    Touch(ref f); // error
+                    return f(x);
+                }
+                public static void Kern(Index1D i, ArrayView1D<int, Stride1D.Dense> d) =>
+                    d[i] = Apply(x => x + 1, d[i]);
+            }
+            """,
+            "ILGPU1203",
+            "The delegate variable 'f' in method 'Apply'");
 
     #endregion
 

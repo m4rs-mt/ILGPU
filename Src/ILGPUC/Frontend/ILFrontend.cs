@@ -819,6 +819,11 @@ sealed class ILFrontend
                     specializations,
                     delegateTargets);
                 codeGenerator.OnNewMethodCalled += (_, e) => queue.Enqueue(e);
+                codeGenerator.LocalVariableNames = index =>
+                    TryLoadDebugInformation(method, out var debugInformation) &&
+                    debugInformation.TryGetLocalVariableName(index, out var name)
+                    ? name
+                    : null;
 
                 codeGenerator.GenerateCode();
                 methodBuilder.Seal();
