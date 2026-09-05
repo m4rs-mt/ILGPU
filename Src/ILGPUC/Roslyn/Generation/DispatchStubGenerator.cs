@@ -278,7 +278,8 @@ static class DispatchStubGenerator
             $"The delegate passed to '{method}' for '{names}' was not compiled " +
             $"into a kernel. ILGPUC compiles kernels for the lambda expressions " +
             $"and static methods passed to '{method}' in the project launching " +
-            $"the kernel.";
+            $"the kernel. Delegates passed from other assemblies or through " +
+            $"reflection, and multicast delegates, are not supported.";
         sb.AppendLine("        throw new NotSupportedException(");
         sb.AppendLine($"            {SymbolDisplay.FormatLiteral(message, quote: true)});");
         sb.AppendLine("    }");

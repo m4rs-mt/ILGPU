@@ -392,6 +392,36 @@ public sealed class InlineLambdaDiagnosticTests
     }
 
     /// <summary>
+    /// Multicast delegates passed to a captured delegate parameter, combined
+    /// with <c>+</c>, <c>+=</c> or <c>Delegate.Combine</c>, have no single
+    /// target and are reported at the argument. Callers in this compilation
+    /// therefore never pass a multicast delegate at runtime.
+    /// </summary>
+    [Fact]
+    public void MulticastDelegateArgument_ReportsArgument()
+    {
+        var analysis = AnalyzeUnaryOpCalls("""
+            Func<int, int> f = v => -v;
+            Func<int, int> g = v => ~v;
+            Host.UnaryOp(stream, view, f + g);
+            Host.UnaryOp(stream, view, (Func<int, int>)Delegate.Combine(f, g));
+            f += g;
+            Host.UnaryOp(stream, view, f);
+            """);
+
+        Assert.Equal(3, analysis.Diagnostics.Count);
+        Assert.All(analysis.Diagnostics, diagnostic =>
+        {
+            Assert.Equal(KernelDiagnostic.UntraceableDelegateArgumentId, diagnostic.Id);
+            Assert.Contains("cannot be traced", diagnostic.Message);
+        });
+        Assert.Equal(
+            ["f + g", "(Func<int, int>)Delegate.Combine(f, g)", "f"],
+            analysis.Diagnostics.Select(d =>
+                d.Location.SourceTree!.GetText().ToString(d.Location.SourceSpan)));
+    }
+
+    /// <summary>
     /// An instance method passed to a captured delegate parameter captures its
     /// instance and is reported at the argument.
     /// </summary>

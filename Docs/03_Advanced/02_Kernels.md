@@ -96,8 +96,9 @@ of its own.
 At runtime, the launch selects the kernel compiled for the target of the delegate it receives.
 The passed lambdas must not capture variables (`ILGPU1107`); pass the values as separate arguments of the launching
 method instead.
-Arguments that cannot be traced to a lambda or a static method, such as delegates returned from methods, instance
-methods or a launching method used as a delegate itself, are reported at build time (`ILGPU1108`), as well as a
+Arguments that cannot be traced to a lambda or a static method, such as delegates returned from methods, multicast
+delegates combined with `+` or `Delegate.Combine`, instance methods or a launching method used as a delegate itself,
+are reported at build time (`ILGPU1108`), as well as a
 captured delegate parameter of a launching method that no call passes a lambda or a static method to (`ILGPU1109`).
 Launching methods, and methods forwarding a delegate parameter to them, must be called directly: methods that are
 virtual, abstract or overrides, or that implement an interface member, can be called through a base type or an
