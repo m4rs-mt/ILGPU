@@ -40,6 +40,16 @@ static void MyKernel(Index1D index, ArrayView<int> data, int k)
 Launch lambdas can pass lambdas to kernel methods taking a delegate in the same way, as in
 `stream.Launch(view.IntExtent, index => UnaryOpKernel(index, view, x => -x))`.
 
+The kernel passed to a launch must be a lambda expression or a method group.
+Anonymous methods (`delegate (Index1D i) { ... }`), delegate variables and conditional expressions selecting a kernel
+are reported at build time (`ILGPU1113`); write the kernel as a lambda expression, or launch each kernel in a branch
+of its own.
+Launches must be direct calls on a stream expression, such as `stream.Launch(...)`.
+Conditional access (`stream?.Launch(...)`) and launch methods used as delegates cannot be compiled and are reported
+at build time (`ILGPU1112`).
+Launches that are not compiled at all, for example when called through reflection, throw a `NotSupportedException`
+at runtime.
+
 Delegates selected at runtime, such as `flag ? f : g` or a delegate variable reassigned in a loop, dispatch on the
 selected target when they are invoked or passed to a method.
 Delegates that cannot be traced back to lambdas or static methods in kernel code, such as delegates returned from
@@ -69,8 +79,10 @@ A launch lambda can also capture a delegate parameter of the method that launche
 ```c#
 static class Host
 {
-    public static void UnaryOp(AcceleratorStream stream, ArrayView<int> view, Func<int, int> op) =>
+    public static void UnaryOp(AcceleratorStream stream, ArrayView<int> view, Func<int, int> op)
+    {
         stream.Launch(view.IntExtent, index => UnaryOpKernel(index, view, op));
+    }
 }
 
 Host.UnaryOp(stream, view, v => -v);
@@ -87,10 +99,18 @@ method instead.
 Arguments that cannot be traced to a lambda or a static method, such as delegates returned from methods, instance
 methods or a launching method used as a delegate itself, are reported at build time (`ILGPU1108`), as well as a
 captured delegate parameter of a launching method that no call passes a lambda or a static method to (`ILGPU1109`).
+Launching methods, and methods forwarding a delegate parameter to them, must be called directly: methods that are
+virtual, abstract or overrides, or that implement an interface member, can be called through a base type or an
+interface, where the passed delegates cannot be traced, and are reported at build time (`ILGPU1110`).
 Delegates passed by callers the compiler cannot see, such as other assemblies or reflection, throw a
 `NotSupportedException` at the launch.
-Other delegates captured by a launch lambda, such as delegate variables of the launching method, cannot be passed from
-the CPU to a kernel and are reported at build time (`ILGPU1103`).
+Launching methods that other assemblies can call (public or protected methods of public types, or any non-private
+method when the assembly declares `InternalsVisibleTo`) are therefore reported as a build warning (`ILGPU1111`).
+Make them internal or wrap them in an internal method, or turn the warning into an error with
+`<WarningsAsErrors>ILGPU1111</WarningsAsErrors>`.
+Other delegates captured by a launch lambda, such as delegate variables of the launching method or structs holding
+delegate fields (also in nested structs), cannot be passed from the CPU to a kernel and are reported at build time
+(`ILGPU1103`), as are such structs passed to a kernel method by a launch lambda.
 Use a generic struct implementing an interface instead:
 
 ```c#
