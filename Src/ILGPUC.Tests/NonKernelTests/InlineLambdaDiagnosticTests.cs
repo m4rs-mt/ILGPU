@@ -283,6 +283,7 @@ public sealed class InlineLambdaDiagnosticTests
             "static int Negate(int value) => -value;");
 
         Assert.Empty(analysis.Diagnostics);
+        Assert.Empty(analysis.Warnings);
         var dispatch = Assert.Single(analysis.DispatchKernels);
         var capture = Assert.Single(dispatch.DelegateCaptures!.Value);
         Assert.Equal("op", capture.Parameter.Name);
@@ -651,6 +652,73 @@ public sealed class InlineLambdaDiagnosticTests
         var diagnostic = AssertSingleDiagnostic(
             analysis, KernelDiagnostic.VirtualLaunchingMethodId, "Run");
         Assert.Contains("calls through 'Host.Run'", diagnostic.Message);
+    }
+
+    /// <summary>
+    /// A public launching method can be called from other assemblies, whose
+    /// delegates cannot be traced. Its kernels are compiled for the callers
+    /// in this assembly and a warning is reported at the method.
+    /// </summary>
+    [Fact]
+    public void PublicLaunchingMethod_Warns1111()
+    {
+        var analysis = AnalyzeProgram("""
+            public static class Host
+            {
+                public static void UnaryOp(
+                    AcceleratorStream stream, ArrayView<int> view, Func<int, int> op)
+                {
+                    stream.Launch(view.IntExtent, index => view[index] = op(index));
+                }
+            }
+
+            static class Callers
+            {
+                static void Run(AcceleratorStream stream, ArrayView<int> view) =>
+                    Host.UnaryOp(stream, view, v => -v);
+            }
+            """);
+
+        Assert.Empty(analysis.Diagnostics);
+        Assert.Single(analysis.UniqueKernels);
+        var warning = Assert.Single(analysis.Warnings);
+        Assert.Equal(KernelDiagnostic.VisibleLaunchingMethodId, warning.Id);
+        Assert.True(warning.IsWarning);
+        Assert.Contains("visible outside this assembly", warning.Message);
+        Assert.Contains(": warning ILGPU1111: ", warning.ToString());
+        var location = warning.Location;
+        Assert.Equal(
+            "UnaryOp",
+            location.SourceTree!.GetText().ToString(location.SourceSpan));
+    }
+
+    /// <summary>
+    /// An internal launching method is visible outside the assembly when the
+    /// assembly grants access to its internals, which is reported as well.
+    /// Methods forwarding delegates to it are checked too.
+    /// </summary>
+    [Fact]
+    public void InternalsVisibleToLaunchingMethod_Warns1111()
+    {
+        var analysis = AnalyzeProgram($$"""
+            [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Other")]
+
+            {{UnaryOpHost}}
+
+            static class Callers
+            {
+                static void Forward(
+                    AcceleratorStream stream, ArrayView<int> view, Func<int, int> op) =>
+                    Host.UnaryOp(stream, view, op);
+
+                static void Run(AcceleratorStream stream, ArrayView<int> view) =>
+                    Forward(stream, view, v => -v);
+            }
+            """);
+
+        Assert.Empty(analysis.Diagnostics);
+        var warning = Assert.Single(analysis.Warnings);
+        Assert.Contains("'Host.UnaryOp' captures", warning.Message);
     }
 
     /// <summary>

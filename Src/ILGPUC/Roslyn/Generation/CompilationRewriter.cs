@@ -168,7 +168,8 @@ sealed class CompilationRewriter(ICompiledKernelProvider? kernelProvider = null)
                 .Concat(delegateDiscoverer.Diagnostics)
                 .Distinct()
                 .ToList(),
-            delegateDiscoverer.Registrations);
+            delegateDiscoverer.Registrations,
+            delegateDiscoverer.Warnings.Distinct().ToList());
     }
 
     /// <summary>
@@ -540,12 +541,16 @@ sealed class CompilationRewriter(ICompiledKernelProvider? kernelProvider = null)
 /// The delegates passed to delegate parameters captured by inline kernels,
 /// which are registered under the keys of their targets at their call sites.
 /// </param>
+/// <param name="Warnings">
+/// Warnings found at launch sites, which do not prevent compiling kernels.
+/// </param>
 record AnalysisResult(
     List<KernelDescriptor> AllKernels,
     List<KernelDescriptor> UniqueKernels,
     List<KernelDescriptor> DispatchKernels,
     List<KernelDiagnostic> Diagnostics,
-    Dictionary<ArgumentSyntax, DelegateRegistration> DelegateRegistrations);
+    Dictionary<ArgumentSyntax, DelegateRegistration> DelegateRegistrations,
+    List<KernelDiagnostic> Warnings);
 
 /// <summary>
 /// Holds the results of the rewrite phase.

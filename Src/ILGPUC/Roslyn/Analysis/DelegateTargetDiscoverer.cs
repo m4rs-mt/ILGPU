@@ -64,6 +64,11 @@ sealed class DelegateTargetDiscoverer(Compilation compilation)
     public List<KernelDiagnostic> Diagnostics { get; } = [];
 
     /// <summary>
+    /// Returns all warnings reported while tracing targets.
+    /// </summary>
+    public List<KernelDiagnostic> Warnings { get; } = [];
+
+    /// <summary>
     /// Returns the delegates to register at runtime by their argument syntax.
     /// </summary>
     public Dictionary<ArgumentSyntax, DelegateRegistration> Registrations { get; } =
@@ -206,7 +211,9 @@ sealed class DelegateTargetDiscoverer(Compilation compilation)
     /// given parameter are visible to this compilation. Calls of virtual
     /// methods, overrides and interface implementations through a base type or
     /// an interface do not refer to the method itself and cannot be traced,
-    /// which is reported as an error. Each method is checked once.
+    /// which is reported as an error. Calls from other assemblies cannot be
+    /// traced either, so methods visible outside of this assembly are reported
+    /// as a warning. Each method is checked once.
     /// </summary>
     /// <returns>False if the callers cannot be traced.</returns>
     private bool ValidateCallers(
@@ -234,6 +241,17 @@ sealed class DelegateTargetDiscoverer(Compilation compilation)
                 $"the method non-virtual, or call it directly.",
                 location));
             isValid = false;
+        }
+        else if (IsVisibleOutsideAssembly(method))
+        {
+            Warnings.Add(new KernelDiagnostic(
+                KernelDiagnostic.VisibleLaunchingMethodId,
+                $"'{display}' {usage} and is visible outside this assembly. " +
+                $"Calls from other assemblies or through reflection are not " +
+                $"traced and throw NotSupportedException at the launch. Make " +
+                $"the method internal, or wrap it in an internal method.",
+                location,
+                IsWarning: true));
         }
         _checkedMethods.Add(method, isValid);
         return isValid;
@@ -277,6 +295,48 @@ sealed class DelegateTargetDiscoverer(Compilation compilation)
         }
         return null;
     }
+
+    /// <summary>
+    /// Returns <see langword="true"/> if the given method can be called from
+    /// other assemblies: it is public or protected and so are all containing
+    /// types, or it is not private and the assembly grants other assemblies
+    /// access to its internals.
+    /// </summary>
+    private bool IsVisibleOutsideAssembly(IMethodSymbol method)
+    {
+        if (method.MethodKind == MethodKind.LocalFunction)
+            return false;
+
+        bool isPublic = true;
+        for (ISymbol? symbol = method;
+            symbol is not null and not INamespaceSymbol;
+            symbol = symbol.ContainingSymbol)
+        {
+            switch (symbol.DeclaredAccessibility)
+            {
+                case Accessibility.Public:
+                case Accessibility.Protected:
+                case Accessibility.ProtectedOrInternal:
+                    break;
+                case Accessibility.Internal:
+                case Accessibility.ProtectedAndInternal:
+                    isPublic = false;
+                    break;
+                default:
+                    return false;
+            }
+        }
+        return isPublic || HasInternalsVisibleTo();
+    }
+
+    /// <summary>
+    /// Returns <see langword="true"/> if the assembly grants other assemblies
+    /// access to its internals.
+    /// </summary>
+    private bool HasInternalsVisibleTo() =>
+        compilation.Assembly.GetAttributes().Any(a =>
+            a.AttributeClass?.ToDisplayString() ==
+                "System.Runtime.CompilerServices.InternalsVisibleToAttribute");
 
     /// <summary>
     /// Traces a single argument passed to the given delegate parameter: a

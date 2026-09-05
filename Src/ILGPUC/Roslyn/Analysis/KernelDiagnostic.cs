@@ -14,13 +14,20 @@ using Microsoft.CodeAnalysis;
 namespace ILGPUC.Roslyn.Analysis;
 
 /// <summary>
-/// An error found while analyzing a kernel launch site, reported at the
-/// offending source location before any kernel is compiled.
+/// An error (or a warning) found while analyzing a kernel launch site,
+/// reported at the offending source location before any kernel is compiled.
 /// </summary>
 /// <param name="Id">The diagnostic identifier (e.g. <c>ILGPU1101</c>).</param>
 /// <param name="Message">The human-readable description of the problem.</param>
 /// <param name="Location">The source location the diagnostic refers to.</param>
-record KernelDiagnostic(string Id, string Message, Location Location)
+/// <param name="IsWarning">
+/// True if this is a warning, which does not prevent compiling kernels.
+/// </param>
+record KernelDiagnostic(
+    string Id,
+    string Message,
+    Location Location,
+    bool IsWarning = false)
 {
     /// <summary>
     /// An inline kernel uses the enclosing instance.
@@ -138,6 +145,12 @@ record KernelDiagnostic(string Id, string Message, Location Location)
     public const string VirtualLaunchingMethodId = "ILGPU1110";
 
     /// <summary>
+    /// A launching method whose delegate parameter is captured by an inline
+    /// kernel is visible outside of its assembly (a warning).
+    /// </summary>
+    public const string VisibleLaunchingMethodId = "ILGPU1111";
+
+    /// <summary>
     /// A kernel launch is not a direct call on a stream expression and cannot
     /// be rewritten.
     /// </summary>
@@ -145,8 +158,8 @@ record KernelDiagnostic(string Id, string Message, Location Location)
 
     /// <summary>
     /// Formats this diagnostic in the canonical
-    /// <c>file(line,column): error ID: message</c> form that MSBuild and IDEs
-    /// pick up from tool output.
+    /// <c>file(line,column): error ID: message</c> form (or <c>warning</c>)
+    /// that MSBuild and IDEs pick up from tool output.
     /// </summary>
     public override string ToString()
     {
@@ -154,6 +167,6 @@ record KernelDiagnostic(string Id, string Message, Location Location)
         var position = span.StartLinePosition;
         var path = string.IsNullOrEmpty(span.Path) ? "ILGPUC" : span.Path;
         return $"{path}({position.Line + 1},{position.Character + 1}): " +
-            $"error {Id}: {Message}";
+            $"{(IsWarning ? "warning" : "error")} {Id}: {Message}";
     }
 }

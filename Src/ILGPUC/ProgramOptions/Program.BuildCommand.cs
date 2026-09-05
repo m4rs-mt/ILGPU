@@ -332,6 +332,11 @@ sealed partial class Program
             var compiler = new KernelCompiler(properties);
             var analysis = CompilationRewriter.Analyze(compilation);
 
+            // Report warnings in the canonical format that MSBuild surfaces
+            // as build warnings
+            foreach (var warning in analysis.Warnings)
+                await Console.Error.WriteLineAsync(warning.ToString());
+
             // Report invalid launch sites in the canonical error format that
             // MSBuild surfaces as build errors, and fail without compiling
             if (analysis.Diagnostics.Count > 0)
