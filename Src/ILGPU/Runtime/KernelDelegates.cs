@@ -87,5 +87,5 @@ public static class KernelDelegates
     [EditorBrowsable(EditorBrowsableState.Never)]
     public static TDelegate Bind<TDelegate>(string key)
         where TDelegate : Delegate =>
-        throw new NotSupportedException(ErrorMessages.NotSupportedPlatform);
+        throw new NotSupportedException(ErrorMessages.NotSupportedKernelDelegateBind);
 }

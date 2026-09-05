@@ -862,6 +862,15 @@ namespace ILGPU.Resources {
         }
 
         /// <summary>
+        ///   Looks up a localized string similar to This kernel launch was not compiled by ILGPUC. Kernel launches are compiled at build time and must be direct calls on a stream expression, such as &apos;stream.Launch(...)&apos;. Launches through reflection, delegates or conditional access (&apos;stream?.Launch(...)&apos;) are not compiled.
+        /// </summary>
+        internal static string NotSupportedUncompiledKernelLaunch {
+            get {
+                return ResourceManager.GetString("NotSupportedUncompiledKernelLaunch", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to Cannot statically resolve the delegate invoked in method &apos;{0}&apos;: it is {1}. Kernels can only invoke delegates created from a lambda expression or a static method in kernel code, also when they are passed to a called method..
         /// </summary>
         internal static string KernelDiagnosticUnresolvedDelegateInvocation {
@@ -1056,6 +1065,15 @@ namespace ILGPU.Resources {
         internal static string KernelDiagnosticDelegateRecursion {
             get {
                 return ResourceManager.GetString("KernelDiagnosticDelegateRecursion", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Delegates bound with KernelDelegates.Bind can only be used in kernels compiled by ILGPUC.
+        /// </summary>
+        internal static string NotSupportedKernelDelegateBind {
+            get {
+                return ResourceManager.GetString("NotSupportedKernelDelegateBind", resourceCulture);
             }
         }
     }
