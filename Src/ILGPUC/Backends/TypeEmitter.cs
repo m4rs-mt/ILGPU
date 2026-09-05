@@ -63,6 +63,8 @@ sealed class TypeEmitter(GenerationContext context)
             PaddingType padding => context.LanguageConfig.GetPrimitiveTypeName(
                 padding.BasicValueType),
             VoidType => "void",
+            DelegateHandleType handle => context.LanguageConfig.GetPrimitiveTypeName(
+                handle.RepresentationType),
             _ => throw new NotSupportedException($"Type {type} not supported")
         };
     }

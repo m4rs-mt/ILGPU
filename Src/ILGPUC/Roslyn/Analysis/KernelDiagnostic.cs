@@ -81,6 +81,12 @@ record KernelDiagnostic(string Id, string Message, Location Location)
     public const string UnsupportedConstructId = "ILGPU1200";
 
     /// <summary>
+    /// Kernel code compares delegates, tests them for null or uses delegate
+    /// operations other than invoking them.
+    /// </summary>
+    public const string DelegateIdentityId = "ILGPU1201";
+
+    /// <summary>
     /// Kernel code invokes a delegate, or passes it to a method, that cannot be
     /// traced to a lambda expression or a static method.
     /// </summary>

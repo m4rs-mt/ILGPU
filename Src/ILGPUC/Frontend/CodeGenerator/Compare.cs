@@ -54,6 +54,7 @@ partial class CodeGenerator
     {
         var right = Block.PopCompareValue(Location, ConvertFlags.None);
         var left = Block.PopCompareValue(Location, ConvertFlags.None);
+        VerifyNoDelegateComparison(left, right);
         return CreateCompare(
             left,
             right,

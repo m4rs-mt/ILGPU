@@ -521,4 +521,12 @@
     <value>loaded through a reference</value>
     <comment/>
   </data>
+  <data name="KernelDiagnosticDelegateIdentity" xml:space="preserve">
+    <value>Kernel code cannot compare delegates or test them for null ('{0}' in method '{1}'). Delegates in kernels are bound to their targets at compile time and have no runtime identity. Remove the check, or pass a separate flag.</value>
+    <comment/>
+  </data>
+  <data name="KernelDiagnosticDelegateOperation" xml:space="preserve">
+    <value>Kernel code cannot use the delegate operation '{0}' in method '{1}'. Kernels can only invoke delegates and pass them to methods, as delegates are bound to their targets at compile time.</value>
+    <comment/>
+  </data>
 </root>

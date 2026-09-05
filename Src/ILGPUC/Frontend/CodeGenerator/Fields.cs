@@ -152,10 +152,7 @@ partial class CodeGenerator
             "<>",
             StringComparison.Ordinal) == true)
         {
-            var delegatePointerType = ModuleBuilder.CreatePointerType(
-                ModuleBuilder.IntPointerType,
-                MemoryAddressSpace.Generic);
-            var nullValue = Builder.CreateNull(Location, delegatePointerType);
+            var nullValue = Builder.CreateNull(Location, ModuleBuilder.DelegateType);
             if (field.FieldType.IsDelegate())
                 _delegateCacheLoads.Add(nullValue);
             return nullValue;

@@ -114,6 +114,7 @@ partial class CodeGenerator
     {
         if (target == null)
             throw Location.GetInvalidOperationException();
+        VerifyDelegateMemberCall(target);
 
         // The constructor of System.Object has no effect: a base constructor call
         // (e.g. in a closure class constructor) only consumes the instance
@@ -258,6 +259,7 @@ partial class CodeGenerator
             MakeDelegateInvoke(target);
             return;
         }
+        VerifyDelegateMemberCall(target);
         target = ResolveVirtualCallTarget(target, constrainedType);
         MakeCall(target);
     }

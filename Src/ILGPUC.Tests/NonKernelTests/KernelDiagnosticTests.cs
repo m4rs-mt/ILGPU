@@ -64,6 +64,67 @@ public sealed class KernelDiagnosticTests
             Func<int, int> g = x => x + 1;
             data[index] = ApplyIn(in g, data[index]);
         }
+
+        public static void NullConditionalInvokeKernel(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data)
+        {
+            Func<int, int> f = x => x + 1;
+            data[index] = f?.Invoke(data[index]) ?? -1; // NullConditionalInvoke
+        }
+
+        private static int ApplyChecked(Func<int, int>? f, int x) =>
+            f != null ? f(x) : -1; // NullCheckInHelper
+
+        public static void NullCheckInHelperKernel(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data)
+        {
+            data[index] = ApplyChecked(x => x + 1, data[index]);
+        }
+
+        public static void DelegateEqualityKernel(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data)
+        {
+            Func<int, int> f = x => x + 1;
+            Func<int, int> g = x => x * 2;
+            data[index] = f == g ? 100 : 7; // DelegateEquality
+        }
+
+        public static void DelegateCombineKernel(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data)
+        {
+            Func<int, int> f = x => x + 1;
+            f += x => x * 2; // DelegateCombine
+            data[index] = f(data[index]);
+        }
+
+        public static void DynamicInvokeKernel(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data)
+        {
+            Func<int, int> f = x => x + 1;
+            data[index] = (int)f.DynamicInvoke(data[index])!; // DynamicInvoke
+        }
+
+        public static void CastToDelegateKernel(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data)
+        {
+            Delegate d = (Func<int, int>)(x => x + 1);
+            var f = (Func<int, int>)d; // CastToDelegate
+            data[index] = f(data[index]);
+        }
+
+        public static void DelegateMemberKernel(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data)
+        {
+            Func<int, int> f = x => x + 1;
+            data[index] = f.Equals(null) ? 1 : 0; // DelegateMember
+        }
     }
 
     /// <summary>
@@ -158,10 +219,8 @@ public sealed class KernelDiagnosticTests
         Assert.True(line > 0, "Marker '// error' not found");
         var diagnostic = exception.Diagnostic.ToString();
         Assert.StartsWith($"source0.cs({line},", diagnostic, StringComparison.Ordinal);
-        Assert.Contains(
-            $"): error {id}: {message}",
-            diagnostic,
-            StringComparison.Ordinal);
+        Assert.Contains($"): error {id}: ", diagnostic, StringComparison.Ordinal);
+        Assert.Contains(message, diagnostic, StringComparison.Ordinal);
     }
 
     #endregion
@@ -208,6 +267,153 @@ public sealed class KernelDiagnosticTests
             "Cannot statically resolve the delegate invoked in method " +
             "'ApplyIn': it is loaded through a reference.",
             "DelegateFromRefParameter");
+
+    #endregion
+
+    #region Delegate Identity (ILGPU1201)
+
+    [Fact]
+    public void NullConditionalInvoke_Reports1201() =>
+        AssertDiagnostic(
+            Compile(nameof(Kernels.NullConditionalInvokeKernel)),
+            "ILGPU1201",
+            "Kernel code cannot compare delegates or test them for null " +
+            "('null check' in method 'NullConditionalInvokeKernel').",
+            "NullConditionalInvoke");
+
+    [Fact]
+    public void NullCheckInHelper_Reports1201() =>
+        AssertDiagnostic(
+            Compile(nameof(Kernels.NullCheckInHelperKernel)),
+            "ILGPU1201",
+            "('null check' in method 'ApplyChecked')",
+            "NullCheckInHelper");
+
+    [Fact]
+    public void DelegateEquality_Reports1201() =>
+        AssertDiagnostic(
+            Compile(nameof(Kernels.DelegateEqualityKernel)),
+            "ILGPU1201",
+            "('==' in method 'DelegateEqualityKernel')",
+            "DelegateEquality");
+
+    [Fact]
+    public void DelegateCombine_Reports1201() =>
+        AssertDiagnostic(
+            Compile(nameof(Kernels.DelegateCombineKernel)),
+            "ILGPU1201",
+            "Kernel code cannot use the delegate operation 'Combine' in method " +
+            "'DelegateCombineKernel'.",
+            "DelegateCombine");
+
+    // The object array of the arguments is rejected before the call
+    [Fact]
+    public void DynamicInvoke_ReportsUnsupportedConstruct()
+    {
+        using var helper = new CompilationHelper(BackendType.CPU);
+        var kernel = typeof(Kernels).GetMethod(
+            nameof(Kernels.DynamicInvokeKernel),
+            BindingFlags.Public | BindingFlags.Static)!;
+        var exception = Assert.Throws<InternalCompilerException>(() =>
+            helper.GetNormalizedIR(kernel, IRDumpPoint.AfterBackendTransforms));
+        Assert.True(KernelCompilationErrors.TryCreateDiagnostic(
+            exception,
+            LaunchSite,
+            out var diagnostic));
+        Assert.Equal("ILGPU1200", diagnostic!.Id);
+        Assert.Contains("'System.Object'", diagnostic.Message);
+    }
+
+    [Fact]
+    public void CastToDelegate_Reports1201() =>
+        AssertDiagnostic(
+            Compile(nameof(Kernels.CastToDelegateKernel)),
+            "ILGPU1201",
+            "'cast to Func<Int32, Int32>' in method 'CastToDelegateKernel'",
+            "CastToDelegate");
+
+    [Fact]
+    public void DelegateMember_Reports1201() =>
+        AssertDiagnostic(
+            Compile(nameof(Kernels.DelegateMemberKernel)),
+            "ILGPU1201",
+            "('Equals' in method 'DelegateMemberKernel')",
+            "DelegateMember");
+
+    // p12_nullcond: computed -1 -1 -1 -1 instead of 1 2 3 4 on CPU and Metal
+    [Fact]
+    public Task NullConditionalInvoke_FailsBuild() =>
+        AssertBuildErrorAsync(
+            """
+            static class K
+            {
+                public static void Kern(Index1D i, ArrayView1D<int, Stride1D.Dense> d)
+                {
+                    Func<int, int> f = x => x + 1;
+                    d[i] = f?.Invoke(d[i]) ?? -1; // error
+                }
+            }
+            """,
+            "ILGPU1201",
+            "Kernel code cannot compare delegates or test them for null " +
+            "('null check' in method 'Kern').");
+
+    // p12b_nullcheck: computed -1 -1 -1 -1 instead of 1 2 3 4 on Metal and
+    // failed to compile the generated C# code on CPU
+    [Fact]
+    public Task NullCheckInHelper_FailsBuild() =>
+        AssertBuildErrorAsync(
+            """
+            static class K
+            {
+                static int Apply(Func<int, int>? f, int x) =>
+                    f != null ? f(x) : -1; // error
+                public static void Kern(Index1D i, ArrayView1D<int, Stride1D.Dense> d)
+                {
+                    d[i] = Apply(x => x + 1, d[i]);
+                }
+            }
+            """,
+            "ILGPU1201",
+            "Kernel code cannot compare delegates or test them for null " +
+            "('null check' in method 'Apply').");
+
+    // p12c_nullcap: failed to load the kernel at runtime on Metal
+    [Fact]
+    public Task NullCheckOfCapturingLambda_FailsBuild() =>
+        AssertBuildErrorAsync(
+            """
+            static class K
+            {
+                static void Inner(Index1D i, ArrayView1D<int, Stride1D.Dense> d, int k)
+                {
+                    Func<int, int> f = x => x + k;
+                    d[i] = f == null ? -1 : f(d[i]); // error
+                }
+                public static void Kern(Index1D i, ArrayView1D<int, Stride1D.Dense> d) =>
+                    Inner(i, d, 10);
+            }
+            """,
+            "ILGPU1201",
+            "('null check' in method 'Inner')");
+
+    // p13_equality: failed to load the kernel at runtime on Metal
+    [Fact]
+    public Task DelegateEquality_FailsBuild() =>
+        AssertBuildErrorAsync(
+            """
+            static class K
+            {
+                public static void Kern(Index1D i, ArrayView1D<int, Stride1D.Dense> d)
+                {
+                    Func<int, int> f = x => x + 1;
+                    Func<int, int> g = x => x * 2;
+                    d[i] = f == g ? 100 : 7; // error
+                }
+            }
+            """,
+            "ILGPU1201",
+            "('==' in method 'Kern')");
 
     #endregion
 

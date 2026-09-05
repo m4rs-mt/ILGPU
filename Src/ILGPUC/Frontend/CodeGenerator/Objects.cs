@@ -191,9 +191,25 @@ partial class CodeGenerator
     /// Realizes an is-instance instruction.
     /// </summary>
     /// <param name="type">The target type.</param>
-    private void MakeIsInstance(Type type) =>
+    private void MakeIsInstance(Type type)
+    {
+        VerifyNoDelegateCast(type, "is");
         throw Location.GetNotSupportedException(
             ErrorMessages.NotSupportedIsInstance);
+    }
+
+    /// <summary>
+    /// Realizes a cast-class instruction, which is not supported.
+    /// </summary>
+    /// <param name="type">The target type.</param>
+    private void MakeCastClass(Type type)
+    {
+        VerifyNoDelegateCast(type, "cast to");
+        throw Location.GetNotSupportedException(
+            ErrorMessages.NotSupportedInstruction,
+            $"castclass {type}",
+            Method.Name);
+    }
 
     /// <summary>
     /// Realizes an indirect load instruction.

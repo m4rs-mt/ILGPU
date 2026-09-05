@@ -253,6 +253,9 @@ partial class CodeGenerator
             case ILInstructionType.Isinst:
                 MakeIsInstance(instruction.GetArgumentAs<Type>());
                 return true;
+            case ILInstructionType.Castclass:
+                MakeCastClass(instruction.GetArgumentAs<Type>());
+                return true;
 
             case ILInstructionType.Ldfld:
                 MakeLoadField(instruction.GetArgumentAs<FieldInfo>());

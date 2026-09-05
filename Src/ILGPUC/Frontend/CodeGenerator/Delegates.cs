@@ -239,6 +239,173 @@ partial class CodeGenerator
 
     #endregion
 
+    #region Delegate Checks
+
+    /// <summary>
+    /// Returns true if the given value is a delegate handle: a value of a
+    /// delegate type, or a closure pointer that a delegate was created from
+    /// (possibly converted).
+    /// </summary>
+    /// <param name="value">The value to test.</param>
+    private bool IsDelegateHandle(Value value) =>
+        value.Type is PointerType pointerType &&
+        (pointerType.ElementType is DelegateHandleType ||
+        _delegateTable.ContainsKey(value) ||
+        _delegateAliases.TryGetValue(value, out var source) &&
+        IsDelegateHandle(source));
+
+    /// <summary>
+    /// Creates the error for an operation that relies on the runtime identity
+    /// of delegates, such as null tests and comparisons, which kernels cannot
+    /// evaluate as delegates are bound to their targets at compile time.
+    /// </summary>
+    /// <param name="operation">The operation in source form.</param>
+    /// <returns>The created exception.</returns>
+    private KernelCompilationException GetDelegateIdentityException(
+        string operation) =>
+        new(
+            KernelDiagnostic.DelegateIdentityId,
+            string.Format(
+                ErrorMessages.KernelDiagnosticDelegateIdentity,
+                operation,
+                Method.Name),
+            Location);
+
+    /// <summary>
+    /// Creates the error for an operation on delegates other than invoking them
+    /// or passing them to methods.
+    /// </summary>
+    /// <param name="operation">The operation in source form.</param>
+    /// <returns>The created exception.</returns>
+    private KernelCompilationException GetDelegateOperationException(
+        string operation) =>
+        new(
+            KernelDiagnostic.DelegateIdentityId,
+            string.Format(
+                ErrorMessages.KernelDiagnosticDelegateOperation,
+                operation,
+                Method.Name),
+            Location);
+
+    /// <summary>
+    /// Rejects a null test of a delegate by a conditional branch, as used for
+    /// <c>?.Invoke</c>, <c>f != null</c> and <c>f == null</c>.
+    /// </summary>
+    /// <param name="value">The tested value.</param>
+    private void VerifyNoDelegateNullTest(Value value)
+    {
+        if (!IsDelegateHandle(value))
+            return;
+
+        // Null-conditional invocations test a copy of the delegate they invoke
+        bool isNullConditional = Block.StackCounter > 0 &&
+            Block.GetValue(new VariableRef(
+                Block.StackCounter - 1,
+                VariableRefType.Stack)) == value;
+        throw GetDelegateIdentityException(
+            isNullConditional ? "?.Invoke" : "null check");
+    }
+
+    /// <summary>
+    /// Rejects a comparison involving delegates: an equality test of two
+    /// delegates or a null test.
+    /// </summary>
+    /// <param name="left">The left operand.</param>
+    /// <param name="right">The right operand.</param>
+    private void VerifyNoDelegateComparison(Value left, Value right)
+    {
+        bool isLeftDelegate = IsDelegateHandle(left);
+        bool isRightDelegate = IsDelegateHandle(right);
+        if (!isLeftDelegate && !isRightDelegate)
+            return;
+        throw GetDelegateIdentityException(
+            isLeftDelegate && isRightDelegate ? "==" : "null check");
+    }
+
+    /// <summary>
+    /// Rejects calls to members of delegates other than <c>Invoke</c>, such as
+    /// <c>Delegate.Combine</c> or <c>DynamicInvoke</c>, and virtual calls of
+    /// object members on delegates, such as <c>Equals</c>.
+    /// </summary>
+    /// <param name="target">The called method.</param>
+    private void VerifyDelegateMemberCall(MethodBase target)
+    {
+        var declaringType = target.DeclaringType;
+        if (declaringType is null ||
+            target is ConstructorInfo ||
+            target.Name == "Invoke")
+        {
+            return;
+        }
+
+        bool isDelegateMember = declaringType.IsDelegate() ||
+            declaringType == typeof(MulticastDelegate);
+        if (!isDelegateMember && !target.IsStatic &&
+            declaringType == typeof(object))
+        {
+            // Object members called on a delegate instance
+            int numParameters = target.GetParameters().Length;
+            isDelegateMember = Block.StackCounter > numParameters &&
+                IsDelegateHandle(Block.GetValue(new VariableRef(
+                    Block.StackCounter - numParameters - 1,
+                    VariableRefType.Stack)));
+        }
+        if (!isDelegateMember)
+            return;
+
+        var name = target.Name;
+        switch (name)
+        {
+            case "op_Equality":
+                throw GetDelegateIdentityException("==");
+            case "op_Inequality":
+                throw GetDelegateIdentityException("!=");
+            case "Equals":
+            case "GetHashCode":
+            case "ReferenceEquals":
+                throw GetDelegateIdentityException(name);
+        }
+        if (target.IsSpecialName && name.StartsWith("get_", StringComparison.Ordinal))
+            name = name[4..];
+        throw GetDelegateOperationException(name);
+    }
+
+    /// <summary>
+    /// Rejects type tests and casts to delegate types (<c>castclass</c> and
+    /// <c>isinst</c>), as used for <c>is</c>, <c>as</c>, explicit casts and
+    /// combined delegates.
+    /// </summary>
+    /// <param name="type">The target type of the test or cast.</param>
+    /// <param name="operation">The operation in source form.</param>
+    private void VerifyNoDelegateCast(Type type, string operation)
+    {
+        if (type.IsDelegate() || type == typeof(MulticastDelegate))
+        {
+            throw GetDelegateOperationException(
+                $"{operation} {FormatTypeName(type)}");
+        }
+    }
+
+    /// <summary>
+    /// Formats the name of the given type in C# form, such as
+    /// <c>Func&lt;Int32, Int32&gt;</c>.
+    /// </summary>
+    /// <param name="type">The type.</param>
+    /// <returns>The formatted name.</returns>
+    private static string FormatTypeName(Type type)
+    {
+        if (!type.IsGenericType)
+            return type.Name;
+        var name = type.Name;
+        int index = name.IndexOf('`', StringComparison.Ordinal);
+        if (index >= 0)
+            name = name[..index];
+        var arguments = Array.ConvertAll(type.GetGenericArguments(), FormatTypeName);
+        return $"{name}<{string.Join(", ", arguments)}>";
+    }
+
+    #endregion
+
     #region Kernel Delegate Bindings
 
     /// <summary>
@@ -260,11 +427,7 @@ partial class CodeGenerator
                 key.String,
                 assembly.GetName().Name ?? string.Empty);
 
-        var handle = Builder.CreateNull(
-            Location,
-            ModuleBuilder.CreatePointerType(
-                ModuleBuilder.IntPointerType,
-                MemoryAddressSpace.Generic));
+        var handle = Builder.CreateNull(Location, ModuleBuilder.DelegateType);
         _delegateTable[handle] = target;
         Block.Push(handle);
     }

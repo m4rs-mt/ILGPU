@@ -932,5 +932,23 @@ namespace ILGPU.Resources {
                 return ResourceManager.GetString("KernelDiagnosticDelegateLoadedThroughReference", resourceCulture);
             }
         }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Kernel code cannot compare delegates or test them for null (&apos;{0}&apos; in method &apos;{1}&apos;). Delegates in kernels are bound to their targets at compile time and have no runtime identity. Remove the check, or pass a separate flag..
+        /// </summary>
+        internal static string KernelDiagnosticDelegateIdentity {
+            get {
+                return ResourceManager.GetString("KernelDiagnosticDelegateIdentity", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Kernel code cannot use the delegate operation &apos;{0}&apos; in method &apos;{1}&apos;. Kernels can only invoke delegates and pass them to methods, as delegates are bound to their targets at compile time..
+        /// </summary>
+        internal static string KernelDiagnosticDelegateOperation {
+            get {
+                return ResourceManager.GetString("KernelDiagnosticDelegateOperation", resourceCulture);
+            }
+        }
     }
 }

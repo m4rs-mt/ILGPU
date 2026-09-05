@@ -71,8 +71,10 @@ partial class CodeGenerator
         // other null constants are null as well: `null != null` is always
         // false. Fold directly to an unconditional branch and clean up the
         // dead target's predecessor edges.
-        if (_delegateCacheLoads.Contains(comparisonValue) ||
-            comparisonValue is NullValue)
+        bool isCacheLoad = _delegateCacheLoads.Contains(comparisonValue);
+        if (!isCacheLoad)
+            VerifyNoDelegateNullTest(comparisonValue);
+        if (isCacheLoad || comparisonValue is NullValue)
         {
             // brtrue (NotEqual): null != 0 -> false -> take false branch
             // brfalse (Equal): null == 0 -> true -> take true branch

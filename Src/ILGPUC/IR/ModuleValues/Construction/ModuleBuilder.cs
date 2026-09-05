@@ -61,6 +61,7 @@ partial class ModuleBuilder : IGenerationObject
     private readonly Dictionary<(Type, MemoryAddressSpace), TypeValue> _typeMapping = [];
     private readonly Dictionary<Type, TypeValue> _classStructCache = new(8);
     private readonly HashSet<Type> _classStructInProgress = new(4);
+    private DelegateHandleType? _delegateHandleType;
 
     private InlineList<Global> _globals = InlineList<Global>.Create(32);
     private readonly Dictionary<MethodBase, Method> _methodMapping = new(32);
@@ -235,6 +236,21 @@ partial class ModuleBuilder : IGenerationObject
     /// Returns the managed handle type.
     /// </summary>
     public HandleType HandleType { get; }
+
+    /// <summary>
+    /// Returns the opaque element type of delegate handles, which is created
+    /// on first use.
+    /// </summary>
+    public DelegateHandleType DelegateHandleType =>
+        _delegateHandleType ??= UnifyType(
+            new DelegateHandleType(GetInitializer(), IntPointerType));
+
+    /// <summary>
+    /// Returns the type of delegate handles: a generic pointer to the opaque
+    /// <see cref="DelegateHandleType"/>.
+    /// </summary>
+    public PointerType DelegateType =>
+        CreatePointerType(DelegateHandleType, MemoryAddressSpace.Generic);
 
     /// <summary>
     /// Returns a custom padding type that is used to pad structure values (8-bits).
@@ -464,10 +480,7 @@ partial class ModuleBuilder : IGenerationObject
             {
                 // Delegate types (Func<T>, Action<T>, etc.) are represented as
                 // opaque pointers — we don't model the CLR delegate internals.
-                return Map(
-                    type,
-                    addressSpace,
-                    CreatePointerType(IntPointerType, MemoryAddressSpace.Generic));
+                return Map(type, addressSpace, DelegateType);
             }
             else if (type.IsSealed ||
                      type.IsDefined(typeof(CompilerGeneratedAttribute), false))

@@ -588,6 +588,8 @@ sealed class VectorizationAnalysis
             return "nint";
         else if (type is PaddingType paddingType)
             return config.GetPrimitiveTypeName(paddingType.BasicValueType);
+        else if (type is DelegateHandleType handleType)
+            return config.GetPrimitiveTypeName(handleType.RepresentationType);
         else
             throw new System.NotSupportedException(
                 $"Unsupported type in CPU backend: {type.GetType().Name}");
