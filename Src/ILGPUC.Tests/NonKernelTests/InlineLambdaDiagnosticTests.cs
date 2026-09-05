@@ -770,6 +770,91 @@ public sealed class InlineLambdaDiagnosticTests
     }
 
     /// <summary>
+    /// The struct with a delegate field shared by the tests below.
+    /// </summary>
+    private const string HolderTypes = """
+        struct Holder { public Func<int, int> F; public int B; }
+
+        struct Outer { public int X; public Holder Inner; }
+
+        static class Kernels
+        {
+            public static void Apply(Index1D index, ArrayView<int> data, Holder h) =>
+                data[index] = h.B;
+        }
+        """;
+
+    /// <summary>
+    /// Helper: analyzes the given statements in a method that can use
+    /// <c>stream</c> and <c>view</c>, next to <see cref="HolderTypes"/>.
+    /// </summary>
+    private static AnalysisResult AnalyzeWithHolder(string statements) =>
+        AnalyzeProgram($$"""
+            {{HolderTypes}}
+
+            static class Host
+            {
+                static void Run(AcceleratorStream stream, ArrayView<int> view)
+                {
+                    {{statements}}
+                }
+            }
+            """);
+
+    /// <summary>
+    /// A launch lambda capturing a struct with a delegate field is rejected
+    /// at the capture.
+    /// </summary>
+    [Fact]
+    public void CapturedStructWithDelegateField_ReportsUnsupportedCapture()
+    {
+        var analysis = AnalyzeWithHolder("""
+            var h = new Holder { F = x => x * 2, B = 1 };
+            stream.Launch(
+                view.IntExtent,
+                index => { view[index] = h.F(view[index]) + h.B; });
+            """);
+
+        var diagnostic = AssertSingleDiagnostic(
+            analysis, KernelDiagnostic.UnsupportedCaptureId, "h");
+        Assert.Contains("of type 'Holder', whose field 'F' is a delegate",
+            diagnostic.Message);
+    }
+
+    /// <summary>
+    /// Delegate fields of nested structs are found as well.
+    /// </summary>
+    [Fact]
+    public void CapturedNestedStructWithDelegateField_ReportsUnsupportedCapture()
+    {
+        var analysis = AnalyzeWithHolder("""
+            var o = new Outer { X = 2 };
+            stream.Launch(view.IntExtent, index => view[index] = o.X);
+            """);
+
+        var diagnostic = AssertSingleDiagnostic(
+            analysis, KernelDiagnostic.UnsupportedCaptureId, "o");
+        Assert.Contains("field 'Inner.F' is a delegate", diagnostic.Message);
+    }
+
+    /// <summary>
+    /// A struct with a delegate field passed to a kernel method by a launch
+    /// lambda is rejected at the argument.
+    /// </summary>
+    [Fact]
+    public void StructWithDelegateFieldArgument_ReportsUnsupportedCapture()
+    {
+        var analysis = AnalyzeWithHolder("""
+            var h = new Holder { F = x => x * 2, B = 1 };
+            stream.Launch(view.IntExtent, index => Kernels.Apply(index, view, h));
+            """);
+
+        var diagnostic = AssertSingleDiagnostic(
+            analysis, KernelDiagnostic.UnsupportedCaptureId, "h");
+        Assert.Contains("delegate field 'F'", diagnostic.Message);
+    }
+
+    /// <summary>
     /// Using an instance field captures <c>this</c>, which is rejected at
     /// the member access.
     /// </summary>

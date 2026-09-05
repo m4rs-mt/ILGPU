@@ -296,6 +296,34 @@ sealed class KernelExtractor(CSharpCompilation compilation)
         method.Parameters.Any(p => p.Type.TypeKind == TypeKind.Delegate);
 
     /// <summary>
+    /// Returns the path of the first delegate field of the given value type,
+    /// also in nested structs (e.g. <c>Inner.Op</c>), or null if it has none.
+    /// Fields of views are not inspected.
+    /// </summary>
+    internal static string? FindDelegateField(
+        ITypeSymbol type,
+        HashSet<ITypeSymbol>? visited = null)
+    {
+        if (!type.IsValueType || IsViewType(type) || IsPrimitiveType(type))
+            return null;
+        visited ??= new(SymbolEqualityComparer.Default);
+        if (!visited.Add(type))
+            return null;
+
+        foreach (var field in type.GetMembers().OfType<IFieldSymbol>())
+        {
+            if (field.IsStatic || field.IsConst)
+                continue;
+            var name = field.AssociatedSymbol?.Name ?? field.Name;
+            if (field.Type.TypeKind == TypeKind.Delegate)
+                return name;
+            if (FindDelegateField(field.Type, visited) is { } nested)
+                return $"{name}.{nested}";
+        }
+        return null;
+    }
+
+    /// <summary>
     /// Builds a <see cref="KernelDescriptor"/> for a kernel identified as a
     /// direct method call inside a lambda body. Parameters are derived from the
     /// arguments passed to that call.
@@ -332,6 +360,17 @@ sealed class KernelExtractor(CSharpCompilation compilation)
             {
                 throw new InvalidOperationException(
                     $"Could not resolve type of argument: {arg.Expression}");
+            }
+
+            if (FindDelegateField(type) is { } delegateField)
+            {
+                diagnostics.Add(new KernelDiagnostic(
+                    KernelDiagnostic.UnsupportedCaptureId,
+                    $"Kernel argument '{arg.Expression}' of type '{type}' has the " +
+                    $"delegate field '{delegateField}'. Delegates cannot be kernel " +
+                    $"arguments; pass the other fields separately and the " +
+                    $"delegate as a delegate parameter of the kernel method.",
+                    arg.Expression.GetLocation()));
             }
 
             var kind = Classify(type);
@@ -813,6 +852,14 @@ sealed class KernelExtractor(CSharpCompilation compilation)
                 $"Inline kernel captures '{captured.Name}' of reference type " +
                 $"'{type}', which cannot be passed to a kernel. Capture a view " +
                 $"or a value type instead.";
+        }
+        else if (FindDelegateField(type) is { } delegateField)
+        {
+            message =
+                $"Inline kernel captures '{captured.Name}' of type '{type}', whose " +
+                $"field '{delegateField}' is a delegate. Delegates cannot be " +
+                $"kernel arguments; capture the other fields separately and pass " +
+                $"the delegate as a parameter of the launching method.";
         }
         else if (written.Contains(captured))
         {
