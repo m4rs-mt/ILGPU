@@ -20,6 +20,45 @@ by value as kernel arguments.
 Note that you must not pass pointers to non-accessible memory regions since these are also passed by value and cannot be
 marshalled automatically by ILGPU when launching kernels.
 
+## Lambdas and Delegates
+
+Kernel code can use delegates (e.g. `Func<int, int>`) whose target is known at compile time.
+This covers lambda expressions (capturing or not) and static methods that are invoked in kernel code, as well as
+lambdas and static method groups passed directly to a method called by the kernel.
+The compiler creates a copy of the called method for each distinct delegate target, also when that method passes the
+delegate on to further methods:
+
+```c#
+static int Apply(Func<int, int> f, int x) => f(x);
+
+static void MyKernel(Index1D index, ArrayView<int> data, int k)
+{
+    data[index] = Apply(x => x * 3, index) + Apply(x => x + k, index);
+}
+```
+
+Launch lambdas can pass lambdas to kernel methods taking a delegate in the same way, as in
+`stream.Launch(view.IntExtent, index => UnaryOpKernel(index, view, x => -x))`.
+
+Delegates selected at runtime, such as `flag ? f : g` or a delegate variable reassigned in a loop, dispatch on the
+selected target when they are invoked or passed to a method.
+Delegates that cannot be traced back to lambdas or static methods in kernel code, such as delegates returned from
+methods, are rejected by the compiler.
+Delegates cannot be passed from the CPU to a kernel either: a delegate captured by a launch lambda is reported at build
+time (`ILGPU1103`).
+Use a generic struct implementing an interface instead:
+
+```c#
+interface IUnaryOp { int Apply(int x); }
+
+readonly struct Negate : IUnaryOp { public int Apply(int x) => -x; }
+
+static int Apply<TOp>(TOp op, int x) where TOp : struct, IUnaryOp => op.Apply(x);
+
+static void NegateKernel(Index1D index, ArrayView<int> data, Negate op) =>
+    data[index] = Apply(op, data[index]);
+```
+
 ## Implicitly Grouped Kernels
 
 Implicitly grouped kernels allow very convenient high-level kernel programming.

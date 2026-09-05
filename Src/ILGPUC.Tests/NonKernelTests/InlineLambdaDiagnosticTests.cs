@@ -218,6 +218,75 @@ public sealed class InlineLambdaDiagnosticTests
     }
 
     /// <summary>
+    /// A launch lambda passing a delegate variable of the launching method to a
+    /// kernel method would make the delegate a kernel argument, which is
+    /// rejected at the captured variable.
+    /// </summary>
+    [Fact]
+    public void CapturedDelegate_ReportsUnsupportedCapture()
+    {
+        var analysis = AnalyzeProgram("""
+            static class Kernels
+            {
+                public static void UnaryOpKernel(
+                    Index1D index, ArrayView<int> data, Func<int, int> op) =>
+                    data[index] = op(data[index]);
+            }
+
+            static class Host
+            {
+                public static void UnaryOp(
+                    AcceleratorStream stream, ArrayView<int> view, Func<int, int> op)
+                {
+                    stream.Launch(
+                        view.IntExtent,
+                        index => Kernels.UnaryOpKernel(index, view, op));
+                }
+            }
+            """);
+
+        var diagnostic = AssertSingleDiagnostic(
+            analysis, KernelDiagnostic.UnsupportedCaptureId, "op");
+        Assert.Contains("delegate 'op'", diagnostic.Message);
+        Assert.Contains("lambda expression", diagnostic.Message);
+        Assert.Contains("generic struct", diagnostic.Message);
+    }
+
+    /// <summary>
+    /// A launch lambda passing a lambda expression to a kernel method is lifted
+    /// as an inline kernel, so the delegate is created inside the kernel and
+    /// only the other captures become kernel parameters.
+    /// </summary>
+    [Fact]
+    public void DelegateArgument_LiftedAsInlineKernel()
+    {
+        var analysis = AnalyzeProgram("""
+            static class Kernels
+            {
+                public static void UnaryOpKernel(
+                    Index1D index, ArrayView<int> data, Func<int, int> op) =>
+                    data[index] = op(data[index]);
+            }
+
+            static class Host
+            {
+                public static void AddOffset(
+                    AcceleratorStream stream, ArrayView<int> view, int offset)
+                {
+                    stream.Launch(
+                        view.IntExtent,
+                        index => Kernels.UnaryOpKernel(index, view, x => x + offset));
+                }
+            }
+            """);
+
+        Assert.Empty(analysis.Diagnostics);
+        var kernel = Assert.Single(analysis.UniqueKernels);
+        Assert.NotNull(kernel.LiftedKernel);
+        Assert.Equal(["view", "offset"], kernel.Parameters.Select(p => p.Name));
+    }
+
+    /// <summary>
     /// Using an instance field captures <c>this</c>, which is rejected at
     /// the member access.
     /// </summary>

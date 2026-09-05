@@ -59,6 +59,19 @@ public abstract class InlineLambdaExecutionTests : ExecutionTestBase
             ["7", "10", "13", "16"]);
     }
 
+    /// <summary>
+    /// Launch lambdas pass lambda expressions to a kernel method taking a Func,
+    /// which are lifted as inline kernels that bind the kernel method to them.
+    /// </summary>
+    [SkippableFact]
+    public async Task InlineDelegateArgument_ProducesCorrectOutput()
+    {
+        await VerifyProgramOutputAsync(
+            "TestPrograms/Lambda/InlineDelegateArgument.cs",
+            [],
+            ["9", "8", "7", "6"]);
+    }
+
     [SkippableFact]
     public async Task InlineConditional_ProducesCorrectOutput()
     {

@@ -73,7 +73,8 @@ sealed class KernelExtractor(CSharpCompilation compilation)
     /// <summary>
     /// Handles a simple lambda (e.g., <c>_ =&gt; MainKernel(...)</c>):
     /// delegates to <see cref="CreateFromMethodCall"/> if the body is a direct
-    /// method call, otherwise falls back to <see cref="CreateFromInlineBody"/>.
+    /// call of a method without delegate parameters, otherwise falls back to
+    /// <see cref="CreateFromInlineBody"/>.
     /// </summary>
     private static KernelDescriptor ExtractFromSimpleLambda(
         SemanticModel model,
@@ -87,7 +88,8 @@ sealed class KernelExtractor(CSharpCompilation compilation)
 
         // Check if body is a single method invocation
         if (TryExtractMethodCall(model, body, out var methodSymbol,
-                out var arguments))
+                out var arguments)
+            && !HasDelegateParameters(methodSymbol!))
         {
             return CreateFromMethodCall(
                 model, methodSymbol!, arguments, launchInfo, diagnostics);
@@ -100,7 +102,8 @@ sealed class KernelExtractor(CSharpCompilation compilation)
     /// <summary>
     /// Handles a parenthesized lambda (e.g., <c>(index, x) =&gt; ...</c>):
     /// delegates to <see cref="CreateFromMethodCall"/> if the body is a direct
-    /// method call, otherwise falls back to <see cref="CreateFromInlineBody"/>.
+    /// call of a method without delegate parameters, otherwise falls back to
+    /// <see cref="CreateFromInlineBody"/>.
     /// </summary>
     private static KernelDescriptor ExtractFromLambda(
         SemanticModel model,
@@ -111,7 +114,8 @@ sealed class KernelExtractor(CSharpCompilation compilation)
         var body = lambda.Body;
 
         if (TryExtractMethodCall(model, body, out var methodSymbol,
-                out var arguments))
+                out var arguments)
+            && !HasDelegateParameters(methodSymbol!))
         {
             return CreateFromMethodCall(
                 model, methodSymbol!, arguments, launchInfo, diagnostics);
@@ -279,6 +283,16 @@ sealed class KernelExtractor(CSharpCompilation compilation)
         arguments = invocation.ArgumentList.Arguments;
         return true;
     }
+
+    /// <summary>
+    /// Returns <see langword="true"/> if <paramref name="method"/> takes a
+    /// delegate. Delegates cannot be kernel arguments, so a launch lambda
+    /// calling such a method is lifted as an inline kernel instead: the
+    /// compiler then binds lambdas and method groups passed at the call, and
+    /// captured delegate variables are reported.
+    /// </summary>
+    private static bool HasDelegateParameters(IMethodSymbol method) =>
+        method.Parameters.Any(p => p.Type.TypeKind == TypeKind.Delegate);
 
     /// <summary>
     /// Builds a <see cref="KernelDescriptor"/> for a kernel identified as a
@@ -755,6 +769,14 @@ sealed class KernelExtractor(CSharpCompilation compilation)
                 $"Inline kernel captures '{captured.Name}' " +
                 (isByRef ? "by reference" : $"of ref struct type '{type}'") +
                 ", which cannot be passed to a kernel.";
+        }
+        else if (type.TypeKind == TypeKind.Delegate)
+        {
+            message =
+                $"Inline kernel captures the delegate '{captured.Name}', which " +
+                $"cannot be passed to a kernel. Pass a lambda expression or a " +
+                $"static method directly at the call inside the kernel, or use " +
+                $"a generic struct implementing an interface instead.";
         }
         else if (type.IsReferenceType && !TryGetBufferViewType(type, out _))
         {
