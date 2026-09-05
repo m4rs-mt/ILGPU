@@ -37,10 +37,30 @@ partial class PureValueBuilder
 
         if (!trueValue.Type.Equals(falseValue.Type))
         {
-            falseValue = CreateConvert(
-                location,
-                falseValue,
-                trueValue.GetTypeAs<PrimitiveType>()).AsNotNull();
+            if (trueValue.Type is PointerType truePointerType &&
+                falseValue.Type is PointerType)
+            {
+                // Pointers into different address spaces (e.g. a local closure
+                // and a null delegate handle) are selected as generic pointers
+                trueValue = CreateAddressSpaceCast(
+                    location,
+                    trueValue,
+                    MemoryAddressSpace.Generic).AsNotNull();
+                falseValue = CreatePointerCast(
+                    location,
+                    CreateAddressSpaceCast(
+                        location,
+                        falseValue,
+                        MemoryAddressSpace.Generic),
+                    truePointerType.ElementType).AsNotNull();
+            }
+            else
+            {
+                falseValue = CreateConvert(
+                    location,
+                    falseValue,
+                    trueValue.GetTypeAs<PrimitiveType>()).AsNotNull();
+            }
         }
 
         // Match simple constant predicates

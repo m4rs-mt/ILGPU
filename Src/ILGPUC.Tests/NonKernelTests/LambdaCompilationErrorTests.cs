@@ -41,7 +41,36 @@ public sealed class LambdaCompilationErrorTests
             }
             data[index] = sum;
         }
+
+        // Delegates returned from methods cannot be traced to their lambdas.
+        private static Func<int, int> Select(int flag) =>
+            flag > 0 ? x => x + 1 : x => x * 2;
+
+        public static void ReturnedDelegateKernel(
+            Index1D index, ArrayView1D<int, Stride1D.Dense> data, int flag)
+        {
+            var f = Select(flag);
+            data[index] = f(index.X);
+        }
+
+        private static int Apply(Func<int, int> f, int x) => f(x);
+
+        // A helper (not the kernel) passes a returned delegate to a method taking
+        // a Func, which cannot be specialized for it.
+        private static int ApplyReturned(int flag, int x) => Apply(Select(flag), x);
+
+        public static void ReturnedDelegateArgumentKernel(
+            Index1D index, ArrayView1D<int, Stride1D.Dense> data, int flag)
+        {
+            data[index] = ApplyReturned(flag, index.X);
+        }
     }
+
+    private static MethodInfo GetKernel(string name) =>
+        typeof(LambdaErrorKernels).GetMethod(
+            name,
+            BindingFlags.Public | BindingFlags.Static)
+        ?? throw new InvalidOperationException($"Kernel method '{name}' not found.");
 
     [Fact]
     public void LambdaInLoop_ThrowsNotSupportedException()
@@ -55,5 +84,31 @@ public sealed class LambdaCompilationErrorTests
 
         Assert.Throws<NotSupportedException>(() =>
             helper.GetNormalizedIR(kernel, IRDumpPoint.AfterBackendTransforms));
+    }
+
+    [Fact]
+    public void ReturnedDelegate_ThrowsNotSupportedException()
+    {
+        using var helper = new CompilationHelper(BackendType.CPU);
+        var kernel = GetKernel(nameof(LambdaErrorKernels.ReturnedDelegateKernel));
+
+        var exception = Assert.Throws<InternalCompilerException>(() =>
+            helper.GetNormalizedIR(kernel, IRDumpPoint.AfterBackendTransforms));
+        var inner = Assert.IsType<NotSupportedException>(exception.InnerException);
+        Assert.Contains("'ReturnedDelegateKernel'", inner.Message);
+    }
+
+    [Fact]
+    public void ReturnedDelegateArgument_ThrowsNotSupportedException()
+    {
+        using var helper = new CompilationHelper(BackendType.CPU);
+        var kernel = GetKernel(
+            nameof(LambdaErrorKernels.ReturnedDelegateArgumentKernel));
+
+        // Reported although the call is in a helper instead of the kernel
+        var exception = Assert.Throws<InternalCompilerException>(() =>
+            helper.GetNormalizedIR(kernel, IRDumpPoint.AfterBackendTransforms));
+        var inner = Assert.IsType<NotSupportedException>(exception.InnerException);
+        Assert.Contains("parameter 'f' of method 'Apply'", inner.Message);
     }
 }

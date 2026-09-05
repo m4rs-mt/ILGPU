@@ -1025,6 +1025,18 @@ public static class CPUVectorIntrinsics
     }
 
     /// <summary>
+    /// Points each lane's pointer at its own copy of a local array, where lane
+    /// i owns the elements [i * view.Length, (i + 1) * view.Length).
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static unsafe void LanePointers<T>(
+        Span<nint> pointers, CPURuntimeView<T> view) where T : unmanaged
+    {
+        for (int i = 0; i < pointers.Length; i++)
+            pointers[i] = (nint)(view.Ptr + (long)i * view.Length);
+    }
+
+    /// <summary>
     /// Copies per-lane pointers from source to destination.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

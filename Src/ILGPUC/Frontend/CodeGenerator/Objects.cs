@@ -168,10 +168,8 @@ partial class CodeGenerator
         // Record: this closure pointer maps to this lambda body
         _delegateTable[closurePtr] = method;
 
-        // Also record as a "pending" delegate for cross-block propagation.
-        // When a stloc stores a phi-merged delegate value, the direct
-        // _delegateTable lookup fails (phi != closurePtr). This fallback
-        // ensures the delegate method is propagated to _delegateLocalTable.
+        // Also record as a "pending" delegate for the last-resort fallback of
+        // TryResolveDelegateMethod
         _pendingDelegateForLocal = method;
 
         // Push the closure pointer as the delegate handle (type-erased)

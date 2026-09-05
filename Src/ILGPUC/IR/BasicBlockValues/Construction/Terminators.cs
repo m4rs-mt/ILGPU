@@ -165,7 +165,7 @@ partial class BasicBlockBuilder
             return CreateUnconditionalTermination(target);
         }
 
-        // Two targets can be simplified to conditional
+        // Two targets can be simplified to conditional (case 0 or default)
         if (caseTargets.Length == 1)
         {
             return CreateConditionalTermination(
@@ -174,8 +174,8 @@ partial class BasicBlockBuilder
                     value,
                     CreatePrimitiveValue(value.Location, 0),
                     CompareKind.Equal),
-                defaultTarget,
-                caseTargets[0]);
+                caseTargets[0],
+                defaultTarget);
         }
 
         // Full switch termination

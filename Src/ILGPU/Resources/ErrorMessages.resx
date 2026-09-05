@@ -482,7 +482,11 @@
     <comment/>
   </data>
   <data name="NotSupportedCannotDevirtualizeDelegate" xml:space="preserve">
-    <value>Cannot statically devirtualize delegate invocation '{0}'. Only direct (non-phi, non-passed-as-argument) delegate variables are supported.</value>
+    <value>Cannot statically devirtualize delegate invocation '{0}' in method '{1}'. Kernels can only invoke delegates created from a lambda expression or a static method in kernel code, also when they are passed to a called method.</value>
+    <comment/>
+  </data>
+  <data name="NotSupportedUnresolvedDelegateArgument" xml:space="preserve">
+    <value>Cannot statically resolve the delegate passed to parameter '{0}' of method '{1}'. Pass a lambda expression or a static method directly at the call, or use a generic struct implementing an interface instead of the delegate.</value>
     <comment/>
   </data>
   <data name="NotSupportedRecursiveReferenceType" xml:space="preserve">

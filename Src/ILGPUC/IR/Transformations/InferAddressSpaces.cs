@@ -87,6 +87,11 @@ sealed class InferAddressSpaces(TransformationArgs args) : Transformation(args)
         if (value.Type.Equals(targetType))
             return value;
 
+        // Null pointers (e.g. delegate handles of non-capturing lambdas merged
+        // with closures in local memory) are null in every address space
+        if (value is NullValue && targetType is PointerType)
+            return builder.CreateNull(location, targetType);
+
         switch (value.Type)
         {
             case PointerType sourcePointer when targetType is PointerType target:

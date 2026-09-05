@@ -10,7 +10,9 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPUC.IR;
+using ILGPUC.IR.BasicBlockValues;
 using System.Diagnostics;
+using System.Reflection;
 
 namespace ILGPUC.Frontend;
 
@@ -39,6 +41,10 @@ partial class CodeGenerator
                 new VariableRef(Block.StackCounter - 1, VariableRefType.Stack));
             _delegateTable[topValue] = delegateMethod;
         }
+        LoadDelegateTag(
+            var,
+            Block.GetValue(
+                new VariableRef(Block.StackCounter - 1, VariableRefType.Stack)));
     }
 
     /// <summary>
@@ -67,23 +73,21 @@ partial class CodeGenerator
             var.RefType == VariableRefType.Local);
         var (type, flags) = _variableTypes[var];
 
-        // Propagate delegate tracking before the value is converted/popped
-        if (Block.StackCounter > 0)
+        // Resolve a delegate handle before the value is converted/popped: the
+        // handle is either registered or a phi-merged value of a control flow
+        // merge whose paths agree on a single lambda body (e.g. the static
+        // lambda caching pattern)
+        MethodBase? delegateMethod = null;
+        var rawValue = Block.StackCounter > 0
+            ? Block.GetValue(
+                new VariableRef(Block.StackCounter - 1, VariableRefType.Stack))
+            : null;
+        if (rawValue is not null &&
+            !_delegateTable.TryGetValue(rawValue, out delegateMethod) &&
+            (rawValue is not PhiValue ||
+            !TryTraceDelegateHandle(rawValue, out delegateMethod)))
         {
-            var rawTop = Block.GetValue(
-                new VariableRef(Block.StackCounter - 1, VariableRefType.Stack));
-            if (_delegateTable.TryGetValue(rawTop, out var delegateMethod))
-            {
-                _delegateLocalTable[var] = delegateMethod;
-            }
-            else if (_pendingDelegateForLocal is not null)
-            {
-                // Fallback: the stack top is a phi-merged value from a
-                // control flow merge (static lambda caching pattern).
-                // Use the most recent delegate from MakeNewDelegate.
-                _delegateLocalTable[var] = _pendingDelegateForLocal;
-                _pendingDelegateForLocal = null;
-            }
+            delegateMethod = null;
         }
 
         var storeValue = Block.Pop(type, flags);
@@ -91,10 +95,25 @@ partial class CodeGenerator
         {
             var address = Block.GetValue(var);
             Builder.CreateStore(Location, address, storeValue);
+
+            // Track the delegate of the variable, as loads create new values
+            if (delegateMethod is not null)
+                _delegateLocalTable[var] = delegateMethod;
+            else
+                _delegateLocalTable.Remove(var);
         }
         else
         {
             Block.SetValue(var, storeValue);
+            StoreDelegateTag(var, rawValue, delegateMethod);
+
+            // Register the converted value, so that loads in other blocks
+            // resolve the delegate through their SSA values, and trace values
+            // selecting different delegates back to their sources
+            if (delegateMethod is not null)
+                _delegateTable[storeValue] = delegateMethod;
+            else if (rawValue is not null && rawValue != storeValue)
+                _delegateAliases[storeValue] = rawValue;
         }
     }
 }

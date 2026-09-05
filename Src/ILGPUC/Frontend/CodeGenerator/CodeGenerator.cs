@@ -55,9 +55,8 @@ sealed partial class CodeGenerator
 
     /// <summary>
     /// Most recent delegate method from <see cref="MakeNewDelegate"/>. Used as
-    /// a fallback when <c>stloc</c> stores a phi-merged delegate value that
-    /// doesn't match the direct <see cref="_delegateTable"/> (static lambda
-    /// caching pattern).
+    /// a candidate of the last-resort fallback in
+    /// <see cref="TryResolveDelegateMethod"/>.
     /// </summary>
     private MethodBase? _pendingDelegateForLocal;
 
@@ -68,10 +67,30 @@ sealed partial class CodeGenerator
     private readonly Dictionary<Value, MethodBase> _delegateTable = [];
 
     /// <summary>
-    /// Maps a local variable VariableRef to the lambda MethodBase when a delegate
-    /// value was stored to a local. Used for cross-block resolution.
+    /// Maps an address-taken variable to the lambda MethodBase when a delegate
+    /// value was stored to it. All other variables resolve their delegates
+    /// through their SSA values in <see cref="_delegateTable"/>.
     /// </summary>
     private readonly Dictionary<VariableRef, MethodBase> _delegateLocalTable = [];
+
+    /// <summary>
+    /// Maps converted values stored to variables to the delegate handles they
+    /// were converted from, so that handles selecting between different
+    /// delegates can be traced back to their sources.
+    /// </summary>
+    private readonly Dictionary<Value, Value> _delegateAliases = [];
+
+    /// <summary>
+    /// The specializations of called methods for statically known delegate
+    /// arguments (null if calls cannot be specialized).
+    /// </summary>
+    private readonly DelegateSpecializations? _specializations;
+
+    /// <summary>
+    /// The methods bound to the delegate parameters of the current method if it
+    /// is a specialization (null otherwise).
+    /// </summary>
+    private readonly MethodBase?[]? _delegateTargets;
 
     /// <summary>
     /// Constructs a new code generator.
@@ -87,18 +106,30 @@ sealed partial class CodeGenerator
     /// <param name="isEntryPoint">
     /// True if the method is a kernel entry point, which is never inlined.
     /// </param>
+    /// <param name="specializations">
+    /// The specializations of called methods for statically known delegate
+    /// arguments (null if calls cannot be specialized).
+    /// </param>
+    /// <param name="delegateTargets">
+    /// The methods bound to the delegate parameters of the method if it is a
+    /// specialization, indexed by parameter position.
+    /// </param>
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     public CodeGenerator(
         MethodBuilder methodBuilder,
         DisassembledMethod disassembledMethod,
         Backends.BackendType backendType = default,
-        bool isEntryPoint = false)
+        bool isEntryPoint = false,
+        DelegateSpecializations? specializations = null,
+        MethodBase?[]? delegateTargets = null)
     {
         ModuleBuilder = methodBuilder.ModuleBuilder;
         MethodBuilder = methodBuilder;
         DisassembledMethod = disassembledMethod;
         BackendType = backendType;
         IsEntryPoint = isEntryPoint;
+        _specializations = specializations;
+        _delegateTargets = delegateTargets;
 
         _cfgBuilder = new Block.CFGBuilder(this, methodBuilder);
         EntryBlock = _cfgBuilder.EntryBlock;
@@ -172,6 +203,12 @@ sealed partial class CodeGenerator
             var parameter = methodParameters[i];
             var paramType = ModuleBuilder.CreateType(parameter.ParameterType);
             Value ssaValue = MethodBuilder.CreateParameter(paramType, parameter.Name);
+
+            // Bind a specialized delegate parameter to its target method
+            var delegateTarget = _delegateTargets?[i];
+            if (delegateTarget is not null)
+                _delegateTable[ssaValue] = delegateTarget;
+
             var argRef = new VariableRef(
                 i + parameterOffset,
                 VariableRefType.Argument);
@@ -185,6 +222,10 @@ sealed partial class CodeGenerator
                     alloca,
                     ssaValue);
                 ssaValue = alloca;
+            }
+            else if (parameter.ParameterType.IsDelegate())
+            {
+                SetupDelegateTag(argRef, delegateTarget);
             }
             EntryBlock.SetValue(argRef, ssaValue);
             _variableTypes[argRef] = (
@@ -212,6 +253,10 @@ sealed partial class CodeGenerator
                     alloca,
                     initValue);
                 initValue = alloca;
+            }
+            else if (variable.LocalType.IsDelegate())
+            {
+                SetupDelegateTag(localRef, target: null);
             }
 
             EntryBlock.SetValue(localRef, initValue);
@@ -244,6 +289,13 @@ sealed partial class CodeGenerator
     /// methods can be inlined into a loop of their caller.
     /// </summary>
     public bool IsEntryPoint { get; }
+
+    /// <summary>
+    /// Returns true if code generation failed on a delegate that cannot be
+    /// resolved statically. Such errors are reported for all methods instead of
+    /// turning the method into an external declaration that fails later.
+    /// </summary>
+    public bool HasUnresolvedDelegate { get; private set; }
 
     /// <summary>
     /// Returns compilation properties.
@@ -350,6 +402,9 @@ sealed partial class CodeGenerator
         // incomplete phis, as AssertAllSealed is DEBUG-only.
         SSABuilder.SealRemainingBlocks();
         SSABuilder.AssertAllSealed();
+
+        // All delegate handles can be traced now that all loops are closed
+        ImplementPendingDispatchers();
 
         return MethodBuilder.Method;
     }

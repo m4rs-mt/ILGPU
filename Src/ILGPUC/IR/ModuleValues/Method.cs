@@ -72,6 +72,13 @@ enum MethodFlags : int
     /// when inspecting method flags.
     /// </summary>
     BodySynthesized = 1 << 5,
+
+    /// <summary>
+    /// Marks a specialized copy of its source method, such as a copy bound to
+    /// statically known delegate arguments. Specialized methods are not
+    /// identified by their source method.
+    /// </summary>
+    Specialized = 1 << 6,
 }
 
 /// <summary>

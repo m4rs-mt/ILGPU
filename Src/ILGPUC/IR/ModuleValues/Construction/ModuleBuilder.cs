@@ -873,9 +873,12 @@ partial class ModuleBuilder : IGenerationObject
         MethodDeclaration declaration,
         CreateMethodBuilder? createBuilder = null)
     {
-        // Try to disambiguate the declaration
-        if (declaration.Source is not null &&
-            _methodMapping.TryGetValue(declaration.Source, out var existingMethod))
+        // Try to disambiguate the declaration (specialized copies of a source
+        // method are identified by their handles only)
+        bool isMapped = declaration.Source is not null &&
+            !declaration.HasFlags(MethodFlags.Specialized);
+        if (isMapped &&
+            _methodMapping.TryGetValue(declaration.Source!, out var existingMethod))
         {
             return _methods[existingMethod.Declaration.Handle];
         }
@@ -890,8 +893,8 @@ partial class ModuleBuilder : IGenerationObject
             new MethodBuilder(this, initializer, declaration);
 
         _methods.Add(declaration.Handle, builder);
-        if (declaration.Source is not null)
-            _methodMapping.Add(declaration.Source, builder.Method);
+        if (isMapped)
+            _methodMapping.Add(declaration.Source!, builder.Method);
 
         return builder;
     }

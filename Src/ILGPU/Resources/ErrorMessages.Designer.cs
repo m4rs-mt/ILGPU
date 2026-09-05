@@ -853,6 +853,15 @@ namespace ILGPU.Resources {
         }
 
         /// <summary>
+        ///   Looks up a localized string similar to Cannot statically resolve the delegate passed to parameter '{0}' of method '{1}'.
+        /// </summary>
+        internal static string NotSupportedUnresolvedDelegateArgument {
+            get {
+                return ResourceManager.GetString("NotSupportedUnresolvedDelegateArgument", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to Recursive reference type '{0}' is not supported.
         /// </summary>
         internal static string NotSupportedRecursiveReferenceType {

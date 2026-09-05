@@ -513,8 +513,10 @@ partial class CPUMethodEmitter
                 var expr = exprEmitter.EmitExpression(arg);
                 if (parallel)
                 {
+                    // Null literals have no type to infer the temporary from
                     var tmp = $"_pc_{_phiCopyCounter++}";
-                    context.WriteLine($"var {tmp} = {expr};");
+                    var type = expr == "default" ? GetVectorElementType(arg) : null;
+                    context.WriteLine($"{type ?? "var"} {tmp} = {expr};");
                     expr = tmp;
                 }
                 sources[i] = expr;
