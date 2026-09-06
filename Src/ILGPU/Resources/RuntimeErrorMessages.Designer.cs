@@ -309,7 +309,7 @@ namespace ILGPU.Resources
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to ILGPUC did not compile its launch site. ILGPUC compiles the stream.Launch calls in the sources of the project it builds, so kernels launched inside ILGPU algorithms (such as Initialize, Sequence, Transform, Reduce, Scan or RadixSort) or inside other assemblies have no compiled kernel. Launch the kernel with stream.Launch from the sources of a project built with ILGPUC..
+        ///   Looks up a localized string similar to ILGPUC did not compile its launch site. ILGPUC compiles the stream.Launch calls in the sources of the project it builds, so kernels launched inside ILGPU algorithms (such as Initialize, Sequence, Transform, Reorder, Reduce, Scan, RadixSort, Permute or FillUniform) or inside other assemblies have no compiled kernel. Launch the kernel, or a kernel of your own in place of the ILGPU algorithm, with stream.Launch from the sources of a project built with ILGPUC..
         /// </summary>
         internal static string KernelNotCompiledLaunchSite
         {
