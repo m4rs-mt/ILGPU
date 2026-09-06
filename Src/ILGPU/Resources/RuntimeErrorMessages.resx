@@ -201,6 +201,22 @@
     <value>Shared-memory size cannot be &lt; 0</value>
     <comment/>
   </data>
+  <data name="KernelNotCompiled" xml:space="preserve">
+    <value>Kernel '{0}' was not compiled for {1}: {2}</value>
+    <comment/>
+  </data>
+  <data name="KernelNotCompiledLaunchSite" xml:space="preserve">
+    <value>ILGPUC did not compile its launch site. ILGPUC compiles the stream.Launch calls in the sources of the project it builds, so kernels launched inside ILGPU algorithms (such as Initialize, Sequence, Transform, Reduce, Scan or RadixSort) or inside other assemblies have no compiled kernel. Launch the kernel with stream.Launch from the sources of a project built with ILGPUC.</value>
+    <comment/>
+  </data>
+  <data name="KernelNotCompiledOtherAccelerator" xml:space="preserve">
+    <value>it was compiled for {0}. Build the project for {1} (ILGPUBackend property) to launch it on {1}.</value>
+    <comment/>
+  </data>
+  <data name="KernelNotLoaded" xml:space="preserve">
+    <value>Kernel '{0}' is not loaded on {1}: the device does not provide the capabilities it requires or failed to build it</value>
+    <comment/>
+  </data>
   <data name="NotSupportedAcceleratorStream" xml:space="preserve">
     <value>The accelerator stream is not supported for this operation</value>
     <comment/>

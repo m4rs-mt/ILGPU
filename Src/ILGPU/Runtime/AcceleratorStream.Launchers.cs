@@ -27,7 +27,7 @@ partial class AcceleratorStream
     /// </summary>
     /// <param name="extent">The extent of the thread grid to launch.</param>
     /// <param name="kernel">The kernel to launch</param>
-    /// <exception cref="NotSupportedException">
+    /// <exception cref="KernelNotCompiledException">
     /// This method cannot be called directly at runtime. The kernel provided must be
     /// compiled with ILGPUC first.
     /// </exception>
@@ -49,7 +49,7 @@ partial class AcceleratorStream
     /// </summary>
     /// <param name="extent">The extent of the thread grid to launch.</param>
     /// <param name="kernel">The kernel to launch</param>
-    /// <exception cref="NotSupportedException">
+    /// <exception cref="KernelNotCompiledException">
     /// This method cannot be called directly at runtime. The kernel provided must be
     /// compiled with ILGPUC first.
     /// </exception>
@@ -71,7 +71,7 @@ partial class AcceleratorStream
     /// </summary>
     /// <param name="kernelConfig">The thread grid configuration to launch.</param>
     /// <param name="kernel">The kernel to launch</param>
-    /// <exception cref="NotSupportedException">
+    /// <exception cref="KernelNotCompiledException">
     /// This method cannot be called directly at runtime. The kernel provided must be
     /// compiled with ILGPUC first.
     /// </exception>
@@ -102,12 +102,13 @@ partial class AcceleratorStream
         Launch2D(extent, kernel);
 
     /// <summary>
-    /// Triggers a 3D kernel launch.
+    /// Triggers a 3D kernel launch. Delegates to
+    /// <see cref="Launch3D(Index3D, Action{Index3D})"/>.
     /// </summary>
     [MethodImpl(MethodImplOptions.NoInlining)]
     [NotInsideKernel, DelayCodeGeneration, ReplaceWithLauncher]
     public void Launch(Index3D extent, Action<Index3D> kernel) =>
-        throw new NotSupportedException(ErrorMessages.NotSupportedUncompiledKernelLaunch);
+        Launch3D(extent, kernel);
 
     #region Multidimensional
 
@@ -118,7 +119,7 @@ partial class AcceleratorStream
     /// </summary>
     /// <param name="extent">The extent of the thread grid to launch.</param>
     /// <param name="kernel">The kernel to launch</param>
-    /// <exception cref="NotSupportedException">
+    /// <exception cref="KernelNotCompiledException">
     /// This method cannot be called directly at runtime. The kernel provided must be
     /// compiled with ILGPUC first.
     /// </exception>
@@ -134,7 +135,7 @@ partial class AcceleratorStream
     /// </summary>
     /// <param name="extent">The extent of the thread grid to launch.</param>
     /// <param name="kernel">The kernel to launch</param>
-    /// <exception cref="NotSupportedException">
+    /// <exception cref="KernelNotCompiledException">
     /// This method cannot be called directly at runtime. The kernel provided must be
     /// compiled with ILGPUC first.
     /// </exception>
@@ -149,7 +150,7 @@ partial class AcceleratorStream
     /// </summary>
     /// <param name="extent">The extent of the thread grid to launch.</param>
     /// <param name="kernel">The kernel to launch</param>
-    /// <exception cref="NotSupportedException">
+    /// <exception cref="KernelNotCompiledException">
     /// This method cannot be called directly at runtime. The kernel provided must be
     /// compiled with ILGPUC first.
     /// </exception>
@@ -178,7 +179,7 @@ partial class AcceleratorStream
     /// </summary>
     /// <param name="extent">The extent of the thread grid to launch.</param>
     /// <param name="kernel">The kernel to launch</param>
-    /// <exception cref="NotSupportedException">
+    /// <exception cref="KernelNotCompiledException">
     /// This method cannot be called directly at runtime. The kernel provided must be
     /// compiled with ILGPUC first.
     /// </exception>
@@ -208,7 +209,7 @@ partial class AcceleratorStream
     /// </summary>
     /// <param name="extent">The extent of the thread grid to launch.</param>
     /// <param name="kernel">The kernel to launch</param>
-    /// <exception cref="NotSupportedException">
+    /// <exception cref="KernelNotCompiledException">
     /// This method cannot be called directly at runtime. The kernel provided must be
     /// compiled with ILGPUC first.
     /// </exception>
@@ -224,7 +225,7 @@ partial class AcceleratorStream
     /// </summary>
     /// <param name="extent">The extent of the thread grid to launch.</param>
     /// <param name="kernel">The kernel to launch</param>
-    /// <exception cref="NotSupportedException">
+    /// <exception cref="KernelNotCompiledException">
     /// This method cannot be called directly at runtime. The kernel provided must be
     /// compiled with ILGPUC first.
     /// </exception>
@@ -239,7 +240,7 @@ partial class AcceleratorStream
     /// </summary>
     /// <param name="extent">The extent of the thread grid to launch.</param>
     /// <param name="kernel">The kernel to launch</param>
-    /// <exception cref="NotSupportedException">
+    /// <exception cref="KernelNotCompiledException">
     /// This method cannot be called directly at runtime. The kernel provided must be
     /// compiled with ILGPUC first.
     /// </exception>
@@ -274,7 +275,7 @@ partial class AcceleratorStream
     /// </summary>
     /// <param name="extent">The extent of the thread grid to launch.</param>
     /// <param name="kernel">The kernel to launch</param>
-    /// <exception cref="NotSupportedException">
+    /// <exception cref="KernelNotCompiledException">
     /// This method cannot be called directly at runtime. The kernel provided must be
     /// compiled with ILGPUC first.
     /// </exception>
@@ -313,7 +314,7 @@ partial class AcceleratorStream
     /// </summary>
     /// <param name="extent">The extent of the thread grid to launch.</param>
     /// <param name="kernel">The kernel to launch</param>
-    /// <exception cref="NotSupportedException">
+    /// <exception cref="KernelNotCompiledException">
     /// This method cannot be called directly at runtime. The kernel provided must be
     /// compiled with ILGPUC first.
     /// </exception>
@@ -328,14 +329,14 @@ partial class AcceleratorStream
     /// </summary>
     /// <param name="extent">The extent of the thread grid to launch.</param>
     /// <param name="kernel">The kernel to launch</param>
-    /// <exception cref="NotSupportedException">
+    /// <exception cref="KernelNotCompiledException">
     /// This method cannot be called directly at runtime. The kernel provided must be
     /// compiled with ILGPUC first.
     /// </exception>
     [MethodImpl(MethodImplOptions.NoInlining)]
     [NotInsideKernel, IsLauncher(isGrouped: false)]
     private void LaunchAutoGroupedInternal(long extent, Action<long, long> kernel) =>
-        throw new NotSupportedException(ErrorMessages.NotSupportedUncompiledKernelLaunch);
+        throw CreateKernelNotCompiledException(kernel);
 
     /// <summary>
     /// Triggers a kernel launch on the current accelerator stream. The lambda function
@@ -343,7 +344,7 @@ partial class AcceleratorStream
     /// </summary>
     /// <param name="kernelConfig">The kernel config of the thread grid to launch.</param>
     /// <param name="kernel">The kernel to launch</param>
-    /// <exception cref="NotSupportedException">
+    /// <exception cref="KernelNotCompiledException">
     /// This method cannot be called directly at runtime. The kernel provided must be
     /// compiled with ILGPUC first.
     /// </exception>
@@ -361,7 +362,7 @@ partial class AcceleratorStream
     /// </summary>
     /// <param name="kernelConfig">The kernel config of the thread grid to launch.</param>
     /// <param name="kernel">The kernel to launch</param>
-    /// <exception cref="NotSupportedException">
+    /// <exception cref="KernelNotCompiledException">
     /// This method cannot be called directly at runtime. The kernel provided must be
     /// compiled with ILGPUC first.
     /// </exception>
@@ -370,7 +371,80 @@ partial class AcceleratorStream
     private void LaunchGroupedInternal(
         KernelConfig kernelConfig,
         Action<long, KernelIndex> kernel) =>
-        throw new NotSupportedException(ErrorMessages.NotSupportedUncompiledKernelLaunch);
+        throw CreateKernelNotCompiledException(kernel);
+
+    /// <summary>
+    /// Creates the exception reported by the runtime launchers: they are reached
+    /// only if ILGPUC did not compile the launch site of the kernel.
+    /// </summary>
+    /// <param name="kernel">The kernel passed to the runtime launcher.</param>
+    private KernelNotCompiledException CreateKernelNotCompiledException(
+        Delegate kernel) =>
+        new(
+            GetKernelName(kernel),
+            AcceleratorType,
+            RuntimeErrorMessages.KernelNotCompiledLaunchSite);
+
+    /// <summary>
+    /// Returns a readable name of the kernel launched by the user. The launcher
+    /// wrappers of this class capture the user kernel in closures, which are
+    /// unwrapped to name the user kernel instead of a wrapper.
+    /// </summary>
+    /// <param name="kernel">The kernel passed to a runtime launcher.</param>
+    /// <returns>The kernel name in the form Type.Method.</returns>
+    private static string GetKernelName(Delegate kernel)
+    {
+        var current = kernel;
+        while (current.Target is { } target &&
+            target.GetType().DeclaringType == typeof(AcceleratorStream))
+        {
+            Delegate? captured = null;
+            foreach (var field in target.GetType().GetFields())
+            {
+                if (field.GetValue(target) is Delegate capturedKernel)
+                {
+                    captured = capturedKernel;
+                    break;
+                }
+            }
+            if (captured is null)
+                break;
+            current = captured;
+        }
+
+        // Lambdas and local functions are named <Method>b__0_0 or
+        // <Method>g__Local|0_0 and live in compiler-generated closure classes
+        var method = current.Method;
+        var methodName = method.Name;
+        int nameEnd = methodName.IndexOf('>', StringComparison.Ordinal);
+        if (methodName.StartsWith('<') && nameEnd > 1)
+            methodName = methodName[1..nameEnd];
+
+        var type = method.DeclaringType;
+        while (type?.DeclaringType is { } declaringType &&
+            type.IsDefined(typeof(CompilerGeneratedAttribute), inherit: false))
+        {
+            type = declaringType;
+        }
+        return type is null ? methodName : $"{GetTypeName(type)}.{methodName}";
+    }
+
+    /// <summary>
+    /// Returns the namespace-qualified name of the given type without generic
+    /// arity suffixes, using dots to separate nested types.
+    /// </summary>
+    /// <param name="type">The type.</param>
+    private static string GetTypeName(Type type)
+    {
+        var name = type.Name;
+        int arityStart = name.IndexOf('`', StringComparison.Ordinal);
+        if (arityStart >= 0)
+            name = name[..arityStart];
+
+        if (type.DeclaringType is { } declaringType)
+            return $"{GetTypeName(declaringType)}.{name}";
+        return string.IsNullOrEmpty(type.Namespace) ? name : $"{type.Namespace}.{name}";
+    }
 
     /// <summary>
     /// Prepares a kernel launch at runtime.

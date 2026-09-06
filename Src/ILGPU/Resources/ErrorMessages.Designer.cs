@@ -637,15 +637,6 @@ namespace ILGPU.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Not supported platform &apos;{0}&apos; ({1} required).
-        /// </summary>
-        internal static string NotSupportedPlatform {
-            get {
-                return ResourceManager.GetString("NotSupportedPlatform", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to Pointer type &apos;{0}&apos; is not supported.
         /// </summary>
         internal static string NotSupportedPointerType {
@@ -858,15 +849,6 @@ namespace ILGPU.Resources {
         internal static string KernelDiagnosticUnsupportedConstruct {
             get {
                 return ResourceManager.GetString("KernelDiagnosticUnsupportedConstruct", resourceCulture);
-            }
-        }
-
-        /// <summary>
-        ///   Looks up a localized string similar to This kernel launch was not compiled by ILGPUC. Kernel launches are compiled at build time and must be direct calls on a stream expression, such as &apos;stream.Launch(...)&apos;. Launches through reflection, delegates or conditional access (&apos;stream?.Launch(...)&apos;) are not compiled.
-        /// </summary>
-        internal static string NotSupportedUncompiledKernelLaunch {
-            get {
-                return ResourceManager.GetString("NotSupportedUncompiledKernelLaunch", resourceCulture);
             }
         }
 
