@@ -191,6 +191,19 @@ sealed class LauncherEmissionContext
     public string? KernelClassName { get; init; }
 
     /// <summary>
+    /// The kernel name as a C# string literal, which the generated launcher
+    /// reports when the kernel cannot be launched on a stream.
+    /// </summary>
+    public string KernelNameLiteral { get; init; } = "\"\"";
+
+    /// <summary>
+    /// The accelerator type the kernel is compiled for as a fully qualified C#
+    /// expression.
+    /// </summary>
+    public string AcceleratorTypeExpression { get; init; } =
+        "ILGPU.Runtime.AcceleratorType.None";
+
+    /// <summary>
     /// The SIMD vectorization width, used by the CPU backend.
     /// </summary>
     public int SimdWidth { get; init; }

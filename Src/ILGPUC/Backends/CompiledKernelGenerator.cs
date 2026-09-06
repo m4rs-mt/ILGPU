@@ -12,6 +12,7 @@
 using ILGPU.Runtime;
 using ILGPU.Util;
 using ILGPUC.IR.ModuleValues;
+using Microsoft.CodeAnalysis.CSharp;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -1049,6 +1050,11 @@ sealed class CompiledKernelGenerator : DisposeBase
             GetPrimitiveTypeName = GetPrimitiveTypeName,
             GetMarshaledStructName = GetMarshaledStructName,
             KernelClassName = _kernelClassName,
+            KernelNameLiteral = SymbolDisplay.FormatLiteral(
+                _kernelName ?? _compiled.EntryPointName,
+                quote: true),
+            AcceleratorTypeExpression =
+                $"ILGPU.Runtime.AcceleratorType.{_compiledKernelEmitter.AcceleratorType}",
             SimdWidth = _simdWidth,
             BufferPool = _compiled.BufferPool,
             ActiveEmbedMode = _effectiveEmbedMode,

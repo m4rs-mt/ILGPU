@@ -147,6 +147,66 @@ public sealed class KernelNotCompiledTests : IDisposable
             "ILGPU.Initialization.Transformer.Transform");
     }
 
+    [Fact]
+    public void VerifyCompiledKernel_AcceptsMatchingAcceleratorType() =>
+        Stream.VerifyCompiledKernel("CompiledKernel", AcceleratorType.CPU);
+
+    [Fact]
+    public void VerifyCompiledKernel_ReportsOtherAcceleratorType()
+    {
+        var exception = Assert.Throws<KernelNotCompiledException>(
+            () => Stream.VerifyCompiledKernel("CompiledKernel", AcceleratorType.Cuda));
+        Assert.Equal("CompiledKernel", exception.KernelName);
+        Assert.Equal(AcceleratorType.CPU, exception.AcceleratorType);
+        Assert.Equal(
+            "Kernel 'CompiledKernel' was not compiled for CPU: it was compiled for " +
+            "Cuda. Build the project for CPU (ILGPUBackend property) to launch it " +
+            "on CPU.",
+            exception.Message);
+    }
+
+    [Fact]
+    public void GetCompiledKernel_ReportsOtherAcceleratorType()
+    {
+        var exception = Assert.Throws<KernelNotCompiledException>(
+            () => Stream.GetCompiledKernel<Kernel>(
+                null,
+                "CompiledKernel",
+                AcceleratorType.Metal));
+        Assert.StartsWith(
+            "Kernel 'CompiledKernel' was not compiled for CPU: it was compiled for " +
+            "Metal.",
+            exception.Message,
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void GetCompiledKernel_ReportsKernelNotLoaded()
+    {
+        var exception = Assert.Throws<InvalidOperationException>(
+            () => Stream.GetCompiledKernel<Kernel>(
+                null,
+                "CompiledKernel",
+                AcceleratorType.CPU));
+        Assert.Equal(
+            "Kernel 'CompiledKernel' is not loaded on CPU: the device does not " +
+            "provide the capabilities it requires or failed to build it",
+            exception.Message);
+    }
+
+    [Fact]
+    public void CreateKernelNotSpecializedException_ReportsTypeArguments()
+    {
+        var exception = Stream.CreateKernelNotSpecializedException(
+            "GenericKernel<Int32>");
+        Assert.Equal("GenericKernel<Int32>", exception.KernelName);
+        Assert.StartsWith(
+            "Kernel 'GenericKernel<Int32>' was not compiled for CPU: ILGPUC " +
+            "compiled it only for the type arguments",
+            exception.Message,
+            StringComparison.Ordinal);
+    }
+
     public void Dispose()
     {
         _accelerator.Dispose();

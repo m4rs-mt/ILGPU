@@ -10,6 +10,7 @@
 // ---------------------------------------------------------------------------------------
 
 using System;
+using System.Globalization;
 using System.Runtime.CompilerServices;
 using ILGPU.CodeGeneration;
 using ILGPU.Resources;
@@ -457,6 +458,99 @@ partial class AcceleratorStream
         Kernel kernel,
         in KernelConfig kernelConfig) =>
         Accelerator.AsNotNull().PrepareKernelLaunch(kernel, kernelConfig);
+
+    /// <summary>
+    /// Verifies that a kernel compiled by ILGPUC for the given accelerator type can
+    /// be launched on this stream.
+    /// </summary>
+    /// <param name="kernelName">The name of the compiled kernel.</param>
+    /// <param name="acceleratorType">
+    /// The accelerator type the kernel was compiled for.
+    /// </param>
+    /// <exception cref="KernelNotCompiledException">
+    /// The kernel was compiled for a different accelerator type.
+    /// </exception>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [NotInsideKernel, MustNotBeCalledByClient]
+    public void VerifyCompiledKernel(string kernelName, AcceleratorType acceleratorType)
+    {
+        if (AcceleratorType != acceleratorType)
+            ThrowKernelNotCompiled(kernelName, acceleratorType);
+    }
+
+    /// <summary>
+    /// Returns the runtime kernel of a kernel compiled by ILGPUC for the given
+    /// accelerator type to launch it on this stream.
+    /// </summary>
+    /// <typeparam name="TKernel">The accelerator-specific kernel type.</typeparam>
+    /// <param name="kernel">The loaded runtime kernel, if any.</param>
+    /// <param name="kernelName">The name of the compiled kernel.</param>
+    /// <param name="acceleratorType">
+    /// The accelerator type the kernel was compiled for.
+    /// </param>
+    /// <returns>The runtime kernel to launch.</returns>
+    /// <exception cref="KernelNotCompiledException">
+    /// The kernel was compiled for a different accelerator type.
+    /// </exception>
+    /// <exception cref="InvalidOperationException">
+    /// The kernel is not loaded on the accelerator of this stream.
+    /// </exception>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [NotInsideKernel, MustNotBeCalledByClient]
+    public TKernel GetCompiledKernel<TKernel>(
+        Kernel? kernel,
+        string kernelName,
+        AcceleratorType acceleratorType)
+        where TKernel : Kernel
+    {
+        VerifyCompiledKernel(kernelName, acceleratorType);
+        if (kernel is not TKernel typedKernel)
+        {
+            throw new InvalidOperationException(string.Format(
+                CultureInfo.CurrentCulture,
+                RuntimeErrorMessages.KernelNotLoaded,
+                kernelName,
+                AcceleratorType));
+        }
+        return typedKernel;
+    }
+
+    /// <summary>
+    /// Creates the exception reporting that a generic kernel compiled by ILGPUC is
+    /// launched with type arguments it was not compiled for.
+    /// </summary>
+    /// <param name="kernelName">
+    /// The name of the generic kernel including its type arguments.
+    /// </param>
+    /// <returns>The exception to throw.</returns>
+    [NotInsideKernel, MustNotBeCalledByClient]
+    public KernelNotCompiledException CreateKernelNotSpecializedException(
+        string kernelName) =>
+        new(
+            kernelName,
+            AcceleratorType,
+            RuntimeErrorMessages.KernelNotCompiledTypeArguments);
+
+    /// <summary>
+    /// Throws the exception reporting that a kernel compiled for another accelerator
+    /// type was launched on this stream.
+    /// </summary>
+    /// <param name="kernelName">The name of the compiled kernel.</param>
+    /// <param name="acceleratorType">
+    /// The accelerator type the kernel was compiled for.
+    /// </param>
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private void ThrowKernelNotCompiled(
+        string kernelName,
+        AcceleratorType acceleratorType) =>
+        throw new KernelNotCompiledException(
+            kernelName,
+            AcceleratorType,
+            string.Format(
+                CultureInfo.CurrentCulture,
+                RuntimeErrorMessages.KernelNotCompiledOtherAccelerator,
+                acceleratorType,
+                AcceleratorType));
 
     #endregion
 }

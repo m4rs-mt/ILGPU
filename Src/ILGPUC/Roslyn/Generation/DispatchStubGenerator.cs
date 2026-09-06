@@ -183,13 +183,12 @@ static class DispatchStubGenerator
 
         // Fallback: throw for unknown specializations
         sb.AppendLine(
-            $"        throw new NotSupportedException(");
+            "        throw stream.CreateKernelNotSpecializedException(");
         var typeArgNames = string.Join(
             ", ",
             typeParams.Select(t => $"{{typeof({t.Name}).Name}}"));
         sb.AppendLine(
-            $"            $\"No compiled kernel for " +
-            $"{original.KernelName}<{typeArgNames}>\");");
+            $"            $\"{original.KernelName}<{typeArgNames}>\");");
 
         sb.AppendLine("    }");
         sb.AppendLine("}");

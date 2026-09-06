@@ -213,6 +213,10 @@
     <value>it was compiled for {0}. Build the project for {1} (ILGPUBackend property) to launch it on {1}.</value>
     <comment/>
   </data>
+  <data name="KernelNotCompiledTypeArguments" xml:space="preserve">
+    <value>ILGPUC compiled it only for the type arguments of the launches it found in the sources of the project. Launch it with these type arguments from the project sources to compile it for them.</value>
+    <comment/>
+  </data>
   <data name="KernelNotLoaded" xml:space="preserve">
     <value>Kernel '{0}' is not loaded on {1}: the device does not provide the capabilities it requires or failed to build it</value>
     <comment/>

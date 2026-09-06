@@ -37,12 +37,8 @@ sealed class CPULauncherEmitter : LauncherEmitter
 
         // CPU kernels run on the host and access the memory of CPU buffers
         ctx.WriteLine(
-            "if (stream.Accelerator is { } _accelerator && " +
-            "_accelerator.AcceleratorType != ILGPU.Runtime.AcceleratorType.CPU)");
-        ctx.WriteLine(
-            "    throw new System.InvalidOperationException(" +
-            "\"The kernel is not loaded on this accelerator: it was compiled " +
-            "for the CPU.\");");
+            $"stream.VerifyCompiledKernel({ctx.KernelNameLiteral}, " +
+            $"{ctx.AcceleratorTypeExpression});");
         ctx.WriteLine("");
 
         // Grid/group iteration

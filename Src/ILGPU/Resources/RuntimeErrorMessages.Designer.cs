@@ -331,6 +331,17 @@ namespace ILGPU.Resources
         }
 
         /// <summary>
+        ///   Looks up a localized string similar to ILGPUC compiled it only for the type arguments of the launches it found in the sources of the project. Launch it with these type arguments from the project sources to compile it for them..
+        /// </summary>
+        internal static string KernelNotCompiledTypeArguments
+        {
+            get
+            {
+                return ResourceManager.GetString("KernelNotCompiledTypeArguments", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to Kernel &apos;{0}&apos; is not loaded on {1}: the device does not provide the capabilities it requires or failed to build it.
         /// </summary>
         internal static string KernelNotLoaded
