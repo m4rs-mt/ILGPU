@@ -13,6 +13,8 @@ using ILGPU;
 using ILGPU.Runtime;
 using ILGPUC.Backends;
 using ILGPUC.IR;
+using ILGPUC.IR.ModuleValues;
+using ILGPUC.IR.ModuleValues.Construction;
 using ILGPUC.Roslyn.Generation;
 using ILGPUC.Tests.Framework;
 using Microsoft.CodeAnalysis.Text;
@@ -27,10 +29,12 @@ using RoslynLocation = Microsoft.CodeAnalysis.Location;
 namespace ILGPUC.Tests.NonKernelTests;
 
 /// <summary>
-/// Tests that types referring to themselves through arrays or fields of class
-/// types are rejected with an unsupported-construct diagnostic at the
-/// offending code instead of overflowing the stack while their layouts are
-/// computed, while structures pointing to themselves remain supported.
+/// Tests that types referring to themselves through arrays, fields of class
+/// types or ever larger instantiations of their generic type definitions are
+/// rejected with an unsupported-construct diagnostic at the offending code
+/// instead of overflowing the stack while their layouts are computed, while
+/// deeply nested instantiations and structures pointing to themselves remain
+/// supported.
 /// </summary>
 public sealed class RecursiveTypeTests
 {
@@ -77,10 +81,42 @@ public sealed class RecursiveTypeTests
         public StructNode Node;
     }
 
+    public struct Box<T>
+    {
+        public T Value;
+    }
+
+    public struct NestedArgument<T>
+    {
+        public Box<Box<T>> Value;
+    }
+
     public struct GenericTree<T>
     {
         public T Value;
         public GenericTree<T>[] Children;
+    }
+
+    public struct GrowingNode<T>
+    {
+        public int Value;
+        public GrowingNode<Box<T>>[] Children;
+    }
+
+    public struct MutualNode<T>
+    {
+        public int Value;
+        public MutualLink<T[]>? Link;
+    }
+
+    public sealed class MutualLink<T>
+    {
+        public MutualNode<T>[]? Nodes;
+    }
+
+    public struct Wrapper<T>
+    {
+        public T Value;
     }
 
     #endregion
@@ -118,6 +154,22 @@ public sealed class RecursiveTypeTests
             data[index] = f(index);
         }
 
+        public static void LocalGenericKernel(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data)
+        { // LocalGeneric
+            var node = new GenericNode<int> { Value = index };
+            data[index] = node.Value;
+        }
+
+        public static void LocalExpandingKernel(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data)
+        { // LocalExpanding
+            var node = new ExpandingNode<int> { Value = index };
+            data[index] = node.Value;
+        }
+
         public static void LocalGenericTreeKernel(
             Index1D index,
             ArrayView1D<int, Stride1D.Dense> data)
@@ -132,6 +184,38 @@ public sealed class RecursiveTypeTests
         { // LocalStructClass
             var node = new StructNode { Value = index };
             data[index] = node.Value;
+        }
+
+        public static void LocalGrowingKernel(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data)
+        { // LocalGrowing
+            var node = new GrowingNode<int> { Value = index };
+            data[index] = node.Value;
+        }
+
+        public static void LocalMutualKernel(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data)
+        { // LocalMutual
+            var node = new MutualNode<int> { Value = index };
+            data[index] = node.Value;
+        }
+
+        public static void DeeplyNestedKernel(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data)
+        {
+            Wrapper<Wrapper<Wrapper<Wrapper<Wrapper<Wrapper<Wrapper<Wrapper<
+                Wrapper<Wrapper<Wrapper<Wrapper<Wrapper<Wrapper<Wrapper<Wrapper<
+                Wrapper<Wrapper<Wrapper<Wrapper<int>>>>>>>>>>>>>>>>>>>> value =
+                default;
+            value.Value.Value.Value.Value.Value.Value.Value.Value.Value.Value
+                .Value.Value.Value.Value.Value.Value.Value.Value.Value.Value =
+                index;
+            data[index] = value.Value.Value.Value.Value.Value.Value.Value.Value
+                .Value.Value.Value.Value.Value.Value.Value.Value.Value.Value
+                .Value.Value;
         }
     }
 
@@ -158,7 +242,71 @@ public sealed class RecursiveTypeTests
 
     #endregion
 
-    #region Supported Types
+    #region Nested Instantiations
+
+    /// <summary>
+    /// Returns the given generic type definition nested in itself the given
+    /// number of times around the given innermost type.
+    /// </summary>
+    private static Type Nest(Type definition, int depth, Type innermost)
+    {
+        var type = innermost;
+        for (int i = 0; i < depth; ++i)
+            type = definition.MakeGenericType(type);
+        return type;
+    }
+
+    /// <summary>
+    /// Returns a value tuple of the given number of nested eight-element tuples,
+    /// such as the C# compiler creates for tuples of more than seven elements.
+    /// </summary>
+    private static Type NestValueTuples(int depth)
+    {
+        var type = typeof(ValueTuple<int>);
+        var arguments = Enumerable.Repeat(typeof(int), 8).ToArray();
+        for (int i = 0; i < depth; ++i)
+        {
+            arguments[7] = type;
+            type = typeof(ValueTuple<,,,,,,,>).MakeGenericType(arguments);
+        }
+        return type;
+    }
+
+    /// <summary>
+    /// Instantiations nested in their own type arguments are finite, however
+    /// deeply they are nested, and must not be mistaken for recursive types.
+    /// </summary>
+    [Theory]
+    [InlineData(1)]
+    [InlineData(20)]
+    [InlineData(40)]
+    public void NestedInstantiations_AreCreated(int depth)
+    {
+        var builder = new ModuleBuilder(
+            new CompilationProperties(),
+            new Generation(),
+            Location.Unknown,
+            new TypeInformationManager());
+        var wrappers = builder.CreateType(Nest(typeof(Wrapper<>), depth, typeof(int)));
+        Assert.Equal(sizeof(int), wrappers.Size);
+        Assert.IsType<StructureType>(builder.CreateType(NestValueTuples(depth)));
+    }
+
+    /// <summary>
+    /// A type passing its type parameter to a field type nested in another
+    /// instantiation does not instantiate its own definition and is finite.
+    /// </summary>
+    [Fact]
+    public void NestedTypeArgument_IsCreated()
+    {
+        var builder = new ModuleBuilder(
+            new CompilationProperties(),
+            new Generation(),
+            Location.Unknown,
+            new TypeInformationManager());
+        var type = builder.CreateType(typeof(NestedArgument<int>));
+        Assert.Equal(sizeof(int), type.Size);
+    }
 
     /// <summary>
     /// A kernel taking a view of a structure that points to itself, whose
@@ -169,6 +317,19 @@ public sealed class RecursiveTypeTests
     {
         using var helper = new CompilationHelper(BackendType.CPU);
         var kernel = typeof(Kernels).GetMethod(nameof(Kernels.PointerViewKernel))
+            ?? throw new InvalidOperationException("Kernel method not found.");
+        Assert.NotEmpty(
+            helper.GetNormalizedIR(kernel, IRDumpPoint.AfterBackendTransforms));
+    }
+
+    /// <summary>
+    /// A kernel using a local of an instantiation nested twenty levels deep.
+    /// </summary>
+    [Fact]
+    public void DeeplyNestedLocal_Compiles()
+    {
+        using var helper = new CompilationHelper(BackendType.CPU);
+        var kernel = typeof(Kernels).GetMethod(nameof(Kernels.DeeplyNestedKernel))
             ?? throw new InvalidOperationException("Kernel method not found.");
         Assert.NotEmpty(
             helper.GetNormalizedIR(kernel, IRDumpPoint.AfterBackendTransforms));
@@ -245,6 +406,22 @@ public sealed class RecursiveTypeTests
             "CapturedClass");
 
     [Fact]
+    public void LocalGeneric_ReportsRecursiveType() =>
+        AssertRecursiveType(
+            nameof(Kernels.LocalGenericKernel),
+            "Recursive type 'GenericNode<int>' is not supported in GPU kernels: " +
+            "it contains ever larger instantiations of 'GenericNode<T>'.",
+            "LocalGeneric");
+
+    [Fact]
+    public void LocalExpanding_ReportsRecursiveType() =>
+        AssertRecursiveType(
+            nameof(Kernels.LocalExpandingKernel),
+            "Recursive type 'ExpandingNode<int>' is not supported in GPU kernels: " +
+            "it contains ever larger instantiations of 'ExpandingNode<T>'.",
+            "LocalExpanding");
+
+    [Fact]
     public void LocalGenericTree_ReportsRecursiveType() =>
         AssertRecursiveType(
             nameof(Kernels.LocalGenericTreeKernel),
@@ -259,6 +436,22 @@ public sealed class RecursiveTypeTests
             "Recursive type 'StructNode' is not supported in GPU kernels: " +
             "it refers to itself through 'StructNode.Link.Node'.",
             "LocalStructClass");
+
+    [Fact]
+    public void LocalGrowing_ReportsRecursiveType() =>
+        AssertRecursiveType(
+            nameof(Kernels.LocalGrowingKernel),
+            "Recursive type 'GrowingNode<int>' is not supported in GPU kernels: " +
+            "it contains ever larger instantiations of 'GrowingNode<T>'.",
+            "LocalGrowing");
+
+    [Fact]
+    public void LocalMutual_ReportsRecursiveType() =>
+        AssertRecursiveType(
+            nameof(Kernels.LocalMutualKernel),
+            "Recursive type 'MutualNode<int>' is not supported in GPU kernels: " +
+            "it contains ever larger instantiations of 'MutualNode<T>'.",
+            "LocalMutual");
 
     #endregion
 }

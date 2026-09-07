@@ -489,6 +489,10 @@
     <value>Recursive type '{0}' is not supported in GPU kernels: it refers to itself through '{1}'.</value>
     <comment/>
   </data>
+  <data name="NotSupportedExpandingGenericType" xml:space="preserve">
+    <value>Recursive type '{0}' is not supported in GPU kernels: it contains ever larger instantiations of '{1}'.</value>
+    <comment/>
+  </data>
   <data name="KernelDiagnosticUnsupportedConstruct" xml:space="preserve">
     <value>Kernel code uses an unsupported construct: {0}</value>
     <comment/>

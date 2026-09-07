@@ -925,6 +925,15 @@ namespace ILGPU.Resources {
         }
 
         /// <summary>
+        ///   Looks up a localized string similar to Recursive type &apos;{0}&apos; is not supported in GPU kernels: it contains ever larger instantiations of &apos;{1}&apos;..
+        /// </summary>
+        internal static string NotSupportedExpandingGenericType {
+            get {
+                return ResourceManager.GetString("NotSupportedExpandingGenericType", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to Kernel code uses an unsupported construct: {0}.
         /// </summary>
         internal static string KernelDiagnosticUnsupportedConstruct {
