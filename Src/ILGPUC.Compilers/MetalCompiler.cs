@@ -13,8 +13,7 @@ namespace ILGPUC.Compilers;
 
 /// <summary>
 /// Compiler wrapper for Apple Metal, using <c>xcrun metal</c> to compile Metal Shading
-/// Language source to an intermediate <c>.air</c> file and then linking it into a
-/// <c>.metallib</c> Metal library.
+/// Language source and link it into a <c>.metallib</c> Metal library in one step.
 /// </summary>
 /// <remarks>
 /// Initializes a new <see cref="MetalCompiler"/> with a custom <c>xcrun</c> path and
@@ -42,14 +41,13 @@ public sealed class MetalCompiler(
         [
             CheckTool("xcrun", ExecutablePath, "--version"),
             CheckTool("metal", ExecutablePath, $"-sdk {sdk} metal --version"),
-            CheckTool("metallib", ExecutablePath, $"-sdk {sdk} metallib --version"),
         ];
     }
 
     /// <summary>
-    /// Compiles the Metal source code in <paramref name="request"/> in two steps:
-    /// first to an intermediate <c>.air</c> file, then linked into a <c>.metallib</c>,
-    /// which is returned as a base-64-encoded string on success.
+    /// Compiles the Metal source code in <paramref name="request"/> and links it into
+    /// a <c>.metallib</c> with a single <c>metal</c> driver invocation. The library is
+    /// returned as a base-64-encoded string on success.
     /// </summary>
     /// <param name="request">
     /// The compilation request containing source and options.
@@ -67,17 +65,18 @@ public sealed class MetalCompiler(
             await File.WriteAllTextAsync(inputFile, request.SourceCode, ct)
                 .ConfigureAwait(false);
 
-            var airFile = Path.Combine(tempDir, "output.air");
+            var metalLibFile = Path.Combine(tempDir, "output.metallib");
             var optFlag = $"-O{(int)request.OptimizationLevel}";
             var extraFlags = SanitizeCompilerFlags(request.ExtraFlags);
             var includes = BuildIncludeArgs(request);
             var directives = BuildDirectiveArgs(request);
 
-            // Step 1: .metal -> .air
-            // Metal's `metal` driver is a clang-derived front-end and accepts
-            // the standard -O<N> flag spelling.
+            // A single driver invocation compiles the source to AIR and links
+            // it into a .metallib, which saves a separate metallib process per
+            // kernel. Metal's `metal` driver is a clang-derived front-end and
+            // accepts the standard -O<N> flag spelling.
             var compileArgs =
-                $"-sdk {sdk} metal -c \"{inputFile}\" -o \"{airFile}\"" +
+                $"-sdk {sdk} metal \"{inputFile}\" -o \"{metalLibFile}\"" +
                 $" {optFlag} {extraFlags}{includes}{directives}";
             var (exitCode, stdout, stderr) = await RunProcessAsync(
                 ExecutablePath,
@@ -86,42 +85,7 @@ public sealed class MetalCompiler(
                 ct).ConfigureAwait(false);
 
             if (exitCode != 0)
-            {
-                return new CompilationResult
-                {
-                    Success = false,
-                    StdOut = stdout,
-                    StdErr = stderr,
-                    ExitCode = exitCode,
-                    Target = CompilationTarget.Metal,
-                    OutputType = request.OutputType,
-                };
-            }
-
-            // Step 2: .air -> .metallib
-            var metalLibFile = Path.Combine(tempDir, "output.metallib");
-            var linkArgs = $"-sdk {sdk} metallib \"{airFile}\" -o \"{metalLibFile}\"";
-            var (linkExitCode, linkStdout, linkStderr) = await RunProcessAsync(
-                ExecutablePath,
-                linkArgs,
-                tempDir,
-                ct).ConfigureAwait(false);
-
-            var combinedStdout = stdout + linkStdout;
-            var combinedStderr = stderr + linkStderr;
-
-            if (linkExitCode != 0)
-            {
-                return new CompilationResult
-                {
-                    Success = false,
-                    StdOut = combinedStdout,
-                    StdErr = combinedStderr,
-                    ExitCode = linkExitCode,
-                    Target = CompilationTarget.Metal,
-                    OutputType = request.OutputType,
-                };
-            }
+                return Failure(stdout, stderr, exitCode, request.OutputType);
 
             var output = Base64EncodeFile(metalLibFile);
 
@@ -129,8 +93,8 @@ public sealed class MetalCompiler(
             {
                 Success = true,
                 Output = output,
-                StdOut = combinedStdout,
-                StdErr = combinedStderr,
+                StdOut = stdout,
+                StdErr = stderr,
                 ExitCode = 0,
                 Target = CompilationTarget.Metal,
                 OutputType = request.OutputType,
