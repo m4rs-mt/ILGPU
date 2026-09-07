@@ -28,57 +28,46 @@ namespace ILGPUC.Tests.IntegrationTests;
 /// Complements the family-specific <c>BackendTests</c> + <c>ExecutionTests</c>
 /// rows by exercising the full MSBuild round-trip — the path that
 /// <c>build-samples</c> CI hits.
+///
+/// Every sample is a nested class of its own, so xUnit builds the samples in
+/// parallel; see <see cref="MsBuildIntegrationTests"/>.
 /// </summary>
-public sealed class SampleFamilyIntegrationTests
+public static class SampleFamilyIntegrationTests
 {
-    private readonly ITestOutputHelper _output;
-
-    public SampleFamilyIntegrationTests(ITestOutputHelper output)
-    {
-        _output = output;
-    }
-
-    private static async Task RequireBackendAsync(BackendType backend)
-    {
-        Skip.IfNot(
-            await Availability.IsCompilerAvailableAsync(backend).ConfigureAwait(false),
-            $"Native compiler for {backend} is not available on this machine");
-        Skip.IfNot(
-            Availability.IsRuntimeAvailable(backend),
-            $"No {backend} runtime device available on this machine");
-    }
-
     /// <summary>
     /// Family A.1 — launcher view-of-struct marshalling. Builds and runs a
     /// project whose kernel takes <c>ArrayView&lt;ComposedView&gt;</c> and
     /// reinterprets it via <c>Cast&lt;byte&gt;().SubView(...).Cast&lt;int&gt;()</c>.
     /// Pins the FlatStructLauncherEmitter regression.
     /// </summary>
-    [SkippableTheory]
-    [InlineData(BackendType.CPU)]
-    [InlineData(BackendType.Metal)]
-    public async Task Build_AdvancedViews_PinsFamilyA1(BackendType backend)
+    public sealed class AdvancedViews(ITestOutputHelper output)
     {
-        await RequireBackendAsync(backend);
-
-        using var project = new IntegrationProjectFixture(
-            "AdvancedViews", backend, _output);
-        try
+        [SkippableTheory]
+        [InlineData(BackendType.CPU)]
+        [InlineData(BackendType.Metal)]
+        public async Task Build_AdvancedViews_PinsFamilyA1(BackendType backend)
         {
-            var build = await project.BuildAsync();
-            Assert.True(build.Succeeded,
-                $"dotnet build of AdvancedViews failed (exit {build.ExitCode})." +
-                $" Stderr: {build.StdErr}");
+            await RequireBackendAsync(backend);
 
-            var run = await project.RunAsync();
-            Assert.False(run.TimedOut, "Binary timed out");
-            Assert.Equal(0, run.ExitCode);
-            OutputVerifier.Verify(run.StdOutLines, expected: ["1024"]);
-        }
-        catch
-        {
-            project.MarkFailed();
-            throw;
+            using var project = new IntegrationProjectFixture(
+                "AdvancedViews", backend, output);
+            try
+            {
+                var build = await project.BuildAsync();
+                Assert.True(build.Succeeded,
+                    $"dotnet build of AdvancedViews failed (exit {build.ExitCode})." +
+                    $" Stderr: {build.StdErr}");
+
+                var run = await project.RunAsync();
+                Assert.False(run.TimedOut, "Binary timed out");
+                Assert.Equal(0, run.ExitCode);
+                OutputVerifier.Verify(run.StdOutLines, expected: ["1024"]);
+            }
+            catch
+            {
+                project.MarkFailed();
+                throw;
+            }
         }
     }
 
@@ -88,32 +77,35 @@ public sealed class SampleFamilyIntegrationTests
     /// captured field. Pins the FlatStructLauncherEmitter regression for
     /// generic kernels.
     /// </summary>
-    [SkippableTheory]
-    [InlineData(BackendType.CPU)]
-    [InlineData(BackendType.Metal)]
-    public async Task Build_GenericKernel_PinsFamilyA2(BackendType backend)
+    public sealed class GenericKernel(ITestOutputHelper output)
     {
-        await RequireBackendAsync(backend);
-
-        using var project = new IntegrationProjectFixture(
-            "GenericKernel", backend, _output);
-        try
+        [SkippableTheory]
+        [InlineData(BackendType.CPU)]
+        [InlineData(BackendType.Metal)]
+        public async Task Build_GenericKernel_PinsFamilyA2(BackendType backend)
         {
-            var build = await project.BuildAsync();
-            Assert.True(build.Succeeded,
-                $"dotnet build of GenericKernel failed (exit {build.ExitCode})." +
-                $" Stderr: {build.StdErr}");
+            await RequireBackendAsync(backend);
 
-            var run = await project.RunAsync();
-            Assert.False(run.TimedOut, "Binary timed out");
-            Assert.Equal(0, run.ExitCode);
-            OutputVerifier.Verify(
-                run.StdOutLines, expected: ["20", "21", "22", "23"]);
-        }
-        catch
-        {
-            project.MarkFailed();
-            throw;
+            using var project = new IntegrationProjectFixture(
+                "GenericKernel", backend, output);
+            try
+            {
+                var build = await project.BuildAsync();
+                Assert.True(build.Succeeded,
+                    $"dotnet build of GenericKernel failed (exit {build.ExitCode})." +
+                    $" Stderr: {build.StdErr}");
+
+                var run = await project.RunAsync();
+                Assert.False(run.TimedOut, "Binary timed out");
+                Assert.Equal(0, run.ExitCode);
+                OutputVerifier.Verify(
+                    run.StdOutLines, expected: ["20", "21", "22", "23"]);
+            }
+            catch
+            {
+                project.MarkFailed();
+                throw;
+            }
         }
     }
 
@@ -125,29 +117,32 @@ public sealed class SampleFamilyIntegrationTests
     /// CPU only — Metal lacks Float64 atomics; OpenCL Float64 atomics need
     /// <c>cl_khr_int64_base_atomics</c> (pre-existing limitation).
     /// </summary>
-    [SkippableFact]
-    public async Task Build_AtomicsFloat64_PinsFamilyB1()
+    public sealed class AtomicsFloat64(ITestOutputHelper output)
     {
-        await RequireBackendAsync(BackendType.CPU);
-
-        using var project = new IntegrationProjectFixture(
-            "AtomicsFloat64", BackendType.CPU, _output);
-        try
+        [SkippableFact]
+        public async Task Build_AtomicsFloat64_PinsFamilyB1()
         {
-            var build = await project.BuildAsync();
-            Assert.True(build.Succeeded,
-                $"dotnet build of AtomicsFloat64 failed (exit {build.ExitCode})." +
-                $" Stderr: {build.StdErr}");
+            await RequireBackendAsync(BackendType.CPU);
 
-            var run = await project.RunAsync();
-            Assert.False(run.TimedOut, "Binary timed out");
-            Assert.Equal(0, run.ExitCode);
-            OutputVerifier.Verify(run.StdOutLines, expected: ["10"]);
-        }
-        catch
-        {
-            project.MarkFailed();
-            throw;
+            using var project = new IntegrationProjectFixture(
+                "AtomicsFloat64", BackendType.CPU, output);
+            try
+            {
+                var build = await project.BuildAsync();
+                Assert.True(build.Succeeded,
+                    $"dotnet build of AtomicsFloat64 failed (exit {build.ExitCode})." +
+                    $" Stderr: {build.StdErr}");
+
+                var run = await project.RunAsync();
+                Assert.False(run.TimedOut, "Binary timed out");
+                Assert.Equal(0, run.ExitCode);
+                OutputVerifier.Verify(run.StdOutLines, expected: ["10"]);
+            }
+            catch
+            {
+                project.MarkFailed();
+                throw;
+            }
         }
     }
 
@@ -160,24 +155,37 @@ public sealed class SampleFamilyIntegrationTests
     /// not verified — the regression target is source-emission and the
     /// launcher signature, both validated at build time.
     /// </summary>
-    [SkippableFact]
-    public async Task Build_MatrixMultiplyTiled_PinsTiledShape()
+    public sealed class MatrixMultiplyTiled(ITestOutputHelper output)
     {
-        await RequireBackendAsync(BackendType.CPU);
+        [SkippableFact]
+        public async Task Build_MatrixMultiplyTiled_PinsTiledShape()
+        {
+            await RequireBackendAsync(BackendType.CPU);
 
-        using var project = new IntegrationProjectFixture(
-            "MatrixMultiplyTiled", BackendType.CPU, _output);
-        try
-        {
-            var build = await project.BuildAsync();
-            Assert.True(build.Succeeded,
-                $"dotnet build of MatrixMultiplyTiled failed (exit {build.ExitCode})." +
-                $" Stderr: {build.StdErr}");
+            using var project = new IntegrationProjectFixture(
+                "MatrixMultiplyTiled", BackendType.CPU, output);
+            try
+            {
+                var build = await project.BuildAsync();
+                Assert.True(build.Succeeded,
+                    $"dotnet build of MatrixMultiplyTiled failed (exit {build.ExitCode})." +
+                    $" Stderr: {build.StdErr}");
+            }
+            catch
+            {
+                project.MarkFailed();
+                throw;
+            }
         }
-        catch
-        {
-            project.MarkFailed();
-            throw;
-        }
+    }
+
+    private static async Task RequireBackendAsync(BackendType backend)
+    {
+        Skip.IfNot(
+            await Availability.IsCompilerAvailableAsync(backend).ConfigureAwait(false),
+            $"Native compiler for {backend} is not available on this machine");
+        Skip.IfNot(
+            Availability.IsRuntimeAvailable(backend),
+            $"No {backend} runtime device available on this machine");
     }
 }
