@@ -477,6 +477,10 @@
     <value>Cannot resolve the delegate registered under the key '{0}' in assembly '{1}'.</value>
     <comment/>
   </data>
+  <data name="NotSupportedNonTerminatingMethod" xml:space="preserve">
+    <value>'{0}' never returns: every path through it loops forever. Kernels and the methods they call must be able to return.</value>
+    <comment/>
+  </data>
   <data name="NotSupportedRecursiveReferenceType" xml:space="preserve">
     <value>Recursive reference type '{0}' is not supported in GPU kernels.</value>
     <comment/>

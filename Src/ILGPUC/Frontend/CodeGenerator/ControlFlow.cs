@@ -13,6 +13,7 @@ using ILGPUC.IR;
 using ILGPUC.IR.MethodValues;
 using ILGPUC.IR.ModuleValues;
 using ILGPUC.IR.PureValues;
+using System;
 using System.Collections.Generic;
 
 namespace ILGPUC.Frontend;
@@ -81,6 +82,14 @@ partial class CodeGenerator
             bool isTrue = kind != CompareKind.NotEqual;
             var liveTarget = isTrue ? successors[0] : successors[1];
             var deadTarget = isTrue ? successors[1] : successors[0];
+            if (IsIrreducible)
+            {
+                Builder.CreateUnfoldedConditionalTermination(
+                    Builder.CreatePrimitiveValue(Location, isTrue),
+                    successors[0],
+                    successors[1]);
+                return;
+            }
 
             Builder.CreateUnconditionalTermination(liveTarget);
 
@@ -117,6 +126,13 @@ partial class CodeGenerator
     /// Otherwise SSA construction would still feed phis from the unreachable
     /// block, which is never sealed.
     /// </summary>
+    /// <remarks>
+    /// In methods with irreducible control flow (C# <c>goto</c> into a loop),
+    /// reverse post order does not process all predecessors of a block first,
+    /// so a fold could leave a reachable block whose only remaining predecessor
+    /// has not been processed, or make an already processed block unreachable.
+    /// There the conditional branch is kept, and later passes fold it.
+    /// </remarks>
     /// <param name="condition">The branch condition.</param>
     /// <param name="trueTarget">The target if the condition holds.</param>
     /// <param name="falseTarget">The target otherwise.</param>
@@ -127,6 +143,14 @@ partial class CodeGenerator
     {
         if (condition is PrimitiveValue primitive && trueTarget != falseTarget)
         {
+            if (IsIrreducible)
+            {
+                Builder.CreateUnfoldedConditionalTermination(
+                    condition,
+                    trueTarget,
+                    falseTarget);
+                return;
+            }
             bool isTrue = primitive.Int1Value;
             var liveTarget = isTrue ? trueTarget : falseTarget;
             var deadTarget = isTrue ? falseTarget : trueTarget;
@@ -137,6 +161,86 @@ partial class CodeGenerator
 
         Builder.CreateConditionalTermination(condition, trueTarget, falseTarget);
     }
+
+    /// <summary>
+    /// Returns true if the method has irreducible control flow: a retreating
+    /// edge (to a block earlier in reverse post order) whose target does not
+    /// dominate its source. Computed once, on the control flow of the IL.
+    /// </summary>
+    private bool IsIrreducible => _isIrreducible ??= ComputeIsIrreducible();
+
+    /// <summary>
+    /// Computes <see cref="IsIrreducible"/> with the iterative dominator algorithm
+    /// of Cooper, Harvey and Kennedy over the blocks in reverse post order.
+    /// </summary>
+    private bool ComputeIsIrreducible()
+    {
+        var order = new Dictionary<BasicBlock, int>(ReferenceEqualityComparer.Instance);
+        var blocks = new List<BasicBlock>();
+        foreach (BasicBlock block in _cfgBuilder.Blocks)
+        {
+            order[block] = blocks.Count;
+            blocks.Add(block);
+        }
+
+        var idom = new int[blocks.Count];
+        Array.Fill(idom, -1);
+        idom[0] = 0;
+        int Intersect(int a, int b)
+        {
+            while (a != b)
+            {
+                while (a > b)
+                    a = idom[a];
+                while (b > a)
+                    b = idom[b];
+            }
+            return a;
+        }
+
+        bool changed = true;
+        while (changed)
+        {
+            changed = false;
+            for (int i = 1; i < blocks.Count; ++i)
+            {
+                int newIdom = -1;
+                foreach (var predecessor in blocks[i].Predecessors)
+                {
+                    if (!order.TryGetValue(predecessor, out int p) || idom[p] < 0)
+                        continue;
+                    newIdom = newIdom < 0 ? p : Intersect(p, newIdom);
+                }
+                if (newIdom >= 0 && idom[i] != newIdom)
+                {
+                    idom[i] = newIdom;
+                    changed = true;
+                }
+            }
+        }
+
+        bool Dominates(int dominator, int block)
+        {
+            while (block != dominator && idom[block] >= 0 && idom[block] != block)
+                block = idom[block];
+            return block == dominator;
+        }
+
+        for (int i = 0; i < blocks.Count; ++i)
+        {
+            foreach (var successor in blocks[i].Successors)
+            {
+                if (order.TryGetValue(successor, out int target) &&
+                    target <= i &&
+                    !Dominates(target, i))
+                {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
 
     /// <summary>
     /// Cleans up predecessor edges after a branch is folded to unconditional.

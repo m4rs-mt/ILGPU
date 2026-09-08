@@ -231,6 +231,23 @@ public abstract class DivergentControlFlowExecutionTests : ExecutionTestBase
             ["1", "3", "7", "8", "14", "30", "29", "43", "57", "1", "3", "7"]);
     }
 
+    /// <summary>
+    /// Irreducible loops whose branches are constant per instantiation: folding
+    /// them must keep the remaining blocks and their values intact.
+    /// </summary>
+    [SkippableFact]
+    public async Task IrreducibleConstantBranches_ProducesCorrectOutput()
+    {
+        await VerifyProgramOutputAsync(
+            "TestPrograms/DivergentControlFlow/IrreducibleConstantBranches.cs",
+            ["Kernels.IntKernel", "Kernels.LongKernel", "Kernels.ShortKernel"],
+            [
+                "2006", "4008", "6010",
+                "126000", "126002", "190004",
+                "90", "2058", "4074",
+            ]);
+    }
+
     [SkippableFact]
     public async Task IrreducibleLoopEntryValues_ProducesCorrectOutput()
     {

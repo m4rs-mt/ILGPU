@@ -59,10 +59,14 @@ sealed class SimplifyControlFlow(TransformationArgs args) : Transformation(args)
 
             // We cannot merge jump targets in div. control-flow or in the case
             // of a block that we have already seen. We also cannot merge blocks
-            // that are phi sources as this would break SSA form.
+            // that are phi sources as this would break SSA form. Neither can we
+            // merge blocks with phis: they are left behind when a constant
+            // branch into a join block is folded, and moving them would place
+            // phis in the middle of the merged block.
             if (nextBlock.Predecessors.Length > 1 ||
                 visited.Contains(nextBlock) ||
-                phiSources.Contains(nextBlock))
+                phiSources.Contains(nextBlock) ||
+                nextBlock.FirstPhiValue is not null)
             {
                 break;
             }

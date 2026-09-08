@@ -124,6 +124,29 @@ partial class BasicBlockBuilder
     }
 
     /// <summary>
+    /// Creates a conditional termination even if the condition is a constant, so
+    /// that both successors stay successors. Used when folding the branch in the
+    /// frontend would leave predecessor edges inconsistent; later passes fold it.
+    /// </summary>
+    /// <param name="condition">The branch condition.</param>
+    /// <param name="trueTarget">The true target.</param>
+    /// <param name="falseTarget">The false target.</param>
+    /// <returns>The current block.</returns>
+    public BasicBlock CreateUnfoldedConditionalTermination(
+        Value condition,
+        BasicBlock trueTarget,
+        BasicBlock falseTarget)
+    {
+        SetTermination(
+            BlockTerminationKind.Conditional,
+            condition,
+            successorCapacity: 2)
+            .AddSuccessor(trueTarget)
+            .AddSuccessor(falseTarget);
+        return BasicBlock;
+    }
+
+    /// <summary>
     /// Creates a switch termination builder.
     /// </summary>
     /// <param name="value">The selection value.</param>
