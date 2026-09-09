@@ -27,7 +27,9 @@ namespace ILGPUC.Roslyn.Analysis;
 /// Extracts kernel descriptors from launch sites by analyzing
 /// lambdas, method groups, and captured parameters.
 /// </summary>
-sealed class KernelExtractor(CSharpCompilation compilation)
+sealed class KernelExtractor(
+    CSharpCompilation compilation,
+    SemanticModelCache? models = null)
 {
     /// <summary>
     /// Returns all diagnostics reported while extracting kernels.
@@ -41,7 +43,8 @@ sealed class KernelExtractor(CSharpCompilation compilation)
     /// </summary>
     public KernelDescriptor? Extract(KernelLaunchInfo launchInfo)
     {
-        var model = compilation.GetSemanticModel(launchInfo.Invocation.SyntaxTree);
+        var tree = launchInfo.Invocation.SyntaxTree;
+        var model = models?[tree] ?? compilation.GetSemanticModel(tree);
 
         // Launches are replaced statement by statement, a launch nested in an
         // expression (e.g. an expression-bodied member) would remain unrewritten
@@ -130,12 +133,15 @@ sealed class KernelExtractor(CSharpCompilation compilation)
 
         // Check if body is a single method invocation
         if (TryExtractMethodCall(model, body, out var methodSymbol,
-                out var arguments)
+                out var invocation)
             && !HasDelegateParameters(methodSymbol!)
-            && !UsesLambdaParameter(model, lambda, arguments))
+            && !UsesLambdaParameter(
+                model,
+                lambda,
+                invocation!.ArgumentList.Arguments))
         {
             return CreateFromMethodCall(
-                model, methodSymbol!, arguments, launchInfo, diagnostics);
+                model, methodSymbol!, invocation!, launchInfo, diagnostics);
         }
 
         // Inline kernel — extract captured variables
@@ -157,12 +163,15 @@ sealed class KernelExtractor(CSharpCompilation compilation)
         var body = lambda.Body;
 
         if (TryExtractMethodCall(model, body, out var methodSymbol,
-                out var arguments)
+                out var invocation)
             && !HasDelegateParameters(methodSymbol!)
-            && !UsesLambdaParameter(model, lambda, arguments))
+            && !UsesLambdaParameter(
+                model,
+                lambda,
+                invocation!.ArgumentList.Arguments))
         {
             return CreateFromMethodCall(
-                model, methodSymbol!, arguments, launchInfo, diagnostics);
+                model, methodSymbol!, invocation!, launchInfo, diagnostics);
         }
 
         return CreateFromInlineBody(model, lambda, body, launchInfo, diagnostics);
@@ -216,9 +225,8 @@ sealed class KernelExtractor(CSharpCompilation compilation)
 
     /// <summary>
     /// Reports a local function used as a kernel that cannot be compiled as
-    /// one: it captures variables of its enclosing method (which the compiler
-    /// passes through a hidden closure parameter) or it is declared in a
-    /// generic method or type.
+    /// one: it captures variables of its enclosing method, which the compiler
+    /// passes through a hidden closure parameter.
     /// </summary>
     private static void ValidateLocalFunctionKernel(
         SemanticModel model,
@@ -230,23 +238,6 @@ sealed class KernelExtractor(CSharpCompilation compilation)
                 is not LocalFunctionStatementSyntax syntax)
         {
             return;
-        }
-
-        for (var symbol = method.ContainingSymbol;
-            symbol is not null and not INamespaceSymbol;
-            symbol = symbol.ContainingSymbol)
-        {
-            if (symbol is IMethodSymbol { TypeParameters.Length: > 0 }
-                or INamedTypeSymbol { TypeParameters.Length: > 0 })
-            {
-                diagnostics.Add(new KernelDiagnostic(
-                    KernelDiagnostic.GenericContextId,
-                    $"Local function '{method.Name}' cannot be used as a kernel " +
-                    $"because it is declared inside the generic member " +
-                    $"'{symbol.ToDisplayString()}'. Use a static method instead.",
-                    syntax.Identifier.GetLocation()));
-                return;
-            }
         }
 
         var localModel = model.Compilation.GetSemanticModel(syntax.SyntaxTree);
@@ -288,7 +279,7 @@ sealed class KernelExtractor(CSharpCompilation compilation)
     /// </param>
     /// <param name="body">The lambda body node to inspect.</param>
     /// <param name="method">The resolved method symbol if successful.</param>
-    /// <param name="arguments">The argument list of the invocation if successful.</param>
+    /// <param name="invocation">The invocation if successful.</param>
     /// <returns>
     /// <see langword="true"/> if the body is a direct method call and the symbol
     /// could be resolved; otherwise <see langword="false"/>.
@@ -297,13 +288,12 @@ sealed class KernelExtractor(CSharpCompilation compilation)
         SemanticModel model,
         SyntaxNode body,
         out IMethodSymbol? method,
-        out SeparatedSyntaxList<ArgumentSyntax> arguments)
+        out InvocationExpressionSyntax? invocation)
     {
         method = null;
-        arguments = default;
 
         // Unwrap block body with single expression statement
-        InvocationExpressionSyntax? invocation = body switch
+        invocation = body switch
         {
             InvocationExpressionSyntax inv => inv,
             ExpressionStatementSyntax { Expression: InvocationExpressionSyntax inv }
@@ -324,7 +314,6 @@ sealed class KernelExtractor(CSharpCompilation compilation)
             return false;
 
         method = resolved;
-        arguments = invocation.ArgumentList.Arguments;
         return true;
     }
 
@@ -404,65 +393,82 @@ sealed class KernelExtractor(CSharpCompilation compilation)
     /// <summary>
     /// Builds a <see cref="KernelDescriptor"/> for a kernel identified as a
     /// direct method call inside a lambda body. Parameters are derived from the
-    /// arguments passed to that call.
+    /// arguments passed to that call, in the order of the kernel's parameters.
     /// </summary>
+    /// <remarks>
+    /// Arguments are bound to parameters through the invocation operation, so
+    /// named arguments in any order and omitted optional arguments map to the
+    /// right parameters. The first parameter is supplied by the runtime when the
+    /// lambda forwards its own index parameter to it.
+    /// </remarks>
     private static KernelDescriptor CreateFromMethodCall(
         SemanticModel model,
         IMethodSymbol method,
-        SeparatedSyntaxList<ArgumentSyntax> arguments,
+        InvocationExpressionSyntax invocation,
         KernelLaunchInfo launchInfo,
         List<KernelDiagnostic> diagnostics)
     {
         ValidateLocalFunctionKernel(model, method, diagnostics);
         var parameters = ImmutableArray.CreateBuilder<CapturedParameterInfo>();
-
-        // Determine whether to skip argument 0: skip it only if it is
-        // the lambda's own index parameter (i.e., a simple identifier
-        // matching a lambda parameter name). For auto-sized launches
-        // this is always the case (index => Kernel(index, ...)); for
-        // grouped launches it depends — the index may or may not be
-        // forwarded to the kernel method.
-        int startIndex = 0;
-        if (arguments.Count > 0
-            && arguments[0].Expression is IdentifierNameSyntax id
-            && IsLambdaParameterName(launchInfo, id.Identifier.Text))
+        if (model.GetOperation(invocation) is not IInvocationOperation operation)
         {
-            startIndex = 1;
+            throw new InvalidOperationException(
+                $"Could not bind the kernel call: {invocation}");
         }
-        for (int i = startIndex; i < arguments.Count; i++)
+
+        foreach (var argument in operation.Arguments
+            .OrderBy(a => a.Parameter?.Ordinal ?? int.MaxValue))
         {
-            var arg = arguments[i];
-            var typeInfo = model.GetTypeInfo(arg.Expression);
-            var type = typeInfo.Type ?? typeInfo.ConvertedType;
-            if (type == null)
+            var parameter = argument.Parameter ?? throw new InvalidOperationException(
+                $"Could not bind an argument of the kernel call: {invocation}");
+
+            // The lambda's own index parameter is supplied by the runtime
+            if (parameter.Ordinal == 0 &&
+                argument.ArgumentKind == ArgumentKind.Explicit &&
+                IsLambdaParameterReference(argument.Value, launchInfo))
             {
-                throw new InvalidOperationException(
-                    $"Could not resolve type of argument: {arg.Expression}");
+                continue;
+            }
+
+            ExpressionSyntax sourceExpression;
+            ITypeSymbol type;
+            switch (argument.ArgumentKind)
+            {
+                case ArgumentKind.Explicit:
+                    sourceExpression = argument.Syntax is ArgumentSyntax syntax
+                        ? syntax.Expression
+                        : (ExpressionSyntax)argument.Syntax;
+                    var typeInfo = model.GetTypeInfo(sourceExpression);
+                    type = typeInfo.Type ?? typeInfo.ConvertedType ??
+                        throw new InvalidOperationException(
+                            $"Could not resolve type of argument: {sourceExpression}");
+                    break;
+                case ArgumentKind.DefaultValue:
+                    sourceExpression = CreateDefaultValueExpression(parameter);
+                    type = parameter.Type;
+                    break;
+                default:
+                    throw new InvalidOperationException(
+                        $"Unsupported argument '{parameter.Name}' of the kernel " +
+                        $"call: {invocation}");
             }
 
             if (FindDelegateField(type) is { } delegateField)
             {
                 diagnostics.Add(new KernelDiagnostic(
                     KernelDiagnostic.UnsupportedCaptureId,
-                    $"Kernel argument '{arg.Expression}' of type '{type}' has the " +
+                    $"Kernel argument '{sourceExpression}' of type '{type}' has the " +
                     $"delegate field '{delegateField}'. Delegates cannot be kernel " +
                     $"arguments; pass the other fields separately and the " +
                     $"delegate as a delegate parameter of the kernel method.",
-                    arg.Expression.GetLocation()));
+                    sourceExpression.GetLocation()));
             }
 
-            var kind = Classify(type);
-
-            // Generate a clean parameter name from the argument expression
-            var name = method.Parameters.Length > i
-                ? method.Parameters[i].Name
-                : GenerateParameterName(arg.Expression, i);
-
             parameters.Add(new CapturedParameterInfo(
-                Name: name,
-                SourceExpression: arg.Expression,
+                Name: parameter.Name,
+                SourceExpression: sourceExpression,
                 Type: type,
-                Kind: kind));
+                Kind: Classify(type)));
         }
 
         return new KernelDescriptor(
@@ -472,6 +478,38 @@ sealed class KernelExtractor(CSharpCompilation compilation)
             Parameters: parameters.ToImmutable(),
             Variant: launchInfo.Variant,
             LaunchInfo: launchInfo);
+    }
+
+    /// <summary>
+    /// Returns true if <paramref name="value"/> refers to a parameter of the
+    /// launch site's lambda, possibly through an implicit conversion.
+    /// </summary>
+    private static bool IsLambdaParameterReference(
+        IOperation value,
+        KernelLaunchInfo launchInfo)
+    {
+        while (value is IConversionOperation { IsImplicit: true } conversion)
+            value = conversion.Operand;
+        return value is IParameterReferenceOperation reference &&
+            IsLambdaParameterName(launchInfo, reference.Parameter.Name);
+    }
+
+    /// <summary>
+    /// Creates an expression for the default value of an optional parameter.
+    /// </summary>
+    private static ExpressionSyntax CreateDefaultValueExpression(
+        IParameterSymbol parameter)
+    {
+        var typeName = parameter.Type.ToDisplayString(
+            SymbolDisplayFormat.FullyQualifiedFormat);
+        if (!parameter.HasExplicitDefaultValue || parameter.ExplicitDefaultValue is null)
+            return SyntaxFactory.ParseExpression($"default({typeName})");
+
+        var literal = SymbolDisplay.FormatPrimitive(
+            parameter.ExplicitDefaultValue,
+            quoteStrings: true,
+            useHexadecimalNumbers: false);
+        return SyntaxFactory.ParseExpression($"({typeName})({literal})");
     }
 
     /// <summary>
@@ -499,7 +537,6 @@ sealed class KernelExtractor(CSharpCompilation compilation)
         bool callsLocalFunctions = false;
         if (isValid)
         {
-            isValid &= ValidateEnclosingContext(lambda, lambdaSymbol!, diagnostics);
             isValid &= ValidateInstanceUses(
                 lambda, lambdaSymbol!, operation!, diagnostics);
             isValid &= ValidateLocalFunctionUses(
@@ -543,6 +580,15 @@ sealed class KernelExtractor(CSharpCompilation compilation)
             // targets passed by its callers, one kernel for each target
             if (type.TypeKind == TypeKind.Delegate)
             {
+                if (!ValidateDelegateCaptureContext(
+                    lambdaSymbol,
+                    (IParameterSymbol)captured,
+                    reference,
+                    diagnostics))
+                {
+                    isValid = false;
+                    continue;
+                }
                 delegateCaptures.Add(new DelegateCapture(
                     parameters.Count,
                     (IParameterSymbol)captured,
@@ -599,7 +645,41 @@ sealed class KernelExtractor(CSharpCompilation compilation)
             LiftedKernel: liftedKernel,
             DelegateCaptures: delegateCaptures.Count > 0
                 ? delegateCaptures.ToImmutable()
-                : null);
+                : null,
+            InlineKernelSymbol: lambdaSymbol);
+    }
+
+    /// <summary>
+    /// Reports an inline kernel capturing a delegate parameter that is declared
+    /// inside a generic method or type. Its kernels are bound to the targets
+    /// passed by the callers of the launching method, which are not compiled
+    /// for each instantiation of the generic code.
+    /// </summary>
+    private static bool ValidateDelegateCaptureContext(
+        IMethodSymbol? lambdaSymbol,
+        IParameterSymbol parameter,
+        SyntaxNode reference,
+        List<KernelDiagnostic> diagnostics)
+    {
+        if (DelegateTargetDiscoverer.FindGenericContainer(
+            lambdaSymbol?.ContainingSymbol) is not { } generic)
+        {
+            return true;
+        }
+
+        var method = DelegateTargetDiscoverer.GetDisplayName(
+            (IMethodSymbol)parameter.ContainingSymbol);
+        diagnostics.Add(new KernelDiagnostic(
+            KernelDiagnostic.GenericContextId,
+            $"Inline kernel captures the delegate parameter '{parameter.Name}' " +
+            $"of '{method}', but it is declared inside the generic " +
+            $"{(generic is IMethodSymbol ? "method" : "type")} " +
+            $"'{generic.ToDisplayString()}', so it cannot be bound to the " +
+            $"delegates passed by the callers. Launch it from a non-generic " +
+            $"method, or pass the operation as a generic struct implementing " +
+            $"an interface.",
+            reference.GetLocation()));
+        return false;
     }
 
     /// <summary>
@@ -769,41 +849,6 @@ sealed class KernelExtractor(CSharpCompilation compilation)
     private static bool IsDeclaredInside(ISymbol symbol, SyntaxNode node) =>
         symbol.DeclaringSyntaxReferences.Any(r =>
             r.SyntaxTree == node.SyntaxTree && node.Span.Contains(r.Span));
-
-    /// <summary>
-    /// Reports an inline kernel declared inside a generic method or type: the
-    /// lifted kernel would be generic over type parameters that are only bound
-    /// by the callers of the enclosing method.
-    /// </summary>
-    private static bool ValidateEnclosingContext(
-        LambdaExpressionSyntax lambda,
-        IMethodSymbol lambdaSymbol,
-        List<KernelDiagnostic> diagnostics)
-    {
-        for (var symbol = lambdaSymbol.ContainingSymbol;
-            symbol is not null and not INamespaceSymbol;
-            symbol = symbol.ContainingSymbol)
-        {
-            bool isGeneric = symbol switch
-            {
-                IMethodSymbol method => method.TypeParameters.Length > 0,
-                INamedTypeSymbol type => type.TypeParameters.Length > 0,
-                _ => false,
-            };
-            if (!isGeneric)
-                continue;
-
-            diagnostics.Add(new KernelDiagnostic(
-                KernelDiagnostic.GenericContextId,
-                $"Inline kernels cannot be declared inside the generic " +
-                $"{(symbol is IMethodSymbol ? "method" : "type")} " +
-                $"'{symbol.ToDisplayString()}'. Move the kernel body into a " +
-                $"static method and launch it with a lambda that calls it.",
-                lambda.GetLocation()));
-            return false;
-        }
-        return true;
-    }
 
     /// <summary>
     /// Reports every use of the enclosing instance (<c>this</c>, <c>base</c>,
@@ -1109,26 +1154,6 @@ sealed class KernelExtractor(CSharpCompilation compilation)
                     .Any(p => p.Identifier.Text == name),
             _ => false,
         };
-    }
-
-    /// <summary>
-    /// Derives a valid C# identifier from an argument expression string,
-    /// replacing punctuation with underscores or removing it.
-    /// Falls back to <c>param{index}</c> if the result is not a valid identifier.
-    /// </summary>
-    private static string GenerateParameterName(
-        ExpressionSyntax expr, int index)
-    {
-        // Try to derive a name from the expression
-        var text = expr.ToString()
-            .Replace(".", "_", StringComparison.Ordinal)
-            .Replace("[", "", StringComparison.Ordinal)
-            .Replace("]", "", StringComparison.Ordinal);
-
-        if (SyntaxFacts.IsValidIdentifier(text))
-            return text;
-
-        return $"param{index}";
     }
 
     #region Parameter Classification

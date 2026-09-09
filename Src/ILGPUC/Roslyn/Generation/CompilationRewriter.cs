@@ -77,108 +77,235 @@ sealed class CompilationRewriter(ICompiledKernelProvider? kernelProvider = null)
 
     /// <summary>
     /// Phase 1: Analyze the compilation to find launch sites and extract
-    /// kernel descriptors. Generic kernels are expanded into one kernel per
-    /// concrete specialization, and inline kernels capturing delegate
-    /// parameters into one kernel per delegate target. No modifications are
-    /// made to the compilation.
+    /// kernel descriptors. Kernels launched with open type arguments get one
+    /// kernel per closed instantiation, and inline kernels capturing delegate
+    /// parameters one kernel per delegate target. No modifications are made to
+    /// the compilation.
     /// </summary>
     /// <param name="compilation">The compilation to analyze.</param>
-    /// <param name="isLibrary">
-    /// True if the compilation builds a library, whose methods other assemblies
-    /// can call; false for an executable.
-    /// </param>
+    /// <param name="options">The analysis options, or the defaults.</param>
     public static AnalysisResult Analyze(
         CSharpCompilation compilation,
-        bool isLibrary = true)
+        AnalysisOptions? options = null)
     {
-        var analyzer = new LaunchSiteAnalyzer(compilation);
+        options ??= AnalysisOptions.Default;
+        var models = new SemanticModelCache(compilation);
+        var analyzer = new LaunchSiteAnalyzer(compilation, models);
         var launchSites = analyzer.FindAllLaunchSites();
 
-        var extractor = new KernelExtractor(compilation);
+        // Source generators produce their code again when csc compiles the
+        // rewritten project, so launch sites in generated code stay as they are
+        var diagnostics = new List<BuildDiagnostic>();
+        if (options.GeneratedTrees is { Count: > 0 } generatedTrees)
+        {
+            foreach (var site in launchSites.Where(
+                s => generatedTrees.Contains(s.Invocation.SyntaxTree)))
+            {
+                diagnostics.Add(BuildDiagnostic.Warning(
+                    BuildDiagnosticCodes.LaunchInGeneratedCode,
+                    site.Invocation.GetLocation(),
+                    "This kernel launch is in source-generated code, which ILGPU " +
+                    "cannot rewrite, so no kernel is compiled for it and launching " +
+                    "it throws a NotSupportedException. Launch the kernel from " +
+                    "hand-written code."));
+            }
+            launchSites = [.. launchSites.Where(
+                s => !generatedTrees.Contains(s.Invocation.SyntaxTree))];
+        }
+
+        var extractor = new KernelExtractor(compilation, models);
         var kernels = MakeInlineKernelNamesUnique(
             launchSites
                 .Select(extractor.Extract)
                 .OfType<KernelDescriptor>()
                 .ToList());
 
-        // Monomorphize generic kernels with open type parameters.
-        // For each kernel whose method has ITypeParameterSymbol type args,
-        // discover concrete specializations from callers and expand into
-        // per-specialization descriptors.
-        var expandedKernels = new List<KernelDescriptor>();
-        var dispatchKernels = new List<KernelDescriptor>();
-        var delegateDiscoverer = new DelegateTargetDiscoverer(compilation, isLibrary);
+        // Bind captured delegate parameters to the targets passed by the
+        // callers of the launching method
+        var delegateDiscoverer = new DelegateTargetDiscoverer(
+            compilation,
+            options.GeneratedTrees,
+            options.IsLibrary);
+        var delegateKeys = DiscoverDelegateTargets(kernels, delegateDiscoverer);
+
+        // Launches that cannot be rewritten, inline kernels and local functions
+        // that cannot be passed to a kernel, and delegates that cannot be
+        // bound are errors; a local function launched from several sites is
+        // reported once
+        foreach (var diagnostic in analyzer.Diagnostics
+            .Concat(extractor.Diagnostics)
+            .Concat(delegateDiscoverer.Diagnostics)
+            .Distinct())
+        {
+            diagnostics.Add(BuildDiagnostic.Error(
+                diagnostic.Id,
+                diagnostic.Location,
+                diagnostic.Message));
+        }
+
+        if (diagnostics.Any(d => d.IsError))
+            return new AnalysisResult(kernels, [], [], diagnostics);
+
+        // Find the closed instantiations of kernels launched with open type
+        // arguments, through any depth of generic wrappers.
+        var openKernels = kernels.Where(IsOpen).ToList();
+        var closure = GenericInstantiationClosure.Compute(
+            compilation,
+            openKernels,
+            models,
+            options.Limits ?? GenericInstantiationLimits.Default,
+            options.WarnOnOpenPublicEntryPoints);
+        diagnostics.AddRange(closure.Diagnostics);
+
+        // Assign names: one per distinct closed kernel and one per dispatch stub
+        var names = new KernelNameAllocator();
+        var closedKeys = new List<(KernelDescriptor Kernel, string Key)>();
+        foreach (var kernel in kernels.Where(k => !IsOpen(k)))
+        {
+            var key = GetClosedKey(kernel);
+            closedKeys.Add((kernel, key));
+            names.Request(key, kernel.KernelName, GetDisambiguator(kernel));
+        }
+
+        // Launch sites with open type arguments share one dispatch stub per
+        // kernel definition and launch shape
+        var stubGroups = openKernels
+            .GroupBy(k => GetStubKey(k, GetSkippedParameters(k)))
+            .ToList();
+        foreach (var group in stubGroups)
+        {
+            var first = group.First();
+            names.Request(
+                group.Key,
+                first.KernelMethod?.Name ?? first.KernelName,
+                $"{first.Variant}{GetSkippedParameters(first)}");
+        }
+        names.Resolve();
+
+        var allKernels = new List<KernelDescriptor>(kernels.Count);
+        var uniqueKernels = new List<KernelDescriptor>();
+        var uniqueNames = new HashSet<string>();
+        var renamed = new Dictionary<KernelDescriptor, KernelDescriptor>();
+        var delegateStubs = new List<DelegateDispatchStub>();
+        foreach (var (kernel, key) in closedKeys)
+        {
+            var name = names[key];
+            var named = kernel with
+            {
+                KernelName = name,
+                LiftedKernel = kernel.LiftedKernel?.WithIdentifier(
+                    SyntaxFactory.Identifier(name)),
+            };
+            renamed[kernel] = named;
+
+            // An inline kernel capturing delegates is not compiled itself: a
+            // dispatch stub launches the kernel bound to the passed targets,
+            // one for each combination of targets
+            if (delegateKeys.TryGetValue(kernel, out var captureKeys))
+            {
+                var combinations = GetCombinations(captureKeys);
+                var bindings = new List<KernelDescriptor>(combinations.Count);
+                for (int i = 0; i < combinations.Count; i++)
+                {
+                    var bindingName = names.Allocate(
+                        $"{key}|D{i}",
+                        $"{name}_D{i}");
+                    bindings.Add(CreateBoundDescriptor(
+                        named,
+                        combinations[i],
+                        bindingName));
+                }
+                delegateStubs.Add(new DelegateDispatchStub(named, [.. bindings]));
+                uniqueKernels.AddRange(bindings);
+                continue;
+            }
+
+            if (uniqueNames.Add(named.KernelName))
+                uniqueKernels.Add(named);
+        }
+
+        var dispatchStubs = new List<DispatchStub>(stubGroups.Count);
+        foreach (var group in stubGroups)
+        {
+            var sites = group.ToList();
+            var stub = CreateDispatchStub(
+                compilation,
+                names,
+                names[group.Key],
+                group.Key,
+                sites,
+                closure.Instantiations);
+            dispatchStubs.Add(stub);
+            uniqueKernels.AddRange(stub.Specializations);
+            for (int i = 0; i < sites.Count; ++i)
+                renamed[sites[i]] = stub.LaunchSites[i];
+        }
 
         foreach (var kernel in kernels)
-        {
-            if (kernel.KernelMethod is { IsGenericMethod: true } gm
-                && gm.TypeArguments.Any(t => t is ITypeParameterSymbol))
-            {
-                var specs = SpecializationDiscoverer.DiscoverSpecializations(
-                    compilation, kernel);
+            allKernels.Add(renamed[kernel]);
 
-                if (specs.Count > 0)
-                {
-                    dispatchKernels.Add(kernel);
-                    foreach (var spec in specs)
-                    {
-                        var concrete = CreateConcreteDescriptor(kernel, spec);
-                        expandedKernels.Add(concrete);
-                    }
-                }
-                else
-                {
-                    // No concrete specializations found — keep as-is (stub)
-                    expandedKernels.Add(kernel);
-                }
+        // Generated launchers are top-level internal classes that name the types
+        // of the kernel parameters, and dispatch stubs name the type arguments
+        foreach (var kernel in allKernels)
+        {
+            ReportInaccessibleTypes(
+                kernel,
+                kernel,
+                kernel.Parameters.Select(p => p.Type),
+                diagnostics);
+        }
+        foreach (var stub in dispatchStubs)
+        {
+            foreach (var specialization in stub.Specializations)
+            {
+                ReportInaccessibleTypes(
+                    specialization,
+                    stub.LaunchSites[0],
+                    specialization.ConcreteTypeArgs ?? [],
+                    diagnostics);
             }
-            else if (kernel is
+        }
+
+        return new AnalysisResult(
+            allKernels,
+            uniqueKernels,
+            dispatchStubs,
+            diagnostics,
+            closure.InstantiationCount)
+        {
+            DelegateDispatchStubs = delegateStubs,
+            DelegateRegistrations = delegateDiscoverer.Registrations,
+        };
+    }
+
+    /// <summary>
+    /// Discovers the targets of the delegate parameters captured by inline
+    /// kernels and returns the keys of the targets of each capture, by kernel.
+    /// Kernels whose targets cannot be traced are left out, which the
+    /// discoverer reports.
+    /// </summary>
+    private static Dictionary<KernelDescriptor, ImmutableArray<string>[]>
+        DiscoverDelegateTargets(
+            List<KernelDescriptor> kernels,
+            DelegateTargetDiscoverer discoverer)
+    {
+        var result = new Dictionary<KernelDescriptor, ImmutableArray<string>[]>();
+        foreach (var kernel in kernels)
+        {
+            if (kernel is not
                 {
                     DelegateCaptures: { } captures,
                     LiftedKernel: not null,
                 })
             {
-                // Bind captured delegate parameters to the targets passed by
-                // the callers of the launching method, one kernel for each
-                // combination of targets
-                var keys = captures
-                    .Select(delegateDiscoverer.DiscoverTargets)
-                    .ToArray();
-                if (keys.All(k => k is not null))
-                {
-                    dispatchKernels.Add(kernel);
-                    var combinations = GetCombinations(
-                        [.. keys.Select(k => k!.Value)]);
-                    for (int i = 0; i < combinations.Count; i++)
-                    {
-                        expandedKernels.Add(
-                            CreateBoundDescriptor(kernel, combinations[i], i));
-                    }
-                }
-                else
-                {
-                    expandedKernels.Add(kernel);
-                }
+                continue;
             }
-            else
-            {
-                expandedKernels.Add(kernel);
-            }
+
+            var keys = captures.Select(discoverer.DiscoverTargets).ToArray();
+            if (keys.All(k => k is not null))
+                result.Add(kernel, [.. keys.Select(k => k!.Value)]);
         }
-
-        var uniqueKernels = DeduplicateKernels(expandedKernels);
-
-        // A local function launched from several sites is reported once
-        return new AnalysisResult(
-            kernels,
-            uniqueKernels,
-            dispatchKernels,
-            analyzer.Diagnostics
-                .Concat(extractor.Diagnostics)
-                .Concat(delegateDiscoverer.Diagnostics)
-                .Distinct()
-                .ToList(),
-            delegateDiscoverer.Registrations);
+        return result;
     }
 
     /// <summary>
@@ -220,11 +347,10 @@ sealed class CompilationRewriter(ICompiledKernelProvider? kernelProvider = null)
     private static KernelDescriptor CreateBoundDescriptor(
         KernelDescriptor original,
         ImmutableArray<string> keys,
-        int index)
+        string name)
     {
         var captures = original.DelegateCaptures!.Value;
         var lifted = original.LiftedKernel!;
-        var name = $"{original.KernelName}_D{index}";
 
         // The first parameter of the lifted kernel is the index
         var parameters = lifted.ParameterList.Parameters;
@@ -288,6 +414,71 @@ sealed class CompilationRewriter(ICompiledKernelProvider? kernelProvider = null)
     }
 
     /// <summary>
+    /// Reports the first of <paramref name="types"/> that is private or protected,
+    /// or nested in such a type, as an error at the launch site.
+    /// </summary>
+    private static void ReportInaccessibleTypes(
+        KernelDescriptor kernel,
+        KernelDescriptor launchSite,
+        IEnumerable<ITypeSymbol> types,
+        List<BuildDiagnostic> diagnostics)
+    {
+        foreach (var type in types)
+        {
+            if (FindInaccessibleType(type) is not { } inaccessible)
+                continue;
+            var instantiation = kernel.ConcreteTypeArgs is { } arguments
+                ? $" with type arguments <{string.Join(", ",
+                    arguments.Select(a => a.ToDisplayString()))}>"
+                : "";
+            diagnostics.Add(BuildDiagnostic.Error(
+                BuildDiagnosticCodes.InaccessibleKernelType,
+                launchSite.LaunchInfo.Invocation.GetLocation(),
+                $"The launch of kernel '{kernel.KernelMethod?.Name ?? "lambda"}'" +
+                $"{instantiation} uses '{inaccessible.ToDisplayString()}', which is " +
+                $"{SyntaxFacts.GetText(inaccessible.DeclaredAccessibility)}. The " +
+                $"generated kernel launcher cannot access it; make it internal or " +
+                $"public."));
+            return;
+        }
+    }
+
+    /// <summary>
+    /// Returns a type in <paramref name="type"/> that code outside its containing
+    /// types cannot access, or null.
+    /// </summary>
+    private static INamedTypeSymbol? FindInaccessibleType(ITypeSymbol type)
+    {
+        switch (type)
+        {
+            case IArrayTypeSymbol array:
+                return FindInaccessibleType(array.ElementType);
+            case IPointerTypeSymbol pointer:
+                return FindInaccessibleType(pointer.PointedAtType);
+            case INamedTypeSymbol named:
+                for (var current = named; current is not null;
+                     current = current.ContainingType)
+                {
+                    if (current.DeclaredAccessibility is
+                        Accessibility.Private or
+                        Accessibility.Protected or
+                        Accessibility.ProtectedAndInternal)
+                    {
+                        return current;
+                    }
+                }
+                foreach (var argument in named.TypeArguments)
+                {
+                    if (FindInaccessibleType(argument) is { } inaccessible)
+                        return inaccessible;
+                }
+                return null;
+            default:
+                return null;
+        }
+    }
+
+    /// <summary>
     /// Appends a counter to inline kernels whose position-based names collide
     /// (e.g. lambdas at the same position of equally named files), so every
     /// inline lambda is compiled into its own kernel.
@@ -318,52 +509,186 @@ sealed class CompilationRewriter(ICompiledKernelProvider? kernelProvider = null)
     }
 
     /// <summary>
-    /// Creates a concrete <see cref="KernelDescriptor"/> by substituting
-    /// type arguments from a discovered specialization into the original
-    /// open-generic kernel.
+    /// Returns <see langword="true"/> if the kernel of a launch site still has
+    /// open type arguments, in its own type arguments or in those of its
+    /// containing types.
     /// </summary>
-    private static KernelDescriptor CreateConcreteDescriptor(
-        KernelDescriptor original,
-        KernelSpecialization spec)
+    private static bool IsOpen(KernelDescriptor kernel) =>
+        GenericContext.ContainsTypeParameter(kernel.GetTypeArguments());
+
+    /// <summary>
+    /// Returns the key that identifies the compiled kernel of a launch site with
+    /// closed type arguments. Launch sites with equal keys share a compiled
+    /// kernel; the key includes the launch variant and the argument types,
+    /// because both shape the generated <c>Launch</c> method.
+    /// </summary>
+    private static string GetClosedKey(KernelDescriptor kernel)
     {
-        var gm = original.KernelMethod!;
-
-        // Construct the concrete method symbol by substituting type args
-        var concreteMethod = gm.OriginalDefinition.Construct(
-            [.. spec.TypeArguments]);
-
-        // Rebuild parameters with concrete types from the constructed method.
-        // The original parameters map to method params after skipping the
-        // index parameter (param 0).
-        var parameters = ImmutableArray.CreateBuilder<CapturedParameterInfo>(
-            original.Parameters.Length);
-        int startParam = original.Parameters.Length ==
-            concreteMethod.Parameters.Length - 1 ? 1 : 0;
-
-        for (int i = 0; i < original.Parameters.Length; i++)
+        if (kernel.KernelMethod is not { } method)
         {
-            var origParam = original.Parameters[i];
-            var methodParamIdx = i + startParam;
-            var concreteType = methodParamIdx < concreteMethod.Parameters.Length
-                ? concreteMethod.Parameters[methodParamIdx].Type
-                : origParam.Type;
-            var kind = KernelExtractor.Classify(concreteType);
-            parameters.Add(new CapturedParameterInfo(
-                Name: origParam.Name,
-                SourceExpression: origParam.SourceExpression,
-                Type: concreteType,
-                Kind: kind));
+            var location = kernel.LaunchInfo.Invocation.GetLocation().GetLineSpan();
+            return $"inline|{location.Path}|{kernel.KernelBody?.SpanStart}";
         }
 
-        return new KernelDescriptor(
-            KernelName: $"{original.KernelName}{spec.MangledSuffix}",
-            KernelMethod: concreteMethod,
-            KernelBody: original.KernelBody,
-            Parameters: parameters.ToImmutable(),
-            Variant: original.Variant,
-            LaunchInfo: original.LaunchInfo,
-            GenericOriginName: original.KernelName,
-            ConcreteTypeArgs: spec.TypeArguments);
+        var parameterTypes = string.Join(
+            ", ",
+            kernel.Parameters.Select(p => p.Type.ToDisplayString(
+                GenericContext.KeyFormat)));
+        return $"{method.ToDisplayString(GenericContext.KeyFormat)}|" +
+            $"{kernel.Variant}|{parameterTypes}";
+    }
+
+    /// <summary>
+    /// Returns a readable suffix that distinguishes a closed kernel from another
+    /// kernel with the same name: its type arguments, or its launch variant.
+    /// </summary>
+    private static string GetDisambiguator(KernelDescriptor kernel)
+    {
+        if (kernel.KernelMethod is { } method)
+        {
+            var arguments = GenericContext.GetTypeArguments(method);
+            if (arguments.Length > 0)
+                return string.Join("_", arguments.Select(GenericContext.Mangle));
+        }
+        return kernel.Variant.ToString();
+    }
+
+    /// <summary>
+    /// Returns the key of the dispatch stub of a launch site with open type
+    /// arguments.
+    /// </summary>
+    private static string GetStubKey(KernelDescriptor kernel, int skippedParameters)
+    {
+        // Every inline lambda is a kernel definition of its own
+        var definition = kernel.KernelMethod is { } method
+            ? method.OriginalDefinition.ToDisplayString(GenericContext.KeyFormat)
+            : GetClosedKey(kernel);
+        return $"dispatch|{definition}|{kernel.Variant}|{skippedParameters}";
+    }
+
+    /// <summary>
+    /// Returns how many leading kernel parameters the runtime supplies rather
+    /// than the launch site: 1 if the launch site forwards its thread index, 0
+    /// otherwise.
+    /// </summary>
+    private static int GetSkippedParameters(KernelDescriptor kernel)
+    {
+        if (kernel.KernelMethod is not { } method)
+            return 0;
+        int skipped = method.Parameters.Length - kernel.Parameters.Length;
+        return Math.Clamp(skipped, 0, 1);
+    }
+
+    /// <summary>
+    /// Creates the dispatch stub for a group of launch sites that launch the same
+    /// kernel definition with open type arguments, together with one concrete
+    /// kernel per closed instantiation that reaches any of them.
+    /// </summary>
+    private static DispatchStub CreateDispatchStub(
+        CSharpCompilation compilation,
+        KernelNameAllocator names,
+        string stubName,
+        string stubKey,
+        List<KernelDescriptor> sites,
+        IReadOnlyDictionary<KernelDescriptor, IReadOnlyList<ImmutableArray<ITypeSymbol>>>
+            instantiations)
+    {
+        var first = sites[0];
+        var definition = first.GenericDefinition!;
+        int skipped = GetSkippedParameters(first);
+
+        // Lifted inline kernels take the stub's name in the compilation that
+        // resolves them, so that all specializations find the same method
+        var lifted = first.LiftedKernel?.WithIdentifier(
+            SyntaxFactory.Identifier(stubName));
+
+        // The union of the instantiations of all launch sites, in a stable order
+        var seen = new HashSet<string>();
+        var arguments = new List<ImmutableArray<ITypeSymbol>>();
+        foreach (var site in sites)
+        {
+            if (!instantiations.TryGetValue(site, out var list))
+                continue;
+            foreach (var args in list)
+            {
+                if (seen.Add(GenericContext.GetKey(args)))
+                    arguments.Add(args);
+            }
+        }
+
+        var specializations = ImmutableArray.CreateBuilder<KernelDescriptor>();
+        foreach (var args in arguments)
+        {
+            var name = names.Allocate(
+                $"{stubKey}|{GenericContext.GetKey(args)}",
+                $"{stubName}_{string.Join("_", args.Select(GenericContext.Mangle))}");
+
+            // Local functions and lifted inline lambdas cannot be constructed
+            // with the type arguments of their enclosing code, so their
+            // parameter types are substituted instead
+            IMethodSymbol? method;
+            IEnumerable<(string Name, ITypeSymbol Type)> launchParameters;
+            if (first.IsLocalKernel)
+            {
+                var substitution = GenericContext.CreateSubstitution(definition, args);
+                method = first.KernelMethod?.OriginalDefinition;
+                launchParameters = (method is null
+                        ? first.Parameters.Select(p => (p.Name, p.Type))
+                        : method.Parameters.Skip(skipped).Select(p => (p.Name, p.Type)))
+                    .Select(p => (
+                        p.Name,
+                        GenericContext.Substitute(compilation, p.Type, substitution)));
+            }
+            else
+            {
+                method = GenericContext.ConstructMethod(
+                    compilation,
+                    (IMethodSymbol)definition,
+                    args);
+                launchParameters = method.Parameters
+                    .Skip(skipped)
+                    .Select(p => (p.Name, p.Type));
+            }
+
+            var parameters = ImmutableArray.CreateBuilder<CapturedParameterInfo>();
+            foreach (var (parameterName, type) in launchParameters)
+            {
+                parameters.Add(new CapturedParameterInfo(
+                    Name: parameterName,
+                    SourceExpression: SyntaxFactory.IdentifierName(parameterName),
+                    Type: type,
+                    Kind: KernelExtractor.Classify(type)));
+            }
+
+            specializations.Add(new KernelDescriptor(
+                KernelName: name,
+                KernelMethod: method,
+                KernelBody: first.KernelBody,
+                Parameters: parameters.ToImmutable(),
+                Variant: first.Variant,
+                LaunchInfo: first.LaunchInfo,
+                GenericOriginName: stubName,
+                ConcreteTypeArgs: args,
+                LiftedKernel: lifted,
+                InlineKernelSymbol: first.InlineKernelSymbol));
+        }
+
+        var launchSites = sites
+            .Select(site => site with
+            {
+                KernelName = stubName,
+                DispatchTypeArguments = site.GetTypeArguments(),
+                LiftedKernel = lifted,
+            })
+            .ToImmutableArray();
+
+        return new DispatchStub(
+            stubName,
+            definition,
+            first.Variant,
+            skipped,
+            specializations.ToImmutable(),
+            launchSites);
     }
 
     /// <summary>
@@ -393,15 +718,14 @@ sealed class CompilationRewriter(ICompiledKernelProvider? kernelProvider = null)
             generatedSources.Add(source);
         }
 
-        // Generate dispatch stubs for monomorphized generic kernels
-        foreach (var dispatch in analysis.DispatchKernels)
+        // Generate dispatch stubs for kernels launched with open type arguments
+        // and for inline kernels capturing delegates
+        foreach (var stub in analysis.DispatchStubs)
+            generatedSources.Add(DispatchStubGenerator.GenerateDispatchStub(stub));
+        foreach (var stub in analysis.DelegateDispatchStubs)
         {
-            var concreteSpecs = analysis.UniqueKernels
-                .Where(k => k.GenericOriginName == dispatch.KernelName)
-                .ToList();
             generatedSources.Add(
-                DispatchStubGenerator.GenerateDispatchStub(
-                    dispatch, concreteSpecs));
+                DispatchStubGenerator.GenerateDelegateDispatchStub(stub));
         }
 
         // Inject generated sources into compilation
@@ -437,7 +761,8 @@ sealed class CompilationRewriter(ICompiledKernelProvider? kernelProvider = null)
     /// Does not modify the in-memory compilation — instead writes rewritten
     /// source files (with #line directives) and generated files to outputDir.
     /// </summary>
-    /// <param name="compilation">The compilation to analyze and rewrite.</param>
+    /// <param name="compilation">The compilation to rewrite.</param>
+    /// <param name="analysis">The analysis of the compilation.</param>
     /// <param name="outputDir">Directory to write output files to.</param>
     /// <param name="projectDir">
     /// Project root for computing relative paths. If null, file names are used.
@@ -445,10 +770,10 @@ sealed class CompilationRewriter(ICompiledKernelProvider? kernelProvider = null)
     /// <returns>The number of rewritten files (0 if no launch sites found).</returns>
     public int RewriteToDisk(
         CSharpCompilation compilation,
+        AnalysisResult analysis,
         string outputDir,
         string? projectDir = null)
     {
-        var analysis = Analyze(compilation);
 
         if (analysis.AllKernels.Count == 0)
         {
@@ -467,16 +792,19 @@ sealed class CompilationRewriter(ICompiledKernelProvider? kernelProvider = null)
             generatedSources.Add(($"{kernel.KernelName}_CompiledKernel.cs", source));
         }
 
-        // Generate dispatch stubs for monomorphized generic kernels
-        foreach (var dispatch in analysis.DispatchKernels)
+        // Generate dispatch stubs for kernels launched with open type arguments
+        // and for inline kernels capturing delegates
+        foreach (var stub in analysis.DispatchStubs)
         {
-            var concreteSpecs = analysis.UniqueKernels
-                .Where(k => k.GenericOriginName == dispatch.KernelName)
-                .ToList();
             generatedSources.Add((
-                $"{dispatch.KernelName}_CompiledKernel.cs",
-                DispatchStubGenerator.GenerateDispatchStub(
-                    dispatch, concreteSpecs)));
+                $"{stub.Name}_CompiledKernel.cs",
+                DispatchStubGenerator.GenerateDispatchStub(stub)));
+        }
+        foreach (var stub in analysis.DelegateDispatchStubs)
+        {
+            generatedSources.Add((
+                $"{stub.Name}_CompiledKernel.cs",
+                DispatchStubGenerator.GenerateDelegateDispatchStub(stub)));
         }
 
         // Rewrite call sites with #line directives enabled
@@ -513,18 +841,6 @@ sealed class CompilationRewriter(ICompiledKernelProvider? kernelProvider = null)
         return rewrittenFiles.Count;
     }
 
-    /// <summary>
-    /// Returns a deduplicated list of kernel descriptors. Two descriptors are
-    /// considered the same if they refer to the same method (by Roslyn display
-    /// string) or, for inline lambdas, by kernel name.
-    /// </summary>
-    private static List<KernelDescriptor> DeduplicateKernels(
-        List<KernelDescriptor> kernels) =>
-        kernels
-            .DistinctBy(k => k.KernelMethod is { } m
-                ? SymbolDisplay.ToDisplayString(m)
-                : k.KernelName)
-            .ToList();
 }
 
 /// <summary>
@@ -532,30 +848,58 @@ sealed class CompilationRewriter(ICompiledKernelProvider? kernelProvider = null)
 /// launch sites, and the deduplicated set for compilation.
 /// </summary>
 /// <param name="AllKernels">
-/// All kernel descriptors, including duplicates (one per launch site).
+/// All kernel descriptors, including duplicates (one per launch site). Launch
+/// sites whose kernel has open type arguments are named after their dispatch stub.
 /// </param>
 /// <param name="UniqueKernels">
-/// Deduplicated kernel descriptors — one per distinct method or inline body.
-/// For monomorphized generic kernels, these are the concrete specializations.
+/// The kernels to compile: one per distinct closed kernel, plus one concrete
+/// specialization per closed instantiation of each kernel launched with open type
+/// arguments. Every name is unique.
 /// </param>
-/// <param name="DispatchKernels">
-/// Original open-generic kernel descriptors that were expanded into concrete
-/// specializations. Used to generate dispatch stubs and skip registration.
+/// <param name="DispatchStubs">
+/// The dispatch stubs for kernels launched with open type arguments. They are
+/// plain static classes, not compiled kernels, so they are not registered.
 /// </param>
 /// <param name="Diagnostics">
-/// Errors found at launch sites, such as inline kernels capturing values that
-/// cannot be passed to a kernel. Kernels must not be compiled if any exist.
+/// Warnings and errors found by the analysis, such as inline kernels capturing
+/// values that cannot be passed to a kernel. Kernels must not be compiled if
+/// any error exists.
 /// </param>
-/// <param name="DelegateRegistrations">
-/// The delegates passed to delegate parameters captured by inline kernels,
-/// which are registered under the keys of their targets at their call sites.
+/// <param name="InstantiationCount">
+/// The number of generic instantiations visited to find the type arguments of
+/// kernels launched with open type arguments.
 /// </param>
 record AnalysisResult(
     List<KernelDescriptor> AllKernels,
     List<KernelDescriptor> UniqueKernels,
-    List<KernelDescriptor> DispatchKernels,
-    List<KernelDiagnostic> Diagnostics,
-    Dictionary<ArgumentSyntax, DelegateRegistration> DelegateRegistrations);
+    List<DispatchStub> DispatchStubs,
+    List<BuildDiagnostic> Diagnostics,
+    int InstantiationCount = 0)
+{
+    /// <summary>
+    /// Returns the dispatch stubs for inline kernels capturing delegate
+    /// parameters, whose bound kernels are part of
+    /// <see cref="UniqueKernels"/>. Like the dispatch stubs for open type
+    /// arguments, they are plain static classes, not compiled kernels.
+    /// </summary>
+    public List<DelegateDispatchStub> DelegateDispatchStubs { get; init; } = [];
+
+    /// <summary>
+    /// Returns the delegates passed to delegate parameters captured by inline
+    /// kernels, which are registered under the keys of their targets at their
+    /// call sites.
+    /// </summary>
+    public Dictionary<ArgumentSyntax, DelegateRegistration> DelegateRegistrations
+    {
+        get;
+        init;
+    } = [];
+
+    /// <summary>
+    /// Returns <see langword="true"/> if the analysis found an error.
+    /// </summary>
+    public bool HasErrors => Diagnostics.Any(d => d.IsError);
+}
 
 /// <summary>
 /// Holds the results of the rewrite phase.

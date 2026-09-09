@@ -170,15 +170,17 @@ sealed class CallSiteRewriter : CSharpSyntaxRewriter
 
         // Build: KernelName_CompiledKernel.Launch[<T, ...>](stream, config, args...)
         SimpleNameSyntax launchName;
-        if (kernel.KernelMethod is { IsGenericMethod: true } gm
-            && gm.TypeArguments.Any(t => t is ITypeParameterSymbol))
+        if (kernel.DispatchTypeArguments is { } dispatchTypeArguments)
         {
-            // Forward generic type arguments to the stub Launch method
+            // Forward the launch site's type arguments, including those of the
+            // kernel's containing types, to the dispatch stub's Launch method
             var typeArgs = new List<TypeSyntax>();
-            foreach (var ta in gm.TypeArguments)
+            // Fully qualified, so that names in the launch site's own namespace
+            // cannot shadow them and no using directive is needed
+            foreach (var ta in dispatchTypeArguments)
             {
                 typeArgs.Add(SyntaxFactory.ParseTypeName(
-                    LauncherStubGenerator.FormatTypeNamePublic(ta)));
+                    ta.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)));
             }
             launchName = SyntaxFactory.GenericName(
                 SyntaxFactory.Identifier("Launch"),

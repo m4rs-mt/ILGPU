@@ -644,6 +644,148 @@ public static class MsBuildIntegrationTests
     }
 
     // -----------------------------------------------------------------------
+    // Test 13: NestedGenericLaunch — generic kernels launched through generic
+    // wrappers and from a generic class are compiled for every closed
+    // instantiation, and a launch site that no closed instantiation reaches
+    // produces warning ILGPU1001 as a real MSBuild warning.
+    // -----------------------------------------------------------------------
+
+    public sealed class NestedGenericLaunch(ITestOutputHelper output)
+    {
+        [SkippableTheory]
+        [InlineData(BackendType.CPU)]
+        [InlineData(BackendType.Metal)]
+        public async Task Build_NestedGenericLaunch_WarnsForOpenSiteAndRuns(
+            BackendType backend)
+        {
+            await RequireBackendAsync(backend);
+
+            using var project = new IntegrationProjectFixture(
+                "NestedGenericLaunch", backend, output);
+            try
+            {
+                var build = await project.BuildAsync();
+                Assert.True(build.Succeeded,
+                    $"dotnet build failed (exit {build.ExitCode}). " +
+                    $"Stderr: {build.StdErr}");
+
+                // MSBuild's Exec task turns the canonical diagnostic line into a
+                // build warning located at the launch site in Library.Run<T>.
+                var combined = build.FullStdOut + "\n" + build.StdErr;
+                Assert.Contains(
+                    "Program.cs(60,9): warning ILGPU1001",
+                    combined,
+                    StringComparison.Ordinal);
+                Assert.Contains("Library.Run<T>", combined, StringComparison.Ordinal);
+
+                var run = await project.RunAsync();
+                Assert.False(run.TimedOut, "Binary timed out");
+                Assert.Equal(0, run.ExitCode);
+                OutputVerifier.Verify(
+                    run.StdOutLines,
+                    expected:
+                    [
+                        "2", "4", "6", "8",
+                        "30", "60", "90", "120",
+                        "2", "1", "4", "3",
+                    ]);
+            }
+            catch
+            {
+                project.MarkFailed();
+                throw;
+            }
+        }
+    }
+
+    // -----------------------------------------------------------------------
+    // Test 14: SourceGenerated — the project only compiles with the code its
+    // source generators produce. ILGPUC runs the generators, so it finds the
+    // generic launch and the build and the binary succeed.
+    // -----------------------------------------------------------------------
+
+    public sealed class SourceGenerated(ITestOutputHelper output)
+    {
+        [SkippableFact]
+        public async Task Build_SourceGenerated_RunsGeneratorsAndRuns()
+        {
+            await RequireBackendAsync(BackendType.CPU);
+
+            using var project = new IntegrationProjectFixture(
+                "SourceGenerated", BackendType.CPU, output);
+            try
+            {
+                var build = await project.BuildAsync();
+                Assert.True(build.Succeeded,
+                    $"dotnet build failed (exit {build.ExitCode}). " +
+                    $"Stderr: {build.StdErr}");
+                var combined = build.FullStdOut + "\n" + build.StdErr;
+                Assert.DoesNotContain("ILGPU1009", combined, StringComparison.Ordinal);
+                Assert.Contains(
+                    "--analyzers",
+                    File.ReadAllText(project.ResponseFilePath),
+                    StringComparison.Ordinal);
+
+                var run = await project.RunAsync();
+                Assert.False(run.TimedOut, "Binary timed out");
+                Assert.Equal(0, run.ExitCode);
+                OutputVerifier.Verify(run.StdOutLines, expected: ["2", "4", "6", "8"]);
+            }
+            catch
+            {
+                project.MarkFailed();
+                throw;
+            }
+        }
+    }
+
+    // -----------------------------------------------------------------------
+    // Test 15: Incremental — changing an MSBuild property that ILGPUC reads
+    // reruns ILGPUKernelCompile even though no source changed.
+    // -----------------------------------------------------------------------
+
+    public sealed class IncrementalPropertyChange(ITestOutputHelper output)
+    {
+        [SkippableFact]
+        public async Task Build_Incremental_RebuildsWhenPropertiesChange()
+        {
+            await RequireBackendAsync(BackendType.CPU);
+
+            using var project = new IntegrationProjectFixture(
+                "HelloKernel", BackendType.CPU, output);
+            try
+            {
+                var firstBuild = await project.BuildAsync();
+                Assert.True(firstBuild.Succeeded);
+                var firstMtime = File.GetLastWriteTimeUtc(project.ManifestPath);
+
+                // Clear the filesystem's timestamp resolution
+                await Task.Delay(TimeSpan.FromSeconds(2));
+                var secondBuild = await project.BuildAsync(
+                    new Dictionary<string, string>
+                    {
+                        ["ILGPUWarnOnOpenPublicEntryPoints"] = "true",
+                    });
+                Assert.True(secondBuild.Succeeded);
+                var secondMtime = File.GetLastWriteTimeUtc(project.ManifestPath);
+
+                Assert.True(secondMtime > firstMtime,
+                    $"Expected manifest mtime to advance after changing a property. " +
+                    $"First={firstMtime:O}, Second={secondMtime:O}");
+                Assert.Contains(
+                    "--warn-open-public-entry-points",
+                    File.ReadAllText(project.ResponseFilePath),
+                    StringComparison.Ordinal);
+            }
+            catch
+            {
+                project.MarkFailed();
+                throw;
+            }
+        }
+    }
+
+    // -----------------------------------------------------------------------
     // Helpers
     // -----------------------------------------------------------------------
 

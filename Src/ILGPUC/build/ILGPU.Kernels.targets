@@ -41,6 +41,21 @@
          ILGPU_*_SERVICE_URL environment variables — explicit URLs win. -->
     <ILGPUCompilerServices Condition="'$(ILGPUCompilerServices)' == ''"></ILGPUCompilerServices>
 
+    <!-- User-configurable: limits for finding the type arguments of kernels
+         launched from generic code. They stop polymorphic recursion such as
+         Run<T> calling Run<Box<T>>; exceeding one is a build warning, and the
+         instantiations beyond it are not compiled. Empty means the ILGPUC
+         default (8, 256 and 16384). -->
+    <ILGPUMaxGenericTypeDepth Condition="'$(ILGPUMaxGenericTypeDepth)' == ''"></ILGPUMaxGenericTypeDepth>
+    <ILGPUMaxGenericInstantiationsPerDefinition Condition="'$(ILGPUMaxGenericInstantiationsPerDefinition)' == ''"></ILGPUMaxGenericInstantiationsPerDefinition>
+    <ILGPUMaxGenericInstantiations Condition="'$(ILGPUMaxGenericInstantiations)' == ''"></ILGPUMaxGenericInstantiations>
+
+    <!-- User-configurable: when true, warn (ILGPU1010) for every public or
+         protected method whose type arguments reach a kernel launch, because
+         other assemblies may call it with type arguments that have no compiled
+         kernel. Meant for libraries; off by default. -->
+    <ILGPUWarnOnOpenPublicEntryPoints Condition="'$(ILGPUWarnOnOpenPublicEntryPoints)' == ''">false</ILGPUWarnOnOpenPublicEntryPoints>
+
     <!-- Tool path. When unset (default), auto-resolve against the package's
          tools/ layout below. Override for local dev builds, e.g.:
            <ILGPUCompilerTool>dotnet "$(ILGPU_REPO)/Bin/Debug/net10.0/ILGPUC.dll" </ILGPUCompilerTool>
@@ -83,15 +98,14 @@
   </PropertyGroup>
 
   <!-- =================================================================
-       Target: ILGPUKernelCompile
-       Runs after assembly references are resolved, before CoreCompile.
-       Writes a response file, invokes the ILGPUC build command.
+       Target: _ILGPUWriteResponseFile
+       Runs on every build, after CoreCompile's dependencies have resolved
+       references, analyzers and editorconfig files. Writes the response file
+       only when its contents change, so that its timestamp tells
+       ILGPUKernelCompile whether any property or item it depends on changed.
        ================================================================= -->
-  <Target Name="ILGPUKernelCompile"
-          BeforeTargets="CoreCompile"
-          DependsOnTargets="ResolveAssemblyReferences"
-          Inputs="@(Compile)"
-          Outputs="$(ILGPUManifest)">
+  <Target Name="_ILGPUWriteResponseFile"
+          DependsOnTargets="ResolveAssemblyReferences">
 
     <!-- Ensure output dir exists -->
     <MakeDir Directories="$(ILGPUOutputDir)" />
@@ -130,12 +144,70 @@
                       Condition="'@(_ILGPUCompilerServiceItem)' != ''" />
       <_ILGPURspLines Include="@(_ILGPUCompilerServiceItem)"
                       Condition="'@(_ILGPUCompilerServiceItem)' != ''" />
+      <_ILGPURspLines Include="--define-constants"
+                      Condition="'$(DefineConstants)' != ''" />
+      <_ILGPURspLines Include="$([MSBuild]::Escape('$(DefineConstants)'))"
+                      Condition="'$(DefineConstants)' != ''" />
+      <_ILGPURspLines Include="--lang-version"
+                      Condition="'$(LangVersion)' != ''" />
+      <_ILGPURspLines Include="$(LangVersion)"
+                      Condition="'$(LangVersion)' != ''" />
+      <_ILGPURspLines Include="--max-generic-type-depth"
+                      Condition="'$(ILGPUMaxGenericTypeDepth)' != ''" />
+      <_ILGPURspLines Include="$(ILGPUMaxGenericTypeDepth)"
+                      Condition="'$(ILGPUMaxGenericTypeDepth)' != ''" />
+      <_ILGPURspLines Include="--max-generic-instantiations-per-definition"
+                      Condition="'$(ILGPUMaxGenericInstantiationsPerDefinition)' != ''" />
+      <_ILGPURspLines Include="$(ILGPUMaxGenericInstantiationsPerDefinition)"
+                      Condition="'$(ILGPUMaxGenericInstantiationsPerDefinition)' != ''" />
+      <_ILGPURspLines Include="--max-generic-instantiations"
+                      Condition="'$(ILGPUMaxGenericInstantiations)' != ''" />
+      <_ILGPURspLines Include="$(ILGPUMaxGenericInstantiations)"
+                      Condition="'$(ILGPUMaxGenericInstantiations)' != ''" />
+      <_ILGPURspLines Include="--warn-open-public-entry-points"
+                      Condition="'$(ILGPUWarnOnOpenPublicEntryPoints)' == 'true'" />
+      <!-- Source generators run in ILGPUC too, so that it sees the same code
+           as csc -->
+      <_ILGPURspLines Include="--analyzers"
+                      Condition="'@(Analyzer)' != ''" />
+      <_ILGPURspLines Include="%(Analyzer.FullPath)"
+                      Condition="'@(Analyzer)' != ''" />
+      <_ILGPURspLines Include="--additional-files"
+                      Condition="'@(AdditionalFiles)' != ''" />
+      <_ILGPURspLines Include="%(AdditionalFiles.FullPath)"
+                      Condition="'@(AdditionalFiles)' != ''" />
+      <_ILGPURspLines Include="--analyzer-config-files"
+                      Condition="'@(EditorConfigFiles)' != ''" />
+      <_ILGPURspLines Include="%(EditorConfigFiles.FullPath)"
+                      Condition="'@(EditorConfigFiles)' != ''" />
     </ItemGroup>
 
     <WriteLinesToFile
       File="$(ILGPUResponseFile)"
       Lines="@(_ILGPURspLines)"
-      Overwrite="true" />
+      Overwrite="true"
+      WriteOnlyWhenDifferent="true" />
+
+    <!-- The tool itself, when it was resolved from the package layout -->
+    <ItemGroup>
+      <_ILGPUToolFile Include="$(_ILGPUNativeExe)"
+                      Condition="'$(_ILGPUNativeExe)' != '' And Exists('$(_ILGPUNativeExe)')" />
+      <_ILGPUToolFile Include="$(_ILGPUJitDll)"
+                      Condition="'$(_ILGPUJitDll)' != '' And Exists('$(_ILGPUJitDll)')" />
+    </ItemGroup>
+  </Target>
+
+  <!-- =================================================================
+       Target: ILGPUKernelCompile
+       Runs before CoreCompile and invokes the ILGPUC build command. It is
+       skipped when no source, reference, generator input, project file,
+       response file or ILGPUC binary changed since the last run.
+       ================================================================= -->
+  <Target Name="ILGPUKernelCompile"
+          BeforeTargets="CoreCompile"
+          DependsOnTargets="_ILGPUWriteResponseFile"
+          Inputs="@(Compile);@(ReferencePath);@(Analyzer);@(AdditionalFiles);@(EditorConfigFiles);$(ILGPUResponseFile);$(MSBuildAllProjects);@(_ILGPUToolFile)"
+          Outputs="$(ILGPUManifest)">
 
     <!-- Run the ILGPUC build command -->
     <Exec Command="$(ILGPUCompilerTool) @&quot;$(ILGPUResponseFile)&quot; $(ILGPUBackendOptions) $(ILGPUCompilationOptions)"

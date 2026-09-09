@@ -18,6 +18,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Reflection;
 using System.Text;
@@ -38,10 +39,18 @@ sealed class MainKernelProvider : ICompiledKernelProvider
 {
     private readonly Dictionary<string, string> _compiledSources;
 
-    private MainKernelProvider(Dictionary<string, string> compiledSources)
+    private MainKernelProvider(
+        Dictionary<string, string> compiledSources,
+        List<BuildDiagnostic> diagnostics)
     {
         _compiledSources = compiledSources;
+        Diagnostics = diagnostics;
     }
+
+    /// <summary>
+    /// Returns the warnings found while resolving and compiling kernels.
+    /// </summary>
+    public IReadOnlyList<BuildDiagnostic> Diagnostics { get; }
 
     /// <summary>
     /// Creates an <see cref="MainKernelProvider"/> by performing the two-phase
@@ -70,11 +79,11 @@ sealed class MainKernelProvider : ICompiledKernelProvider
         IRDumpSettings dump = default,
         CancellationToken ct = default)
     {
-        if (analysis.Diagnostics.Count > 0)
+        if (analysis.HasErrors)
         {
             throw new InvalidOperationException(
                 "Kernel launch sites have errors:\n" +
-                string.Join("\n", analysis.Diagnostics));
+                string.Join("\n", analysis.Diagnostics.Where(d => d.IsError)));
         }
 
         // Phase 1: Rewrite with stubs so the compilation is valid, lifting
@@ -92,12 +101,9 @@ sealed class MainKernelProvider : ICompiledKernelProvider
 
         if (!emitResult.Success || assemblyBytes == null || pdbBytes == null)
         {
-            throw new InvalidOperationException(
-                "Failed to emit temp assembly for kernel resolution. Errors:\n" +
-                string.Join("\n", emitResult.Diagnostics
-                    .Where(d => d.Severity == DiagnosticSeverity.Error)
-                    .Select(d => d.ToString())
-                    .Take(20)));
+            throw new StubCompilationException(
+                [.. emitResult.Diagnostics
+                    .Where(d => d.Severity == DiagnosticSeverity.Error)]);
         }
 
         // Phase 2: Load temp assembly and resolve methods
@@ -108,6 +114,7 @@ sealed class MainKernelProvider : ICompiledKernelProvider
         compiler.RegisterDebugInformation(tempAssembly, pdbBytes);
         var compiledSources = new Dictionary<string, string>();
         var kernelsToCompile = new List<KernelCompileJob>();
+        var diagnostics = new List<BuildDiagnostic>();
 
         foreach (var kernel in analysis.UniqueKernels)
         {
@@ -123,9 +130,14 @@ sealed class MainKernelProvider : ICompiledKernelProvider
             }
             if (method is null)
             {
-                await Console.Error.WriteLineAsync(
-                    $"Warning: Could not resolve method for kernel " +
-                    $"'{kernel.KernelName}', using stub.");
+                diagnostics.Add(BuildDiagnostic.Warning(
+                    BuildDiagnosticCodes.UnresolvedKernel,
+                    kernel.LaunchInfo.Invocation.GetLocation(),
+                    $"Could not resolve kernel method " +
+                    $"'{kernel.KernelMethod?.ToDisplayString() ?? kernel.KernelName}' " +
+                    $"in the compiled " +
+                    $"assembly, so no kernel is compiled for it and launching it " +
+                    $"throws a NotSupportedException."));
                 compiledSources[kernel.KernelName] =
                     stubProvider.GetCompiledKernelSource(kernel);
                 continue;
@@ -170,7 +182,7 @@ sealed class MainKernelProvider : ICompiledKernelProvider
             }
         }
 
-        return new MainKernelProvider(compiledSources);
+        return new MainKernelProvider(compiledSources, diagnostics);
     }
 
     /// <summary>
@@ -258,161 +270,103 @@ sealed class MainKernelProvider : ICompiledKernelProvider
         Assembly assembly,
         KernelDescriptor kernel)
     {
-        if (kernel.KernelMethod is { } symbol)
-            return ResolveMethod(assembly, symbol);
-        if (kernel.LiftedKernel is null)
+        // Specializations of local functions in generic code keep their
+        // definition, and lifted kernels are not symbols of the compilation
+        if (kernel.KernelMethod is { } symbol &&
+            (kernel.ConcreteTypeArgs is null || !kernel.IsLocalKernel))
+        {
+            return RuntimeSymbolResolver.ResolveMethod(assembly, symbol);
+        }
+        var definition = kernel.GenericDefinition;
+        var name = kernel.KernelMethod?.Name ?? kernel.LiftedKernel?.Identifier.ValueText;
+        if (definition is null || name is null)
             return null;
+        var method = RuntimeSymbolResolver.ResolveLocalFunction(
+            assembly,
+            definition,
+            name,
+            kernel.ConcreteTypeArgs ?? kernel.GetTypeArguments());
+        if (kernel.KernelMethod is not null)
+            return method;
 
-        // Lifted kernel names are unique within the compilation. The lifted
-        // kernel must not capture anything, which would add a closure
-        // parameter to the index and the captured values.
-        var method = FindLocalFunction(
-            assembly.GetTypes(), owner: null, kernel.KernelName);
+        // The lifted kernel must not capture anything, which would add a
+        // closure parameter to the index and the captured values.
         return method is { IsStatic: true }
             && method.GetParameters().Length == kernel.Parameters.Length + 1
             ? method
             : null;
     }
+}
+
+/// <summary>
+/// Thrown when the project, rewritten with stub kernels, does not compile, so
+/// that the kernels cannot be resolved.
+/// </summary>
+sealed class StubCompilationException : InvalidOperationException
+{
+    /// <summary>
+    /// The number of compiler errors reported as their own diagnostics.
+    /// </summary>
+    private const int MaxReportedErrors = 5;
 
     /// <summary>
-    /// Finds a compiled local function in the given types. The C# compiler
-    /// emits local functions as methods named
-    /// <c>&lt;Owner&gt;g__Name|i_j</c>, where <c>Owner</c> is the member
-    /// declaring them.
+    /// Creates an exception without compiler errors.
     /// </summary>
-    /// <param name="types">The types to search.</param>
-    /// <param name="owner">
-    /// The name of the declaring member, or <see langword="null"/> to accept
-    /// any member.
-    /// </param>
-    /// <param name="name">The name of the local function.</param>
-    /// <returns>The method if exactly one matches; otherwise null.</returns>
-    private static MethodInfo? FindLocalFunction(
-        IEnumerable<Type> types,
-        string? owner,
-        string name)
+    public StubCompilationException()
+        : this([])
+    { }
+
+    /// <summary>
+    /// Creates an exception without compiler errors.
+    /// </summary>
+    public StubCompilationException(string message)
+        : base(message)
+    { }
+
+    /// <summary>
+    /// Creates an exception without compiler errors.
+    /// </summary>
+    public StubCompilationException(string message, Exception innerException)
+        : base(message, innerException)
+    { }
+
+    /// <summary>
+    /// Creates an exception for the given compiler errors.
+    /// </summary>
+    public StubCompilationException(IReadOnlyList<Diagnostic> errors)
+        : base(
+            "Failed to emit temp assembly for kernel resolution. Errors:\n" +
+            string.Join("\n", errors.Take(20)))
     {
-        var marker = $">g__{name}|";
-        var prefix = owner is null ? "<" : $"<{owner}>";
-        var matches = types
-            .SelectMany(t => t.GetMethods(
-                BindingFlags.Public | BindingFlags.NonPublic |
-                BindingFlags.Static | BindingFlags.Instance |
-                BindingFlags.DeclaredOnly))
-            .Where(m => m.Name.StartsWith(prefix, StringComparison.Ordinal)
-                && m.Name.Contains(marker, StringComparison.Ordinal))
-            .Take(2)
-            .ToArray();
-        return matches.Length == 1 ? matches[0] : null;
+        Errors = errors;
     }
 
     /// <summary>
-    /// Resolves a MethodInfo from a loaded assembly using Roslyn symbol info.
-    /// For generic methods (e.g. <c>Kernel&lt;LambdaClosure, long&gt;</c>),
-    /// the open generic definition is specialized with concrete type arguments.
+    /// Returns the compiler errors.
     /// </summary>
-    private static MethodInfo? ResolveMethod(
-        Assembly assembly,
-        IMethodSymbol symbol)
-    {
-        var typeName = symbol.ContainingType.ToDisplayString();
-        var type = assembly.GetType(typeName);
-        if (type == null)
-            return null;
-
-        MethodInfo? method;
-        if (symbol.MethodKind == MethodKind.LocalFunction)
-        {
-            // Local functions are emitted under mangled names on the type
-            // (or a closure type nested in it) containing their owner
-            var owner = symbol.ContainingSymbol;
-            while (owner is IMethodSymbol
-                {
-                    MethodKind: MethodKind.LocalFunction
-                        or MethodKind.AnonymousFunction,
-                })
-            {
-                owner = owner.ContainingSymbol;
-            }
-            var types = assembly.GetTypes()
-                .Where(t => t == type || IsNestedIn(t, type));
-            method = FindLocalFunction(types, owner.Name, symbol.Name);
-        }
-        else
-        {
-            method = type.GetMethod(
-                symbol.Name,
-                BindingFlags.Public | BindingFlags.NonPublic |
-                BindingFlags.Static | BindingFlags.Instance);
-        }
-
-        if (method is null)
-            return null;
-
-        // Specialize open generic methods with concrete type arguments
-        if (symbol.IsGenericMethod && method.IsGenericMethodDefinition)
-        {
-            var typeArgs = new Type[symbol.TypeArguments.Length];
-            for (int i = 0; i < typeArgs.Length; i++)
-            {
-                var resolved = ResolveTypeSymbol(assembly, symbol.TypeArguments[i]);
-                if (resolved is null)
-                    return null;
-                typeArgs[i] = resolved;
-            }
-            method = method.MakeGenericMethod(typeArgs);
-        }
-
-        return method;
-    }
+    public IReadOnlyList<Diagnostic> Errors { get; } = [];
 
     /// <summary>
-    /// Returns <see langword="true"/> if <paramref name="type"/> is nested,
-    /// directly or transitively, in <paramref name="outer"/>.
+    /// Converts the compiler errors into build errors: the first few with their
+    /// locations, and a summary that explains the likely causes.
     /// </summary>
-    private static bool IsNestedIn(Type type, Type outer)
+    public IEnumerable<BuildDiagnostic> ToBuildDiagnostics()
     {
-        for (var current = type.DeclaringType; current != null;
-            current = current.DeclaringType)
+        foreach (var error in Errors.Take(MaxReportedErrors))
         {
-            if (current == outer)
-                return true;
+            yield return BuildDiagnostic.Error(
+                BuildDiagnosticCodes.CompilationErrors,
+                error.Location,
+                $"{error.Id}: {error.GetMessage(CultureInfo.InvariantCulture)}");
         }
-        return false;
-    }
-
-    /// <summary>
-    /// Resolves a Roslyn <see cref="ITypeSymbol"/> to a runtime <see cref="Type"/>
-    /// using the temp assembly and well-known system types.
-    /// </summary>
-    private static Type? ResolveTypeSymbol(Assembly assembly, ITypeSymbol symbol)
-    {
-        // Handle well-known primitive / system types
-        var specialType = symbol.SpecialType;
-        if (specialType != SpecialType.None)
-        {
-            return specialType switch
-            {
-                SpecialType.System_Boolean => typeof(bool),
-                SpecialType.System_Byte => typeof(byte),
-                SpecialType.System_SByte => typeof(sbyte),
-                SpecialType.System_Int16 => typeof(short),
-                SpecialType.System_UInt16 => typeof(ushort),
-                SpecialType.System_Int32 => typeof(int),
-                SpecialType.System_UInt32 => typeof(uint),
-                SpecialType.System_Int64 => typeof(long),
-                SpecialType.System_UInt64 => typeof(ulong),
-                SpecialType.System_Single => typeof(float),
-                SpecialType.System_Double => typeof(double),
-                SpecialType.System_String => typeof(string),
-                SpecialType.System_Object => typeof(object),
-                _ => Type.GetType(symbol.ToDisplayString())
-            };
-        }
-
-        // Try the temp assembly first, then fallback to Type.GetType
-        var fullName = symbol.ToDisplayString();
-        return assembly.GetType(fullName)
-            ?? Type.GetType(fullName);
+        yield return BuildDiagnostic.Error(
+            BuildDiagnosticCodes.CompilationErrors,
+            null,
+            $"ILGPU could not compile the project to find its kernels " +
+            $"({Errors.Count} error(s)). If the C# compiler builds the project " +
+            $"without these errors, ILGPU sees it differently: check that its " +
+            $"C# version supports the language features used (ILGPU supports up " +
+            $"to C# {LanguageVersion.Latest.MapSpecifiedToEffectiveVersion().ToDisplayString()}), " +
+            $"and look for warnings about source generators (ILGPU1009).");
     }
 }

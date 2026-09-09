@@ -39,14 +39,25 @@ namespace ILGPUC.Roslyn.Analysis;
 /// (e.g., <c>CalculatorKernel</c>). Null for non-specialized kernels.
 /// </param>
 /// <param name="ConcreteTypeArgs">
-/// The concrete Roslyn type symbols substituted for the kernel's type parameters.
-/// Null for non-specialized kernels.
+/// The concrete Roslyn type symbols substituted for the kernel's type parameters,
+/// including those of its containing types, ordered as by
+/// <see cref="GenericContext.GetTypeParameters"/>. Null for non-specialized kernels.
+/// </param>
+/// <param name="DispatchTypeArguments">
+/// For a launch site whose kernel has open type arguments, the type arguments the
+/// rewritten call passes to the generic <c>Launch</c> method of the dispatch stub,
+/// in the context of the launch site. Null for all other kernels.
 /// </param>
 /// <param name="LiftedKernel">
 /// For inline lambdas, the static local function the lambda body is lifted
 /// into, which is declared next to the launch site so the kernel can be
 /// resolved and compiled like a named method. Null for named kernels and for
 /// inline lambdas that were rejected with a diagnostic.
+/// </param>
+/// <param name="InlineKernelSymbol">
+/// For inline lambdas, the symbol of the lambda, whose enclosing generic
+/// methods and types supply the type parameters of the lifted kernel. Null for
+/// named kernels.
 /// </param>
 /// <param name="DelegateCaptures">
 /// For inline lambdas, the delegate parameters of the launching method that
@@ -66,10 +77,47 @@ record KernelDescriptor(
     KernelLaunchInfo LaunchInfo,
     string? GenericOriginName = null,
     ImmutableArray<ITypeSymbol>? ConcreteTypeArgs = null,
+    ImmutableArray<ITypeSymbol>? DispatchTypeArguments = null,
     LocalFunctionStatementSyntax? LiftedKernel = null,
+    IMethodSymbol? InlineKernelSymbol = null,
     ImmutableArray<DelegateCapture>? DelegateCaptures = null,
     ImmutableArray<string>? DelegateKeys = null)
 {
+    /// <summary>
+    /// Returns the definition whose type parameters the kernel is generic over:
+    /// the kernel method, or the inline lambda.
+    /// </summary>
+    public ISymbol? GenericDefinition =>
+        (ISymbol?)KernelMethod?.OriginalDefinition ?? InlineKernelSymbol;
+
+    /// <summary>
+    /// Returns the type arguments of the kernel at its launch site, ordered as
+    /// by <see cref="GenericContext.GetTypeParameters"/>. An inline lambda uses
+    /// the type parameters in scope at the launch site unchanged.
+    /// </summary>
+    public ImmutableArray<ITypeSymbol> GetTypeArguments() =>
+        KernelMethod is { } method
+            ? GenericContext.GetTypeArguments(method)
+            : InlineKernelSymbol is { } lambda
+                ? [.. GenericContext.GetTypeParameters(lambda)]
+                : [];
+
+    /// <summary>
+    /// Returns <see langword="true"/> if the kernel is a local function or an
+    /// inline lambda, which the C# compiler emits as a method that takes the type
+    /// parameters of its enclosing methods.
+    /// </summary>
+    public bool IsLocalKernel =>
+        KernelMethod is null
+            ? InlineKernelSymbol is not null
+            : KernelMethod.MethodKind == MethodKind.LocalFunction;
+
+    /// <summary>
+    /// Returns a readable name of the kernel for diagnostics.
+    /// </summary>
+    public string DisplayName =>
+        KernelMethod?.ToDisplayString() ?? "inline kernel";
+
     /// <summary>
     /// Returns how the kernel is launched, which the generated device code,
     /// the generated Launch method and the rewritten call site agree on:

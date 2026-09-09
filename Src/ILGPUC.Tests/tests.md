@@ -317,6 +317,7 @@ after 30 seconds and the test reports a timeout failure.
 | GroupExecutionTests | 1 | Group.Barrier intrinsic |
 | WarpExecutionTests | 1 | Warp.Barrier intrinsic |
 | SharedMemoryExecutionTests | 1 | Shared memory allocation |
+| GenericKernelExecutionTests | 2 | Generic closures; kernels launched through generic wrappers, generic classes and constructed type arguments |
 
 **Total: 26 test classes, 39 test methods, 38 test programs.**
 
@@ -538,7 +539,10 @@ Key methods:
 
 Orchestrates the full pipeline from `.cs` source to runnable `.dll`:
 1. Roslyn compiles source into a library DLL
-2. Loads the DLL to resolve kernel `MethodInfo`s
+2. Loads the DLL to resolve kernel `MethodInfo`s through
+   `RuntimeSymbolResolver`, the resolver the `build` command uses, so kernels in
+   generic classes and closed instantiations found through generic wrappers resolve
+   the same way in tests
 3. For each kernel: ILFrontend → ModuleBuilder → optimize → Backend.GenerateCode → CompiledKernelGenerator
 4. Generates `KernelRegistrar` source
 5. Roslyn compiles source + wrappers + registrar into a console DLL

@@ -49,6 +49,12 @@ sealed class ManifestWriter(string outputDir)
         Directory.CreateDirectory(_rewrittenDir);
         Directory.CreateDirectory(_generatedDir);
 
+        // Kernel class names depend on the whole program (a second instantiation
+        // or launch shape renames a kernel), and the targets compile everything
+        // in generated/, so remove the classes of the previous build
+        foreach (var stale in Directory.GetFiles(_generatedDir, "*_CompiledKernel.cs"))
+            File.Delete(stale);
+
         var manifestLines = new List<string>();
 
         // Write rewritten files

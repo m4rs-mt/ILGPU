@@ -16,6 +16,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Text;
+using System;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -96,15 +97,16 @@ public sealed class InlineLambdaDiagnosticTests
     /// Asserts that exactly one diagnostic with the given id was reported and
     /// that it points at <paramref name="expectedSource"/>.
     /// </summary>
-    private static KernelDiagnostic AssertSingleDiagnostic(
+    private static BuildDiagnostic AssertSingleDiagnostic(
         AnalysisResult analysis,
         string expectedId,
         string expectedSource)
     {
         var diagnostic = Assert.Single(analysis.Diagnostics);
-        Assert.Equal(expectedId, diagnostic.Id);
+        Assert.Equal(expectedId, diagnostic.Code);
+        Assert.True(diagnostic.IsError);
 
-        var location = diagnostic.Location;
+        var location = diagnostic.Location!;
         var text = location.SourceTree!.GetText().ToString(location.SourceSpan);
         Assert.Equal(expectedSource, text);
         return diagnostic;
@@ -147,7 +149,7 @@ public sealed class InlineLambdaDiagnosticTests
             """);
 
         AssertSingleDiagnostic(analysis, KernelDiagnostic.AssignsCaptureId, "result");
-        Assert.Null(analysis.UniqueKernels[0].LiftedKernel);
+        Assert.Null(Assert.Single(analysis.AllKernels).LiftedKernel);
     }
 
     /// <summary>
@@ -283,7 +285,7 @@ public sealed class InlineLambdaDiagnosticTests
             "static int Negate(int value) => -value;");
 
         Assert.Empty(analysis.Diagnostics);
-        var dispatch = Assert.Single(analysis.DispatchKernels);
+        var dispatch = Assert.Single(analysis.DelegateDispatchStubs).Original;
         var capture = Assert.Single(dispatch.DelegateCaptures!.Value);
         Assert.Equal("op", capture.Parameter.Name);
 
@@ -411,13 +413,13 @@ public sealed class InlineLambdaDiagnosticTests
         Assert.Equal(3, analysis.Diagnostics.Count);
         Assert.All(analysis.Diagnostics, diagnostic =>
         {
-            Assert.Equal(KernelDiagnostic.UntraceableDelegateArgumentId, diagnostic.Id);
+            Assert.Equal(KernelDiagnostic.UntraceableDelegateArgumentId, diagnostic.Code);
             Assert.Contains("cannot be traced", diagnostic.Message);
         });
         Assert.Equal(
             ["f + g", "(Func<int, int>)Delegate.Combine(f, g)", "f"],
             analysis.Diagnostics.Select(d =>
-                d.Location.SourceTree!.GetText().ToString(d.Location.SourceSpan)));
+                d.Location!.SourceTree!.GetText().ToString(d.Location.SourceSpan)));
     }
 
     /// <summary>
@@ -499,6 +501,86 @@ public sealed class InlineLambdaDiagnosticTests
         var diagnostic = AssertSingleDiagnostic(
             analysis, KernelDiagnostic.GenericContextId, "v => v + 1");
         Assert.Contains("generic method", diagnostic.Message);
+    }
+
+    /// <summary>
+    /// Launch lambdas in generic methods are compiled per instantiation, but
+    /// the delegates passed to a generic launching method are not traced per
+    /// instantiation, so capturing its delegate parameter is reported at the
+    /// capture instead of binding the kernels to the wrong instantiation.
+    /// </summary>
+    [Fact]
+    public void DelegateParameterOfGenericLaunchingMethod_ReportsGenericContext()
+    {
+        var analysis = AnalyzeProgram("""
+            static class Kernels
+            {
+                public static void UnaryOpKernel<T>(
+                    Index1D index, ArrayView<T> data, Func<T, T> op)
+                    where T : unmanaged =>
+                    data[index] = op(data[index]);
+            }
+
+            static class Host
+            {
+                public static void UnaryOp<T>(
+                    AcceleratorStream stream, ArrayView<T> view, Func<T, T> op)
+                    where T : unmanaged
+                {
+                    stream.Launch(
+                        view.IntExtent,
+                        index => Kernels.UnaryOpKernel(index, view, op));
+                }
+
+                static void Run(AcceleratorStream stream, ArrayView<int> view) =>
+                    UnaryOp(stream, view, v => -v);
+            }
+            """);
+
+        var diagnostic = AssertSingleDiagnostic(
+            analysis, KernelDiagnostic.GenericContextId, "op");
+        Assert.Contains("'Host.UnaryOp'", diagnostic.Message);
+        Assert.Contains("generic method", diagnostic.Message);
+        Assert.Empty(analysis.DispatchStubs);
+        Assert.Empty(analysis.DelegateDispatchStubs);
+    }
+
+    /// <summary>
+    /// A launching method of a generic type takes the type parameters of its
+    /// type, so capturing its delegate parameter is reported as well.
+    /// </summary>
+    [Fact]
+    public void DelegateParameterInGenericType_ReportsGenericContext()
+    {
+        var analysis = AnalyzeProgram("""
+            static class Kernels
+            {
+                public static void UnaryOpKernel(
+                    Index1D index, ArrayView<int> data, Func<int, int> op) =>
+                    data[index] = op(data[index]);
+            }
+
+            static class Host<T>
+            {
+                public static void UnaryOp(
+                    AcceleratorStream stream, ArrayView<int> view, Func<int, int> op)
+                {
+                    stream.Launch(
+                        view.IntExtent,
+                        index => Kernels.UnaryOpKernel(index, view, op));
+                }
+            }
+
+            static class Callers
+            {
+                static void Run(AcceleratorStream stream, ArrayView<int> view) =>
+                    Host<float>.UnaryOp(stream, view, v => -v);
+            }
+            """);
+
+        var diagnostic = AssertSingleDiagnostic(
+            analysis, KernelDiagnostic.GenericContextId, "op");
+        Assert.Contains("generic type 'Host<T>'", diagnostic.Message);
     }
 
     /// <summary>
@@ -766,17 +848,19 @@ public sealed class InlineLambdaDiagnosticTests
             out var compilation);
 
         var diagnostic = Assert.Single(analysis.Diagnostics);
-        Assert.Equal(KernelDiagnostic.VisibleLaunchingMethodId, diagnostic.Id);
+        Assert.Equal(KernelDiagnostic.VisibleLaunchingMethodId, diagnostic.Code);
         Assert.Contains("visible outside this assembly", diagnostic.Message);
         Assert.Contains(": error ILGPU1111: ", diagnostic.ToString());
-        var location = diagnostic.Location;
+        var location = diagnostic.Location!;
         Assert.Equal(
             "UnaryOp",
             location.SourceTree!.GetText().ToString(location.SourceSpan));
 
-        var executable = CompilationRewriter.Analyze(compilation, isLibrary: false);
+        var executable = CompilationRewriter.Analyze(
+            compilation,
+            new AnalysisOptions(IsLibrary: false));
         Assert.Empty(executable.Diagnostics);
-        var dispatch = Assert.Single(executable.DispatchKernels);
+        var dispatch = Assert.Single(executable.DelegateDispatchStubs).Original;
         var capture = Assert.Single(dispatch.DelegateCaptures!.Value);
         Assert.Equal("op", capture.Parameter.Name);
     }
@@ -820,7 +904,7 @@ public sealed class InlineLambdaDiagnosticTests
             """);
 
         var diagnostic = Assert.Single(analysis.Diagnostics);
-        Assert.Equal(KernelDiagnostic.VisibleLaunchingMethodId, diagnostic.Id);
+        Assert.Equal(KernelDiagnostic.VisibleLaunchingMethodId, diagnostic.Code);
         Assert.Contains("'DerivableHost.UnaryOp'", diagnostic.Message);
     }
 
@@ -849,7 +933,7 @@ public sealed class InlineLambdaDiagnosticTests
             """);
 
         var diagnostic = Assert.Single(analysis.Diagnostics);
-        Assert.Equal(KernelDiagnostic.VisibleLaunchingMethodId, diagnostic.Id);
+        Assert.Equal(KernelDiagnostic.VisibleLaunchingMethodId, diagnostic.Code);
         Assert.Contains("'Host.UnaryOp' captures", diagnostic.Message);
     }
 
@@ -932,7 +1016,7 @@ public sealed class InlineLambdaDiagnosticTests
             """);
 
         var diagnostic = Assert.Single(analysis.Diagnostics);
-        Assert.Equal(KernelDiagnostic.UnsupportedKernelArgumentId, diagnostic.Id);
+        Assert.Equal(KernelDiagnostic.UnsupportedKernelArgumentId, diagnostic.Code);
         Assert.Contains("a conditional expression", diagnostic.Message);
     }
 
@@ -948,7 +1032,7 @@ public sealed class InlineLambdaDiagnosticTests
             """);
 
         var diagnostic = Assert.Single(analysis.Diagnostics);
-        Assert.Equal(KernelDiagnostic.UnsupportedKernelArgumentId, diagnostic.Id);
+        Assert.Equal(KernelDiagnostic.UnsupportedKernelArgumentId, diagnostic.Code);
         Assert.Contains("an anonymous method", diagnostic.Message);
         Assert.Contains("lambda expression instead", diagnostic.Message);
     }
@@ -1135,14 +1219,24 @@ public sealed class InlineLambdaDiagnosticTests
     }
 
     /// <summary>
-    /// Inline kernels in generic methods are rejected at the lambda.
+    /// Inline kernels in generic methods are compiled once per instantiation of
+    /// the method, with the captured values of each instantiation's types.
     /// </summary>
     [Fact]
-    public void InlineKernelInGenericMethod_ReportsGenericContext()
+    public void InlineKernelInGenericMethod_CompiledPerInstantiation()
     {
         var analysis = AnalyzeProgram("""
             static class Helpers
             {
+                public static void Run(
+                    AcceleratorStream stream,
+                    ArrayView<int> ints,
+                    ArrayView<float> floats)
+                {
+                    Fill(stream, ints, 1);
+                    Fill(stream, floats, 2.0f);
+                }
+
                 public static void Fill<T>(
                     AcceleratorStream stream, ArrayView<T> view, T value)
                     where T : unmanaged
@@ -1152,10 +1246,19 @@ public sealed class InlineLambdaDiagnosticTests
             }
             """);
 
-        AssertSingleDiagnostic(
-            analysis,
-            KernelDiagnostic.GenericContextId,
-            "index => view[index] = value");
+        Assert.Empty(analysis.Diagnostics);
+        var stub = Assert.Single(analysis.DispatchStubs);
+        Assert.Equal(
+            [
+                "ILGPU.ArrayView<float> view, float value",
+                "ILGPU.ArrayView<int> view, int value",
+            ],
+            stub.Specializations
+                .Select(k => string.Join(
+                    ", ",
+                    k.Parameters.Select(p => $"{p.Type.ToDisplayString()} {p.Name}")))
+                .Order(StringComparer.Ordinal));
+        Assert.All(stub.Specializations, k => Assert.NotNull(k.LiftedKernel));
     }
 
     /// <summary>
