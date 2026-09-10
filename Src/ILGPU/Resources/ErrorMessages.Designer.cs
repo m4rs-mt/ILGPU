@@ -1114,6 +1114,15 @@ namespace ILGPU.Resources {
         }
 
         /// <summary>
+        ///   Looks up a localized string similar to Static field &apos;{0}&apos; of type &apos;{1}&apos; holds a view or a pointer, which kernels cannot load: its value is read when the kernel is compiled and does not refer to memory of the device. Pass the view to the kernel as a parameter or capture it in an inline kernel instead..
+        /// </summary>
+        internal static string KernelDiagnosticStaticMemoryReferenceField {
+            get {
+                return ResourceManager.GetString("KernelDiagnosticStaticMemoryReferenceField", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to Delegate created from the instance method &apos;{0}&apos; of a struct value is not supported. Use a lambda expression that captures the value instead..
         /// </summary>
         internal static string KernelDiagnosticStructMethodGroup {

@@ -266,6 +266,16 @@ public sealed class KernelDiagnosticTests
             data[index] = StaticOperation(data[index]); // DelegateStaticField
         }
 
+        private static readonly ArrayView<int> StaticView = default;
+
+        // A static readonly view compiled to a load from a null pointer
+        public static void StaticViewFieldKernel(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data)
+        {
+            data[index] = StaticView[index]; // StaticViewField
+        }
+
         private struct Adder
         {
             public int K;
@@ -878,7 +888,7 @@ public sealed class KernelDiagnosticTests
 
     #endregion
 
-    #region Delegate Storage and Other Frontend Diagnostics (ILGPU1205-1209, 1200)
+    #region Delegate Storage and Other Frontend Diagnostics (ILGPU1205-1209, 1214, 1200)
 
     [Fact]
     public void ClosureCapturesDelegate_Reports1205() =>
@@ -957,6 +967,31 @@ public sealed class KernelDiagnosticTests
             "ILGPU1209",
             "Method 'SumOver' calls itself while passing delegates",
             "DelegateRecursion");
+
+    [Fact]
+    public void StaticViewField_Reports1214() =>
+        AssertDiagnostic(
+            Compile(nameof(Kernels.StaticViewFieldKernel)),
+            "ILGPU1214",
+            "Static field 'Kernels.StaticView' of type 'ArrayView<int>' holds a " +
+            "view or a pointer, which kernels cannot load",
+            "StaticViewField");
+
+    // A static readonly view compiled to a load from a null pointer
+    [Fact]
+    public Task StaticViewField_FailsBuild() =>
+        AssertBuildErrorAsync(
+            """
+            static class K
+            {
+                static readonly ArrayView1D<int, Stride1D.Dense> Table;
+                public static void Kern(Index1D i, ArrayView1D<int, Stride1D.Dense> d) =>
+                    d[i] = Table[i]; // error
+            }
+            """,
+            "ILGPU1214",
+            "Static field 'K.Table' of type 'ArrayView1D<int, Dense>' holds a " +
+            "view or a pointer, which kernels cannot load");
 
     [Fact]
     public void Expression_ReportsUnsupportedConstruct()

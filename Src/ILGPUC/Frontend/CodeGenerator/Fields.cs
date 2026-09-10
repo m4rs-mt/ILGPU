@@ -9,6 +9,7 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
+using ILGPU;
 using ILGPU.Resources;
 using ILGPU.Util;
 using ILGPUC.IR;
@@ -17,6 +18,7 @@ using ILGPUC.IR.PureValues;
 using ILGPUC.Roslyn.Analysis;
 using ILGPUC.Util;
 using System;
+using System.Collections.Generic;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 
@@ -205,6 +207,23 @@ partial class CodeGenerator
         }
         VerifyStaticFieldLoad(field);
 
+        // Static field values are read when the kernel is compiled, so views and
+        // pointers in them do not refer to memory of the device. Reject them
+        // before reading the field, which would run its static constructor.
+        // The static views of ILGPU itself are empty views (such as
+        // ArrayView<T>.Empty), which are valid in kernels.
+        if (field.DeclaringType?.Assembly != typeof(ArrayView<>).Assembly &&
+            RefersToMemory(field.FieldType))
+        {
+            throw new KernelCompilationException(
+                KernelDiagnostic.StaticMemoryReferenceFieldId,
+                string.Format(
+                    ErrorMessages.KernelDiagnosticStaticMemoryReferenceField,
+                    $"{field.DeclaringType?.Name}.{field.Name}",
+                    TypeDisplay.Format(field.FieldType)),
+                Location);
+        }
+
         // Compiler-generated static fields in closure/display classes (<>c):
         // - Delegate cache fields (<>9__*): return null so brtrue takes the
         //   cache-miss path to ldftn+newobj
@@ -226,6 +245,61 @@ partial class CodeGenerator
         return fieldValue == null ?
             Builder.CreateObjectValue(Location, field.FieldType) :
             Builder.CreateObjectValue(Location, fieldValue);
+    }
+
+    /// <summary>
+    /// Returns <see langword="true"/> if values of the given type refer to
+    /// memory: pointers, all types that map to views or pointers in the IR, and
+    /// structures and arrays containing them.
+    /// </summary>
+    /// <param name="type">The managed type.</param>
+    /// <param name="visited">
+    /// The structures already being checked, since a structure can contain an
+    /// array of itself.
+    /// </param>
+    /// <remarks>
+    /// Views are detected by the IR type the compiler maps a type to, so that
+    /// every view type is covered without listing them here. Fields of class
+    /// types, which the IR also represents as pointers, are not followed, since
+    /// kernels reject loading class instances from static fields anyway.
+    /// </remarks>
+    private bool RefersToMemory(Type type, HashSet<Type>? visited = null)
+    {
+        // Arrays and immutable arrays contain the values of their elements
+        while (true)
+        {
+            if (type.IsArray)
+                type = type.GetElementType().AsNotNull();
+            else if (type.IsImmutableArray(out var elementType))
+                type = elementType;
+            else
+                break;
+        }
+        if (type.IsPointer || type.IsByRef)
+            return true;
+        // Primitive types never refer to memory, although the IR maps native
+        // integers to pointer-sized types that depend on the address space
+        if (!type.IsValueType || type.IsPrimitive)
+            return false;
+
+        var typeValue = ModuleBuilder.CreateType(type);
+        if (!typeValue.HasFlags(TypeFlags.AddressSpaceDependent))
+            return false;
+        if (typeValue is AddressSpaceType)
+            return true;
+
+        // Check whether the address dependency stems from a view or a pointer
+        // rather than from a field of a class type
+        visited ??= [];
+        if (!visited.Add(type))
+            return false;
+        foreach (var field in type.GetFields(
+            BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic))
+        {
+            if (RefersToMemory(field.FieldType, visited))
+                return true;
+        }
+        return false;
     }
 
     /// <summary>
