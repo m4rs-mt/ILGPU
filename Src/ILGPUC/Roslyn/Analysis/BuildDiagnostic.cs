@@ -46,6 +46,12 @@ static class BuildDiagnosticCodes
     public const string UnresolvedKernel = "ILGPU1005";
 
     /// <summary>
+    /// A kernel instantiation found through a generic wrapper throws an exception
+    /// for its type arguments and is skipped.
+    /// </summary>
+    public const string SkippedThrowingInstantiation = "ILGPU1006";
+
+    /// <summary>
     /// The compilation that ILGPUC builds from the project does not compile.
     /// </summary>
     public const string CompilationErrors = "ILGPU1007";

@@ -16,6 +16,7 @@ using ILGPUC.IR;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
@@ -320,6 +321,38 @@ static unsafe partial class Intrinsics
         return HasIntrinsicGenerator(method)
             ? IntrinsicImplementationKind.Generated
             : throw location.GetInvalidOperationException();
+    }
+
+    /// <summary>
+    /// Returns the method whose IL the constant evaluator interprets for a call of
+    /// <paramref name="method"/>: the method itself, or its remapping (which makes
+    /// constants such as <c>Sse.IsSupported</c> evaluable). Intrinsics that are
+    /// generated or implemented per backend cannot be evaluated.
+    /// </summary>
+    /// <param name="method">The called method.</param>
+    /// <param name="target">The method to interpret, if evaluable.</param>
+    /// <returns>True if the call can be evaluated by interpreting IL.</returns>
+    internal static bool TryGetEvaluationTarget(
+        MethodBase method,
+        [NotNullWhen(true)] out MethodBase? target)
+    {
+        target = null;
+        if (TryGetIntrinsicRemapping(method, out var remapped))
+        {
+            var genericContext = GenericContext.TryGet(method);
+            method = genericContext?.GetSpecializedMethod(remapped) ?? remapped;
+        }
+
+        if (TryGetIntrinsicGenerator(method, out _) ||
+            TryGetIntrinsicImplementation(method, out _) ||
+            method.IsILGPUIntrinsic() ||
+            method.DeclaringType is { IsArray: true })
+        {
+            return false;
+        }
+
+        target = method;
+        return true;
     }
 
     /// <summary>

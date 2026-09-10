@@ -64,6 +64,55 @@ sealed partial class CodeGenerator
     private readonly Dictionary<Value, MethodBase> _delegateTable = [];
 
     /// <summary>
+    /// The blocks that became unreachable when a branch was folded. Code
+    /// generation skips them; see <see cref="PruneUnreachableBlocks"/>.
+    /// </summary>
+    private readonly HashSet<BasicBlock> _unreachableBlocks =
+        new(ReferenceEqualityComparer.Instance);
+
+    /// <summary>
+    /// The error for the first reachable throw, raised after the whole method was
+    /// generated unless another error is raised first.
+    /// </summary>
+    private InternalCompilerException? _pendingThrow;
+
+    /// <summary>
+    /// Records a reachable throw instead of failing right away.
+    /// </summary>
+    private void DeferThrow(InternalCompilerException exception) =>
+        _pendingThrow ??= exception;
+
+    /// <summary>
+    /// Returns the error for the first reachable throw in the method, if any.
+    /// Code generation continues after a throw, so that any other error in the
+    /// method is raised instead: only methods that fail because of throws alone
+    /// may be skipped.
+    /// </summary>
+    public InternalCompilerException? PendingThrow => _pendingThrow;
+
+    /// <summary>
+    /// True while generating the call of a constrained call instruction, which
+    /// makes struct instance members eligible for constant evaluation.
+    /// </summary>
+    private bool _isConstrainedCall;
+
+    /// <summary>
+    /// The number of store instructions per local.
+    /// </summary>
+    private readonly Dictionary<int, int> _localStoreCounts = [];
+
+    /// <summary>
+    /// Locals that are stored exactly once, with a compile-time constant; see
+    /// <see cref="StoreVariable"/>.
+    /// </summary>
+    private readonly Dictionary<VariableRef, Value> _constantLocals = [];
+
+    /// <summary>
+    /// Records why calls could not be evaluated at compile time.
+    /// </summary>
+    private readonly Dictionary<MethodBase, string> _evaluationFailures = [];
+
+    /// <summary>
     /// The location of the first instruction taking the address of each
     /// address-taken variable.
     /// </summary>
@@ -200,6 +249,13 @@ sealed partial class CodeGenerator
                         VariableRefType.Local);
                     _variables.Add(localRef);
                     _addressLocations.TryAdd(localRef, instruction.Location);
+                    break;
+                case ILInstructionType.Stloc:
+                    {
+                        int index = instruction.GetArgumentAs<int>();
+                        _localStoreCounts[index] =
+                            _localStoreCounts.GetValueOrDefault(index) + 1;
+                    }
                     break;
             }
         }
@@ -343,6 +399,19 @@ sealed partial class CodeGenerator
     public Backends.BackendType BackendType { get; }
 
     /// <summary>
+    /// Gets or sets the evaluator that folds calls of helper predicates with
+    /// constant arguments, or <see langword="null"/> to compile all calls.
+    /// </summary>
+    public ConstantEvaluator? ConstantEvaluator { get; init; }
+
+    /// <summary>
+    /// Returns why calls of the given methods could not be evaluated at compile
+    /// time. Used to explain errors about code that stayed reachable.
+    /// </summary>
+    public IReadOnlyDictionary<MethodBase, string> EvaluationFailures =>
+        _evaluationFailures;
+
+    /// <summary>
     /// Returns true if the current method is a kernel entry point. All other
     /// methods can be inlined into a loop of their caller.
     /// </summary>
@@ -465,6 +534,7 @@ sealed partial class CodeGenerator
             GenerateCodeForBlock();
         }
 
+
         // Close any remaining back edges (no-op if the RPO walk already
         // sealed every block); Release builds would otherwise silently keep
         // incomplete phis, as AssertAllSealed is DEBUG-only.
@@ -583,15 +653,18 @@ sealed partial class CodeGenerator
         if (!SSABuilder.ProcessAndSeal(Block.BasicBlock))
             return;
 
-        // Skip blocks that became unreachable after branch folding
-        // (e.g. the dead target of a folded delegate-caching brtrue).
-        // ProcessAndSeal above already marked the block as processed
-        // and sealed so that SSA builder assertions pass, but we must
-        // not generate code — the SSA builder would assert on
-        // GetValueRecursive with zero predecessors.
-        if (Block.BasicBlock.Predecessors.Length == 0 &&
+        // Skip blocks that became unreachable after branch folding (e.g. the
+        // dead target of a folded delegate-caching brtrue or type test) and
+        // blocks without predecessors (dead IL). ProcessAndSeal above already
+        // marked the block as processed so that SSA builder assertions pass,
+        // but we must not generate code: the block may contain constructs that
+        // are only valid because they are never executed, such as a throw.
+        if (_unreachableBlocks.Contains(Block.BasicBlock) ||
+            Block.BasicBlock.Predecessors.Length == 0 &&
             Block.BasicBlock != EntryBlock.BasicBlock)
+        {
             return;
+        }
 
         int endOffset = Block.InstructionOffset + Block.InstructionCount;
         for (int i = Block.InstructionOffset; i < endOffset; ++i)
@@ -649,6 +722,13 @@ sealed partial class CodeGenerator
             Location = DisassembledMethod[endOffset].Location;
             Builder.CreateUnconditionalTermination(
                 Block.BasicBlock.Successors[0]);
+        }
+        else if (Block.BasicBlock.TerminationKind == BlockTerminationKind.Pending &&
+            Block.BasicBlock.Successors.Length == 0 &&
+            _pendingThrow is not null)
+        {
+            // A block that ends in a reachable throw; the method fails anyway
+            Builder.CreateReturnTermination(null);
         }
 
         // Try to seal successor back edges

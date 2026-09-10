@@ -160,6 +160,11 @@ public enum ArrayMode
 /// <param name="MathMode">Math mode to use.</param>
 /// <param name="StaticFieldMode">Static field mode to use.</param>
 /// <param name="ArrayMode">Array mode to use.</param>
+/// <param name="ConstantEvaluationBudget">
+/// The number of IL instructions the frontend may interpret to evaluate one call of
+/// a helper predicate (such as <c>IsFloat&lt;T&gt;()</c>) at compile time. Calls
+/// that need more are compiled as calls.
+/// </param>
 public sealed record class CompilationProperties(
     DebugSymbolsMode DebugSymbolsMode = DebugSymbolsMode.Default,
     bool EnableAssertions = true,
@@ -169,8 +174,14 @@ public sealed record class CompilationProperties(
     InliningMode InliningMode = InliningMode.Aggressive,
     MathMode MathMode = MathMode.Default,
     StaticFieldMode StaticFieldMode = StaticFieldMode.Default,
-    ArrayMode ArrayMode = ArrayMode.Default)
+    ArrayMode ArrayMode = ArrayMode.Default,
+    int ConstantEvaluationBudget = CompilationProperties.DefaultConstantEvaluationBudget)
 {
+    /// <summary>
+    /// The default of <see cref="ConstantEvaluationBudget"/>.
+    /// </summary>
+    public const int DefaultConstantEvaluationBudget = 100_000;
+
     /// <summary>
     /// Represents the target platform to use.
     /// </summary>

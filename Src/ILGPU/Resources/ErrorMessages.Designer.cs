@@ -358,6 +358,24 @@ namespace ILGPU.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Unsafe.BitCast&lt;{0}, {1}&gt; is not supported in kernels: {2}.
+        /// </summary>
+        internal static string NotSupportedBitCast {
+            get {
+                return ResourceManager.GetString("NotSupportedBitCast", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Boxing a value of type &apos;{0}&apos; is not supported in kernels. This includes calling GetType() on it and type tests with &apos;is&apos; or &apos;as&apos;; compare typeof(T) with the type instead.
+        /// </summary>
+        internal static string NotSupportedBoxing {
+            get {
+                return ResourceManager.GetString("NotSupportedBoxing", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Not supported by-ref kernel parameters.
         /// </summary>
         internal static string NotSupportedByRefKernelParameters {
@@ -426,6 +444,15 @@ namespace ILGPU.Resources {
         internal static string NotSupportedDynamicSharedMemoryAllocations {
             get {
                 return ResourceManager.GetString("NotSupportedDynamicSharedMemoryAllocations", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Exceptions are not supported in kernels: &apos;{1}&apos; throws &apos;{0}&apos; in code that is reachable for these type arguments. Exceptions may only be thrown in branches that are removed at compile time, for example by a typeof(T) test.
+        /// </summary>
+        internal static string NotSupportedExceptionThrow {
+            get {
+                return ResourceManager.GetString("NotSupportedExceptionThrow", resourceCulture);
             }
         }
         
@@ -574,7 +601,7 @@ namespace ILGPU.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to IsInstance is currently not supported.
+        ///   Looks up a localized string similar to Type tests (&apos;is&apos;, &apos;as&apos; or &apos;isinst&apos;) against &apos;{0}&apos; are not supported in kernels; compare types with typeof(T) == typeof({0}) instead.
         /// </summary>
         internal static string NotSupportedIsInstance {
             get {
@@ -646,6 +673,15 @@ namespace ILGPU.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to &apos;{0}&apos; requires a type that is known at compile time, such as typeof(T), but its operand is computed at run time.
+        /// </summary>
+        internal static string NotSupportedNonConstantType {
+            get {
+                return ResourceManager.GetString("NotSupportedNonConstantType", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Pointer type &apos;{0}&apos; is not supported.
         /// </summary>
         internal static string NotSupportedPointerType {
@@ -664,11 +700,29 @@ namespace ILGPU.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to &apos;{0}&apos; is not supported in kernels; only typeof(T) comparisons and the type properties IsValueType, IsPrimitive, IsEnum, IsGenericType, IsAssignableFrom and IsAssignableTo are evaluated at compile time.
+        /// </summary>
+        internal static string NotSupportedReflectionMember {
+            get {
+                return ResourceManager.GetString("NotSupportedReflectionMember", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Not supported runtime method &apos;{0}&apos;.
         /// </summary>
         internal static string NotSupportedRuntimeMethod {
             get {
                 return ResourceManager.GetString("NotSupportedRuntimeMethod", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to A System.Type value is used at run time in &apos;{0}&apos;; typeof(T) values may only be compared and queried, so that the result is known at compile time.
+        /// </summary>
+        internal static string NotSupportedRuntimeTypeValue {
+            get {
+                return ResourceManager.GetString("NotSupportedRuntimeTypeValue", resourceCulture);
             }
         }
         
@@ -843,6 +897,15 @@ namespace ILGPU.Resources {
             }
         }
 
+        /// <summary>
+        ///   Looks up a localized string similar to &apos;{0}&apos; calls &apos;{1}&apos;, which could not be compiled: {2}.
+        /// </summary>
+        internal static string NotSupportedCallToFailedMethod {
+            get {
+                return ResourceManager.GetString("NotSupportedCallToFailedMethod", resourceCulture);
+            }
+        }
+        
         /// <summary>
         ///   Looks up a localized string similar to Recursive reference type '{0}' is not supported.
         /// </summary>

@@ -9,6 +9,7 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
+using ILGPU.Resources;
 using ILGPU.Util;
 using ILGPUC.IR;
 using ILGPUC.IR.ModuleValues;
@@ -98,6 +99,70 @@ partial class Intrinsics
             sourceValue,
             methodReturnType,
             ConvertFlags.None);
+    }
+
+    /// <summary>
+    /// Handles <c>Unsafe.BitCast&lt;TFrom, TTo&gt;(TFrom source)</c>, which
+    /// reinterprets the bits of a value as another value type of the same size.
+    /// </summary>
+    /// <remarks>
+    /// The BCL body is not used: it round-trips through memory and depends on
+    /// type tests whose shape can change between .NET releases. Following the
+    /// .NET contract, both types must be value types of equal managed size.
+    /// Types that are identical in the IR (<c>int</c> and <c>uint</c>, an enum
+    /// and its underlying type, or <c>T</c> and <c>float</c> once <c>T</c> is
+    /// <c>float</c>) pass the value through; floats and integers of the same
+    /// width use bit casts; all other value types go through a temporary.
+    /// </remarks>
+    private static Value? Unsafe_BitCast(ref InvocationContext context)
+    {
+        var location = context.Location;
+        var builder = context.Builder;
+        var genericArguments = context.GetMethodGenericArguments();
+        var from = genericArguments[0];
+        var to = genericArguments[1];
+
+        string? reason = null;
+        if (!from.IsValueType || !to.IsValueType)
+            reason = "both types must be value types";
+        else if (from == typeof(bool) ^ to == typeof(bool))
+            reason = "bool has no defined bit representation";
+        else if (from.SizeOf() != to.SizeOf())
+            reason = $"the sizes differ ({from.SizeOf()} and {to.SizeOf()} bytes)";
+
+        var fromType = context.ModuleBuilder.CreateType(from);
+        var toType = context.ModuleBuilder.CreateType(to);
+        if (reason is null && fromType.Size != toType.Size)
+            reason = "the types have different sizes on the device";
+        if (reason is not null)
+        {
+            throw location.GetNotSupportedException(
+                ErrorMessages.NotSupportedBitCast,
+                FrontendDisplay.Format(from),
+                FrontendDisplay.Format(to),
+                reason);
+        }
+
+        var source = context[0];
+        if (fromType == toType)
+            return source;
+
+        if (fromType is PrimitiveType fromPrimitive &&
+            toType is PrimitiveType toPrimitive)
+        {
+            bool fromFloat = fromPrimitive.BasicValueType.IsFloat();
+            bool toFloat = toPrimitive.BasicValueType.IsFloat();
+            if (fromFloat && !toFloat)
+                return builder.CreateFloatAsIntCast(location, source);
+            if (!fromFloat && toFloat)
+                return builder.CreateIntAsFloatCast(location, source);
+        }
+
+        // Reinterpret through a temporary: store, cast the pointer, load
+        var temporary = context.CodeGenerator.CreateTempAlloca(fromType);
+        builder.CreateStore(location, temporary, source);
+        var address = builder.CreatePointerCast(location, temporary, toType);
+        return builder.CreateLoad(location, address);
     }
 
     /// <summary>

@@ -1,0 +1,87 @@
+// TypeSpecialization: the type-specialized helper pattern from issue #1427,
+// built in Debug through ILGPU.Kernels.targets. Kernel2<float> is launched
+// directly and through a generic wrapper; the wrapper also reaches Kernel2<int>,
+// which throws for int: the build skips it with warning ILGPU1006, and launching
+// it throws a KernelNotCompiledException (a NotSupportedException).
+// Expected output: 0.4794 0.8415 0.4794 0.8415 KernelNotCompiledException
+
+using System;
+using System.Globalization;
+using System.Runtime.CompilerServices;
+using ILGPU;
+using ILGPU.Runtime;
+
+namespace TypeSpecialization;
+
+public static class Kernels
+{
+    public static void Kernel2<T>(
+        Index1D index,
+        ArrayView1D<T, Stride1D.Dense> x,
+        ArrayView1D<T, Stride1D.Dense> ans)
+        where T : unmanaged
+    {
+        ans[index] = GenericSin(x[index]);
+    }
+
+    static T GenericSin<T>(T x) where T : unmanaged
+    {
+        if (typeof(T) == typeof(float))
+            return Unsafe.BitCast<float, T>(MathF.Sin(Unsafe.BitCast<T, float>(x)));
+        else if (typeof(T) == typeof(double))
+            return Unsafe.BitCast<double, T>(Math.Cos(Unsafe.BitCast<T, double>(x)));
+        else
+            throw new NotSupportedException();
+    }
+}
+
+static class Program
+{
+    static void Main()
+    {
+        using var context = Context.Create(b => b.Default());
+        using var accelerator = context.GetPreferredDevice(preferCPU: $(PREFER_CPU))
+            .CreateAccelerator(context);
+        var stream = accelerator.DefaultStream;
+
+        float[] values = [0.5f, 1.0f];
+        using var x = stream.Allocate1D(values);
+        using var ans = stream.Allocate1D<float>(values.Length);
+        var xView = x.View;
+        var ansView = ans.View;
+        stream.Launch((Index1D)values.Length, i => Kernels.Kernel2(i, xView, ansView));
+        stream.Synchronize();
+        Print(ans.GetAsArray1D());
+
+        Run(stream, values);
+        try
+        {
+            Run(stream, new int[] { 1, 2 });
+        }
+        catch (NotSupportedException e)
+        {
+            Console.WriteLine(e.GetType().Name);
+        }
+    }
+
+    static void Run<T>(AcceleratorStream stream, T[] values) where T : unmanaged
+    {
+        using var x = stream.Allocate1D(values);
+        using var ans = stream.Allocate1D<T>(values.Length);
+        var xView = x.View;
+        var ansView = ans.View;
+        stream.Launch((Index1D)values.Length, i => Kernels.Kernel2(i, xView, ansView));
+        stream.Synchronize();
+        Print(ans.GetAsArray1D());
+    }
+
+    static void Print<T>(T[] values)
+    {
+        foreach (var value in values)
+        {
+            Console.WriteLine(
+                Convert.ToDouble(value, CultureInfo.InvariantCulture)
+                    .ToString("F4", CultureInfo.InvariantCulture));
+        }
+    }
+}

@@ -421,6 +421,63 @@ public sealed class KernelDiagnosticTests
         Assert.Contains(message, diagnostic, StringComparison.Ordinal);
     }
 
+    /// <summary>
+    /// Kernels bound to the delegate targets of a launching method are not
+    /// instantiations found through generic code: a target that throws fails
+    /// the build instead of skipping its kernel, which the dispatch stub of the
+    /// launch would still refer to.
+    /// </summary>
+    [Fact]
+    public async Task ThrowingDelegateTarget_FailsBuild()
+    {
+        var compilation = RoslynCompiler.CreateCompilation(
+            ["""
+            using System;
+            using ILGPU;
+            using ILGPU.Runtime;
+
+            static class Host
+            {
+                internal static void UnaryOp(
+                    AcceleratorStream stream, ArrayView<int> view, Func<int, int> op)
+                {
+                    stream.Launch(view.IntExtent, index => view[index] = op(view[index]));
+                }
+            }
+
+            static class Program
+            {
+                static void Main()
+                {
+                    using var context = Context.Create(b => b.Default());
+                    using var accelerator = context.GetPreferredDevice(preferCPU: true)
+                        .CreateAccelerator(context);
+                    var stream = accelerator.DefaultStream;
+                    using var buffer = stream.Allocate1D<int>(4);
+                    var view = buffer.View;
+                    Host.UnaryOp(stream, view, v => -v);
+                    Host.UnaryOp(stream, view, v => throw new ArgumentException());
+                }
+            }
+            """],
+            "KernelDiagnosticTest");
+        var analysis = CompilationRewriter.Analyze(compilation);
+        Assert.Empty(analysis.Diagnostics);
+        Assert.Equal(2, Assert.Single(analysis.DelegateDispatchStubs).Bindings.Length);
+
+        var exception = await Assert.ThrowsAsync<KernelDiagnosticException>(() =>
+            MainKernelProvider.CreateAsync(
+                compilation,
+                analysis,
+                [CompilationHelper.CreateBackend(BackendType.CPU)],
+                new KernelCompiler()));
+        Assert.True(ILGPUC.Frontend.ReachableThrowException.IsCausedBy(exception));
+        Assert.Contains(
+            "ArgumentException",
+            exception.Diagnostic.Message,
+            StringComparison.Ordinal);
+    }
+
     #endregion
 
     #region Unresolved Delegates (ILGPU1202)

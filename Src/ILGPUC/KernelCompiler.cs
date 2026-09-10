@@ -310,6 +310,9 @@ sealed class KernelCompiler
         var finalModule = _optimizationTransformer.Apply(
             _properties, _typeManager, module);
 
+        // Calls to helpers whose code generation failed must have been removed
+        FailedMethodVerifier.Verify(finalModule, frontend.FailedMethods);
+
         // Dump: backend-agnostic passes complete
         if (dump.HasPoint(IRDumpPoint.AfterGlobalOpt) && dump.Directory is not null)
         {

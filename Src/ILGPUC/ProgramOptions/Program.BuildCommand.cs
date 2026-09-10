@@ -565,6 +565,9 @@ sealed partial class Program
             foreach (var diagnostic in provider.Diagnostics)
                 await Console.Out.WriteLineAsync(diagnostic.ToString());
 
+            // Leave out kernel instantiations that throw for their type arguments
+            analysis = analysis.WithoutKernels(provider.SkippedKernels);
+
             // Rewrite to disk with real compiled kernel sources
             var realRewriter = new CompilationRewriter(provider);
             int rewrittenCount =

@@ -786,6 +786,95 @@ public static class MsBuildIntegrationTests
     }
 
     // -----------------------------------------------------------------------
+    // Test 16: TypeSpecialization — the type-specialized helper pattern from
+    // issue #1427, built in Debug through the targets. The int instantiation
+    // reached through a generic wrapper throws, so it is skipped with warning
+    // ILGPU1006 and launching it throws at run time.
+    // -----------------------------------------------------------------------
+
+    public sealed class TypeSpecialization(ITestOutputHelper output)
+    {
+        [SkippableTheory]
+        [InlineData(BackendType.CPU)]
+        [InlineData(BackendType.Metal)]
+        public async Task Build_TypeSpecialization_FoldsTypeTestsAndRuns(
+            BackendType backend)
+        {
+            await RequireBackendAsync(backend);
+
+            using var project = new IntegrationProjectFixture(
+                "TypeSpecialization", backend, output);
+            try
+            {
+                var build = await project.BuildAsync();
+                Assert.True(build.Succeeded,
+                    $"dotnet build failed (exit {build.ExitCode}). " +
+                    $"Stderr: {build.StdErr}");
+
+                var combined = build.FullStdOut + "\n" + build.StdErr;
+                Assert.Contains("warning ILGPU1006", combined, StringComparison.Ordinal);
+                Assert.Contains("Kernel2<int>", combined, StringComparison.Ordinal);
+
+                var run = await project.RunAsync();
+                Assert.False(run.TimedOut, "Binary timed out");
+                Assert.Equal(0, run.ExitCode);
+                OutputVerifier.Verify(
+                    run.StdOutLines,
+                    expected:
+                    [
+                        "0.4794", "0.8415",
+                        "0.4794", "0.8415",
+                        "KernelNotCompiledException",
+                    ]);
+            }
+            catch
+            {
+                project.MarkFailed();
+                throw;
+            }
+        }
+    }
+
+    // -----------------------------------------------------------------------
+    // Test 17: TypeSpecializationError — a direct launch of an instantiation
+    // whose helper throws must fail the build with a named error.
+    // -----------------------------------------------------------------------
+
+    public sealed class TypeSpecializationError(ITestOutputHelper output)
+    {
+        [SkippableFact]
+        public async Task Build_TypeSpecializationError_FailsWithNamedError()
+        {
+            await RequireBackendAsync(BackendType.CPU);
+
+            using var project = new IntegrationProjectFixture(
+                "TypeSpecializationError", BackendType.CPU, output);
+            try
+            {
+                var build = await project.BuildAsync();
+                Assert.False(build.Succeeded,
+                    "Expected dotnet build to fail for the throwing instantiation.");
+
+                var combined = build.FullStdOut + "\n" + build.StdErr;
+                Assert.Contains("GenericSin<Int32>", combined, StringComparison.Ordinal);
+                Assert.Contains(
+                    "Exceptions are not supported in kernels",
+                    combined,
+                    StringComparison.Ordinal);
+                Assert.Contains(
+                    "'NotSupportedException'",
+                    combined,
+                    StringComparison.Ordinal);
+            }
+            catch
+            {
+                project.MarkFailed();
+                throw;
+            }
+        }
+    }
+
+    // -----------------------------------------------------------------------
     // Helpers
     // -----------------------------------------------------------------------
 

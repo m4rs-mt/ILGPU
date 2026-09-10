@@ -87,6 +87,16 @@ internal sealed class ILFrontendCache
     { get; } = new(concurrencyLevel: Environment.ProcessorCount, capacity: 2048);
 
     /// <summary>
+    /// Memoized results of the constant evaluator, keyed by the closed method, its
+    /// constant arguments and the pointer size. Shared by all frontends of one
+    /// compiler, so a helper predicate is evaluated once per instantiation.
+    /// </summary>
+    public ConcurrentDictionary<
+        (MethodBase Method, string Arguments, bool Is64Bit),
+        ConstantEvaluationResult> ConstantEvaluations
+    { get; } = new();
+
+    /// <summary>
     /// Loaded PDB metadata keyed by assembly. Wrapped in <see cref="Lazy{T}"/>
     /// with <see cref="System.Threading.LazyThreadSafetyMode.ExecutionAndPublication"/>
     /// so that concurrent first-time loads of the same assembly only open and

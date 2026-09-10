@@ -98,6 +98,19 @@ sealed partial class Program
         };
 
         /// <summary>
+        /// The instruction budget for evaluating helper predicates at compile time.
+        /// </summary>
+        readonly Option<int> _constantEvaluationBudgetOption =
+            new("--constant-evaluation-budget")
+            {
+                Description =
+                    "Number of IL instructions the frontend may interpret to " +
+                    "evaluate one call of a helper predicate at compile time",
+                DefaultValueFactory = static _ =>
+                    CompilationProperties.DefaultConstantEvaluationBudget,
+            };
+
+        /// <summary>
         /// Convenience flag that sets all release-related options
         /// (no symbols, no assertions, O2).
         /// </summary>
@@ -123,6 +136,7 @@ sealed partial class Program
             command.Add(_mathFlushToZeroOption);
             command.Add(_staticFieldModeOption);
             command.Add(_arrayModeOption);
+            command.Add(_constantEvaluationBudgetOption);
 
             command.Add(_debugOption);
             command.Add(_releaseOption);
@@ -147,6 +161,8 @@ sealed partial class Program
                 EnableMathFlushToZero = result.GetValue(_mathFlushToZeroOption),
                 StaticFieldMode = result.GetValue(_staticFieldModeOption),
                 ArrayMode = result.GetValue(_arrayModeOption),
+                ConstantEvaluationBudget =
+                    result.GetValue(_constantEvaluationBudgetOption),
             };
 
             if (result.GetValue(_debugOption))

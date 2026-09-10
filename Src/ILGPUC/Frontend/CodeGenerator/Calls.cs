@@ -45,6 +45,9 @@ partial class CodeGenerator
         ref ValueBuilderList arguments,
         DelegateArguments? delegateArguments = null)
     {
+        bool isConstrainedCall = _isConstrainedCall;
+        _isConstrainedCall = false;
+
         // Try to implement the current intrinsic right now by generating IR code
         var intrinsicContext = new InvocationContext(
             this,
@@ -59,6 +62,11 @@ partial class CodeGenerator
             // the return value to the method return value handle
             result ??= Builder.UndefinedValue;
             MakeCallReturnValue(method, result);
+        }
+        else if (TryEvaluateCall(method, ref arguments, isConstrainedCall))
+        {
+            // The call was evaluated at compile time; its constant result has
+            // been pushed, and the callee is not compiled for this call site
         }
         else if (delegateArguments is null)
         {
@@ -112,8 +120,10 @@ partial class CodeGenerator
         {
             var constrainedType = instruction.FlagsContext.Argument as Type;
             method = ResolveVirtualCallTarget(methodInfo, constrainedType);
+            _isConstrainedCall = true;
         }
         MakeCall(method);
+        _isConstrainedCall = false;
     }
 
     /// <summary>
@@ -141,6 +151,9 @@ partial class CodeGenerator
             return;
         }
 
+        // typeof(T) comparisons and type properties are folded to constants
+        if (TryMakeReflectionCall(target))
+            return;
         var delegateArguments = PeekDelegateArguments(target);
         var values = Block.PopMethodArgs(Location, target, null);
         CreateCall(target, ref values, delegateArguments);
@@ -242,9 +255,11 @@ partial class CodeGenerator
         var method = instruction.GetArgumentAs<MethodInfo>();
         if (instruction.HasFlags(ILInstructionFlags.Constrained))
         {
+            _isConstrainedCall = true;
             MakeVirtualCall(
                 method,
                 instruction.FlagsContext.Argument as Type);
+            _isConstrainedCall = false;
         }
         else
         {
@@ -261,6 +276,22 @@ partial class CodeGenerator
     /// </param>
     private void MakeVirtualCall(MethodInfo target, Type? constrainedType)
     {
+        // Virtual members of Type (Equals, IsAssignableFrom, ...) are folded
+        // before devirtualization, which would reject the unconstrained call
+        if (TryMakeReflectionCall(target))
+            return;
+
+        // GetType() on a value of a type parameter that is a value type is
+        // exactly typeof(T), because value types are sealed
+        if (constrainedType is { IsValueType: true } &&
+            target.DeclaringType == typeof(object) &&
+            target.Name == nameof(GetType))
+        {
+            Block.Pop();
+            Block.Push(Builder.CreateRuntimeHandle(Location, constrainedType));
+            return;
+        }
+
         // Intercept delegate Invoke calls for static devirtualization
         if (target.Name == "Invoke" &&
             target.DeclaringType is not null &&

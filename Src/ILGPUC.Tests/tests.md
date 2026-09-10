@@ -318,6 +318,7 @@ after 30 seconds and the test reports a timeout failure.
 | WarpExecutionTests | 1 | Warp.Barrier intrinsic |
 | SharedMemoryExecutionTests | 1 | Shared memory allocation |
 | GenericKernelExecutionTests | 2 | Generic closures; kernels launched through generic wrappers, generic classes and constructed type arguments |
+| TypeSpecializationExecutionTests | 5 | `typeof(T)` helpers (issue #1427) in Debug and Release IL, and instantiations skipped because they throw |
 
 **Total: 26 test classes, 39 test methods, 38 test programs.**
 
@@ -477,6 +478,19 @@ static class MyFeatureKernels
 
 The class name must end with `Kernels` and be `static` — `KernelRegistry` auto-discovers
 all public static methods in such classes. No manual registration needed.
+
+### Type specialization kernels
+
+`Kernels/TypeSpecializationKernels.cs` holds generic kernels whose `typeof(T)` tests,
+type properties and helper predicates fold in the frontend. `TypeSpecializationKernels`
+is expanded with `float`, `double` and `int`, `TypeOperationKernels` with the
+`FloatOperation` and `IntOperation` structs, and `ThrowingTypeSpecializationKernels`
+only with `float` and `double`, because their helpers throw for other types. Helpers
+and predicates are private or live in classes whose names do not end in `Kernels`,
+so the registry does not compile them as kernels.
+`NonKernelTests/TypeSpecializationFrontendTests.cs` checks the AfterFrontend IR of
+these kernels and the errors for unsupported reflection, and
+`NonKernelTests/ConstantEvaluatorTests.cs` tests the evaluator directly.
 
 ### Step 2: For generic kernels
 

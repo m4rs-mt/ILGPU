@@ -44,6 +44,13 @@ static class KernelRegistry
         // Family A.2 — struct-closure marshalling (TClosure, T) tuple.
         ["GenericKernelKernels"] =
             [[typeof(AddOffsetClosure), typeof(long)]],
+        // Type specialization: typeof(T) tests folded per instantiation.
+        ["TypeSpecializationKernels"] =
+            [[typeof(float)], [typeof(double)], [typeof(int)]],
+        ["TypeOperationKernels"] =
+            [[typeof(FloatOperation)], [typeof(IntOperation)]],
+        // Only instantiated with types whose throw is in a removed branch.
+        ["ThrowingTypeSpecializationKernels"] = FloatTypeArgs,
     };
 
     private static readonly Dictionary<string, BackendCapability> s_capabilities = [];

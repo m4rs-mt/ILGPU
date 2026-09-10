@@ -9,6 +9,7 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
+using ILGPU;
 using ILGPU.Util;
 using ILGPUC.Backends;
 using ILGPUC.Frontend.DebugInformation;
@@ -86,6 +87,7 @@ sealed class ILFrontend
     private readonly Dictionary<Assembly, AssemblyDebugInformation?>
         _referencedAssemblies = new(16);
     private readonly Dictionary<MethodBase, DisassembledMethod?> _methods = new(1024);
+    private readonly Dictionary<MethodBase, Exception> _failedMethods = [];
     private readonly Stack<HashSet<MethodBase>> _methodsStack = new(2);
 
     /// <summary>
@@ -158,6 +160,13 @@ sealed class ILFrontend
     /// Returns the current backend type we are compiling for.
     /// </summary>
     public BackendType BackendType { get; }
+
+    /// <summary>
+    /// Returns the methods whose code generation failed, with the reason. Calls to
+    /// these methods are only allowed if optimization removes them; see
+    /// <see cref="FailedMethodVerifier"/>.
+    /// </summary>
+    public IReadOnlyDictionary<MethodBase, Exception> FailedMethods => _failedMethods;
 
     #endregion
 
@@ -701,6 +710,42 @@ sealed class ILFrontend
     }
 
     /// <summary>
+    /// Returns the disassembled body of <paramref name="method"/> for the constant
+    /// evaluator, disassembling and caching it on demand. BCL bodies are readable
+    /// here even though code generation never walks them eagerly.
+    /// </summary>
+    private DisassembledMethod? DisassembleForEvaluation(MethodBase method)
+    {
+        var disassembled = GetDisassembledMethod(method);
+        if (disassembled is not null)
+            return disassembled;
+        if (_cache is not null &&
+            _cache.Disassembly.TryGetValue(method, out var cached))
+        {
+            return cached.Status == DisassembleStatus.Disassembled
+                ? cached.Body
+                : null;
+        }
+
+        try
+        {
+            disassembled = Disassembler.TryDisassemble(method);
+        }
+        catch (Exception)
+        {
+            disassembled = null;
+        }
+        _cache?.Disassembly.TryAdd(
+            method,
+            new DisassemblyCacheEntry(
+                disassembled,
+                disassembled is null
+                    ? DisassembleStatus.Failed
+                    : DisassembleStatus.Disassembled));
+        return disassembled;
+    }
+
+    /// <summary>
     /// Generates code for all methods given.
     /// </summary>
     /// <param name="moduleBuilder">The target context.</param>
@@ -717,6 +762,11 @@ sealed class ILFrontend
         var processed = new HashSet<MethodBase>();
         var specializations = new DelegateSpecializations(moduleBuilder);
         var closureCaptures = new ClosureCaptures(moduleBuilder);
+        var evaluator = new ConstantEvaluator(
+            _cache?.ConstantEvaluations ?? new(),
+            DisassembleForEvaluation,
+            moduleBuilder.Properties.ConstantEvaluationBudget,
+            moduleBuilder.TargetPlatform.Is64Bit());
 
         // Generates code for the given method
         [MethodImpl(MethodImplOptions.AggressiveOptimization)]
@@ -797,7 +847,14 @@ sealed class ILFrontend
                 }
                 else
                 {
+                    // Legitimately external methods ([External], InternalCall)
+                    // never get here; they are external from their declaration.
+                    // A call to this one may still be removed by optimization,
+                    // so record why it failed instead of failing right away.
                     methodBuilder.Method.AddFlags(MethodFlags.External);
+                    _failedMethods[method] = new NotSupportedException(
+                        $"'{FrontendDisplay.Format(method)}' has no IL body that " +
+                        "can be compiled");
                     return;
                 }
             }
@@ -818,7 +875,10 @@ sealed class ILFrontend
                     BackendType,
                     isEntryPoint,
                     specializations,
-                    delegateTargets);
+                    delegateTargets)
+                {
+                    ConstantEvaluator = evaluator,
+                };
                 codeGenerator.OnNewMethodCalled += (_, e) => queue.Enqueue(e);
                 codeGenerator.ClosureCaptures = closureCaptures;
                 codeGenerator.LocalVariableNames = index =>
@@ -828,6 +888,15 @@ sealed class ILFrontend
                     : null;
 
                 codeGenerator.GenerateCode();
+                if (codeGenerator.PendingThrow is { } pendingThrow)
+                {
+                    // A helper that throws fails like any other helper. A kernel
+                    // that throws fails in FailedMethodVerifier, after errors in
+                    // the helpers it still calls had a chance to be reported.
+                    if (!isEntryPoint)
+                        throw pendingThrow;
+                    _failedMethods[method] = pendingThrow;
+                }
                 methodBuilder.Seal();
             }
             catch (Exception exception) when (
@@ -835,10 +904,15 @@ sealed class ILFrontend
             {
                 // Transitively called methods may use types unsupported in GPU IR
                 // or hit other compilation issues. Mark them as external and
-                // continue. Rejected kernel constructs (such as unsupported uses
-                // of delegates) are reported instead, as an external declaration
+                // continue: a call to them may still be removed by optimization
+                // (for example on an overflow path of a BCL helper). Record the
+                // failure so that FailedMethodVerifier reports every call that
+                // survives optimization instead of emitting an undefined function.
+                // Rejected kernel constructs (such as unsupported uses of
+                // delegates) are reported right away, as an external declaration
                 // would only fail later without pointing at the cause.
                 methodBuilder.Method.AddFlags(MethodFlags.External);
+                _failedMethods[method] = exception;
             }
         }
 

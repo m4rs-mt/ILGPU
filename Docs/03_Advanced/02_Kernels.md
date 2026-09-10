@@ -3,7 +3,8 @@
 Kernels are `static` functions that can work on value types and can invoke other functions that work on value types.
 `class` (reference) types are currently **not supported** in the scope of kernels.
 Note that exception handling, boxing and recursive programs are also **not supported** and will be rejected by the ILGPU
-compiler.
+compiler. Throwing an exception is fine in a branch that is removed at compile time, as described in
+[Type-Specialized Generic Code](#type-specialized-generic-code).
 Kernels and the functions they call must also be able to return: a function in which every path loops forever, such as
 a `while (true)` loop without a `return` or `break`, is rejected with the error "'X' never returns".
 Such a kernel could only be stopped by resetting the device.
@@ -134,6 +135,53 @@ static int Apply<TOp>(TOp op, int x) where TOp : struct, IUnaryOp => op.Apply(x)
 static void NegateKernel(Index1D index, ArrayView<int> data, Negate op) =>
     data[index] = Apply(op, data[index]);
 ```
+
+## Type-Specialized Generic Code
+
+Generic kernels and helper methods can select code for their type arguments with `typeof(T)` tests. ILGPU compiles one
+kernel per closed instantiation and evaluates these tests at compile time, so only the selected branch is compiled.
+The other branches may contain code that kernels cannot run, such as a `throw`:
+
+```c#
+static T GenericSin<T>(T x) where T : unmanaged
+{
+    if (typeof(T) == typeof(float))
+        return Unsafe.BitCast<float, T>(MathF.Sin(Unsafe.BitCast<T, float>(x)));
+    else if (typeof(T) == typeof(double))
+        return Unsafe.BitCast<double, T>(Math.Cos(Unsafe.BitCast<T, double>(x)));
+    else
+        throw new NotSupportedException();
+}
+
+static void Kernel<T>(Index1D index, ArrayView1D<T, Stride1D.Dense> x, ArrayView1D<T, Stride1D.Dense> ans)
+    where T : unmanaged =>
+    ans[index] = GenericSin(x[index]);
+```
+
+The following are evaluated at compile time:
+
+* `typeof(T)` and comparisons of types with `==`, `!=` and `Type.Equals`, also through `Type` locals, `?:`, `||`,
+  `&&` and `switch` statements on types.
+* The type properties `IsValueType`, `IsPrimitive`, `IsEnum` and `IsGenericType`, and `IsAssignableFrom` and
+  `IsAssignableTo` between types.
+* `RuntimeHelpers.IsReferenceOrContainsReferences<T>()` and `Unsafe.SizeOf<T>()`.
+* Helper predicates built from these, at any depth: generic methods such as `IsFloat<T>()`, static members of generic
+  types such as `Ops<T>.IsFloat()`, `static readonly` fields of generic types, static abstract interface members, and
+  struct members called through a type parameter such as `default(TOp).IsFloat()`. A helper is evaluated when all its
+  arguments are constants and it only computes with them.
+
+`Unsafe.BitCast<TFrom, TTo>` reinterprets a value as another value type of the same size, which is how a branch
+converts between `T` and the type it tested for.
+
+A `throw` that stays reachable for an instantiation is a compile error that names the method, the exception type and the
+source location. If a type test could not be evaluated at compile time, the error also explains why. When a kernel
+instantiation is only reached through generic code (see [Generic Kernels](../../Src/ILGPUC/build/README.md)) and throws
+for its type arguments, the build skips it with warning `ILGPU1006` instead, and launching it with these type arguments
+throws a `NotSupportedException`, as the same code would on the CPU. An instantiation is only skipped if reachable
+`throw`s are its only problem; any other error in it still fails the build.
+
+Other reflection, such as `typeof(T).Name`, `GetType()`, `MakeGenericType` or `Type` values that are computed at run
+time, is not supported in kernels and is reported with an error that names the member.
 
 ## Implicitly Grouped Kernels
 

@@ -69,8 +69,11 @@ public abstract class ExecutionTestBase : DisposeBase
     protected Task<ProcessResult> RunProgramAsync(
         string programSourceFile,
         string[] kernelMethodNames,
-        CompilationProperties? props = null) =>
-        RunProgramAsync([programSourceFile], kernelMethodNames, props);
+        CompilationProperties? props = null,
+        Microsoft.CodeAnalysis.OptimizationLevel programOptimization =
+            Microsoft.CodeAnalysis.OptimizationLevel.Release) =>
+        RunProgramAsync(
+            [programSourceFile], kernelMethodNames, props, programOptimization);
 
     /// <summary>
     /// Build and run a test program consisting of several source files,
@@ -79,7 +82,9 @@ public abstract class ExecutionTestBase : DisposeBase
     protected async Task<ProcessResult> RunProgramAsync(
         string[] programSourceFiles,
         string[] kernelMethodNames,
-        CompilationProperties? props = null)
+        CompilationProperties? props = null,
+        Microsoft.CodeAnalysis.OptimizationLevel programOptimization =
+            Microsoft.CodeAnalysis.OptimizationLevel.Release)
     {
         // Skip if native compiler unavailable (CPU always passes, GPU checks toolchain)
         Skip.IfNot(
@@ -109,7 +114,8 @@ public abstract class ExecutionTestBase : DisposeBase
         var exePath = AssertionRecorder.Run(() => _builder.BuildExecutable(
             sourcePaths,
             kernelMethodNames,
-            props));
+            props,
+            programOptimization));
 
         var result = await ProcessRunner.RunAsync(exePath);
 
@@ -137,9 +143,15 @@ public abstract class ExecutionTestBase : DisposeBase
         string programSourceFile,
         string[] kernelMethodNames,
         string[] expectedOutput,
-        CompilationProperties? props = null) =>
+        CompilationProperties? props = null,
+        Microsoft.CodeAnalysis.OptimizationLevel programOptimization =
+            Microsoft.CodeAnalysis.OptimizationLevel.Release) =>
         VerifyProgramOutputAsync(
-            [programSourceFile], kernelMethodNames, expectedOutput, props);
+            [programSourceFile],
+            kernelMethodNames,
+            expectedOutput,
+            props,
+            programOptimization);
 
     /// <summary>
     /// Build, run, and verify the stdout output of a test program consisting
@@ -149,10 +161,12 @@ public abstract class ExecutionTestBase : DisposeBase
         string[] programSourceFiles,
         string[] kernelMethodNames,
         string[] expectedOutput,
-        CompilationProperties? props = null)
+        CompilationProperties? props = null,
+        Microsoft.CodeAnalysis.OptimizationLevel programOptimization =
+            Microsoft.CodeAnalysis.OptimizationLevel.Release)
     {
         var result = await RunProgramAsync(
-            programSourceFiles, kernelMethodNames, props);
+            programSourceFiles, kernelMethodNames, props, programOptimization);
 
         Assert.False(result.TimedOut, "Test program timed out");
         Assert.Equal(0, result.ExitCode);
