@@ -29,7 +29,8 @@ namespace ILGPUC.Frontend;
 /// keeps compiling: optimization may still remove every call to it, for example on
 /// an overflow path of a BCL helper. Any call that survives optimization would end
 /// up as a call to an undefined function in the generated code, so this check turns
-/// it into an error that names the caller, the failed method and the reason.
+/// it into an error that names the caller, the failed method and the reason, or
+/// reports the diagnostic the failed method was rejected with.
 /// </remarks>
 static class FailedMethodVerifier
 {
@@ -76,6 +77,12 @@ static class FailedMethodVerifier
                     {
                         continue;
                     }
+
+                    // Diagnostics of the failed method, such as static fields
+                    // that kernels cannot load, keep their identifiers and
+                    // locations in the failed method
+                    if (failure is KernelCompilationException)
+                        throw failure;
 
                     var caller = method.Source is { } source
                         ? FrontendDisplay.Format(source)

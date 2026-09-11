@@ -952,7 +952,11 @@ sealed class ILFrontend
                 methodBuilder.Seal();
             }
             catch (Exception exception) when (
-                !isEntryPoint && exception is not KernelCompilationException)
+                !isEntryPoint &&
+                exception is not KernelCompilationException
+                {
+                    Id: not KernelDiagnostic.StaticMemoryReferenceFieldId,
+                })
             {
                 // Transitively called methods may use types unsupported in GPU IR
                 // or hit other compilation issues. Mark them as external and
@@ -960,7 +964,10 @@ sealed class ILFrontend
                 // (for example on an overflow path of a BCL helper). Record the
                 // failure so that FailedMethodVerifier reports every call that
                 // survives optimization instead of emitting an undefined function.
-                // Rejected kernel constructs (such as unsupported uses of
+                // Static fields that kernels cannot load fail the same way, as
+                // helpers often load them only on such paths;
+                // FailedMethodVerifier reports their own diagnostics. Other
+                // rejected kernel constructs (such as unsupported uses of
                 // delegates) are reported right away, as an external declaration
                 // would only fail later without pointing at the cause.
                 methodBuilder.Method.AddFlags(MethodFlags.External);

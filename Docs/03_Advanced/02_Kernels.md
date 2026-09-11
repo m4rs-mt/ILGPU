@@ -97,7 +97,7 @@ line in the form `File.cs(line,column): error ILGPU12xx: message`:
 | `ILGPU1211` | Methods that call themselves, directly or through other methods, on the Metal and OpenCL backends |
 | `ILGPU1212` | Kernels that call themselves, directly or through other methods |
 | `ILGPU1213` | Calls of methods whose type arguments are nested more than 32 levels deep, such as a generic method `F<T>` calling `F<Wrap<T>>`, which would create new instantiations without end |
-| `ILGPU1214` | Views, pointers and structures or arrays containing them loaded from static fields, including `static readonly` fields, whose values are read at compile time and do not refer to device memory; pass the view as a kernel parameter or capture it instead |
+| `ILGPU1214` | Views, pointers and structures or arrays containing them loaded from static fields, including `static readonly` fields, whose values are read at compile time and do not refer to device memory; pass the view as a kernel parameter or capture it instead. A helper method that loads such a field is only an error if a call to it remains after optimization, such as a call on a path that constant arguments rule out |
 
 Invoking a delegate variable that is still `null` on some path, without a null test, is undefined behavior in kernels.
 To call an optional operation, pass a separate flag instead of testing the delegate for null.

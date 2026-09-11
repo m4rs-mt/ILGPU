@@ -12,10 +12,12 @@
 using ILGPU;
 using ILGPU.Runtime;
 using ILGPUC.Backends;
+using ILGPUC.IR;
 using ILGPUC.Tests.Framework;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.IO;
 using Xunit;
 
 namespace ILGPUC.Tests.NonKernelTests;
@@ -63,6 +65,67 @@ public sealed class StaticViewFieldTests
     {
         public nint Signed;
         public nuint Unsigned;
+    }
+
+    /// <summary>
+    /// Helpers loading static fields that kernels cannot load, on paths that
+    /// optimization removes or keeps.
+    /// </summary>
+    private static class HelperKernels
+    {
+        public static readonly ArrayView<int> View = default;
+
+        private static int ReadView(int index) => View[index];
+
+        private static int PickView(int value) => value == 0 ? 1 : ReadView(value);
+
+        // Recursive helpers are never inlined and tail-recursive helpers become
+        // loops, so their calls to ReadView remain unless the recursion is folded
+        private static int Sum(int value) =>
+            value < 0 ? ReadView(0) : value == 0 ? 0 : value + Sum(value - 1);
+
+        private static int Even(int value) =>
+            value < 0 ? ReadView(0) : value == 0 ? 1 : 1 - Odd(value - 1);
+
+        private static int Odd(int value) => value == 0 ? 0 : 1 - Even(value - 1);
+
+        private static int Count(int value, int sum) =>
+            value < 0 ? ReadView(0) : value == 0 ? sum : Count(value - 1, sum + value);
+
+        // The constant evaluator of the frontend does not see through the tuple,
+        // so the helpers are generated and only the IR optimizer removes their
+        // calls
+        public static void PicksView(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data) =>
+            data[index] = PickView((((int Value, int Index))(0, index.X)).Value);
+
+        // The constant evaluator of the frontend folds Sum(5), so the helpers
+        // are never generated
+        public static void SumsConstant(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data) =>
+            data[index] = Sum(5);
+
+        public static void PicksViewByIndex(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data) =>
+            data[index] = PickView(index);
+
+        public static void SumsIndex(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data) =>
+            data[index] = Sum(index);
+
+        public static void ChecksEvenIndex(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data) =>
+            data[index] = Even(index);
+
+        public static void CountsIndex(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data) =>
+            data[index] = Count(index, 0);
     }
 
     private static class Kernels
@@ -357,6 +420,56 @@ public sealed class StaticViewFieldTests
             StringComparison.Ordinal);
     }
 
+    /// <summary>
+    /// Helpers loading these fields failed the kernel right away, although
+    /// optimization removed every call to them, as it removes the calls to
+    /// helpers failing with other errors.
+    /// </summary>
+    [Theory]
+    [InlineData(nameof(HelperKernels.PicksView), 1)]
+    [InlineData(nameof(HelperKernels.SumsConstant), 15)]
+    public void RemovedHelperCalls_Compile(string kernelName, int value)
+    {
+        var result = GenerateBackendCode(
+            kernelName,
+            BackendType.CPU,
+            kernels: typeof(HelperKernels));
+        Assert.Contains(
+            StoreOf(BackendType.CPU, value),
+            result.SourceCode,
+            StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// A call to such a helper that survives optimization reports the original
+    /// error at the load of the field in the helper. Calls to recursive and
+    /// mutually recursive helpers, and the loops of tail-recursive helpers,
+    /// survive optimization, so the error of the helper they call is reported,
+    /// on Metal before its error for recursion.
+    /// </summary>
+    [Theory]
+    [InlineData(nameof(HelperKernels.PicksViewByIndex), BackendType.CPU)]
+    [InlineData(nameof(HelperKernels.SumsIndex), BackendType.CPU)]
+    [InlineData(nameof(HelperKernels.SumsIndex), BackendType.Metal)]
+    [InlineData(nameof(HelperKernels.ChecksEvenIndex), BackendType.CPU)]
+    [InlineData(nameof(HelperKernels.ChecksEvenIndex), BackendType.Metal)]
+    [InlineData(nameof(HelperKernels.CountsIndex), BackendType.CPU)]
+    [InlineData(nameof(HelperKernels.CountsIndex), BackendType.Metal)]
+    public void SurvivingHelperCalls_AreNamedErrors(
+        string kernelName,
+        BackendType backend)
+    {
+        var exception = Assert.Throws<KernelCompilationException>(() =>
+            GenerateBackendCode(
+                kernelName,
+                backend,
+                kernels: typeof(HelperKernels)));
+        AssertRejected(exception, "HelperKernels.View", "ArrayView<int>");
+        AssertLocation(
+            exception,
+            "private static int ReadView(int index) => View[index];");
+    }
+
     #endregion
 
     #region Helpers
@@ -401,10 +514,11 @@ public sealed class StaticViewFieldTests
     private static CodeGenerationResult GenerateBackendCode(
         string kernelName,
         BackendType backend,
-        CompilationProperties? properties = null)
+        CompilationProperties? properties = null,
+        Type? kernels = null)
     {
         using var helper = new CompilationHelper(backend);
-        var kernel = typeof(Kernels).GetMethod(kernelName)
+        var kernel = (kernels ?? typeof(Kernels)).GetMethod(kernelName)
             ?? throw new InvalidOperationException(
                 $"Kernel method '{kernelName}' not found.");
         return helper.GenerateBackendCode(kernel, backend, properties);
@@ -432,6 +546,21 @@ public sealed class StaticViewFieldTests
         {
             Assert.Contains(fragment, exception.Message, StringComparison.Ordinal);
         }
+    }
+
+    /// <summary>
+    /// Asserts that the given error points at the given line of this file.
+    /// </summary>
+    private static void AssertLocation(
+        KernelCompilationException exception,
+        string sourceLine)
+    {
+        var location = Assert.IsAssignableFrom<FileLocation>(exception.Location);
+        Assert.Equal(
+            nameof(StaticViewFieldTests) + ".cs",
+            Path.GetFileName(location.FileName));
+        var line = File.ReadAllLines(location.FileName)[location.StartLine - 1];
+        Assert.Contains(sourceLine, line, StringComparison.Ordinal);
     }
 
     private static string GetMessages(Exception exception)
