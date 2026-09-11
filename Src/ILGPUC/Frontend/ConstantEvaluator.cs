@@ -115,6 +115,19 @@ sealed class ConstantEvaluator
     private sealed record ArgumentAddress(int Index);
 
     /// <summary>
+    /// A boxed value type, which is never null and whose type is known exactly.
+    /// </summary>
+    /// <param name="Type">The boxed type.</param>
+    /// <param name="Value">The boxed stack value.</param>
+    private sealed record Boxed(Type Type, object? Value);
+
+    /// <summary>
+    /// The address of the value inside a box, as pushed by <c>unbox</c>.
+    /// </summary>
+    /// <param name="Value">The boxed stack value.</param>
+    private sealed record UnboxedAddress(object? Value);
+
+    /// <summary>
     /// A struct value the evaluator does not model.
     /// </summary>
     private sealed class OpaqueStruct
@@ -590,6 +603,46 @@ sealed class ConstantEvaluator
                     }
                     break;
 
+                case ILInstructionType.Box:
+                    {
+                        var type = instruction.GetArgumentAs<Type>();
+                        if (!type.IsValueType ||
+                            Nullable.GetUnderlyingType(type) is not null)
+                        {
+                            throw NotConstant(method, instruction, "boxes a reference");
+                        }
+                        stack.Push(new Boxed(type, stack.Pop()));
+                    }
+                    break;
+                case ILInstructionType.Isinst:
+                    {
+                        var type = instruction.GetArgumentAs<Type>();
+                        stack.Push(stack.Pop() switch
+                        {
+                            null => null,
+                            Boxed boxed =>
+                                type.IsAssignableFrom(boxed.Type) ? boxed : null,
+                            _ => throw NotConstant(
+                                method,
+                                instruction,
+                                "tests the type of an object"),
+                        });
+                    }
+                    break;
+                case ILInstructionType.Unbox:
+                    {
+                        var type = instruction.GetArgumentAs<Type>();
+                        if (stack.Pop() is not Boxed boxed || boxed.Type != type)
+                            throw NotConstant(method, instruction, "unboxes an object");
+                        stack.Push(new UnboxedAddress(boxed.Value));
+                    }
+                    break;
+                case ILInstructionType.Ldobj:
+                    if (stack.Pop() is not UnboxedAddress unboxed)
+                        throw NotConstant(method, instruction, "reads memory");
+                    stack.Push(unboxed.Value);
+                    break;
+
                 case ILInstructionType.Newobj:
                     throw NotConstant(method, instruction, "creates an object");
                 case ILInstructionType.Throw:
@@ -619,6 +672,17 @@ sealed class ConstantEvaluator
     {
         if (target is not MethodInfo)
             throw NotConstant(caller, instruction, "calls a constructor");
+
+        // GetType() of a value type is exact, because value types are sealed
+        if (target.DeclaringType == typeof(object) && target.Name == nameof(GetType))
+        {
+            var instance = stack.Pop();
+            if (constrainedType is { IsValueType: true })
+                return constrainedType;
+            if (instance is Boxed boxed)
+                return boxed.Type;
+            throw NotConstant(caller, instruction, "calls GetType() on an object");
+        }
 
         // Resolve constrained calls of interface members on the constrained type
         if (constrainedType is not null)
@@ -999,7 +1063,7 @@ sealed class ConstantEvaluator
             null => false,
             int i => i != 0,
             long l => l != 0,
-            Type => true,
+            Type or Boxed => true,
             _ => throw NotConstant(
                 method,
                 instruction,
@@ -1081,6 +1145,8 @@ sealed class ConstantEvaluator
             (null, null) => true,
             (Type a, Type b) => a.Equals(b),
             (Type, null) or (null, Type) => false,
+            (Boxed, null) or (null, Boxed) => false,
+            (Boxed a, Boxed b) => ReferenceEquals(a, b),
             _ => throw NotConstant(method, instruction, "compares unsupported values"),
         };
 
@@ -1115,7 +1181,7 @@ sealed class ConstantEvaluator
                     return un;
                 order = x.CompareTo(y);
                 break;
-            case (null or Type, null or Type)
+            case (null or Boxed or Type, null or Boxed or Type)
                 when un && (left is null || right is null):
                 // References as addresses: null is 0, any object is greater
                 order = (left is null ? 0 : 1).CompareTo(right is null ? 0 : 1);

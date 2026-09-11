@@ -47,6 +47,8 @@ static class KernelRegistry
         // Type specialization: typeof(T) tests folded per instantiation.
         ["TypeSpecializationKernels"] =
             [[typeof(float)], [typeof(double)], [typeof(int)]],
+        ["TypeTestKernels"] =
+            [[typeof(float)], [typeof(double)], [typeof(int)]],
         ["TypeOperationKernels"] =
             [[typeof(FloatOperation)], [typeof(IntOperation)]],
         // Only instantiated with types whose throw is in a removed branch.

@@ -27,6 +27,13 @@ partial class CodeGenerator
     /// <summary>
     /// Realizes a boxing operation that boxes a value.
     /// </summary>
+    /// <remarks>
+    /// A boxed value type is never null and its type is known exactly, so the type
+    /// tests that consume it (<c>isinst</c>, <c>brtrue</c>, comparisons with
+    /// <c>null</c> and <c>GetType()</c>) are folded at compile time. This makes
+    /// <c>x is float f</c> and <c>default(T) is float</c> work in generic code,
+    /// and removes the branches that do not apply to an instantiation.
+    /// </remarks>
     /// <param name="type">The type of the boxed value.</param>
     private void MakeBox(Type type)
     {
@@ -41,8 +48,9 @@ partial class CodeGenerator
         }
 
         var value = Block.Pop();
-        if (value.Type is not ObjectType)
+        if (!type.IsValueType)
         {
+            // Boxing a reference type is a no-op in .NET; kernels have no objects
             throw Location.GetNotSupportedException(
                 ErrorMessages.NotSupportedBoxing,
                 FrontendDisplay.Format(type));
@@ -54,6 +62,9 @@ partial class CodeGenerator
         // MakeUnbox pops this address and reinterprets it as a pointer to
         // the target value type; the subsequent ldobj loads the value. This
         // matches _stackBehavior[Box], which declares (pop 1, push 1).
+        // A boxed Nullable<T> may be null, so its type tests cannot be folded
+        if (Nullable.GetUnderlyingType(type) is null)
+            _boxedTypes[alloca] = type;
         Block.Push(alloca);
     }
 
@@ -66,6 +77,21 @@ partial class CodeGenerator
         if (type == null || !type.IsValueType)
             throw Location.GetInvalidOperationException();
         var address = Block.Pop();
+        if (Nullable.GetUnderlyingType(type) is not null)
+        {
+            throw Location.GetNotSupportedException(
+                ErrorMessages.NotSupportedIsInstance,
+                FrontendDisplay.Format(type));
+        }
+
+        // Unboxing null or a box of another type throws in .NET
+        if (address is NullValue)
+            throw GetReachableThrowException("NullReferenceException");
+        if (_boxedTypes.TryGetValue(address, out var boxedType) &&
+            !IsUnboxCompatible(boxedType, type))
+        {
+            throw GetReachableThrowException("InvalidCastException");
+        }
         if (address.Type is not PointerType)
             throw Location.GetInvalidOperationException();
 
@@ -217,15 +243,38 @@ partial class CodeGenerator
     }
 
     /// <summary>
-    /// Realizes an is-instance instruction.
+    /// Returns true if a boxed <paramref name="boxedType"/> can be unboxed as
+    /// <paramref name="type"/>: the same type, or an enum and its underlying type
+    /// (or two enums with the same underlying type), as the CLR allows.
+    /// </summary>
+    private static bool IsUnboxCompatible(Type boxedType, Type type)
+    {
+        static Type Underlying(Type t) => t.IsEnum ? t.GetEnumUnderlyingType() : t;
+        return boxedType == type || Underlying(boxedType) == Underlying(type);
+    }
+
+    /// <summary>
+    /// Realizes an is-instance instruction. Only boxed value types are supported,
+    /// whose type is known at compile time: the result is the boxed value if its
+    /// type is assignable to <paramref name="type"/>, and null otherwise.
     /// </summary>
     /// <param name="type">The target type.</param>
     private void MakeIsInstance(Type type)
     {
         VerifyNoDelegateCast(type, "is");
-        throw Location.GetNotSupportedException(
-            ErrorMessages.NotSupportedIsInstance,
-            FrontendDisplay.Format(type));
+        var value = Block.Pop();
+        if (Nullable.GetUnderlyingType(type) is not null ||
+            !_boxedTypes.TryGetValue(value, out var boxedType))
+        {
+            throw Location.GetNotSupportedException(
+                ErrorMessages.NotSupportedIsInstance,
+                FrontendDisplay.Format(type));
+        }
+
+        if (type.IsAssignableFrom(boxedType))
+            Block.Push(value);
+        else
+            LoadNull();
     }
 
     /// <summary>

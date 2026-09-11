@@ -75,6 +75,9 @@ partial class CodeGenerator
         CompareKind compareKind,
         CompareFlags flags)
     {
+        if (TryFoldReferenceCompare(left, right, compareKind, out bool constant))
+            return Builder.CreatePrimitiveValue(Location, constant);
+
         var convertFlags = ConvertFlags.None;
         if ((flags & CompareFlags.UnsignedOrUnordered) ==
             CompareFlags.UnsignedOrUnordered)
@@ -90,5 +93,54 @@ partial class CodeGenerator
             right,
             compareKind,
             flags).ThrowIfNull();
+    }
+
+    /// <summary>
+    /// Folds comparisons of boxed values with null, such as the
+    /// <c>isinst; ldnull; cgt.un</c> sequence of a type test in Debug builds: a
+    /// boxed value is never null.
+    /// </summary>
+    /// <param name="left">The left operand.</param>
+    /// <param name="right">The right operand.</param>
+    /// <param name="compareKind">The comparison kind.</param>
+    /// <param name="result">The result, if folded.</param>
+    /// <returns>True if the comparison was folded.</returns>
+    private bool TryFoldReferenceCompare(
+        Value left,
+        Value right,
+        CompareKind compareKind,
+        out bool result)
+    {
+        result = false;
+        bool leftBoxed = _boxedTypes.ContainsKey(left);
+        bool rightBoxed = _boxedTypes.ContainsKey(right);
+        bool leftKnown = leftBoxed || left is NullValue;
+        bool rightKnown = rightBoxed || right is NullValue;
+        if (!leftKnown || !rightKnown || !leftBoxed && !rightBoxed)
+            return false;
+
+        // Two boxes are the same object only if they come from the same box
+        // instruction; their order as addresses is unknown
+        if (leftBoxed && rightBoxed)
+        {
+            if (compareKind is not (CompareKind.Equal or CompareKind.NotEqual))
+                return false;
+            result = (left == right) == (compareKind == CompareKind.Equal);
+            return true;
+        }
+
+        // Compare references as addresses: null is 0, a boxed value is not
+        int leftAddress = leftBoxed ? 1 : 0;
+        int rightAddress = rightBoxed ? 1 : 0;
+        result = compareKind switch
+        {
+            CompareKind.Equal => leftAddress == rightAddress,
+            CompareKind.NotEqual => leftAddress != rightAddress,
+            CompareKind.GreaterThan => leftAddress > rightAddress,
+            CompareKind.GreaterEqual => leftAddress >= rightAddress,
+            CompareKind.LessThan => leftAddress < rightAddress,
+            _ => leftAddress <= rightAddress,
+        };
+        return true;
     }
 }
