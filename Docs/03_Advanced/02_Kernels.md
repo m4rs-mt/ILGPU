@@ -71,7 +71,7 @@ line in the form `File.cs(line,column): error ILGPU12xx: message`:
 | `ILGPU1203` | Delegate variables passed as `ref`, `out` or `in` arguments, or used through a reference |
 | `ILGPU1204` | Lambdas and local functions capturing views or pointers of shared or local memory, also when the view is a parameter of the capturing method |
 | `ILGPU1205` | Delegates stored in fields of closures (a lambda capturing a delegate, or a capturing lambda creating another lambda), structures or tuples, and arrays of delegates |
-| `ILGPU1206` | Delegates loaded from static fields, including `static readonly` fields |
+| `ILGPU1206` | Delegates loaded from static fields, including `static readonly` fields and static arrays or `ImmutableArray`s of delegates |
 | `ILGPU1207` | Delegates created from instance methods of structs, such as `Func<int, int> f = value.Add` |
 | `ILGPU1208` | Lambdas and local functions whose closure is allocated inside a loop, such as a lambda capturing a variable declared in the loop body |
 | `ILGPU1209` | Methods taking delegates that call themselves, directly or through the delegates passed to them |
@@ -135,6 +135,24 @@ static int Apply<TOp>(TOp op, int x) where TOp : struct, IUnaryOp => op.Apply(x)
 static void NegateKernel(Index1D index, ArrayView<int> data, Negate op) =>
     data[index] = Apply(op, data[index]);
 ```
+
+## Static Fields and Lookup Tables
+
+Kernels can read `static readonly` fields: their values are taken at compile time and become constants. Lookup tables
+work the same way with `ImmutableArray<T>`:
+
+```csharp
+static readonly ImmutableArray<int> Primes = [2, 3, 5, 7];
+
+static void Kernel(Index1D index, ArrayView<int> output) =>
+    output[index] = Primes[index];
+```
+
+The elements of a plain array can change while the program runs, so reading a static `T[]` (or a multidimensional
+array) is an error by default. Compiling with `--arrays InlineMutableStaticArrays` (for example
+`<ILGPUCompilationOptions>--arrays InlineMutableStaticArrays</ILGPUCompilationOptions>`) uses the contents the array has
+at compile time instead. Inlined tables are limited to 1024 elements; pass larger data to the kernel in an `ArrayView`.
+Static fields holding delegates, also in arrays and lookup tables, cannot be read by kernels (`ILGPU1206`).
 
 ## Type-Specialized Generic Code
 

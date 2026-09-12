@@ -628,7 +628,7 @@ namespace ILGPU.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Cannot load from the static array &apos;{0} since it is mutable..
+        ///   Looks up a localized string similar to Cannot load from the static array &apos;{0}&apos;: its elements can change at run time. Use a static readonly ImmutableArray, pass the data to the kernel in an ArrayView, or compile with &apos;--arrays InlineMutableStaticArrays&apos; to use the contents the array has at compile time..
         /// </summary>
         internal static string NotSupportedLoadFromStaticArray {
             get {
@@ -923,7 +923,34 @@ namespace ILGPU.Resources {
                 return ResourceManager.GetString("KernelDiagnosticUnsupportedConstruct", resourceCulture);
             }
         }
-
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The static array &apos;{0}&apos; is null at compile time..
+        /// </summary>
+        internal static string NotSupportedNullStaticArray {
+            get {
+                return ResourceManager.GetString("NotSupportedNullStaticArray", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The static array &apos;{0}&apos; has {1} elements, more than the {2} that can be inlined into a kernel. Pass the data to the kernel in an ArrayView..
+        /// </summary>
+        internal static string NotSupportedStaticArrayTooLarge {
+            get {
+                return ResourceManager.GetString("NotSupportedStaticArrayTooLarge", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to An array of type &apos;{0}&apos; inside a static value cannot be used in kernels. Store it in its own static readonly field, or pass the data to the kernel in an ArrayView..
+        /// </summary>
+        internal static string NotSupportedNestedStaticArray {
+            get {
+                return ResourceManager.GetString("NotSupportedNestedStaticArray", resourceCulture);
+            }
+        }
+        
         /// <summary>
         ///   Looks up a localized string similar to Cannot statically resolve the delegate invoked in method &apos;{0}&apos;: it is {1}. Kernels can only invoke delegates created from a lambda expression or a static method in kernel code, also when they are passed to a called method..
         /// </summary>

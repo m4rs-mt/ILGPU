@@ -80,6 +80,7 @@ static class RoslynCompiler
             "System.Runtime.InteropServices.dll",
             "System.Console.dll",
             "System.Collections.dll",
+            "System.Collections.Immutable.dll",
             "System.Linq.dll",
             "System.Threading.dll",
             "System.Threading.Thread.dll",

@@ -144,7 +144,7 @@ partial class CodeGenerator
         bool isCompilerGenerated = field.DeclaringType?.Name.StartsWith(
             "<>",
             StringComparison.Ordinal) == true;
-        if (!isCompilerGenerated && field.FieldType.IsDelegate())
+        if (!isCompilerGenerated && HoldsDelegates(field.FieldType))
         {
             throw new KernelCompilationException(
                 KernelDiagnostic.DelegateStaticFieldId,
@@ -173,10 +173,114 @@ partial class CodeGenerator
         }
 
         var fieldValue = field.GetValue(null);
+
+        // Arrays are inlined as local arrays holding their current contents
+        if (field.FieldType.IsArray)
+        {
+            if (Properties.ArrayMode < ArrayMode.InlineMutableStaticArrays)
+            {
+                throw Location.GetNotSupportedException(
+                    ErrorMessages.NotSupportedLoadFromStaticArray,
+                    FormatField(field));
+            }
+            return CreateStaticArrayValue(field, fieldValue as Array);
+        }
+        if (field.FieldType.IsImmutableArray(out _))
+        {
+            var contents = field.FieldType
+                .GetField("array", BindingFlags.Instance | BindingFlags.NonPublic)
+                ?.GetValue(fieldValue) as Array;
+            return CreateStaticArrayValue(field, contents);
+        }
+
         return fieldValue == null ?
             Builder.CreateObjectValue(Location, field.FieldType) :
             Builder.CreateObjectValue(Location, fieldValue);
     }
+
+    /// <summary>
+    /// Returns <see langword="true"/> if a static field of the given type holds
+    /// delegates: a delegate, or an array or <c>ImmutableArray</c> of them,
+    /// which cannot be inlined into a kernel like other static arrays.
+    /// </summary>
+    /// <param name="fieldType">The type of the static field.</param>
+    private static bool HoldsDelegates(Type fieldType) =>
+        fieldType.IsDelegate()
+        || fieldType.IsArray && fieldType.GetElementType()!.IsDelegate()
+        || fieldType.IsImmutableArray(out var elementType) && elementType.IsDelegate();
+
+    /// <summary>
+    /// The maximum number of elements of a static array that is inlined into a
+    /// kernel. Every load of the array stores all of its elements.
+    /// </summary>
+    private const int MaxNumStaticArrayElements = 1024;
+
+    /// <summary>
+    /// Creates a local array that holds the current contents of the static array
+    /// in <paramref name="field"/>.
+    /// </summary>
+    /// <param name="field">The static field.</param>
+    /// <param name="array">The array it holds.</param>
+    /// <returns>The created array.</returns>
+    private ArrayValue CreateStaticArrayValue(FieldInfo field, Array? array)
+    {
+        if (array is null)
+        {
+            throw Location.GetNotSupportedException(
+                ErrorMessages.NotSupportedNullStaticArray,
+                FormatField(field));
+        }
+        if (array.Length > MaxNumStaticArrayElements)
+        {
+            throw Location.GetNotSupportedException(
+                ErrorMessages.NotSupportedStaticArrayTooLarge,
+                FormatField(field),
+                array.Length,
+                MaxNumStaticArrayElements);
+        }
+
+        // The same type that loads of the field and calls on it expect
+        var arrayType = (ArrayType)ModuleBuilder.CreateType(array.GetType());
+        var elementType = arrayType.ElementType;
+        if (array.Length < 1)
+            return Builder.CreateEmptyArray(Location, arrayType);
+
+        var arrayBuilder = Builder.CreateNewArray(Location, arrayType);
+        for (int i = 0; i < array.Rank; ++i)
+            arrayBuilder.Add(Builder.CreatePrimitiveValue(Location, array.GetLength(i)));
+        var arrayValue = arrayBuilder.Seal();
+
+        // Store every element, in row-major order
+        var indices = new int[array.Rank];
+        for (int element = 0; element < array.Length; ++element)
+        {
+            var laeaBuilder = Builder.CreateLoadArrayElementAddress(
+                Location,
+                arrayValue);
+            foreach (int index in indices)
+                laeaBuilder.Add(Builder.CreatePrimitiveValue(Location, index));
+            var value = array.GetValue(indices);
+            CreateStore(
+                laeaBuilder.Seal(),
+                value is null
+                    ? Builder.CreateNull(Location, elementType)
+                    : Builder.CreateObjectValue(Location, value));
+
+            for (int i = array.Rank - 1; i >= 0; --i)
+            {
+                if (++indices[i] < array.GetLength(i))
+                    break;
+                indices[i] = 0;
+            }
+        }
+        return arrayValue;
+    }
+
+    /// <summary>
+    /// Formats a field as <c>Type.Field</c> for error messages.
+    /// </summary>
+    private static string FormatField(FieldInfo field) =>
+        $"{field.DeclaringType?.Name}.{field.Name}";
 
     /// <summary>
     /// Loads a static field value.
