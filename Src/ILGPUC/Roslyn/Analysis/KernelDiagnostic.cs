@@ -159,7 +159,8 @@ record KernelDiagnostic(string Id, string Message, Location Location)
 
     /// <summary>
     /// Kernel code loads a static field whose value refers to memory, such as a
-    /// view, a pointer or a structure containing one.
+    /// view, a pointer or a structure containing one, a string or a class
+    /// instance.
     /// </summary>
     public const string StaticMemoryReferenceFieldId = "ILGPU1214";
 

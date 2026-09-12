@@ -17,6 +17,7 @@ using ILGPUC.IR.PureValues;
 using System;
 using System.Collections.Generic;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 
 namespace ILGPUC.Frontend;
 
@@ -80,9 +81,26 @@ static class FailedMethodVerifier
 
                     // Diagnostics of the failed method, such as static fields
                     // that kernels cannot load, keep their identifiers and
-                    // locations in the failed method
-                    if (failure is KernelCompilationException)
-                        throw failure;
+                    // locations in the failed method. They point at the call
+                    // instead if the failed method has no source location, such
+                    // as a library method without debug information, or if it
+                    // is an accessor the compiler generates for an
+                    // auto-implemented property, whose location is the property
+                    // declaration
+                    if (failure is KernelCompilationException compilationFailure)
+                    {
+                        bool generatedAccessor = target.IsSpecialName &&
+                            target.IsDefined(typeof(CompilerGeneratedAttribute));
+                        if (compilationFailure.Location is FileLocation &&
+                            !generatedAccessor)
+                        {
+                            throw failure;
+                        }
+                        throw new KernelCompilationException(
+                            compilationFailure.Id,
+                            compilationFailure.Message,
+                            call.Location);
+                    }
 
                     var caller = method.Source is { } source
                         ? FrontendDisplay.Format(source)

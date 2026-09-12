@@ -577,6 +577,10 @@
     <value>Static field '{0}' of type '{1}' holds a view or a pointer, which kernels cannot load: its value is read when the kernel is compiled and does not refer to memory of the device. Pass the view to the kernel as a parameter or capture it in an inline kernel instead.</value>
     <comment/>
   </data>
+  <data name="KernelDiagnosticStaticObjectField" xml:space="preserve">
+    <value>Static field '{0}' has the reference type '{1}', which kernels cannot load, even if the field is null: strings, class instances and other objects, such as Type objects, do not exist on the device. Pass the data to the kernel in an ArrayView or as a parameter instead, or keep it in a static field of a primitive, enum or structure type.</value>
+    <comment/>
+  </data>
   <data name="KernelDiagnosticStructMethodGroup" xml:space="preserve">
     <value>Delegate created from the instance method '{0}' of a struct value is not supported. Use a lambda expression that captures the value instead.</value>
     <comment/>

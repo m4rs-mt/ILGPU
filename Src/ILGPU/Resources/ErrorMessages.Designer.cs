@@ -1123,6 +1123,15 @@ namespace ILGPU.Resources {
         }
 
         /// <summary>
+        ///   Looks up a localized string similar to Static field &apos;{0}&apos; has the reference type &apos;{1}&apos;, which kernels cannot load, even if the field is null: strings, class instances and other objects, such as Type objects, do not exist on the device. Pass the data to the kernel in an ArrayView or as a parameter instead, or keep it in a static field of a primitive, enum or structure type..
+        /// </summary>
+        internal static string KernelDiagnosticStaticObjectField {
+            get {
+                return ResourceManager.GetString("KernelDiagnosticStaticObjectField", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to Delegate created from the instance method &apos;{0}&apos; of a struct value is not supported. Use a lambda expression that captures the value instead..
         /// </summary>
         internal static string KernelDiagnosticStructMethodGroup {

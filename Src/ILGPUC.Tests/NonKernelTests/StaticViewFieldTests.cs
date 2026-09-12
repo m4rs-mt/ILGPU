@@ -25,7 +25,8 @@ namespace ILGPUC.Tests.NonKernelTests;
 /// <summary>
 /// Tests that kernels cannot load views or pointers from static fields, whose
 /// values are read when the kernel is compiled and do not refer to memory of the
-/// device, while static fields without them are still inlined.
+/// device, nor strings and class instances, which do not exist on the device,
+/// while static fields without them are still inlined.
 /// </summary>
 public sealed class StaticViewFieldTests
 {
@@ -67,6 +68,82 @@ public sealed class StaticViewFieldTests
         public nuint Unsigned;
     }
 
+    private sealed class Box
+    {
+        public int Value;
+    }
+
+    private interface IValue
+    {
+        int Value { get; }
+    }
+
+    private sealed class ValueBox : IValue
+    {
+        public int Value => 2;
+    }
+
+    private static class ObjectKernels
+    {
+        public static readonly string Name = "abc";
+        public static readonly string? NullName = null;
+        public static readonly Box Box = new() { Value = 2 };
+        public static readonly Box? NullBox = null;
+        public static readonly object Object = new Box() { Value = 2 };
+        public static readonly object BoxedValue = 2;
+        public static readonly IValue Interface = new ValueBox();
+        private static readonly Box PropertyBox = new() { Value = 2 };
+
+        public static Box Property => PropertyBox;
+
+        public static Box AutoProperty { get; } = new() { Value = 3 };
+
+        public static void ReadsName(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data) =>
+            data[index] = Name.Length;
+
+        public static void ReadsNullName(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data) =>
+            data[index] = NullName!.Length;
+
+        public static void ReadsBox(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data) =>
+            data[index] = Box.Value;
+
+        public static void ReadsNullBox(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data) =>
+            data[index] = NullBox!.Value;
+
+        public static void ReadsObject(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data) =>
+            data[index] = ((Box)Object).Value;
+
+        public static void ReadsBoxedValue(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data) =>
+            data[index] = (int)BoxedValue;
+
+        public static void ReadsInterface(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data) =>
+            data[index] = Interface.Value;
+
+        public static void ReadsProperty(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data) =>
+            data[index] = Property.Value;
+
+        public static void ReadsAutoProperty(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data) =>
+            data[index] = AutoProperty.Value;
+    }
+
     /// <summary>
     /// Helpers loading static fields that kernels cannot load, on paths that
     /// optimization removes or keeps.
@@ -74,8 +151,22 @@ public sealed class StaticViewFieldTests
     private static class HelperKernels
     {
         public static readonly ArrayView<int> View = default;
+        public static readonly string Name = "abc";
+        public static readonly Box Box = new() { Value = 2 };
+
+        private static int Fail() => throw new InvalidOperationException(Name);
+
+        private static int CheckedArg(int value) => value >= 0 ? value : Fail();
 
         private static int ReadView(int index) => View[index];
+
+        private static int ReadName() => Name.Length;
+
+        private static int ReadBox() => Box.Value;
+
+        private static int PickName(int value) => value == 0 ? 1 : ReadName();
+
+        private static int PickBox(int value) => value == 0 ? 1 : ReadBox();
 
         private static int PickView(int value) => value == 0 ? 1 : ReadView(value);
 
@@ -92,6 +183,9 @@ public sealed class StaticViewFieldTests
         private static int Count(int value, int sum) =>
             value < 0 ? ReadView(0) : value == 0 ? sum : Count(value - 1, sum + value);
 
+        private static int SumName(int value) =>
+            value <= 0 ? Name.Length : 1 + SumName(value - 1);
+
         // The constant evaluator of the frontend does not see through the tuple,
         // so the helpers are generated and only the IR optimizer removes their
         // calls
@@ -99,6 +193,21 @@ public sealed class StaticViewFieldTests
             Index1D index,
             ArrayView1D<int, Stride1D.Dense> data) =>
             data[index] = PickView((((int Value, int Index))(0, index.X)).Value);
+
+        public static void ChecksConstant(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data) =>
+            data[index] = CheckedArg((((int Value, int Index))(5, index.X)).Value);
+
+        public static void PicksName(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data) =>
+            data[index] = PickName((((int Value, int Index))(0, index.X)).Value);
+
+        public static void PicksBox(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data) =>
+            data[index] = PickBox((((int Value, int Index))(0, index.X)).Value);
 
         // The constant evaluator of the frontend folds Sum(5), so the helpers
         // are never generated
@@ -126,6 +235,57 @@ public sealed class StaticViewFieldTests
             Index1D index,
             ArrayView1D<int, Stride1D.Dense> data) =>
             data[index] = Count(index, 0);
+
+        public static void ChecksIndex(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data) =>
+            data[index] = CheckedArg(index - 2);
+
+        public static void PicksNameByIndex(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data) =>
+            data[index] = PickName(index);
+
+        public static void PicksBoxByIndex(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data) =>
+            data[index] = PickBox(index);
+
+        public static void SumsNameByIndex(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data) =>
+            data[index] = SumName(index);
+
+        public static void ReadsNameInLocalFunction(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data)
+        {
+            data[index] = index.X == 0 ? 1 : Local();
+            static int Local() => Name.Length;
+        }
+
+        public static void ReadsNameByReference(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data)
+        {
+            ref readonly string name = ref Name;
+            data[index] = name.Length;
+        }
+
+        public static void ReadsGenericString(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data) =>
+            data[index] = GenericHolder<string>.Value!.Length;
+
+        public static void ReadsGenericInt(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data) =>
+            data[index] = GenericHolder<int>.Value + 3;
+    }
+
+    private static class GenericHolder<T>
+    {
+        public static readonly T? Value = default;
     }
 
     private static class Kernels
@@ -316,6 +476,98 @@ public sealed class StaticViewFieldTests
             fieldName,
             typeName);
 
+    public static TheoryData<string, string, string, string> RejectedObjects => new()
+    {
+        {
+            nameof(ObjectKernels.ReadsName),
+            "ObjectKernels.Name",
+            "string",
+            "data[index] = Name.Length"
+        },
+        {
+            nameof(ObjectKernels.ReadsNullName),
+            "ObjectKernels.NullName",
+            "string",
+            "data[index] = NullName!.Length"
+        },
+        {
+            nameof(ObjectKernels.ReadsBox),
+            "ObjectKernels.Box",
+            "Box",
+            "data[index] = Box.Value"
+        },
+        {
+            nameof(ObjectKernels.ReadsNullBox),
+            "ObjectKernels.NullBox",
+            "Box",
+            "data[index] = NullBox!.Value"
+        },
+        {
+            nameof(ObjectKernels.ReadsObject),
+            "ObjectKernels.Object",
+            "object",
+            "data[index] = ((Box)Object).Value"
+        },
+        {
+            nameof(ObjectKernels.ReadsBoxedValue),
+            "ObjectKernels.BoxedValue",
+            "object",
+            "data[index] = (int)BoxedValue"
+        },
+        {
+            nameof(ObjectKernels.ReadsInterface),
+            "ObjectKernels.Interface",
+            "IValue",
+            "data[index] = Interface.Value"
+        },
+        {
+            nameof(ObjectKernels.ReadsProperty),
+            "ObjectKernels.PropertyBox",
+            "Box",
+            "public static Box Property => PropertyBox;"
+        },
+        {
+            nameof(ObjectKernels.ReadsAutoProperty),
+            "ObjectKernels.AutoProperty",
+            "Box",
+            "data[index] = AutoProperty.Value"
+        },
+    };
+
+    /// <summary>
+    /// Static fields of strings, classes and interfaces failed with an unnamed
+    /// error that the class type is not supported, naming <c>RuntimeType</c>
+    /// for null fields, and with internal compiler errors for boxed values. The
+    /// error points at the load of the field, or at the call of the accessor of
+    /// an auto-implemented property, whose location is its declaration.
+    /// </summary>
+    [Theory]
+    [MemberData(nameof(RejectedObjects))]
+    public void StaticObjects_AreNamedErrors(
+        string kernelName,
+        string fieldName,
+        string typeName,
+        string sourceLine)
+    {
+        var exception = Assert.Throws<KernelCompilationException>(() =>
+            GenerateBackendCode(
+                kernelName,
+                BackendType.CPU,
+                kernels: typeof(ObjectKernels)));
+        Assert.Equal("ILGPU1214", exception.Id);
+        foreach (var fragment in new[]
+        {
+            $"Static field '{fieldName}' has the reference type '{typeName}', " +
+                "which kernels cannot load, even if the field is null",
+            "other objects, such as Type objects, do not exist on the device",
+            "Pass the data to the kernel in an ArrayView or as a parameter instead",
+        })
+        {
+            Assert.Contains(fragment, exception.Message, StringComparison.Ordinal);
+        }
+        AssertLocation(exception, sourceLine);
+    }
+
     /// <summary>
     /// The original report: a static readonly view compiled to a load from a
     /// null pointer on all backends instead of an error.
@@ -427,6 +679,9 @@ public sealed class StaticViewFieldTests
     /// </summary>
     [Theory]
     [InlineData(nameof(HelperKernels.PicksView), 1)]
+    [InlineData(nameof(HelperKernels.ChecksConstant), 5)]
+    [InlineData(nameof(HelperKernels.PicksName), 1)]
+    [InlineData(nameof(HelperKernels.PicksBox), 1)]
     [InlineData(nameof(HelperKernels.SumsConstant), 15)]
     public void RemovedHelperCalls_Compile(string kernelName, int value)
     {
@@ -468,6 +723,103 @@ public sealed class StaticViewFieldTests
         AssertLocation(
             exception,
             "private static int ReadView(int index) => View[index];");
+    }
+
+    public static TheoryData<string, string, string> SurvivingReferenceHelperCalls =>
+        new()
+    {
+        {
+            nameof(HelperKernels.ChecksIndex),
+            "Static field 'HelperKernels.Name' has the reference type 'string'",
+            "private static int Fail() => throw new InvalidOperationException(Name);"
+        },
+        {
+            nameof(HelperKernels.PicksNameByIndex),
+            "Static field 'HelperKernels.Name' has the reference type 'string'",
+            "private static int ReadName() => Name.Length;"
+        },
+        {
+            nameof(HelperKernels.PicksBoxByIndex),
+            "Static field 'HelperKernels.Box' has the reference type 'Box'",
+            "private static int ReadBox() => Box.Value;"
+        },
+        {
+            nameof(HelperKernels.SumsNameByIndex),
+            "Static field 'HelperKernels.Name' has the reference type 'string'",
+            "value <= 0 ? Name.Length : 1 + SumName(value - 1);"
+        },
+        {
+            nameof(HelperKernels.ReadsNameInLocalFunction),
+            "Static field 'HelperKernels.Name' has the reference type 'string'",
+            "static int Local() => Name.Length;"
+        },
+    };
+
+    /// <summary>
+    /// Helpers loading strings and class instances are reported like helpers
+    /// loading views.
+    /// </summary>
+    [Theory]
+    [MemberData(nameof(SurvivingReferenceHelperCalls))]
+    public void SurvivingReferenceHelperCalls_AreNamedErrors(
+        string kernelName,
+        string message,
+        string sourceLine)
+    {
+        var exception = Assert.Throws<KernelCompilationException>(() =>
+            GenerateBackendCode(
+                kernelName,
+                BackendType.CPU,
+                kernels: typeof(HelperKernels)));
+        Assert.Equal("ILGPU1214", exception.Id);
+        Assert.Contains(message, exception.Message, StringComparison.Ordinal);
+        AssertLocation(exception, sourceLine);
+    }
+
+    [Fact]
+    public void StaticObjectReference_IsNamedError()
+    {
+        var exception = Assert.Throws<KernelCompilationException>(() =>
+            GenerateBackendCode(
+                nameof(HelperKernels.ReadsNameByReference),
+                BackendType.CPU,
+                kernels: typeof(HelperKernels)));
+        Assert.Equal("ILGPU1214", exception.Id);
+        Assert.Contains(
+            "Static field 'HelperKernels.Name' has the reference type 'string'",
+            exception.Message,
+            StringComparison.Ordinal);
+        AssertLocation(exception, "ref readonly string name = ref Name;");
+    }
+
+    /// <summary>
+    /// Fields of generic types are checked by the type of their instantiation.
+    /// </summary>
+    [Fact]
+    public void GenericStaticFields_AreCheckedByInstantiation()
+    {
+        var exception = Assert.Throws<KernelCompilationException>(() =>
+            GenerateBackendCode(
+                nameof(HelperKernels.ReadsGenericString),
+                BackendType.CPU,
+                kernels: typeof(HelperKernels)));
+        Assert.Equal("ILGPU1214", exception.Id);
+        Assert.Contains(
+            ".Value' has the reference type 'string'",
+            exception.Message,
+            StringComparison.Ordinal);
+        AssertLocation(
+            exception,
+            "data[index] = GenericHolder<string>.Value!.Length;");
+
+        var result = GenerateBackendCode(
+            nameof(HelperKernels.ReadsGenericInt),
+            BackendType.CPU,
+            kernels: typeof(HelperKernels));
+        Assert.Contains(
+            StoreOf(BackendType.CPU, 3),
+            result.SourceCode,
+            StringComparison.Ordinal);
     }
 
     #endregion

@@ -208,20 +208,16 @@ partial class CodeGenerator
         VerifyStaticFieldLoad(field);
 
         // Static field values are read when the kernel is compiled, so views and
-        // pointers in them do not refer to memory of the device. Reject them
-        // before reading the field, which would run its static constructor.
+        // pointers in them do not refer to memory of the device, and managed
+        // objects in them do not exist on the device. Reject them before reading
+        // the field, which would run its static constructor.
         // The static views of ILGPU itself are empty views (such as
-        // ArrayView<T>.Empty), which are valid in kernels.
-        if (field.DeclaringType?.Assembly != typeof(ArrayView<>).Assembly &&
-            RefersToMemory(field.FieldType))
+        // ArrayView<T>.Empty), which are valid in kernels, and the fields of
+        // closure classes are handled below.
+        if (!isCompilerGenerated &&
+            field.DeclaringType?.Assembly != typeof(ArrayView<>).Assembly)
         {
-            throw new KernelCompilationException(
-                KernelDiagnostic.StaticMemoryReferenceFieldId,
-                string.Format(
-                    ErrorMessages.KernelDiagnosticStaticMemoryReferenceField,
-                    $"{field.DeclaringType?.Name}.{field.Name}",
-                    TypeDisplay.Format(field.FieldType)),
-                Location);
+            VerifyNoMemoryReferences(field);
         }
 
         // Compiler-generated static fields in closure/display classes (<>c):
@@ -245,6 +241,56 @@ partial class CodeGenerator
         return fieldValue == null ?
             Builder.CreateObjectValue(Location, field.FieldType) :
             Builder.CreateObjectValue(Location, fieldValue);
+    }
+
+    /// <summary>
+    /// Rejects static fields whose values refer to memory, which does not exist
+    /// on the device: views and pointers, strings and class instances.
+    /// </summary>
+    /// <param name="field">The static field.</param>
+    /// <remarks>
+    /// Static arrays and delegates are left to their own handling.
+    /// </remarks>
+    private void VerifyNoMemoryReferences(FieldInfo field)
+    {
+        // Auto-properties store their values in backing fields named after them
+        const string BackingFieldSuffix = ">k__BackingField";
+        string name = field.Name;
+        if (name.StartsWith('<') &&
+            name.EndsWith(BackingFieldSuffix, StringComparison.Ordinal))
+        {
+            name = name[1..^BackingFieldSuffix.Length];
+        }
+        string fieldName = $"{field.DeclaringType?.Name}.{name}";
+
+        // Strings, class instances and the objects held by fields of interface
+        // types; pointers count as classes in reflection
+        var fieldType = field.FieldType;
+        if ((fieldType.IsClass || fieldType.IsInterface) &&
+            !fieldType.IsArray &&
+            !fieldType.IsPointer &&
+            !fieldType.IsFunctionPointer &&
+            !fieldType.IsDelegate())
+        {
+            throw new KernelCompilationException(
+                KernelDiagnostic.StaticMemoryReferenceFieldId,
+                string.Format(
+                    ErrorMessages.KernelDiagnosticStaticObjectField,
+                    fieldName,
+                    TypeDisplay.Format(fieldType)),
+                Location);
+        }
+
+        if (RefersToMemory(field.FieldType))
+        {
+            throw new KernelCompilationException(
+                KernelDiagnostic.StaticMemoryReferenceFieldId,
+                string.Format(
+                    ErrorMessages.KernelDiagnosticStaticMemoryReferenceField,
+                    fieldName,
+                    TypeDisplay.Format(field.FieldType)),
+                Location);
+        }
     }
 
     /// <summary>
