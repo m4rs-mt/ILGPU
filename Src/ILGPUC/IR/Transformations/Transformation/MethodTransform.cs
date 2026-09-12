@@ -200,8 +200,12 @@ sealed class MethodTransform :
 
         if (oldBlock is not null)
         {
-            // Register all phi values in this block
-            _phiRewriter.ProcessBlock(this, result, oldBlock);
+            // Register all phi values in this block. Blocks of an inlined method
+            // register their phis with the local phi rewriter of the inlining
+            // (see SpecializeMethod) and are wired before the inlining scope
+            // closes, so they must not register with this method's rewriter.
+            if (!_inlining)
+                _phiRewriter.ProcessBlock(this, result, oldBlock);
 
             // Replace old block
             Replace(oldBlock, basicBlock);
@@ -1060,8 +1064,9 @@ sealed class MethodTransform :
         {
             Generation.ValidateCurrentOrPreviousGeneration(block);
 
-            // Define new block and map it accordingly (ReplaceDirect
-            // is used via _inlining flag in CreateBasicBlockBuilder)
+            // Define new block and map it accordingly (with _inlining set,
+            // CreateBasicBlockBuilder maps it via ReplaceDirect and leaves its
+            // phis to the local phi rewriter below)
             var bbBuilder = CreateBasicBlockFromOldBlock(
                 block,
                 $"{targetName}_{block.Name}").AsNotNullCast<BasicBlockTransform>();
@@ -1098,7 +1103,9 @@ sealed class MethodTransform :
             // Clear stale phi mappings from lower scopes (e.g., Phase 1's
             // base-scope mapping from CreateMethodTransform) so that
             // ProcessBlock's IsReplacedOrRemoved check doesn't skip phis
-            // that need fresh inlined versions.
+            // that need fresh inlined versions. Pass 1 does not map these
+            // phis, but lower scopes still can, such as the callee's own
+            // transform when the callee is rewritten in this pass as well.
             foreach (BasicBlockValue bbv in block)
             {
                 if (bbv is PhiValue)

@@ -133,4 +133,17 @@ public abstract class BasicCallExecutionTests : ExecutionTestBase
             ["Kernels.CallArgumentLoadBeforeInlinedStoreKernel"],
             ["1", "2", "3", "4"]);
     }
+
+    /// <summary>
+    /// A helper whose loop carries the result of an atomic, inlined twice into one
+    /// kernel.
+    /// </summary>
+    [SkippableFact]
+    public async Task LoopHelperCalledTwice_ProducesCorrectOutput()
+    {
+        await VerifyProgramOutputAsync(
+            "TestPrograms/BasicCall/LoopHelperCalledTwice.cs",
+            ["Kernels.LoopHelperCalledTwiceKernel"],
+            ["2", "5", "6"]);
+    }
 }

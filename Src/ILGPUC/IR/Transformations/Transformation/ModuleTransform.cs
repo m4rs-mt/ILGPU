@@ -197,8 +197,9 @@ sealed class ModuleTransform : ModuleBuilder, IModuleRewriter, ITransform, IType
         PeekMapping()[oldValue] = newValue;
 
     /// <summary>
-    /// Removes a replacement entry for the given value from the topmost scope.
-    /// Used to clear stale memoization when re-inlining the same method.
+    /// Removes a replacement entry for the given value from the innermost scope
+    /// that holds one. Used to clear stale memoization when re-inlining the same
+    /// method.
     /// </summary>
     internal bool RemoveReplacement(Value value)
     {
