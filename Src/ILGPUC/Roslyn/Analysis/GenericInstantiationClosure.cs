@@ -1043,9 +1043,26 @@ sealed class GenericInstantiationClosure
             if (type is ITypeParameterSymbol typeParameter)
                 AddCall(model, operation, slot, false, typeParameter);
             else if (type is INamedTypeSymbol named &&
-                ResolveImplementation(named, slot) is { } implementation)
+                (ResolveImplementation(named, slot) ??
+                 FindPatternDispose(named, slot.Name)) is { } implementation)
                 AddImplicitCall(model, operation, implementation, type);
         }
+    }
+
+    /// <summary>
+    /// Returns the instance method <paramref name="name"/> (<c>Dispose</c> or
+    /// <c>DisposeAsync</c>) that a <c>using</c> statement calls on a
+    /// <c>ref struct</c> that does not implement the disposable interface.
+    /// </summary>
+    private static IMethodSymbol? FindPatternDispose(INamedTypeSymbol type, string name)
+    {
+        if (!type.IsRefLikeType)
+            return null;
+        return type.GetMembers(name)
+            .OfType<IMethodSymbol>()
+            .FirstOrDefault(m =>
+                !m.IsStatic &&
+                m.Parameters.All(p => p.IsOptional || p.IsParams));
     }
 
     /// <summary>
