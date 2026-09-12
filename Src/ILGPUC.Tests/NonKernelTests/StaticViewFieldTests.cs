@@ -18,6 +18,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.IO;
+using System.Numerics;
 using Xunit;
 
 namespace ILGPUC.Tests.NonKernelTests;
@@ -25,8 +26,9 @@ namespace ILGPUC.Tests.NonKernelTests;
 /// <summary>
 /// Tests that kernels cannot load views or pointers from static fields, whose
 /// values are read when the kernel is compiled and do not refer to memory of the
-/// device, nor strings and class instances, which do not exist on the device,
-/// while static fields without them are still inlined.
+/// device, nor strings, class instances and structures holding arrays, strings
+/// or class instances, which do not exist on the device, while static fields
+/// without them are still inlined.
 /// </summary>
 public sealed class StaticViewFieldTests
 {
@@ -66,6 +68,42 @@ public sealed class StaticViewFieldTests
     {
         public nint Signed;
         public nuint Unsigned;
+    }
+
+    private struct ArrayHolder
+    {
+        public int Value;
+        public int[] Values;
+    }
+
+    private struct ObjectHolder
+    {
+        public int Value;
+        public object Object;
+    }
+
+    private struct StringHolder
+    {
+        public int Value;
+        public string Name;
+    }
+
+    private struct ImmutableArrayHolder
+    {
+        public int Value;
+        public ImmutableArray<int> Values;
+    }
+
+    private struct NestedArrayHolder
+    {
+        public int Scale;
+        public ArrayHolder Inner;
+    }
+
+    private struct DelegateHolder
+    {
+        public int Value;
+        public Func<int, int> Operation;
     }
 
     private sealed class Box
@@ -144,6 +182,106 @@ public sealed class StaticViewFieldTests
             data[index] = AutoProperty.Value;
     }
 
+    private static class ReferenceKernels
+    {
+        public static readonly ArrayHolder Array = new() { Value = 1, Values = [2] };
+        public static readonly ArrayHolder NullArray = new() { Value = 1 };
+        public static readonly ObjectHolder Object = new()
+        {
+            Value = 1,
+            Object = new Box() { Value = 2 },
+        };
+        public static readonly ObjectHolder NullObject = new() { Value = 1 };
+        public static readonly StringHolder String = new() { Value = 1, Name = "a" };
+        public static readonly StringHolder NullString = new() { Value = 1 };
+        public static readonly ImmutableArrayHolder ImmutableArray = new()
+        {
+            Value = 1,
+            Values = [2],
+        };
+        public static readonly ImmutableArrayHolder DefaultImmutableArray = new()
+        {
+            Value = 1,
+        };
+        public static readonly NestedArrayHolder Nested = new()
+        {
+            Scale = 2,
+            Inner = new() { Value = 1, Values = [2] },
+        };
+        public static readonly ArrayHolder[] Arrays = [new() { Value = 1, Values = [2] }];
+        public static readonly (int Value, string Name) Tuple = (1, "a");
+        public static readonly DelegateHolder Delegate = new()
+        {
+            Value = 1,
+            Operation = x => x + 1,
+        };
+
+        public static void ReadsArray(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data) =>
+            data[index] = Array.Value;
+
+        public static void ReadsArrayElement(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data) =>
+            data[index] = Array.Values[0];
+
+        public static void ReadsNullArray(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data) =>
+            data[index] = NullArray.Value;
+
+        public static void ReadsObject(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data) =>
+            data[index] = Object.Value;
+
+        public static void ReadsNullObject(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data) =>
+            data[index] = NullObject.Value;
+
+        public static void ReadsString(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data) =>
+            data[index] = String.Value;
+
+        public static void ReadsNullString(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data) =>
+            data[index] = NullString.Value;
+
+        public static void ReadsImmutableArray(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data) =>
+            data[index] = ImmutableArray.Value;
+
+        public static void ReadsDefaultImmutableArray(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data) =>
+            data[index] = DefaultImmutableArray.Value;
+
+        public static void ReadsNested(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data) =>
+            data[index] = Nested.Scale;
+
+        public static void ReadsArrays(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data) =>
+            data[index] = Arrays[0].Value;
+
+        public static void ReadsTuple(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data) =>
+            data[index] = Tuple.Value;
+
+        public static void ReadsDelegate(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data) =>
+            data[index] = Delegate.Value;
+    }
+
     /// <summary>
     /// Helpers loading static fields that kernels cannot load, on paths that
     /// optimization removes or keeps.
@@ -153,6 +291,7 @@ public sealed class StaticViewFieldTests
         public static readonly ArrayView<int> View = default;
         public static readonly string Name = "abc";
         public static readonly Box Box = new() { Value = 2 };
+        public static readonly ArrayHolder Holder = new() { Value = 1, Values = [2] };
 
         private static int Fail() => throw new InvalidOperationException(Name);
 
@@ -164,9 +303,13 @@ public sealed class StaticViewFieldTests
 
         private static int ReadBox() => Box.Value;
 
+        private static int ReadHolder() => Holder.Value;
+
         private static int PickName(int value) => value == 0 ? 1 : ReadName();
 
         private static int PickBox(int value) => value == 0 ? 1 : ReadBox();
+
+        private static int PickHolder(int value) => value == 0 ? 1 : ReadHolder();
 
         private static int PickView(int value) => value == 0 ? 1 : ReadView(value);
 
@@ -208,6 +351,11 @@ public sealed class StaticViewFieldTests
             Index1D index,
             ArrayView1D<int, Stride1D.Dense> data) =>
             data[index] = PickBox((((int Value, int Index))(0, index.X)).Value);
+
+        public static void PicksHolder(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data) =>
+            data[index] = PickHolder((((int Value, int Index))(0, index.X)).Value);
 
         // The constant evaluator of the frontend folds Sum(5), so the helpers
         // are never generated
@@ -251,6 +399,11 @@ public sealed class StaticViewFieldTests
             ArrayView1D<int, Stride1D.Dense> data) =>
             data[index] = PickBox(index);
 
+        public static void PicksHolderByIndex(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data) =>
+            data[index] = PickHolder(index);
+
         public static void SumsNameByIndex(
             Index1D index,
             ArrayView1D<int, Stride1D.Dense> data) =>
@@ -263,6 +416,13 @@ public sealed class StaticViewFieldTests
             data[index] = index.X == 0 ? 1 : Local();
             static int Local() => Name.Length;
         }
+
+        // The getter of BigInteger.One loads a static BigInteger, which holds an
+        // array, in a library without debug information
+        public static void ReadsLibraryConstant(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data) =>
+            data[index] = BigInteger.One.Sign;
 
         public static void ReadsNameByReference(
             Index1D index,
@@ -476,6 +636,138 @@ public sealed class StaticViewFieldTests
             fieldName,
             typeName);
 
+    public static TheoryData<string, string, string, string, string>
+        RejectedReferences => new()
+    {
+        {
+            nameof(ReferenceKernels.ReadsArray),
+            "ReferenceKernels.Array",
+            "ArrayHolder",
+            "ArrayHolder.Values",
+            "int[]"
+        },
+        {
+            nameof(ReferenceKernels.ReadsArrayElement),
+            "ReferenceKernels.Array",
+            "ArrayHolder",
+            "ArrayHolder.Values",
+            "int[]"
+        },
+        {
+            nameof(ReferenceKernels.ReadsNullArray),
+            "ReferenceKernels.NullArray",
+            "ArrayHolder",
+            "ArrayHolder.Values",
+            "int[]"
+        },
+        {
+            nameof(ReferenceKernels.ReadsObject),
+            "ReferenceKernels.Object",
+            "ObjectHolder",
+            "ObjectHolder.Object",
+            "object"
+        },
+        {
+            nameof(ReferenceKernels.ReadsNullObject),
+            "ReferenceKernels.NullObject",
+            "ObjectHolder",
+            "ObjectHolder.Object",
+            "object"
+        },
+        {
+            nameof(ReferenceKernels.ReadsString),
+            "ReferenceKernels.String",
+            "StringHolder",
+            "StringHolder.Name",
+            "string"
+        },
+        {
+            nameof(ReferenceKernels.ReadsNullString),
+            "ReferenceKernels.NullString",
+            "StringHolder",
+            "StringHolder.Name",
+            "string"
+        },
+        {
+            nameof(ReferenceKernels.ReadsImmutableArray),
+            "ReferenceKernels.ImmutableArray",
+            "ImmutableArrayHolder",
+            "ImmutableArrayHolder.Values",
+            "ImmutableArray<int>"
+        },
+        {
+            nameof(ReferenceKernels.ReadsDefaultImmutableArray),
+            "ReferenceKernels.DefaultImmutableArray",
+            "ImmutableArrayHolder",
+            "ImmutableArrayHolder.Values",
+            "ImmutableArray<int>"
+        },
+        {
+            nameof(ReferenceKernels.ReadsNested),
+            "ReferenceKernels.Nested",
+            "NestedArrayHolder",
+            "ArrayHolder.Values",
+            "int[]"
+        },
+        {
+            nameof(ReferenceKernels.ReadsArrays),
+            "ReferenceKernels.Arrays",
+            "ArrayHolder[]",
+            "ArrayHolder.Values",
+            "int[]"
+        },
+        {
+            nameof(ReferenceKernels.ReadsTuple),
+            "ReferenceKernels.Tuple",
+            "ValueTuple<int, string>",
+            "ValueTuple<int, string>.Item2",
+            "string"
+        },
+    };
+
+    /// <summary>
+    /// Structures holding managed references failed with internal compiler
+    /// errors while their values were inlined, whether the references were null
+    /// or not.
+    /// </summary>
+    [Theory]
+    [MemberData(nameof(RejectedReferences))]
+    public void StaticManagedReferences_AreNamedErrors(
+        string kernelName,
+        string fieldName,
+        string typeName,
+        string referenceField,
+        string referenceType)
+    {
+        var exception = Assert.Throws<KernelCompilationException>(() =>
+            GenerateBackendCode(
+                kernelName,
+                BackendType.CPU,
+                kernels: typeof(ReferenceKernels)));
+        Assert.Equal("ILGPU1214", exception.Id);
+        foreach (var fragment in new[]
+        {
+            $"Static field '{fieldName}' of type '{typeName}' contains the field " +
+                $"'{referenceField}' of type '{referenceType}', which holds a " +
+                "reference that kernels cannot load, even if it is null",
+            "inside a static value do not exist on the device",
+            "Pass the data to the kernel in an ArrayView instead",
+        })
+        {
+            Assert.Contains(fragment, exception.Message, StringComparison.Ordinal);
+        }
+        // The error points at the load of the field in the kernel
+        var location = Assert.IsAssignableFrom<FileLocation>(exception.Location);
+        Assert.Equal(
+            nameof(StaticViewFieldTests) + ".cs",
+            Path.GetFileName(location.FileName));
+        var line = File.ReadAllLines(location.FileName)[location.StartLine - 1];
+        Assert.Contains(
+            $"data[index] = {fieldName.Split('.')[1]}",
+            line,
+            StringComparison.Ordinal);
+    }
+
     public static TheoryData<string, string, string, string> RejectedObjects => new()
     {
         {
@@ -566,6 +858,20 @@ public sealed class StaticViewFieldTests
             Assert.Contains(fragment, exception.Message, StringComparison.Ordinal);
         }
         AssertLocation(exception, sourceLine);
+    }
+
+    /// <summary>
+    /// Delegates in structures remain rejected as stored delegates.
+    /// </summary>
+    [Fact]
+    public void StaticDelegateHolder_IsStoredDelegateError()
+    {
+        var exception = Assert.Throws<KernelCompilationException>(() =>
+            GenerateBackendCode(
+                nameof(ReferenceKernels.ReadsDelegate),
+                BackendType.CPU,
+                kernels: typeof(ReferenceKernels)));
+        Assert.Equal("ILGPU1205", exception.Id);
     }
 
     /// <summary>
@@ -682,6 +988,7 @@ public sealed class StaticViewFieldTests
     [InlineData(nameof(HelperKernels.ChecksConstant), 5)]
     [InlineData(nameof(HelperKernels.PicksName), 1)]
     [InlineData(nameof(HelperKernels.PicksBox), 1)]
+    [InlineData(nameof(HelperKernels.PicksHolder), 1)]
     [InlineData(nameof(HelperKernels.SumsConstant), 15)]
     public void RemovedHelperCalls_Compile(string kernelName, int value)
     {
@@ -744,6 +1051,12 @@ public sealed class StaticViewFieldTests
             "private static int ReadBox() => Box.Value;"
         },
         {
+            nameof(HelperKernels.PicksHolderByIndex),
+            "Static field 'HelperKernels.Holder' of type 'ArrayHolder' contains the " +
+                "field 'ArrayHolder.Values' of type 'int[]', which holds a reference",
+            "private static int ReadHolder() => Holder.Value;"
+        },
+        {
             nameof(HelperKernels.SumsNameByIndex),
             "Static field 'HelperKernels.Name' has the reference type 'string'",
             "value <= 0 ? Name.Length : 1 + SumName(value - 1);"
@@ -753,11 +1066,16 @@ public sealed class StaticViewFieldTests
             "Static field 'HelperKernels.Name' has the reference type 'string'",
             "static int Local() => Name.Length;"
         },
+        {
+            nameof(HelperKernels.ReadsLibraryConstant),
+            "of type 'BigInteger' contains the field",
+            "data[index] = BigInteger.One.Sign;"
+        },
     };
 
     /// <summary>
-    /// Helpers loading strings and class instances are reported like helpers
-    /// loading views.
+    /// Helpers loading strings, class instances and structures holding them are
+    /// reported like helpers loading views.
     /// </summary>
     [Theory]
     [MemberData(nameof(SurvivingReferenceHelperCalls))]

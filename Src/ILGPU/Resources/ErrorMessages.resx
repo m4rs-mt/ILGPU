@@ -573,6 +573,10 @@
     <value>Static field '{0}' holds a delegate, which kernels cannot load. Pass a lambda expression or a static method as an argument instead.</value>
     <comment/>
   </data>
+  <data name="KernelDiagnosticStaticManagedReferenceField" xml:space="preserve">
+    <value>Static field '{0}' of type '{1}' contains the field '{2}' of type '{3}', which holds a reference that kernels cannot load, even if it is null: arrays, strings and class instances inside a static value do not exist on the device. Pass the data to the kernel in an ArrayView instead, or keep only primitive, enum and structure fields in the value.</value>
+    <comment/>
+  </data>
   <data name="KernelDiagnosticStaticMemoryReferenceField" xml:space="preserve">
     <value>Static field '{0}' of type '{1}' holds a view or a pointer, which kernels cannot load: its value is read when the kernel is compiled and does not refer to memory of the device. Pass the view to the kernel as a parameter or capture it in an inline kernel instead.</value>
     <comment/>

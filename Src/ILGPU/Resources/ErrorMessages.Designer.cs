@@ -1114,6 +1114,15 @@ namespace ILGPU.Resources {
         }
 
         /// <summary>
+        ///   Looks up a localized string similar to Static field &apos;{0}&apos; of type &apos;{1}&apos; contains the field &apos;{2}&apos; of type &apos;{3}&apos;, which holds a reference that kernels cannot load, even if it is null: arrays, strings and class instances inside a static value do not exist on the device. Pass the data to the kernel in an ArrayView instead, or keep only primitive, enum and structure fields in the value..
+        /// </summary>
+        internal static string KernelDiagnosticStaticManagedReferenceField {
+            get {
+                return ResourceManager.GetString("KernelDiagnosticStaticManagedReferenceField", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to Static field &apos;{0}&apos; of type &apos;{1}&apos; holds a view or a pointer, which kernels cannot load: its value is read when the kernel is compiled and does not refer to memory of the device. Pass the view to the kernel as a parameter or capture it in an inline kernel instead..
         /// </summary>
         internal static string KernelDiagnosticStaticMemoryReferenceField {

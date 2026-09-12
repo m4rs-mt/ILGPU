@@ -245,7 +245,8 @@ partial class CodeGenerator
 
     /// <summary>
     /// Rejects static fields whose values refer to memory, which does not exist
-    /// on the device: views and pointers, strings and class instances.
+    /// on the device: views and pointers, strings and class instances, and
+    /// arrays inside structures, which cannot be inlined as IR constants.
     /// </summary>
     /// <param name="field">The static field.</param>
     /// <remarks>
@@ -281,6 +282,22 @@ partial class CodeGenerator
                 Location);
         }
 
+        // Check the fields of structures first, since determining whether a
+        // type refers to views creates its IR type, which fails for structures
+        // holding managed references
+        if (FindManagedReference(field.FieldType) is { } referenceField)
+        {
+            throw new KernelCompilationException(
+                KernelDiagnostic.StaticMemoryReferenceFieldId,
+                string.Format(
+                    ErrorMessages.KernelDiagnosticStaticManagedReferenceField,
+                    fieldName,
+                    TypeDisplay.Format(field.FieldType),
+                    TypeDisplay.Format(referenceField.DeclaringType.AsNotNull()) +
+                        $".{referenceField.Name}",
+                    TypeDisplay.Format(referenceField.FieldType)),
+                Location);
+        }
         if (RefersToMemory(field.FieldType))
         {
             throw new KernelCompilationException(
@@ -291,6 +308,67 @@ partial class CodeGenerator
                     TypeDisplay.Format(field.FieldType)),
                 Location);
         }
+    }
+
+    /// <summary>
+    /// Returns the first field holding a managed reference (an array, a string, a
+    /// class instance or an <c>ImmutableArray&lt;T&gt;</c>, which wraps an array)
+    /// in a structure of the given type, including nested structures and the
+    /// elements of arrays of structures, or <see langword="null"/> if there is
+    /// none.
+    /// </summary>
+    /// <param name="type">The managed type.</param>
+    /// <param name="visited">
+    /// The structures already being checked, since a structure can contain an
+    /// array of itself.
+    /// </param>
+    /// <remarks>
+    /// Arrays and class instances held by static fields themselves are not
+    /// reported here. Fields of delegate types are left to the delegate checks,
+    /// and the structures of ILGPU are not followed: views hold the buffer they
+    /// belong to, which is not part of their value in kernels.
+    /// </remarks>
+    private static FieldInfo? FindManagedReference(
+        Type type,
+        HashSet<Type>? visited = null)
+    {
+        // Arrays and immutable arrays contain the values of their elements
+        while (true)
+        {
+            if (type.IsArray)
+                type = type.GetElementType().AsNotNull();
+            else if (type.IsImmutableArray(out var elementType))
+                type = elementType;
+            else
+                break;
+        }
+        if (!type.IsValueType || type.IsPrimitive || type.IsEnum ||
+            type.Assembly == typeof(ArrayView<>).Assembly)
+        {
+            return null;
+        }
+
+        visited ??= [];
+        if (!visited.Add(type))
+            return null;
+        foreach (var field in type.GetFields(
+            BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic))
+        {
+            var fieldType = field.FieldType;
+            // Pointers count as classes in reflection, but are left to the
+            // checks for memory references
+            if (fieldType.IsImmutableArray(out _) ||
+                (fieldType.IsClass || fieldType.IsInterface) &&
+                !fieldType.IsPointer &&
+                !fieldType.IsFunctionPointer &&
+                !fieldType.IsDelegate())
+            {
+                return field;
+            }
+            if (FindManagedReference(fieldType, visited) is { } nested)
+                return nested;
+        }
+        return null;
     }
 
     /// <summary>
@@ -307,7 +385,8 @@ partial class CodeGenerator
     /// Views are detected by the IR type the compiler maps a type to, so that
     /// every view type is covered without listing them here. Fields of class
     /// types, which the IR also represents as pointers, are not followed, since
-    /// kernels reject loading class instances from static fields anyway.
+    /// <see cref="FindManagedReference(Type, HashSet{Type}?)"/> rejects them
+    /// before.
     /// </remarks>
     private bool RefersToMemory(Type type, HashSet<Type>? visited = null)
     {
