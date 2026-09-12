@@ -72,6 +72,14 @@ sealed class MethodTransform :
     #region Instance
 
     private readonly Dictionary<BasicBlockValue, BasicBlockValue?> _prevMapping;
+
+    /// <summary>
+    /// The blocks that values were moved to by
+    /// <see cref="AppendTo(BasicBlockTransform, BasicBlockValue?)"/>.
+    /// </summary>
+    private readonly Dictionary<BasicBlockValue, BasicBlockTransform> _relinkedBlocks =
+        new();
+
     private readonly ValueSet<Method, BasicBlock> _rewritten;
     private readonly ValueMap<Method, BasicBlock, BasicBlock> _newToOld;
     private readonly Lazy<CFG<ReversePostOrder<BasicBlock>, Forwards>> _cfg;
@@ -427,6 +435,17 @@ sealed class MethodTransform :
                     blockTransform = _overrideBlockTransform;
                 }
                 else if (_currentDemandBlock is not null
+                    && _relinkedBlocks.TryGetValue(bbv, out var relinkedBlock))
+                {
+                    // This value was moved to another block by AppendTo, for
+                    // example to the exit block of an inlined call, and may be
+                    // demanded from a different block (e.g. as an argument
+                    // of a call inlined later). Create it in the block it was
+                    // moved to; outside of inlining, it is queued there as a
+                    // cross-block value.
+                    blockTransform = relinkedBlock;
+                }
+                else if (_currentDemandBlock is not null
                     && currentGenBlock != _currentDemandBlock.BasicBlock
                     && (bbv.BasicBlock == _currentDemandBlock.OldBasicBlock
                         || IsRelinkedChainMember(bbv)
@@ -767,10 +786,10 @@ sealed class MethodTransform :
 
     /// <summary>
     /// Checks whether the given value is a relinked chain member — its
-    /// predecessor was set via <c>_prevMapping</c> by AppendTo during
-    /// SimplifyControlFlow block merging. This means the value is from
-    /// a block that was merged into another block, and its original
-    /// BasicBlock no longer matches the demand block.
+    /// predecessor was set via <c>_prevMapping</c> by AppendTo when
+    /// SimplifyControlFlow merges blocks or a block is split at an inlined
+    /// call. This means the value was moved to another block, and its
+    /// original BasicBlock no longer matches the demand block.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private bool IsRelinkedChainMember(BasicBlockValue bbv) =>
@@ -794,7 +813,8 @@ sealed class MethodTransform :
 
     /// <summary>
     /// Maps the given value from the previous generation to a newly assigned target
-    /// block from the previous generation.
+    /// block from the previous generation and records that block for the value and
+    /// every value after it in its chain.
     /// </summary>
     /// <param name="block">The block to append to.</param>
     /// <param name="toAppend">The value to append.</param>
@@ -805,6 +825,7 @@ sealed class MethodTransform :
 
         if (!AppendTo(block.Last, toAppend))
             block.UpdateLastFromChain(toAppend);
+        _relinkedBlocks[toAppend] = block;
 
         // Register every subsequent value in the moved chain in
         // _prevMapping. AppendTo semantics move the whole .Next chain;
@@ -822,6 +843,7 @@ sealed class MethodTransform :
              current is not null;
              current = current.Next)
         {
+            _relinkedBlocks[current] = block;
             if (!_prevMapping.ContainsKey(current))
                 _prevMapping[current] = current.Previous;
         }

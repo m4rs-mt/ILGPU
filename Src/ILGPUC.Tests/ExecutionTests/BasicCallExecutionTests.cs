@@ -107,4 +107,30 @@ public abstract class BasicCallExecutionTests : ExecutionTestBase
             ["Kernels.HelperInactiveLanesKernel"],
             ["100", "0", "0", "103", "0", "0", "106", "0", "0", "109", "0", "0"]);
     }
+
+    /// <summary>
+    /// A value read before a store and passed to an inlined helper after the store
+    /// keeps the value read.
+    /// </summary>
+    [SkippableFact]
+    public async Task CallArgumentLoadBeforeStore_ProducesCorrectOutput()
+    {
+        await VerifyProgramOutputAsync(
+            "TestPrograms/BasicCall/CallArgumentLoadBeforeStore.cs",
+            ["Kernels.CallArgumentLoadBeforeStoreKernel"],
+            ["1", "2", "3", "4"]);
+    }
+
+    /// <summary>
+    /// A value read before an inlined helper that overwrites it and passed to a
+    /// second inlined helper keeps the value read.
+    /// </summary>
+    [SkippableFact]
+    public async Task CallArgumentLoadBeforeInlinedStore_ProducesCorrectOutput()
+    {
+        await VerifyProgramOutputAsync(
+            "TestPrograms/BasicCall/CallArgumentLoadBeforeInlinedStore.cs",
+            ["Kernels.CallArgumentLoadBeforeInlinedStoreKernel"],
+            ["1", "2", "3", "4"]);
+    }
 }
