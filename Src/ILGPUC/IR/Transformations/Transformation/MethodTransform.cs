@@ -287,9 +287,10 @@ sealed class MethodTransform :
             // e.g. for the back edge of a split single-block loop.
             if (oldValue is BasicBlock bb)
             {
-                // When a block has been split by SpecializeMethodCall, phi sources
-                // must redirect to the exit block (which inherited the termination
-                // and is the actual predecessor of successor blocks).
+                // When a block has been split by CompleteBlockSplit (an inlined
+                // call or a lowered atomic), phi sources must redirect to the exit
+                // block (which inherited the termination and is the actual
+                // predecessor of successor blocks).
                 // However, successor edges must NOT follow these redirects — they
                 // should point to the original (split) block, not the exit block.
                 // _skipPhiSourceRedirects is set during successor resolution
@@ -988,12 +989,8 @@ sealed class MethodTransform :
 
         var returnValue = SpecializeMethod(specialization, currentBlockTransform);
 
-        // Wire exit block to fit into the game. Disable _phiSourceRedirects
-        // so that successor edges resolve to the original (split) blocks, not
-        // their exit blocks from prior inlining processes.
-        _skipPhiSourceRedirects = true;
-        exitBuilder.CopyTerminationFrom(methodCall.BasicBlock);
-        _skipPhiSourceRedirects = false;
+        // Wire exit block to fit into the game
+        CompleteBlockSplit(currentBlockTransform, exitBuilder, methodCall.BasicBlock);
 
         // Replace value with phi value or null (remove)
         Replace(methodCall, returnValue);
@@ -1001,14 +998,35 @@ sealed class MethodTransform :
         // Track split: subsequent calls from the same old block use the exit
         _splitBlocks[methodCall.BasicBlock] = exitBuilder;
 
+        // Return potential return value
+        return returnValue;
+    }
+
+    /// <summary>
+    /// Completes the split of a block whose remaining values were moved to the
+    /// given exit block: copies the termination of the old block to the exit
+    /// block and makes phi sources that name the split block name the exit block,
+    /// which is now the predecessor of the old block's successors.
+    /// </summary>
+    /// <param name="splitBlock">The block that was split.</param>
+    /// <param name="exitBlock">The exit block that continues the split block.</param>
+    /// <param name="oldBlock">The old block whose termination is copied.</param>
+    internal void CompleteBlockSplit(
+        BasicBlockTransform splitBlock,
+        BasicBlockTransform exitBlock,
+        BasicBlock oldBlock)
+    {
+        // Disable _phiSourceRedirects so that successor edges resolve to the
+        // original (split) blocks, not to their exit blocks from earlier splits.
+        _skipPhiSourceRedirects = true;
+        exitBlock.CopyTerminationFrom(oldBlock);
+        _skipPhiSourceRedirects = false;
+
         // Redirect phi sources: after the split, the exit block is the actual
         // predecessor of the original block's successors. Phi sources pointing
         // to the pre-split block must resolve to the exit block instead.
-        _phiSourceRedirects[currentBlockTransform.BasicBlock] = exitBuilder.BasicBlock;
-        _resolvedIdentity.Remove(currentBlockTransform.BasicBlock);
-
-        // Return potential return value
-        return returnValue;
+        _phiSourceRedirects[splitBlock.BasicBlock] = exitBlock.BasicBlock;
+        _resolvedIdentity.Remove(splitBlock.BasicBlock);
     }
 
     /// <summary>
