@@ -288,9 +288,11 @@ sealed partial class Block
                             MemoryAddressSpace.Generic);
                     }
                 }
-                instanceValue = Pop(
-                    declaringType,
-                    ConvertFlags.None);
+                // Members of System.Array, such as GetLength, are intrinsics
+                // that take any concrete array as it is
+                instanceValue = baseDeclaringType == typeof(Array)
+                    ? Pop()
+                    : Pop(declaringType, ConvertFlags.None);
             }
             else
             {

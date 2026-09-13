@@ -132,8 +132,12 @@ partial class CodeGenerator
             return;
         }
 
-        // Dispatch class types to specialized handlers
-        if (type.IsClass && !type.IsValueType)
+        // Dispatch class types to specialized handlers. Multidimensional arrays
+        // are created by their constructor intrinsic, which stores the new array
+        // to the address it receives, like the constructor of a value type.
+        if (type.IsArray)
+            VerifyNoDelegateArray(type.GetElementType()!);
+        if (type.IsClass && !type.IsValueType && !type.IsArray)
         {
             if (typeof(Delegate).IsAssignableFrom(type))
             {
