@@ -134,6 +134,12 @@ record KernelDiagnostic(string Id, string Message, Location Location)
     public const string DelegateRecursionId = "ILGPU1209";
 
     /// <summary>
+    /// Kernel code calls itself, directly or through other methods, and is
+    /// compiled as recursive functions instead of being inlined (a warning).
+    /// </summary>
+    public const string RecursionId = "ILGPU1210";
+
+    /// <summary>
     /// A launching method whose delegate parameter is captured by an inline
     /// kernel is virtual or implements an interface member.
     /// </summary>

@@ -70,9 +70,7 @@ partial class CodeGenerator
         }
         else if (delegateArguments is null)
         {
-            var target = GetMethod(method);
-            _specializations?.RecordCall(target, MethodBuilder.Method, Location);
-            result = Builder.CreateCall(Location, target, ref arguments);
+            result = Builder.CreateCall(Location, GetMethod(method), ref arguments);
 
             // Setup result
             MakeCallReturnValue(method, result);

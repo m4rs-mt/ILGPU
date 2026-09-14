@@ -12,6 +12,7 @@
 using ILGPUC.Backends;
 using ILGPUC.Compilers;
 using ILGPUC.IR;
+using ILGPUC.Roslyn.Generation;
 using System;
 using System.Collections.Generic;
 using System.CommandLine;
@@ -259,6 +260,17 @@ sealed partial class Program
                 parallel,
                 setup.DumpSettings,
                 ct).ConfigureAwait(false);
+
+            // Report warnings in the canonical format, which MSBuild's Exec task
+            // turns into build warnings. Each is reported once, although a helper
+            // is compiled for every kernel calling it and for every backend
+            var warnings = batch.Kernels
+                .SelectMany(kernel => kernel.Warnings)
+                .Select(warning =>
+                    KernelCompilationErrors.CreateWarning(warning, null).ToString())
+                .Distinct();
+            foreach (var warning in warnings)
+                await Console.Out.WriteLineAsync(warning);
 
             // Write kernel files
             foreach (var result in batch.Kernels)

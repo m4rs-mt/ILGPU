@@ -40,7 +40,13 @@ namespace ILGPUC;
 readonly record struct KernelCompilationResult(
     string ClassName,
     string SourceCode,
-    AcceleratorType AcceleratorType);
+    AcceleratorType AcceleratorType)
+{
+    /// <summary>
+    /// Returns the warnings about the code of the kernel.
+    /// </summary>
+    public IReadOnlyList<KernelCompilationWarning> Warnings { get; init; } = [];
+}
 
 /// <summary>
 /// Result of compiling multiple kernels across multiple backends.
@@ -187,11 +193,12 @@ sealed class KernelCompiler
         CancellationToken ct = default)
     {
         // Build IR module (may write AfterFrontend / AfterGlobalOpt dumps)
-        var module = CompileMethodToModule(method, backend.BackendType, dump);
+        var warnings = new List<KernelCompilationWarning>();
+        var module = CompileMethodToModule(method, backend.BackendType, dump, warnings);
 
         // Generate code and CompiledKernel wrapper (may write AfterBackendTransforms
         // dump)
-        return await CompileForBackendAsync(
+        var result = await CompileForBackendAsync(
             backend,
             module,
             compilerManager,
@@ -201,6 +208,7 @@ sealed class KernelCompiler
             kernelName,
             launch,
             ct).ConfigureAwait(false);
+        return result with { Warnings = warnings };
     }
 
     /// <summary>
@@ -267,10 +275,19 @@ sealed class KernelCompiler
     /// normalized IR dumps at <see cref="IRDumpPoint.AfterFrontend"/> and
     /// <see cref="IRDumpPoint.AfterGlobalOpt"/>.
     /// </summary>
+    /// <param name="method">The kernel entry-point method.</param>
+    /// <param name="backendType">The backend to target.</param>
+    /// <param name="dump">
+    /// IR dump settings; pass <see langword="default"/> to skip.
+    /// </param>
+    /// <param name="warnings">
+    /// Receives the warnings about the kernel code, if not null.
+    /// </param>
     internal IR.ModuleValues.Module CompileMethodToModule(
         MethodInfo method,
         BackendType backendType,
-        IRDumpSettings dump = default)
+        IRDumpSettings dump = default,
+        List<KernelCompilationWarning>? warnings = null)
     {
         var assemblyDir = Path.GetDirectoryName(method.DeclaringType?.Assembly.Location);
         var frontend = new ILFrontend(backendType, _frontendCache, assemblyDir);
@@ -282,6 +299,7 @@ sealed class KernelCompiler
             IR.Location.Unknown,
             _typeManager);
         frontend.GenerateCode(moduleBuilder, [method]);
+        warnings?.AddRange(frontend.Warnings);
 
         var entryPointHandle = moduleBuilder.GetMethod(method).Declaration.Handle;
         var module = moduleBuilder.Seal(entryPointHandle);

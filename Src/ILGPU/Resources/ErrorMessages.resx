@@ -574,7 +574,15 @@
     <comment/>
   </data>
   <data name="KernelDiagnosticDelegateRecursion" xml:space="preserve">
-    <value>Method '{0}' calls itself while passing delegates, directly or through the delegates passed to it. Recursion is not supported in kernels.</value>
+    <value>Method '{0}' calls itself while passing delegates, directly or through the delegates passed to it, which is not supported in kernels.</value>
+    <comment/>
+  </data>
+  <data name="KernelDiagnosticRecursion" xml:space="preserve">
+    <value>Method {0} calls itself and is compiled as a recursive function instead of being inlined. Deep recursion can exhaust the stack of a thread.</value>
+    <comment/>
+  </data>
+  <data name="KernelDiagnosticMutualRecursion" xml:space="preserve">
+    <value>Methods {0} call each other and are compiled as recursive functions instead of being inlined. Deep recursion can exhaust the stack of a thread.</value>
     <comment/>
   </data>
   <data name="NotSupportedKernelDelegateBind" xml:space="preserve">

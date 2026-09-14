@@ -172,8 +172,21 @@ sealed class MainKernelProvider : ICompiledKernelProvider
         }
 
         var skippedKernels = new List<string>();
-        void AddResult(KernelCompileJob job, string? source, Exception? skipReason)
+        var reportedWarnings = new HashSet<string>();
+        void AddResult(
+            KernelCompileJob job,
+            string? source,
+            Exception? skipReason,
+            IReadOnlyList<BuildDiagnostic> warnings)
         {
+            // Warnings about a helper are reported once, although every kernel
+            // calling it is compiled for every backend
+            foreach (var warning in warnings)
+            {
+                if (reportedWarnings.Add(warning.ToString()))
+                    diagnostics.Add(warning);
+            }
+
             if (source is not null)
             {
                 compiledSources[job.Name] = source;
@@ -191,15 +204,21 @@ sealed class MainKernelProvider : ICompiledKernelProvider
                     k, backends, compiler, compilerManager, dump, ct);
             var results = await Task.WhenAll(tasks).ConfigureAwait(false);
             for (int i = 0; i < results.Length; ++i)
-                AddResult(kernelsToCompile[i], results[i].Source, results[i].Skip);
+            {
+                AddResult(
+                    kernelsToCompile[i],
+                    results[i].Source,
+                    results[i].Skip,
+                    results[i].Warnings);
+            }
         }
         else
         {
             foreach (var job in kernelsToCompile)
             {
-                var (source, skip) = await CompileOrSkipAsync(
+                var (source, skip, warnings) = await CompileOrSkipAsync(
                     job, backends, compiler, compilerManager, dump, ct);
-                AddResult(job, source, skip);
+                AddResult(job, source, skip, warnings);
             }
         }
 
@@ -243,7 +262,10 @@ sealed class MainKernelProvider : ICompiledKernelProvider
     /// with these type arguments throws at run time, as the same code would on
     /// the CPU. Direct launches and all other errors still fail the build.
     /// </summary>
-    private static async Task<(string? Source, Exception? Skip)> CompileOrSkipAsync(
+    private static async Task<(
+        string? Source,
+        Exception? Skip,
+        IReadOnlyList<BuildDiagnostic> Warnings)> CompileOrSkipAsync(
         KernelCompileJob job,
         Backend[] backends,
         KernelCompiler compiler,
@@ -253,16 +275,16 @@ sealed class MainKernelProvider : ICompiledKernelProvider
     {
         try
         {
-            var (_, source) = await CompileAllBackendsAsync(
+            var (_, source, warnings) = await CompileAllBackendsAsync(
                 job, backends, compiler, compilerManager, dump, ct)
                 .ConfigureAwait(false);
-            return (source, null);
+            return (source, null, warnings);
         }
         catch (Exception e) when (
             job.Kernel.ConcreteTypeArgs is not null &&
             Frontend.ReachableThrowException.IsCausedBy(e))
         {
-            return (null, e);
+            return (null, e, []);
         }
     }
 
@@ -288,9 +310,13 @@ sealed class MainKernelProvider : ICompiledKernelProvider
     }
 
     /// <summary>
-    /// Compiles a single kernel for all backends and returns the concatenated source.
+    /// Compiles a single kernel for all backends and returns the concatenated source
+    /// and the warnings about its code.
     /// </summary>
-    private static async Task<(string Name, string Source)> CompileAllBackendsAsync(
+    private static async Task<(
+        string Name,
+        string Source,
+        IReadOnlyList<BuildDiagnostic> Warnings)> CompileAllBackendsAsync(
         KernelCompileJob job,
         Backend[] backends,
         KernelCompiler compiler,
@@ -299,6 +325,8 @@ sealed class MainKernelProvider : ICompiledKernelProvider
         CancellationToken ct)
     {
         var sb = new StringBuilder();
+        var warnings = new List<BuildDiagnostic>();
+        var launchSite = job.Kernel.LaunchInfo.Invocation.GetLocation();
         foreach (var backend in backends)
         {
             ct.ThrowIfCancellationRequested();
@@ -321,15 +349,17 @@ sealed class MainKernelProvider : ICompiledKernelProvider
             catch (Exception exception) when (
                 KernelCompilationErrors.TryCreateDiagnostic(
                     exception,
-                    job.Kernel.LaunchInfo.Invocation.GetLocation(),
+                    launchSite,
                     out var diagnostic))
             {
                 // Reported as a build error at the offending source location
                 throw new KernelDiagnosticException(diagnostic!, exception);
             }
             sb.AppendLine(result.SourceCode);
+            foreach (var warning in result.Warnings)
+                warnings.Add(KernelCompilationErrors.CreateWarning(warning, launchSite));
         }
-        return (job.Name, sb.ToString());
+        return (job.Name, sb.ToString(), warnings);
     }
 
     /// <summary>

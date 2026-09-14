@@ -2,9 +2,13 @@
 
 Kernels are `static` functions that can work on value types and can invoke other functions that work on value types.
 `class` (reference) types are currently **not supported** in the scope of kernels.
-Note that exception handling, boxing and recursive programs are also **not supported** and will be rejected by the ILGPU
-compiler. Throwing an exception is fine in a branch that is removed at compile time, as described in
+Note that exception handling and boxing are also **not supported** and will be rejected by the ILGPU compiler.
+Throwing an exception is fine in a branch that is removed at compile time, as described in
 [Type-Specialized Generic Code](#type-specialized-generic-code).
+Methods that call themselves, directly or through other methods, are compiled as recursive functions instead of being
+inlined, and the build reports each of them with warning `ILGPU1210`.
+Every recursive call uses stack memory of its thread, so keep the depth of the recursion small.
+The CPU, Cuda and ROCm backends run recursive calls.
 Kernels and the functions they call must also be able to return: a function in which every path loops forever, such as
 a `while (true)` loop without a `return` or `break`, is rejected with the error "'X' never returns".
 Such a kernel could only be stopped by resetting the device.

@@ -1114,11 +1114,29 @@ namespace ILGPU.Resources {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Method &apos;{0}&apos; calls itself while passing delegates, directly or through the delegates passed to it. Recursion is not supported in kernels..
+        ///   Looks up a localized string similar to Method &apos;{0}&apos; calls itself while passing delegates, directly or through the delegates passed to it, which is not supported in kernels..
         /// </summary>
         internal static string KernelDiagnosticDelegateRecursion {
             get {
                 return ResourceManager.GetString("KernelDiagnosticDelegateRecursion", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Method {0} calls itself and is compiled as a recursive function instead of being inlined. Deep recursion can exhaust the stack of a thread..
+        /// </summary>
+        internal static string KernelDiagnosticRecursion {
+            get {
+                return ResourceManager.GetString("KernelDiagnosticRecursion", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Methods {0} call each other and are compiled as recursive functions instead of being inlined. Deep recursion can exhaust the stack of a thread..
+        /// </summary>
+        internal static string KernelDiagnosticMutualRecursion {
+            get {
+                return ResourceManager.GetString("KernelDiagnosticMutualRecursion", resourceCulture);
             }
         }
 
