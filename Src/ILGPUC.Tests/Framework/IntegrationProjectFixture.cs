@@ -180,8 +180,14 @@ sealed class IntegrationProjectFixture : IDisposable
                 File.Copy(srcFile, destFile, overwrite: true);
             }
 
-            if (destRelative.EndsWith(".csproj", StringComparison.OrdinalIgnoreCase))
+            // The project in the template's root is the one to build; projects in
+            // subdirectories are referenced by it
+            if (destRelative.EndsWith(".csproj", StringComparison.OrdinalIgnoreCase) &&
+                (ProjectPath.Length == 0 ||
+                 Path.GetDirectoryName(destRelative)?.Length == 0))
+            {
                 ProjectPath = destFile;
+            }
         }
 
         if (string.IsNullOrEmpty(ProjectPath))

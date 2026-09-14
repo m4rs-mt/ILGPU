@@ -1,0 +1,37 @@
+// CrossAssemblyLibrary: launches a generic kernel from a public generic method. The
+// library only uses Run<int> itself; the application's build compiles the other
+// instantiations, and the library's dispatch code finds them at run time.
+
+using System.Numerics;
+using ILGPU;
+using ILGPU.Runtime;
+
+namespace CrossAssemblyLibrary;
+
+public static class Kernels
+{
+    public static void Scale<T>(
+        Index1D index,
+        ArrayView1D<T, Stride1D.Dense> data,
+        T factor)
+        where T : unmanaged, INumber<T>
+    {
+        data[index] = data[index] * factor;
+    }
+}
+
+public static class Scaler
+{
+    public static T[] Run<T>(AcceleratorStream stream, T[] values, T factor)
+        where T : unmanaged, INumber<T>
+    {
+        using var buffer = stream.Allocate1D(values);
+        var view = buffer.View;
+        stream.Launch((Index1D)values.Length, i => Kernels.Scale(i, view, factor));
+        stream.Synchronize();
+        return buffer.GetAsArray1D();
+    }
+
+    public static int[] RunInt(AcceleratorStream stream, int[] values) =>
+        Run(stream, values, 3);
+}

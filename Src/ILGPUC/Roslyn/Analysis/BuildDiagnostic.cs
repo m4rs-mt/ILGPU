@@ -77,6 +77,13 @@ static class BuildDiagnosticCodes
     /// A kernel launch uses a type that generated code cannot access.
     /// </summary>
     public const string InaccessibleKernelType = "ILGPU1011";
+
+    /// <summary>
+    /// An externally visible method passes its type arguments to a kernel that is
+    /// a lambda expression or local function, which other assemblies cannot
+    /// compile for their own type arguments.
+    /// </summary>
+    public const string LocalKernelInPublicEntryPoint = "ILGPU1012";
 }
 
 /// <summary>

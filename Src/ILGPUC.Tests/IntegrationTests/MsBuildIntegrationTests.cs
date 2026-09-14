@@ -875,6 +875,92 @@ public static class MsBuildIntegrationTests
     }
 
     // -----------------------------------------------------------------------
+    // Test 18: CrossAssemblyLaunch — an application calls a library's public
+    // generic method with type arguments the library does not use itself. The
+    // application's build compiles those kernels and registers them; the
+    // library's dispatch code launches them.
+    // -----------------------------------------------------------------------
+
+    public sealed class CrossAssemblyLaunch(ITestOutputHelper output)
+    {
+        [SkippableTheory]
+        [InlineData(BackendType.CPU)]
+        [InlineData(BackendType.Metal)]
+        public async Task Build_CrossAssemblyLaunch_RunsKernelsCompiledByTheApplication(
+            BackendType backend)
+        {
+            await RequireBackendAsync(backend);
+
+            using var project = new IntegrationProjectFixture(
+                "CrossAssemblyLaunch", backend, output);
+            try
+            {
+                var build = await project.BuildAsync();
+                Assert.True(build.Succeeded,
+                    $"dotnet build failed (exit {build.ExitCode}). " +
+                    $"Stderr: {build.StdErr}");
+                var combined = build.FullStdOut + "\n" + build.StdErr;
+                Assert.DoesNotContain("ILGPU1001", combined, StringComparison.Ordinal);
+
+                var run = await project.RunAsync();
+                Assert.False(run.TimedOut, "Binary timed out");
+                Assert.Equal(0, run.ExitCode);
+                OutputVerifier.Verify(
+                    run.StdOutLines,
+                    expected: ["3", "6", "3", "4", "10", "12"]);
+            }
+            catch
+            {
+                project.MarkFailed();
+                throw;
+            }
+        }
+    }
+
+    // -----------------------------------------------------------------------
+    // Test 19: CrossAssemblyLambdaError — a library launches an inline lambda
+    // kernel from a public generic method, which applications cannot compile
+    // for their own type arguments. The build fails with error ILGPU1012 at
+    // the lambda.
+    // -----------------------------------------------------------------------
+
+    public sealed class CrossAssemblyLambdaError(ITestOutputHelper output)
+    {
+        [SkippableFact]
+        public async Task Build_CrossAssemblyLambdaError_FailsWithDiagnostic()
+        {
+            await RequireBackendAsync(BackendType.CPU);
+
+            using var project = new IntegrationProjectFixture(
+                "CrossAssemblyLambdaError", BackendType.CPU, output);
+            try
+            {
+                var build = await project.BuildAsync();
+                Assert.False(build.Succeeded,
+                    "Expected dotnet build to fail for the inline kernel in a " +
+                    "public generic method.");
+                Assert.NotEqual(0, build.ExitCode);
+
+                var combined = build.FullStdOut + "\n" + build.StdErr;
+                Assert.True(
+                    combined.Contains(
+                        "Library.cs(16,39): error ILGPU1012", StringComparison.Ordinal),
+                    $"Expected an ILGPU1012 error at Library.cs(16,39), " +
+                    $"got:\n{combined}");
+                Assert.Contains(
+                    "Filler.Fill<T>",
+                    combined,
+                    StringComparison.Ordinal);
+            }
+            catch
+            {
+                project.MarkFailed();
+                throw;
+            }
+        }
+    }
+
+    // -----------------------------------------------------------------------
     // Helpers
     // -----------------------------------------------------------------------
 

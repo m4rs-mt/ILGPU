@@ -1,0 +1,37 @@
+// CrossAssemblyLaunch: calls a library's public generic method that launches a
+// kernel, with type arguments the library does not use itself, directly and
+// through a generic wrapper of the application.
+// Expected output: 3 6 | 3 4 | 10 12
+
+using System;
+using System.Numerics;
+using CrossAssemblyLibrary;
+using ILGPU;
+using ILGPU.Runtime;
+
+namespace CrossAssemblyLaunch;
+
+static class Program
+{
+    static void Main()
+    {
+        using var context = Context.Create(b => b.Default());
+        using var accelerator = context.GetPreferredDevice(preferCPU: $(PREFER_CPU))
+            .CreateAccelerator(context);
+        var stream = accelerator.DefaultStream;
+
+        Print(Scaler.RunInt(stream, [1, 2]));
+        Print(Scaler.Run(stream, [1.5f, 2f], 2f));
+        Print(Twice<short>(stream, [5, 6]));
+    }
+
+    static T[] Twice<T>(AcceleratorStream stream, T[] values)
+        where T : unmanaged, INumber<T> =>
+        Scaler.Run(stream, values, T.One + T.One);
+
+    static void Print<T>(T[] values)
+    {
+        foreach (var value in values)
+            Console.WriteLine(value);
+    }
+}
