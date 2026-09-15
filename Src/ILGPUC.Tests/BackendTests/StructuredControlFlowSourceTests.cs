@@ -14,6 +14,7 @@ using ILGPU.Runtime;
 using ILGPUC.Backends;
 using ILGPUC.Tests.Framework;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
 using Xunit;
 
@@ -103,8 +104,15 @@ public sealed class StructuredControlFlowSourceTests
     }
 
     /// <summary>
+    /// Adjusts a value in a call that is never inlined.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static int Adjust(int value) => value * 3 + 1;
+
+    /// <summary>
     /// Reads a fixed-size buffer after a loop whose early exit jumps past the
-    /// code after the loop.
+    /// code after the loop. The code after the loop and the merge block call
+    /// a helper, so neither is duplicated and the jump needs a region.
     /// </summary>
     internal static unsafe void BufferAfterRegionKernel(
         Index1D index,
@@ -131,10 +139,10 @@ public sealed class StructuredControlFlowSourceTests
                 }
                 r += 1;
             }
-            r += 10;
+            r = Adjust(r);
         }
     merge:
-        data[index] = r * 100 + buffer.Data[lane % 4];
+        data[index] = Adjust(r) * 100 + buffer.Data[lane % 4];
     }
 
     /// <summary>

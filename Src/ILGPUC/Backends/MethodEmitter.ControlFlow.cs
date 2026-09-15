@@ -371,7 +371,7 @@ partial class MethodEmitter
         // value they read, as those still hold the previous iteration. The
         // header stores nothing, so loads read the same memory again
         var exitJump = GetExitJump(test);
-        var exitCopies = GetEdgeCopies(header, exitJump.Block);
+        var exitCopies = GetExitCopies(test);
         var exits = new HashSet<Value>(ReferenceEqualityComparer.Instance);
         for (int i = values.Count - 1; i >= 0; --i)
         {
@@ -452,7 +452,7 @@ partial class MethodEmitter
     {
         var latch = test.Branch.Block;
         var exitJump = GetExitJump(test);
-        JumpTarget? after = GetEdgeCopies(latch, exitJump.Block).Count > 0
+        JumpTarget? after = GetExitCopies(test).Count > 0
             ? null
             : exitJump;
 
@@ -506,7 +506,7 @@ partial class MethodEmitter
     private bool HasExitCode(LoopNode loop, LoopTest test)
     {
         var block = test.Branch.Block;
-        if (GetEdgeCopies(block, GetExitJump(test).Block).Count > 0)
+        if (GetExitCopies(test).Count > 0)
             return true;
         if (block != loop.Header || !IsTestOnly(block))
             return false;
@@ -523,6 +523,21 @@ partial class MethodEmitter
     /// </summary>
     private static JumpTarget GetExitJump(LoopTest test) =>
         ((JumpNode)((SequenceNode)test.ExitNode).Nodes[^1]).Target;
+
+    /// <summary>
+    /// Returns the phi assignments of all edges on the exit side of a loop
+    /// test, including the edges through forwarding blocks.
+    /// </summary>
+    private static List<(PhiValue Phi, Value Argument)> GetExitCopies(LoopTest test)
+    {
+        var copies = new List<(PhiValue Phi, Value Argument)>();
+        foreach (var node in ((SequenceNode)test.ExitNode).Nodes)
+        {
+            if (node is EdgeNode edge)
+                copies.AddRange(GetEdgeCopies(edge.Source, edge.Target));
+        }
+        return copies;
+    }
 
     /// <summary>
     /// Returns true if the emitted code of the given block consists of
