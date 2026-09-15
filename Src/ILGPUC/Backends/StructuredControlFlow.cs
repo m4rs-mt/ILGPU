@@ -10,6 +10,7 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPUC.IR.Analyses;
+using ILGPUC.IR.BasicBlockValues;
 using ILGPUC.IR.MethodValues;
 using ILGPUC.IR.ModuleValues;
 using System.Collections.Generic;
@@ -36,6 +37,12 @@ namespace ILGPUC.Backends;
 /// Empty forwarding blocks (no values, no phis, an unconditional branch) are
 /// transparent: an edge to a forwarding block continues with the edge to its
 /// successor, so they never become follow blocks of their own.
+///
+/// The emitter may also request a duplicable block (see
+/// <see cref="IsDuplicable"/>) to be inlined at some of its incoming edges
+/// (see <see cref="InlinedEdges"/>) instead of being reached by a jump. The
+/// block is then emitted once per such edge, and once more as a follow block
+/// if other edges still jump to it.
 /// </remarks>
 sealed class StructuredControlFlow
 {
@@ -114,6 +121,15 @@ sealed class StructuredControlFlow
         public Node Body { get; } = body;
 
         /// <summary>
+        /// The exit edges whose target is inlined at the exit and returns:
+        /// they never reach the code after the loop.
+        /// </summary>
+        public HashSet<(BasicBlock Source, BasicBlock Target)> ReturningExits
+        {
+            get;
+        } = [];
+
+        /// <summary>
         /// The branch of the header if the header branch leaves the loop on
         /// one side: the loop may be emitted as <c>while (cond) { ... }</c>.
         /// </summary>
@@ -143,8 +159,11 @@ sealed class StructuredControlFlow
             {
                 foreach (var successor in member.Successors)
                 {
-                    if (Members.Contains(successor))
+                    if (Members.Contains(successor)
+                        || ReturningExits.Contains((member, successor)))
+                    {
                         continue;
+                    }
                     if (member != exit?.Source || successor != exit.Target)
                         return true;
                 }
@@ -167,7 +186,7 @@ sealed class StructuredControlFlow
 
         /// <summary>
         /// Returns the side leaving the loop: the phi copies of the exit edge
-        /// followed by the jump to the exit block.
+        /// followed by the jump to the exit block or its inlined code.
         /// </summary>
         public Node ExitNode => ExitsOnTrue ? Branch.TrueNode : Branch.FalseNode;
     }
@@ -189,11 +208,12 @@ sealed class StructuredControlFlow
     }
 
     /// <summary>
-    /// A jump to the given target.
+    /// A jump to the given target along the edge from the given source.
     /// </summary>
-    internal sealed class JumpNode(JumpTarget target) : Node
+    internal sealed class JumpNode(JumpTarget target, BasicBlock source) : Node
     {
         public JumpTarget Target { get; } = target;
+        public BasicBlock Source { get; } = source;
     }
 
     #endregion
@@ -220,6 +240,10 @@ sealed class StructuredControlFlow
     private readonly Dictionary<BasicBlock, int> _order = [];
     private readonly Dictionary<BasicBlock, HashSet<BasicBlock>> _loops = [];
     private readonly HashSet<BasicBlock> _forwarding = [];
+    private readonly HashSet<BasicBlock> _dominating = [];
+    private readonly Dictionary<BasicBlock, List<BasicBlock>> _entries = [];
+    private readonly Dictionary<BasicBlock, BasicBlock> _owners = [];
+    private readonly HashSet<BasicBlock> _loopExits = [];
     private readonly HashSet<BasicBlock> _followBlocks = [];
     private readonly Dictionary<BasicBlock, List<BasicBlock>> _ownedFollowBlocks = [];
 
@@ -236,7 +260,7 @@ sealed class StructuredControlFlow
         if (IsReducible)
         {
             ComputeForwardingBlocks();
-            ComputeFollowBlocks();
+            ComputeEntries();
         }
     }
 
@@ -249,6 +273,14 @@ sealed class StructuredControlFlow
     /// source, i.e. the graph can be translated into structured statements.
     /// </summary>
     public bool IsReducible { get; }
+
+    /// <summary>
+    /// The edges (source, target) at which a duplicable target is inlined by
+    /// <see cref="BuildTree()"/> instead of being reached by a jump. The
+    /// source is the last block before the target, which may be a forwarding
+    /// block.
+    /// </summary>
+    public HashSet<(BasicBlock Source, BasicBlock Target)> InlinedEdges { get; } = [];
 
     #endregion
 
@@ -375,37 +407,43 @@ sealed class StructuredControlFlow
     }
 
     /// <summary>
-    /// Returns the block an edge to the given target leads to after passing
-    /// through forwarding blocks, or null if it continues a loop.
+    /// Returns the last edge of the path from the given edge through
+    /// forwarding blocks, or null if the path continues a loop.
     /// </summary>
-    private BasicBlock? ResolveForwarding(BasicBlock source, BasicBlock target)
+    private (BasicBlock Source, BasicBlock Target)? ResolveForwarding(
+        BasicBlock source,
+        BasicBlock target)
     {
         while (!IsBackEdge(source, target) && _forwarding.Contains(target))
         {
             source = target;
             target = target.Successors[0];
         }
-        return IsBackEdge(source, target) ? null : target;
+        return IsBackEdge(source, target) ? null : (source, target);
     }
 
     /// <summary>
-    /// Determines the follow blocks and their owners.
+    /// Determines the forward edges of the tree into each block, the owners
+    /// of the blocks and the loop exits.
     /// </summary>
-    private void ComputeFollowBlocks()
+    private void ComputeEntries()
     {
-        // Count the forward edges of the tree into each block, looking
-        // through forwarding blocks
-        var forwardEdges = new Dictionary<BasicBlock, int>();
+        // Collect the last edge of every forward path of the tree into each
+        // block, looking through forwarding blocks
         foreach (var block in _method.Blocks)
         {
             if (_forwarding.Contains(block))
                 continue;
             foreach (var successor in GetBranchTargets(block))
             {
-                if (ResolveForwarding(block, successor) is not { } target)
+                if (ResolveForwarding(block, successor) is not var (source, target))
                     continue;
-                forwardEdges.TryGetValue(target, out int count);
-                forwardEdges[target] = count + 1;
+                if (!_entries.TryGetValue(target, out var sources))
+                {
+                    sources = [];
+                    _entries.Add(target, sources);
+                }
+                sources.Add(source);
             }
         }
 
@@ -414,11 +452,9 @@ sealed class StructuredControlFlow
             if (block == _method.EntryBlock || _forwarding.Contains(block))
                 continue;
 
-            // A block reached by several forward edges is a merge block owned
-            // by its immediate dominator
+            // A merge block is owned by its immediate dominator
             var owner = GetOwningDominator(block);
-            bool isFollow = forwardEdges.TryGetValue(block, out int count)
-                && count > 1;
+            _dominating.Add(owner);
 
             // A block outside a loop that contains its immediate dominator is
             // a loop exit: it is placed after the outermost such loop
@@ -433,8 +469,33 @@ sealed class StructuredControlFlow
                     owner = header;
                 }
             }
+            if (outermost is not null)
+                _loopExits.Add(block);
+            _owners.Add(block, owner);
+        }
+    }
 
-            if (!isFollow && outermost is null)
+    /// <summary>
+    /// Determines the follow blocks and their owners: blocks reached by
+    /// several forward edges of the tree that do not inline them, and loop
+    /// exits reached by any such edge.
+    /// </summary>
+    private void UpdateFollowBlocks()
+    {
+        _followBlocks.Clear();
+        _ownedFollowBlocks.Clear();
+        foreach (var (block, owner) in _owners)
+        {
+            int count = 0;
+            if (_entries.TryGetValue(block, out var sources))
+            {
+                foreach (var source in sources)
+                {
+                    if (!InlinedEdges.Contains((source, block)))
+                        ++count;
+                }
+            }
+            if (count < (_loopExits.Contains(block) ? 1 : 2))
                 continue;
 
             _followBlocks.Add(block);
@@ -452,6 +513,42 @@ sealed class StructuredControlFlow
             owned.Sort((left, right) => _order[right].CompareTo(_order[left]));
     }
 
+    /// <summary>
+    /// Returns true if the given block may be emitted at several places:
+    /// it is a return block that dominates no other block (so its values are
+    /// only used in the block itself) and contains no barriers, thread
+    /// collectives, calls (which may contain them), language-specific code or
+    /// allocations. Duplicating it therefore never changes which threads
+    /// execute an operation together.
+    /// </summary>
+    public bool IsDuplicable(BasicBlock block)
+    {
+        if (!IsReducible
+            || block == _method.EntryBlock
+            || _loops.ContainsKey(block)
+            || _forwarding.Contains(block)
+            || _dominating.Contains(block)
+            || block.TerminationKind != BlockTerminationKind.Return)
+        {
+            return false;
+        }
+
+        foreach (var entry in block)
+        {
+            switch (entry.Value)
+            {
+                case BarrierOperation:
+                case MemoryBarrier:
+                case ThreadValue:
+                case MethodCall:
+                case LanguageEmitValue:
+                case Alloca:
+                    return false;
+            }
+        }
+        return true;
+    }
+
     #endregion
 
     #region Tree Construction
@@ -459,7 +556,11 @@ sealed class StructuredControlFlow
     /// <summary>
     /// Builds the structured statement tree of the method.
     /// </summary>
-    public Node BuildTree() => BuildTree(_method.EntryBlock);
+    public Node BuildTree()
+    {
+        UpdateFollowBlocks();
+        return BuildTree(_method.EntryBlock);
+    }
 
     /// <summary>
     /// Builds the statements of the given block, its loop (if it is a loop
@@ -482,6 +583,21 @@ sealed class StructuredControlFlow
 
         var header = BuildBlock(block);
         var loop = new LoopNode(block, members, Nest(inside, 0, header));
+        foreach (var member in members)
+        {
+            foreach (var successor in member.Successors)
+            {
+                if (members.Contains(successor)
+                    || ResolveForwarding(member, successor) is not var (source, target)
+                    || target.TerminationKind != BlockTerminationKind.Return
+                    || (_followBlocks.Contains(target)
+                        && !InlinedEdges.Contains((source, target))))
+                {
+                    continue;
+                }
+                loop.ReturningExits.Add((member, successor));
+            }
+        }
         if (inside.Count < 1)
             loop.HeaderTest = GetLoopTest(header, members, block, isLatch: false);
         loop.LatchTest = FindLatchTest(loop);
@@ -510,11 +626,14 @@ sealed class StructuredControlFlow
             return null;
 
         // The exit jump may continue an outer loop: the edge chain then ends
-        // in the forwarding latch of the outer loop
+        // in the forwarding latch of the outer loop. An exit block inlined at
+        // the exit edge follows the edge chain instead of the jump
         static bool IsExit(Node node, HashSet<BasicBlock> members) =>
             IsEdgeChain(node, out var edge, out var tail)
-            && tail is JumpNode jump
-            && jump.Target.Block == edge.Target
+            && (tail is JumpNode jump
+                ? jump.Target.Block == edge.Target
+                : tail is SequenceNode { Nodes: [BlockNode block, ..] }
+                    && block.Block == edge.Target)
             && !members.Contains(edge.Target);
         static bool IsContinue(Node node, BasicBlock header) =>
             IsEdgeChain(node, out _, out var tail)
@@ -723,9 +842,18 @@ sealed class StructuredControlFlow
         }
 
         if (IsBackEdge(source, target))
-            nodes.Add(new JumpNode(new JumpTarget(target, IsContinue: true)));
-        else if (_followBlocks.Contains(target))
-            nodes.Add(new JumpNode(new JumpTarget(target, IsContinue: false)));
+        {
+            nodes.Add(new JumpNode(
+                new JumpTarget(target, IsContinue: true),
+                source));
+        }
+        else if (_followBlocks.Contains(target)
+            && !InlinedEdges.Contains((source, target)))
+        {
+            nodes.Add(new JumpNode(
+                new JumpTarget(target, IsContinue: false),
+                source));
+        }
         else
             nodes.Add(BuildTree(target));
         return new SequenceNode(nodes);
