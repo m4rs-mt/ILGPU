@@ -532,6 +532,10 @@ sealed class ExpressionEmitter(GenerationContext context, TypeEmitter typeEmitte
     /// <summary>
     /// Emits a primitive constant value (bool, int, float, etc.).
     /// </summary>
+    /// <remarks>
+    /// Literals never depend on the current culture, whose negative sign may be
+    /// the Unicode minus sign U+2212 (e.g. sv-SE) that no native compiler reads.
+    /// </remarks>
     private Emitted EmitPrimitive(PrimitiveValue primitive)
     {
         if (context.LanguageConfig.FormatPrimitive(primitive) is string formatted)
@@ -539,17 +543,21 @@ sealed class ExpressionEmitter(GenerationContext context, TypeEmitter typeEmitte
         var text = primitive.BasicValueType switch
         {
             BasicValueType.Int1 => primitive.Int1Value ? "true" : "false",
-            BasicValueType.Int8 => primitive.Int8Value.ToString(),
-            BasicValueType.Int16 => primitive.Int16Value.ToString(),
+            BasicValueType.Int8 =>
+                primitive.Int8Value.ToString(CultureInfo.InvariantCulture),
+            BasicValueType.Int16 =>
+                primitive.Int16Value.ToString(CultureInfo.InvariantCulture),
             // The minimum values have no literal in C: the magnitude does not
             // fit the signed type, so the literal would be promoted to a
             // wider type (or be ill-formed) before the negation.
             BasicValueType.Int32 when primitive.Int32Value == int.MinValue =>
                 "(-2147483647 - 1)",
-            BasicValueType.Int32 => primitive.Int32Value.ToString(),
+            BasicValueType.Int32 =>
+                primitive.Int32Value.ToString(CultureInfo.InvariantCulture),
             BasicValueType.Int64 when primitive.Int64Value == long.MinValue =>
                 "(-9223372036854775807L - 1)",
-            BasicValueType.Int64 => primitive.Int64Value.ToString() + "L",
+            BasicValueType.Int64 =>
+                primitive.Int64Value.ToString(CultureInfo.InvariantCulture) + "L",
             BasicValueType.Float16 =>
                 IntrinsicEmitter.EmitHalfConstant(
                     BitConverter.HalfToUInt16Bits(primitive.Float16Value)),

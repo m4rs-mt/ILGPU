@@ -83,7 +83,8 @@ sealed class CPULanguageConfiguration(int vectorWidth) : LanguageConfiguration
             BasicValueType.Int1 => value.Int1Value ? "true" : "false",
             BasicValueType.Int8 =>
                 $"((byte){unchecked((byte)value.Int8Value)})",
-            BasicValueType.Int16 => $"((short){value.Int16Value})",
+            BasicValueType.Int16 =>
+                $"((short){value.Int16Value.ToString(CultureInfo.InvariantCulture)})",
             BasicValueType.Int32 => value.Int32Value.ToString(
                 CultureInfo.InvariantCulture),
             BasicValueType.Int64 => value.Int64Value.ToString(
