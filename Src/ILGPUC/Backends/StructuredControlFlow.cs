@@ -250,6 +250,26 @@ sealed class StructuredControlFlow
         _order[target] <= _order[source];
 
     /// <summary>
+    /// Returns the targets of the branches of the given block in the tree:
+    /// the cases of a switch with the same target share one body, while the
+    /// two sides of a conditional branch are separate statements even if
+    /// they have the same target.
+    /// </summary>
+    private static IEnumerable<BasicBlock> GetBranchTargets(BasicBlock block)
+    {
+        var successors = block.Successors.ToArray();
+        if (block.TerminationKind != BlockTerminationKind.Switch)
+            return successors;
+        var targets = new List<BasicBlock>(successors.Length);
+        foreach (var successor in successors)
+        {
+            if (!targets.Contains(successor))
+                targets.Add(successor);
+        }
+        return targets;
+    }
+
+    /// <summary>
     /// Computes the natural loop of every loop header.
     /// </summary>
     /// <returns>True if the control-flow graph is reducible.</returns>
@@ -296,7 +316,7 @@ sealed class StructuredControlFlow
         var forwardEdges = new Dictionary<BasicBlock, int>();
         foreach (var block in _method.Blocks)
         {
-            foreach (var successor in block.Successors)
+            foreach (var successor in GetBranchTargets(block))
             {
                 if (IsBackEdge(block, successor))
                     continue;
@@ -442,7 +462,7 @@ sealed class StructuredControlFlow
         int backEdges = 0;
         foreach (var member in loop.Members)
         {
-            foreach (var successor in member.Successors)
+            foreach (var successor in GetBranchTargets(member))
             {
                 if (successor != loop.Header)
                     continue;
