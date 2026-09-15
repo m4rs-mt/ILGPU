@@ -100,6 +100,18 @@ public unsafe readonly struct CPURuntimeView<T>(T* ptr, long length)
         new(Ptr + offset, length);
 
     /// <summary>
+    /// Reinterprets this view as a view of <typeparamref name="TOther"/>
+    /// elements. The length is rescaled by
+    /// <c>sizeof(T) / sizeof(TOther)</c> (rounded down).
+    /// </summary>
+    /// <typeparam name="TOther">The target element type.</typeparam>
+    /// <returns>The cast view.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly CPURuntimeView<TOther> Cast<TOther>()
+        where TOther : unmanaged =>
+        new((TOther*)Ptr, Length * sizeof(T) / sizeof(TOther));
+
+    /// <summary>
     /// Accesses the element at the given index.
     /// </summary>
     /// <param name="index">The element index.</param>

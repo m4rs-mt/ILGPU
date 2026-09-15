@@ -483,9 +483,9 @@ sealed class ExpressionEmitter(GenerationContext context, TypeEmitter typeEmitte
 
     /// <summary>
     /// Emits a view cast (element type reinterpretation).
-    /// For the CPU backend, <c>CPURuntimeView&lt;A&gt;</c> and
-    /// <c>CPURuntimeView&lt;B&gt;</c> have identical binary layout
-    /// (pointer + length), so <c>Unsafe.BitCast</c> performs the conversion.
+    /// For the CPU backend, <c>CPURuntimeView&lt;A&gt;.Cast&lt;B&gt;()</c>
+    /// reinterprets the pointer and rescales the length by
+    /// <c>sizeof(A) / sizeof(B)</c>.
     /// GPU backends treat this as a transparent pointer-type change.
     /// </summary>
     private Emitted EmitViewCast(ViewCast viewCast)
@@ -499,16 +499,15 @@ sealed class ExpressionEmitter(GenerationContext context, TypeEmitter typeEmitte
         if (context.LanguageConfig is not CPU.CPULanguageConfiguration)
             return source;
 
-        // CPU backend: BitCast between CPURuntimeView<A> and CPURuntimeView<B>
+        // CPU backend: CPURuntimeView<A>.Cast<B>() (a plain BitCast would keep
+        // the element count of the source view)
         var sourceElem = typeEmitter.GetTypeName(sourceViewType.ElementType);
         var targetElem = typeEmitter.GetTypeName(targetViewType.ElementType);
         if (sourceElem == targetElem)
             return source;
 
-        return new Emitted(
-            $"Unsafe.BitCast<CPURuntimeView<{sourceElem}>, " +
-            $"CPURuntimeView<{targetElem}>>({source.Text})",
-            Prec.Postfix);
+        var target = Parenthesize(source, Prec.Postfix);
+        return new Emitted($"{target}.Cast<{targetElem}>()", Prec.Postfix);
     }
 
     #endregion
