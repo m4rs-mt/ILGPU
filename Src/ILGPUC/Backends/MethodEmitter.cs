@@ -293,9 +293,7 @@ sealed partial class MethodEmitter(
         var codePlacement = method.CreateCodePlacement();
 
         // Translate the control-flow graph into structured statements
-        var controlFlow = StructuredControlFlow.Create(
-            method,
-            codePlacement.Dominators);
+        var controlFlow = StructuredControlFlow.Create(method, codePlacement);
 
         // Allocate variables for SSA values that need them
         var ssaAllocator = new SSAVariableAllocator(context, method);

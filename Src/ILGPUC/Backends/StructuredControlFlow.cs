@@ -9,6 +9,7 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
+using ILGPUC.IR.Analyses;
 using ILGPUC.IR.MethodValues;
 using ILGPUC.IR.ModuleValues;
 using System.Collections.Generic;
@@ -31,6 +32,10 @@ namespace ILGPUC.Backends;
 /// the tree therefore ends in an explicit return or jump, and the phi copies
 /// of each edge are emitted on exactly that edge. Irreducible graphs cannot
 /// be translated and are reported through <see cref="IsReducible"/>.
+///
+/// Empty forwarding blocks (no values, no phis, an unconditional branch) are
+/// transparent: an edge to a forwarding block continues with the edge to its
+/// successor, so they never become follow blocks of their own.
 /// </remarks>
 sealed class StructuredControlFlow
 {
@@ -199,34 +204,40 @@ sealed class StructuredControlFlow
     /// Analyzes the control flow of the given method.
     /// </summary>
     /// <param name="method">The method.</param>
-    /// <param name="dominators">The dominators of the method.</param>
+    /// <param name="placement">The code placement of the method.</param>
     public static StructuredControlFlow Create(
         Method method,
-        PreDominators dominators) =>
-        new(method, dominators);
+        CodePlacement placement) =>
+        new(method, placement);
 
     #endregion
 
     #region Instance
 
     private readonly Method _method;
+    private readonly CodePlacement _placement;
     private readonly PreDominators _dominators;
     private readonly Dictionary<BasicBlock, int> _order = [];
     private readonly Dictionary<BasicBlock, HashSet<BasicBlock>> _loops = [];
+    private readonly HashSet<BasicBlock> _forwarding = [];
     private readonly HashSet<BasicBlock> _followBlocks = [];
     private readonly Dictionary<BasicBlock, List<BasicBlock>> _ownedFollowBlocks = [];
 
-    private StructuredControlFlow(Method method, PreDominators dominators)
+    private StructuredControlFlow(Method method, CodePlacement placement)
     {
         _method = method;
-        _dominators = dominators;
+        _placement = placement;
+        _dominators = placement.Dominators;
 
         foreach (var block in method.Blocks)
             _order[block] = _order.Count;
 
         IsReducible = ComputeLoops();
         if (IsReducible)
+        {
+            ComputeForwardingBlocks();
             ComputeFollowBlocks();
+        }
     }
 
     #endregion
@@ -309,30 +320,103 @@ sealed class StructuredControlFlow
     }
 
     /// <summary>
+    /// Determines the forwarding blocks: blocks other than the entry and loop
+    /// headers that emit nothing but an unconditional branch to another block.
+    /// </summary>
+    /// <remarks>
+    /// The phi copies of the outgoing edge are emitted on every edge into a
+    /// forwarding block, so a block with copies is only forwarding if it has
+    /// a single predecessor.
+    /// </remarks>
+    private void ComputeForwardingBlocks()
+    {
+        foreach (var block in _method.Blocks)
+        {
+            if (block != _method.EntryBlock
+                && !_loops.ContainsKey(block)
+                && block.TerminationKind == BlockTerminationKind.Unconditional
+                && block.Successors[0] != block
+                && block.FirstPhiValue is null
+                && _placement.GetPlacedBlock(block).Count < 1
+                && (block.Predecessors.Length < 2
+                    || !HasEdgeCopies(block, block.Successors[0])))
+            {
+                _forwarding.Add(block);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Returns true if the edge from source to target assigns a phi.
+    /// </summary>
+    private static bool HasEdgeCopies(BasicBlock source, BasicBlock target)
+    {
+        foreach (var phi in target.PhiValues)
+        {
+            for (int i = 0; i < phi.NumArguments; i++)
+            {
+                if (phi.Sources[i] == source && phi.Arguments[i] != phi)
+                    return true;
+            }
+        }
+        return false;
+    }
+
+    /// <summary>
+    /// Returns the immediate dominator of the given block that is not a
+    /// forwarding block.
+    /// </summary>
+    private BasicBlock GetOwningDominator(BasicBlock block)
+    {
+        var dominator = _dominators.GetImmediateDominator(block);
+        while (_forwarding.Contains(dominator))
+            dominator = _dominators.GetImmediateDominator(dominator);
+        return dominator;
+    }
+
+    /// <summary>
+    /// Returns the block an edge to the given target leads to after passing
+    /// through forwarding blocks, or null if it continues a loop.
+    /// </summary>
+    private BasicBlock? ResolveForwarding(BasicBlock source, BasicBlock target)
+    {
+        while (!IsBackEdge(source, target) && _forwarding.Contains(target))
+        {
+            source = target;
+            target = target.Successors[0];
+        }
+        return IsBackEdge(source, target) ? null : target;
+    }
+
+    /// <summary>
     /// Determines the follow blocks and their owners.
     /// </summary>
     private void ComputeFollowBlocks()
     {
+        // Count the forward edges of the tree into each block, looking
+        // through forwarding blocks
         var forwardEdges = new Dictionary<BasicBlock, int>();
         foreach (var block in _method.Blocks)
         {
+            if (_forwarding.Contains(block))
+                continue;
             foreach (var successor in GetBranchTargets(block))
             {
-                if (IsBackEdge(block, successor))
+                if (ResolveForwarding(block, successor) is not { } target)
                     continue;
-                forwardEdges.TryGetValue(successor, out int count);
-                forwardEdges[successor] = count + 1;
+                forwardEdges.TryGetValue(target, out int count);
+                forwardEdges[target] = count + 1;
             }
         }
 
         foreach (var block in _method.Blocks)
         {
-            if (block == _method.EntryBlock)
+            if (block == _method.EntryBlock || _forwarding.Contains(block))
                 continue;
 
             // A block reached by several forward edges is a merge block owned
             // by its immediate dominator
-            var owner = _dominators.GetImmediateDominator(block);
+            var owner = GetOwningDominator(block);
             bool isFollow = forwardEdges.TryGetValue(block, out int count)
                 && count > 1;
 
@@ -412,8 +496,9 @@ sealed class StructuredControlFlow
     /// <remarks>
     /// Only the exact shape of <see cref="BuildBlock"/> for a conditional
     /// block is accepted: the block values followed by the branch, whose
-    /// exit side is the phi copies of the exit edge followed by the jump to
-    /// the exit block. Anything else keeps the endless loop form.
+    /// exit side is the phi copies of the exit edge (and of the edges through
+    /// forwarding blocks) followed by the jump to the exit block. Anything
+    /// else keeps the endless loop form.
     /// </remarks>
     private static LoopTest? GetLoopTest(
         SequenceNode statements,
@@ -424,17 +509,20 @@ sealed class StructuredControlFlow
         if (statements.Nodes.Count != 2 || statements.Nodes[1] is not IfNode branch)
             return null;
 
+        // The exit jump may continue an outer loop: the edge chain then ends
+        // in the forwarding latch of the outer loop
         static bool IsExit(Node node, HashSet<BasicBlock> members) =>
-            node is SequenceNode { Nodes: [EdgeNode edge, JumpNode jump] }
-            && !jump.Target.IsContinue
+            IsEdgeChain(node, out var edge, out var tail)
+            && tail is JumpNode jump
             && jump.Target.Block == edge.Target
             && !members.Contains(edge.Target);
         static bool IsContinue(Node node, BasicBlock header) =>
-            node is SequenceNode { Nodes: [EdgeNode, JumpNode jump] }
+            IsEdgeChain(node, out _, out var tail)
+            && tail is JumpNode jump
             && jump.Target == new JumpTarget(header, IsContinue: true);
         static bool StaysInLoop(Node node, HashSet<BasicBlock> members) =>
-            node is SequenceNode { Nodes: [EdgeNode edge, _] }
-            && members.Contains(edge.Target);
+            IsEdgeChain(node, out _, out _)
+            && members.Contains(((EdgeNode)((SequenceNode)node).Nodes[0]).Target);
 
         foreach (bool exitsOnTrue in new[] { true, false })
         {
@@ -448,6 +536,32 @@ sealed class StructuredControlFlow
             }
         }
         return null;
+    }
+
+    /// <summary>
+    /// Returns true if the given statement is a branch built by
+    /// <see cref="BuildBranch"/>: a chain of edges followed by a jump or the
+    /// inlined code of the last edge target.
+    /// </summary>
+    /// <param name="node">The statement.</param>
+    /// <param name="last">The last edge of the chain.</param>
+    /// <param name="tail">The statement after the chain.</param>
+    internal static bool IsEdgeChain(Node node, out EdgeNode last, out Node tail)
+    {
+        last = null!;
+        tail = null!;
+        if (node is not SequenceNode { Nodes.Count: > 1 } sequence)
+            return false;
+        for (int i = 0; i + 1 < sequence.Nodes.Count; i++)
+        {
+            if (sequence.Nodes[i] is not EdgeNode edge)
+                return false;
+            if (i > 0 && edge.Source != last.Target)
+                return false;
+            last = edge;
+        }
+        tail = sequence.Nodes[^1];
+        return true;
     }
 
     /// <summary>
@@ -593,16 +707,28 @@ sealed class StructuredControlFlow
     /// Builds the phi copies of an edge followed by the jump to its target,
     /// or by the inlined code of the target if this edge is its only entry.
     /// </summary>
+    /// <remarks>
+    /// An edge to a forwarding block is followed by the edge to its successor
+    /// in the same sequence: the result is a chain of edges ending in the jump
+    /// or the inlined code.
+    /// </remarks>
     private SequenceNode BuildBranch(BasicBlock source, BasicBlock target)
     {
-        Node jump;
+        var nodes = new List<Node> { new EdgeNode(source, target) };
+        while (!IsBackEdge(source, target) && _forwarding.Contains(target))
+        {
+            source = target;
+            target = target.Successors[0];
+            nodes.Add(new EdgeNode(source, target));
+        }
+
         if (IsBackEdge(source, target))
-            jump = new JumpNode(new JumpTarget(target, IsContinue: true));
+            nodes.Add(new JumpNode(new JumpTarget(target, IsContinue: true)));
         else if (_followBlocks.Contains(target))
-            jump = new JumpNode(new JumpTarget(target, IsContinue: false));
+            nodes.Add(new JumpNode(new JumpTarget(target, IsContinue: false)));
         else
-            jump = BuildTree(target);
-        return new SequenceNode([new EdgeNode(source, target), jump]);
+            nodes.Add(BuildTree(target));
+        return new SequenceNode(nodes);
     }
 
     #endregion
