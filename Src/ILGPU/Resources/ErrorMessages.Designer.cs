@@ -1141,6 +1141,15 @@ namespace ILGPU.Resources {
         }
 
         /// <summary>
+        ///   Looks up a localized string similar to Recursive calls of {0} are not supported by the {1} backend..
+        /// </summary>
+        internal static string KernelDiagnosticUnsupportedRecursion {
+            get {
+                return ResourceManager.GetString("KernelDiagnosticUnsupportedRecursion", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to Delegates bound with KernelDelegates.Bind can only be used in kernels compiled by ILGPUC.
         /// </summary>
         internal static string NotSupportedKernelDelegateBind {

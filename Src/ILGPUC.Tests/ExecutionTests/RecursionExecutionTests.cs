@@ -19,7 +19,8 @@ namespace ILGPUC.Tests.ExecutionTests;
 
 /// <summary>
 /// Tests kernels calling helpers that call themselves, directly or through each
-/// other, which are compiled as recursive functions instead of being inlined.
+/// other, which are compiled as recursive functions instead of being inlined. The
+/// Metal and OpenCL backends reject them (see <c>RecursionTests</c>).
 /// </summary>
 public abstract class RecursionExecutionTests : ExecutionTestBase
 {

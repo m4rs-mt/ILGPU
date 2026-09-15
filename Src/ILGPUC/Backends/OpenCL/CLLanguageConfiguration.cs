@@ -112,6 +112,8 @@ sealed class CLLanguageConfiguration(CLVendor vendor = CLVendor.Intel) : Languag
             LanguageFeature.Barriers => true,
             LanguageFeature.InlineFunctions => true,
             LanguageFeature.BroadcastGroupLevel => true,
+            // OpenCL C does not allow recursion
+            LanguageFeature.Recursion => false,
             _ => false
         };
 

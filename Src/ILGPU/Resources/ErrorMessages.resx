@@ -585,6 +585,10 @@
     <value>Methods {0} call each other and are compiled as recursive functions instead of being inlined. Deep recursion can exhaust the stack of a thread.</value>
     <comment/>
   </data>
+  <data name="KernelDiagnosticUnsupportedRecursion" xml:space="preserve">
+    <value>Recursive calls of {0} are not supported by the {1} backend.</value>
+    <comment/>
+  </data>
   <data name="NotSupportedKernelDelegateBind" xml:space="preserve">
     <value>Delegates bound with KernelDelegates.Bind can only be used in kernels compiled by ILGPUC.</value>
     <comment/>

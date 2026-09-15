@@ -9,6 +9,7 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
+using ILGPU.Resources;
 using ILGPU.Runtime;
 using ILGPUC.Compilers;
 using ILGPUC.IR;
@@ -17,6 +18,7 @@ using ILGPUC.IR.BasicBlockValues;
 using ILGPUC.IR.MethodValues;
 using ILGPUC.IR.ModuleValues;
 using ILGPUC.IR.Transformations;
+using ILGPUC.Roslyn.Analysis;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -200,8 +202,32 @@ abstract class Backend(
 
         if (!LanguageConfiguration.SupportsFeature(LanguageFeature.GenericAddressSpace))
             VerifyNoGenericAddressSpaces(finalModule);
+        if (!LanguageConfiguration.SupportsFeature(LanguageFeature.Recursion))
+            VerifyNoRecursion(finalModule);
 
         return GenerateCode(finalModule, EntryPointLaunch.Resolve(module, launch));
+    }
+
+    /// <summary>
+    /// Rejects recursive calls, which this backend cannot run. The methods of a
+    /// call cycle are never inlined, so the cycle remains unless optimization
+    /// removes the calls that close it.
+    /// </summary>
+    /// <param name="module">The final module after all transformations.</param>
+    private void VerifyNoRecursion(Module module)
+    {
+        var cycles = CallCycle.FindAll(module.Methods.ToArray());
+        if (cycles.Count < 1)
+            return;
+
+        var cycle = cycles[0];
+        throw new KernelCompilationException(
+            KernelDiagnostic.UnsupportedRecursionId,
+            string.Format(
+                ErrorMessages.KernelDiagnosticUnsupportedRecursion,
+                cycle.FormatMethodNames(),
+                BackendType),
+            cycle.Calls[0].Location);
     }
 
     /// <summary>

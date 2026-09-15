@@ -80,6 +80,9 @@ sealed class MetalLanguageConfiguration : LanguageConfiguration
             LanguageFeature.Atomics => true,
             LanguageFeature.Barriers => true,
             LanguageFeature.InlineFunctions => true,
+            // Metal computes wrong results for recursive functions, such as a
+            // Fibonacci function calling itself twice
+            LanguageFeature.Recursion => false,
             _ => false
         };
 

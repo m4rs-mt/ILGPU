@@ -8,7 +8,8 @@ Throwing an exception is fine in a branch that is removed at compile time, as de
 Methods that call themselves, directly or through other methods, are compiled as recursive functions instead of being
 inlined, and the build reports each of them with warning `ILGPU1210`.
 Every recursive call uses stack memory of its thread, so keep the depth of the recursion small.
-The CPU, Cuda and ROCm backends run recursive calls.
+The CPU, Cuda and ROCm backends run recursive calls; the Metal and OpenCL backends reject them with error `ILGPU1211`,
+unless optimization removes the calls.
 Kernels and the functions they call must also be able to return: a function in which every path loops forever, such as
 a `while (true)` loop without a `return` or `break`, is rejected with the error "'X' never returns".
 Such a kernel could only be stopped by resetting the device.
@@ -79,6 +80,7 @@ line in the form `File.cs(line,column): error ILGPU12xx: message`:
 | `ILGPU1207` | Delegates created from instance methods of structs, such as `Func<int, int> f = value.Add` |
 | `ILGPU1208` | Lambdas and local functions whose closure is allocated inside a loop, such as a lambda capturing a variable declared in the loop body |
 | `ILGPU1209` | Methods taking delegates that call themselves, directly or through the delegates passed to them |
+| `ILGPU1211` | Methods that call themselves, directly or through other methods, on the Metal and OpenCL backends |
 
 Invoking a delegate variable that is still `null` on some path, without a null test, is undefined behavior in kernels.
 To call an optional operation, pass a separate flag instead of testing the delegate for null.

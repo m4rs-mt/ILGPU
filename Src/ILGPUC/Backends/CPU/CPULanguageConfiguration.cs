@@ -149,6 +149,7 @@ sealed class CPULanguageConfiguration(int vectorWidth) : LanguageConfiguration
             LanguageFeature.Atomics => true,
             LanguageFeature.Barriers => true,
             LanguageFeature.BroadcastGroupLevel => true,
+            LanguageFeature.Recursion => true,
             _ => false
         };
 

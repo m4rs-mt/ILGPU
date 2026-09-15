@@ -33,7 +33,7 @@ namespace ILGPUC.Tests.NonKernelTests;
 /// <summary>
 /// Tests that methods calling themselves, directly or through other methods, are
 /// compiled as recursive functions instead of being inlined, with a warning
-/// (ILGPU1210).
+/// (ILGPU1210), and that backends without recursive calls reject them (ILGPU1211).
 /// </summary>
 public sealed class RecursionTests
 {
@@ -103,6 +103,16 @@ public sealed class RecursionTests
             ArrayView1D<int, Stride1D.Dense> data)
         {
             data[index] = Square(Square(data[index]));
+        }
+
+        private static bool Never() => false;
+
+        public static void UnreachableRecursionKernel(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data)
+        {
+            if (Never())
+                data[index] = Factorial(data[index]);
         }
     }
 
@@ -265,6 +275,40 @@ public sealed class RecursionTests
         helper.GenerateBackendCode(GetKernel(nameof(Kernels.FactorialKernel)), backend);
         helper.GenerateBackendCode(
             GetKernel(nameof(Kernels.MutualRecursionKernel)),
+            backend);
+    }
+
+    [Theory]
+    [InlineData(BackendType.Metal)]
+    [InlineData(BackendType.OpenCL)]
+    public void BackendsWithoutRecursiveCalls_RejectRecursion(BackendType backend)
+    {
+        using var helper = new CompilationHelper(backend);
+        var exception = Assert.Throws<KernelCompilationException>(() =>
+            helper.GenerateBackendCode(
+                GetKernel(nameof(Kernels.FactorialKernel)),
+                backend));
+
+        Assert.Equal("ILGPU1211", exception.Id);
+        Assert.Equal(
+            $"Recursive calls of 'Factorial' are not supported by the {backend} " +
+            "backend.",
+            exception.Message);
+        AssertLocation(exception.Location, "Factorial");
+    }
+
+    [Theory]
+    [InlineData(BackendType.Metal)]
+    [InlineData(BackendType.OpenCL)]
+    public async Task BackendsWithoutRecursiveCalls_AcceptRecursionRemovedByOptimization(
+        BackendType backend)
+    {
+        // The frontend still compiles the recursive call, which optimization removes
+        Assert.Single(await GetWarningsAsync(nameof(Kernels.UnreachableRecursionKernel)));
+
+        using var helper = new CompilationHelper(backend);
+        helper.GenerateBackendCode(
+            GetKernel(nameof(Kernels.UnreachableRecursionKernel)),
             backend);
     }
 
@@ -442,6 +486,33 @@ public sealed class RecursionTests
         Assert.Contains(
             "): warning ILGPU1210: Methods 'IsEven', 'IsOdd' call each other",
             Assert.Single(provider.Diagnostics).ToString(),
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Build_ForMetal_FailsWithRecursionError()
+    {
+        var compilation = RoslynCompiler.CreateCompilation(
+            [BuildSource],
+            "RecursionTest");
+        var analysis = CompilationRewriter.Analyze(compilation);
+
+        var exception = await Assert.ThrowsAsync<KernelDiagnosticException>(() =>
+            MainKernelProvider.CreateAsync(
+                compilation,
+                analysis,
+                [CompilationHelper.CreateBackend(BackendType.Metal)],
+                new KernelCompiler()));
+
+        var diagnostic = exception.Diagnostic.ToString();
+        Assert.StartsWith(
+            $"source0.cs({RecursionLine},",
+            diagnostic,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "): error ILGPU1211: Recursive calls of 'Factorial' are not supported " +
+            "by the Metal backend.",
+            diagnostic,
             StringComparison.Ordinal);
     }
 
