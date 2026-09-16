@@ -146,6 +146,11 @@ record KernelDiagnostic(string Id, string Message, Location Location)
     public const string UnsupportedRecursionId = "ILGPU1211";
 
     /// <summary>
+    /// A kernel calls itself, directly or through other methods.
+    /// </summary>
+    public const string KernelRecursionId = "ILGPU1212";
+
+    /// <summary>
     /// A launching method whose delegate parameter is captured by an inline
     /// kernel is virtual or implements an interface member.
     /// </summary>

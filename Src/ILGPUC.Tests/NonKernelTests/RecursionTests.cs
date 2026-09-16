@@ -105,6 +105,31 @@ public sealed class RecursionTests
             data[index] = Square(Square(data[index]));
         }
 
+        public static void SelfCallingKernel(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data)
+        {
+            if (data[index] <= 0)
+                return;
+            data[index] -= 1;
+            SelfCallingKernel(index, data); // SelfCallingKernel
+        }
+
+        private static void CallKernel(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data) =>
+            KernelCallingItselfThroughHelper(index, data); // CallKernel
+
+        public static void KernelCallingItselfThroughHelper(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data)
+        {
+            if (data[index] <= 0)
+                return;
+            data[index] -= 1;
+            CallKernel(index, data);
+        }
+
         private static bool Never() => false;
 
         public static void UnreachableRecursionKernel(
@@ -295,6 +320,51 @@ public sealed class RecursionTests
             "backend.",
             exception.Message);
         AssertLocation(exception.Location, "Factorial");
+    }
+
+    [Theory]
+    [InlineData(BackendType.CPU)]
+    [InlineData(BackendType.Cuda)]
+    [InlineData(BackendType.ROCm)]
+    [InlineData(BackendType.Metal)]
+    [InlineData(BackendType.OpenCL)]
+    public void KernelCallingItself_IsRejected(BackendType backend)
+    {
+        using var helper = new CompilationHelper(backend);
+        var exception = Assert.Throws<KernelCompilationException>(() =>
+            helper.GenerateBackendCode(
+                GetKernel(nameof(Kernels.SelfCallingKernel)),
+                backend));
+
+        Assert.Equal("ILGPU1212", exception.Id);
+        Assert.Equal(
+            "Kernel 'SelfCallingKernel' calls itself, directly or through other " +
+            "methods, which is not supported. Move the code that calls itself into " +
+            "a helper method that the kernel calls.",
+            exception.Message);
+        AssertLocation(exception.Location, "SelfCallingKernel");
+    }
+
+    [Theory]
+    [InlineData(BackendType.CPU)]
+    [InlineData(BackendType.Cuda)]
+    [InlineData(BackendType.ROCm)]
+    [InlineData(BackendType.Metal)]
+    [InlineData(BackendType.OpenCL)]
+    public void KernelCallingItselfThroughHelper_IsRejected(BackendType backend)
+    {
+        using var helper = new CompilationHelper(backend);
+        var exception = Assert.Throws<KernelCompilationException>(() =>
+            helper.GenerateBackendCode(
+                GetKernel(nameof(Kernels.KernelCallingItselfThroughHelper)),
+                backend));
+
+        Assert.Equal("ILGPU1212", exception.Id);
+        Assert.StartsWith(
+            "Kernel 'KernelCallingItselfThroughHelper' calls itself",
+            exception.Message,
+            StringComparison.Ordinal);
+        AssertLocation(exception.Location, "CallKernel");
     }
 
     [Theory]

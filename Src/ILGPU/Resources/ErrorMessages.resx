@@ -589,6 +589,10 @@
     <value>Recursive calls of {0} are not supported by the {1} backend.</value>
     <comment/>
   </data>
+  <data name="KernelDiagnosticKernelRecursion" xml:space="preserve">
+    <value>Kernel '{0}' calls itself, directly or through other methods, which is not supported. Move the code that calls itself into a helper method that the kernel calls.</value>
+    <comment/>
+  </data>
   <data name="NotSupportedKernelDelegateBind" xml:space="preserve">
     <value>Delegates bound with KernelDelegates.Bind can only be used in kernels compiled by ILGPUC.</value>
     <comment/>

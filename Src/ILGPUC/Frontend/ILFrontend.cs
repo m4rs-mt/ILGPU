@@ -19,6 +19,7 @@ using ILGPUC.IR.Analyses;
 using ILGPUC.IR.ModuleValues;
 using ILGPUC.IR.ModuleValues.Construction;
 using ILGPUC.Roslyn.Analysis;
+using ILGPUC.Util;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -769,6 +770,7 @@ sealed class ILFrontend
 
         var queue = new Queue<MethodBase>(capacity: 32);
         var processed = new HashSet<MethodBase>();
+        var entryPoints = new HashSet<Method>();
         var specializations = new DelegateSpecializations(moduleBuilder);
         var closureCaptures = new ClosureCaptures(moduleBuilder);
         var evaluator = new ConstantEvaluator(
@@ -787,6 +789,8 @@ sealed class ILFrontend
             // Get IR method and check for external declaration flags
             var declaration = moduleBuilder.CreateMethodDeclaration(method);
             var methodBuilder = moduleBuilder.GetOrCreateMethod(declaration);
+            if (isEntryPoint)
+                entryPoints.Add(methodBuilder.Method);
             GenerateCodeForBuilder(method, methodBuilder, isEntryPoint);
         }
 
@@ -953,11 +957,38 @@ sealed class ILFrontend
         // Closures and recursion can be verified once all calls are known
         closureCaptures.Verify();
         var cycles = CallCycle.FindAll(moduleBuilder.GetMethods());
+        foreach (var cycle in cycles)
+            VerifyNoKernelRecursion(cycle, entryPoints);
         specializations.VerifyNoRecursion(cycles);
         foreach (var cycle in cycles)
             ExcludeFromInlining(cycle);
 
         return processed.Count > 0;
+    }
+
+    /// <summary>
+    /// Rejects a call cycle through a kernel: a call of a kernel would call its
+    /// entry point, which takes the arguments of a launch instead of the
+    /// parameters of the method.
+    /// </summary>
+    /// <param name="cycle">The call cycle.</param>
+    /// <param name="entryPoints">The methods of all kernels.</param>
+    private static void VerifyNoKernelRecursion(
+        CallCycle cycle,
+        HashSet<Method> entryPoints)
+    {
+        for (int i = 0; i < cycle.Methods.Length; ++i)
+        {
+            var method = cycle.Methods[i];
+            if (!entryPoints.Contains(method))
+                continue;
+            throw new KernelCompilationException(
+                KernelDiagnostic.KernelRecursionId,
+                string.Format(
+                    ErrorMessages.KernelDiagnosticKernelRecursion,
+                    method.Source?.GetDisplayName() ?? method.Name),
+                cycle.Calls[i].Location);
+        }
     }
 
     /// <summary>

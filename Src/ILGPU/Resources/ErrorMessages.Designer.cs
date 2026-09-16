@@ -1150,6 +1150,15 @@ namespace ILGPU.Resources {
         }
 
         /// <summary>
+        ///   Looks up a localized string similar to Kernel &apos;{0}&apos; calls itself, directly or through other methods, which is not supported. Move the code that calls itself into a helper method that the kernel calls..
+        /// </summary>
+        internal static string KernelDiagnosticKernelRecursion {
+            get {
+                return ResourceManager.GetString("KernelDiagnosticKernelRecursion", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to Delegates bound with KernelDelegates.Bind can only be used in kernels compiled by ILGPUC.
         /// </summary>
         internal static string NotSupportedKernelDelegateBind {
