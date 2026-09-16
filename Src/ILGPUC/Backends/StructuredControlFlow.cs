@@ -514,12 +514,56 @@ sealed class StructuredControlFlow
     }
 
     /// <summary>
-    /// Returns true if the given block may be emitted at several places:
-    /// it is a return block that dominates no other block (so its values are
-    /// only used in the block itself) and contains no barriers, thread
-    /// collectives, calls (which may contain them), language-specific code or
-    /// allocations. Duplicating it therefore never changes which threads
-    /// execute an operation together.
+    /// Returns the edges from the given block to its successors, continued
+    /// through forwarding blocks: the edges whose phi copies follow the code
+    /// of the block.
+    /// </summary>
+    public List<(BasicBlock Source, BasicBlock Target)> GetOutgoingEdges(
+        BasicBlock block)
+    {
+        var edges = new List<(BasicBlock Source, BasicBlock Target)>();
+        foreach (var successor in GetBranchTargets(block))
+        {
+            var (source, target) = (block, successor);
+            edges.Add((source, target));
+            while (!IsBackEdge(source, target) && _forwarding.Contains(target))
+            {
+                source = target;
+                target = target.Successors[0];
+                edges.Add((source, target));
+            }
+        }
+        return edges;
+    }
+
+    /// <summary>
+    /// Returns the forward edges of the tree into the given block, given by
+    /// the last block before it, which may be a forwarding block.
+    /// </summary>
+    public List<(BasicBlock Source, BasicBlock Target)> GetEntryEdges(
+        BasicBlock block)
+    {
+        var edges = new List<(BasicBlock Source, BasicBlock Target)>();
+        if (_entries.TryGetValue(block, out var sources))
+        {
+            foreach (var source in sources)
+            {
+                if (!edges.Contains((source, block)))
+                    edges.Add((source, block));
+            }
+        }
+        return edges;
+    }
+
+    /// <summary>
+    /// Returns true if the given block may be emitted at several places: it
+    /// returns or branches unconditionally, dominates no other block (so its
+    /// values are only used in the block itself and on its outgoing edge) and
+    /// contains no barriers, thread collectives, calls (which may contain
+    /// them), language-specific code or allocations. Duplicating it therefore
+    /// never changes which threads execute an operation together: every copy
+    /// either returns, or continues at the same follow block or loop header
+    /// as the block itself.
     /// </summary>
     public bool IsDuplicable(BasicBlock block)
     {
@@ -528,7 +572,8 @@ sealed class StructuredControlFlow
             || _loops.ContainsKey(block)
             || _forwarding.Contains(block)
             || _dominating.Contains(block)
-            || block.TerminationKind != BlockTerminationKind.Return)
+            || block.TerminationKind is not (BlockTerminationKind.Return
+                or BlockTerminationKind.Unconditional))
         {
             return false;
         }
