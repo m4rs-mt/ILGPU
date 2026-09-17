@@ -435,9 +435,12 @@ sealed class ExpressionEmitter(GenerationContext context, TypeEmitter typeEmitte
         if (!hasAddrSpace && !elemDiffers)
             return source;
 
-        // Build cast type using source address space + target element type
-        var castType = context.LanguageConfig.GetQualifiedTypeName(
-            elemTypeName, addrKeyword) + "*";
+        // Build cast type using source address space + target element type.
+        // The language decides whether pointer types carry the keyword (CUDA
+        // pointer types do not).
+        var castType = context.LanguageConfig.GetPointerTypeName(
+            elemTypeName,
+            addrKeyword);
 
         return new Emitted(
             $"({castType}){Parenthesize(source, Prec.Unary)}",
@@ -1437,17 +1440,18 @@ sealed class ExpressionEmitter(GenerationContext context, TypeEmitter typeEmitte
         // CUDA omits the address-space qualifier (pointer types in CUDA C++
         // don't carry one); Metal/OpenCL prepend their qualifier.
         var elemTypeName = typeEmitter.GetTypeName(lfa.FieldType);
-        var castType = context.LanguageConfig.GetQualifiedTypeName(
-            elemTypeName, addrKeyword) + "*";
+        var castType = context.LanguageConfig.GetPointerTypeName(
+            elemTypeName,
+            addrKeyword);
 
         // Take the address of the flattened field member so that the native
         // compiler applies the real byte offset of the field. A multi-field
         // span addresses a sub-structure starting at its first field.
         var fieldName = StructureType.GetFieldName(lfa.FieldSpan.Index);
         var structTypeName = typeEmitter.GetTypeName(lfa.StructureType);
-        var structPtrType = string.IsNullOrEmpty(addrKeyword)
-            ? $"{structTypeName}*"
-            : $"{addrKeyword} {structTypeName}*";
+        var structPtrType = context.LanguageConfig.GetPointerTypeName(
+            structTypeName,
+            addrKeyword);
         var inner = Parenthesize(source, Prec.Unary);
         return new Emitted(
             $"({castType})&(({structPtrType}){inner})->{fieldName}",

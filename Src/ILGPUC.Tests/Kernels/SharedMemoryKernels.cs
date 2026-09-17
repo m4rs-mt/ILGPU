@@ -112,4 +112,39 @@ static class SharedMemoryKernels
         if (index.X < data.Length && gi < TileSize * TileSize)
             data[index] = shared[gi % TileSize, gi / TileSize];
     }
+
+    /// <summary>
+    /// A structure stored in shared memory.
+    /// </summary>
+    public struct SharedPair
+    {
+        public int Count;
+        public float Value;
+    }
+
+    /// <summary>
+    /// Writes a field of a shared structure through a reference and reads a
+    /// shared buffer through a view of another element type: both take
+    /// pointer casts into shared memory.
+    /// </summary>
+    public static void SharedFieldCastKernel(
+        Index1D index,
+        ArrayView1D<float, Stride1D.Dense> data)
+    {
+        var pairs = Group.GetSharedMemory<SharedPair>(4);
+        var words = Group.GetSharedMemory<long>(4);
+        var halves = words.Cast<int>();
+        int gi = Group.Index;
+        if (gi == 0)
+        {
+            ref float value = ref pairs[0].Value;
+            value = index;
+            pairs[0].Count = 1;
+        }
+        if (gi < 8)
+            halves[gi] = gi;
+        Group.Barrier();
+        if (index.X < data.Length)
+            data[index] = pairs[0].Value * pairs[0].Count + halves[gi % 8];
+    }
 }
