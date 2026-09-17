@@ -10,9 +10,15 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPUC.Backends;
+using ILGPUC.Compilers;
 using ILGPUC.Tests.Framework;
 using ILGPUC.Tests.Kernels;
+using System;
+using System.Diagnostics;
+using System.IO;
 using System.Text.RegularExpressions;
+using System.Threading;
+using System.Threading.Tasks;
 using Xunit;
 
 namespace ILGPUC.Tests.BackendTests;
@@ -141,4 +147,127 @@ public sealed class OpenCLSourceTests
         Assert.DoesNotContain("*){})", source);
         Assert.Contains("((global int*)0)", source);
     }
+
+    private const string Fp16Pragma =
+        "#pragma OPENCL EXTENSION cl_khr_fp16 : enable";
+
+    /// <summary>
+    /// The kernels using half: half values, and a structure with half fields
+    /// that is only copied, so that no value of the half type itself appears.
+    /// </summary>
+    public static TheoryData<Type, string> HalfKernels => new()
+    {
+        { typeof(FloatArithmeticKernels),
+            nameof(FloatArithmeticKernels.HalfAbsIsNaNKernel) },
+        { typeof(HalfVectorKernels),
+            nameof(HalfVectorKernels.CopyFloat16x2Kernel) },
+    };
+
+    /// <summary>
+    /// OpenCL C disallows half variables and arithmetic unless cl_khr_fp16 is
+    /// enabled before their first use, which is only done for modules using
+    /// half.
+    /// </summary>
+    [Theory]
+    [MemberData(nameof(HalfKernels))]
+    public void HalfKernels_EnableFp16(Type kernelClass, string kernelName)
+    {
+        var source = GenerateSource(kernelClass, kernelName);
+        var half = Regex.Match(source, @"\bhalf\b");
+        Assert.True(half.Success, "No half type in the source");
+        int pragma = source.IndexOf(Fp16Pragma, StringComparison.Ordinal);
+        Assert.InRange(pragma, 0, half.Index);
+    }
+
+    [Fact]
+    public void KernelsWithoutHalf_DoNotEnableFp16()
+    {
+        var source = GenerateSource(
+            typeof(StructureKernels),
+            nameof(StructureKernels.BoolArgumentKernel));
+        Assert.DoesNotMatch(@"\bhalf\b", source);
+        Assert.DoesNotContain("cl_khr_fp16", source);
+    }
+
+    /// <summary>
+    /// clang rejects half variables in OpenCL C without cl_khr_fp16, whereas
+    /// ocloc accepts them, so the generated source is parsed by clang for
+    /// SPIR-V. Skipped where clang or its spirv64 target is unavailable, or
+    /// where clang does not parse a trivial kernel in time.
+    /// </summary>
+    [SkippableFact]
+    public async Task HalfKernel_ParsesWithClang()
+    {
+        var clang = new CompilerOptions().ClangPath;
+        Skip.IfNot(File.Exists(clang), $"{clang} is not available");
+        var probe = await ParseWithClangAsync(
+            clang,
+            "kernel void Probe(global int* data) { *data = 1; }");
+        Skip.IfNot(
+            probe.ExitCode == 0,
+            $"{clang} cannot parse OpenCL C for spirv64: {probe.StdErr}");
+
+        var source = GenerateSource(
+            typeof(FloatArithmeticKernels),
+            nameof(FloatArithmeticKernels.HalfAbsIsNaNKernel));
+        var result = await ParseWithClangAsync(clang, source);
+        Assert.True(
+            result.ExitCode == 0,
+            $"clang failed on the source: {result.StdErr}");
+    }
+
+    private static string GenerateSource(Type kernelClass, string kernelName)
+    {
+        var kernel = kernelClass.GetMethod(kernelName)!;
+        using var helper = new CompilationHelper(BackendType.OpenCL);
+        return helper.GenerateBackendCode(kernel, BackendType.OpenCL).SourceCode;
+    }
+
+    /// <summary>
+    /// Checks the syntax and semantics of OpenCL C source with clang without
+    /// generating code. A clang that does not finish in time is killed and
+    /// reported as failed with exit code -1.
+    /// </summary>
+    private static async Task<(int ExitCode, string StdErr)> ParseWithClangAsync(
+        string clang,
+        string source)
+    {
+        var startInfo = new ProcessStartInfo(clang)
+        {
+            RedirectStandardInput = true,
+            RedirectStandardError = true,
+            RedirectStandardOutput = true,
+            UseShellExecute = false,
+        };
+        foreach (var argument in new[]
+        {
+            "-target", "spirv64-unknown-unknown", "-cl-std=CL2.0",
+            "-x", "cl", "-fsyntax-only", "-",
+        })
+        {
+            startInfo.ArgumentList.Add(argument);
+        }
+
+        using var timeout = new CancellationTokenSource(ClangTimeout);
+        using var process = Process.Start(startInfo)!;
+        try
+        {
+            var stdout = process.StandardOutput.ReadToEndAsync(timeout.Token);
+            var stderr = process.StandardError.ReadToEndAsync(timeout.Token);
+            await process.StandardInput.WriteAsync(source.AsMemory(), timeout.Token);
+            process.StandardInput.Close();
+            await process.WaitForExitAsync(timeout.Token);
+            await stdout;
+            return (process.ExitCode, await stderr);
+        }
+        catch (OperationCanceledException) when (timeout.IsCancellationRequested)
+        {
+            // A hanging clang is killed instead of outliving the test run.
+            process.Kill(entireProcessTree: true);
+            process.WaitForExit();
+            return (-1, $"clang did not finish within {ClangTimeout.TotalSeconds} s");
+        }
+    }
+
+    private static readonly TimeSpan ClangTimeout = TimeSpan.FromSeconds(60);
 }

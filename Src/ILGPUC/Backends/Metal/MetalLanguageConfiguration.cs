@@ -155,10 +155,9 @@ sealed class MetalLanguageConfiguration : LanguageConfiguration
     /// fusion is turned off. The pragma also applies when the source is
     /// compiled at runtime.
     /// </summary>
-    public override IEnumerable<string> GetPragmas(
-        FusedMultiplyAddMode fusedMultiplyAdd)
+    public override IEnumerable<string> GetPragmas(Module module)
     {
-        if (fusedMultiplyAdd == FusedMultiplyAddMode.Off)
+        if (module.FusedMultiplyAddMode == FusedMultiplyAddMode.Off)
             yield return "#pragma STDC FP_CONTRACT OFF";
     }
 
