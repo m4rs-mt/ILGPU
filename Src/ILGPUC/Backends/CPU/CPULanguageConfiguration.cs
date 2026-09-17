@@ -142,8 +142,13 @@ sealed class CPULanguageConfiguration(int vectorWidth) : LanguageConfiguration
     public override string PointerStorageTypeName => "nint";
 
     /// <inheritdoc/>
-    public override string FormatNullLiteral(string typeName) =>
-        "default";
+    /// <remarks>
+    /// Null views are typed (<c>default(CPURuntimeView&lt;T&gt;)</c>), since
+    /// views are accessed through their members, such as <c>SubView</c> or
+    /// <c>Cast</c>, which the untyped <c>default</c> literal does not have.
+    /// </remarks>
+    public override string FormatNullLiteral(TypeValue type, string typeName) =>
+        type is ViewType ? $"default({typeName})" : "default";
 
     /// <inheritdoc/>
     public override string FormatNullPointer(string typeName) =>

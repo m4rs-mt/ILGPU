@@ -67,4 +67,65 @@ static class ArrayViewKernels
         else
             result[index] = -1;
     }
+
+    /// <summary>
+    /// Stores the length of the empty view, whose single use is emitted
+    /// inline.
+    /// </summary>
+    public static void EmptyViewIntLengthKernel(
+        Index1D index,
+        ArrayView1D<int, Stride1D.Dense> result)
+    {
+        result[index] = ArrayView<int>.Empty.IntLength;
+    }
+
+    /// <summary>
+    /// Stores the members of the empty view, a constant view without
+    /// elements.
+    /// </summary>
+    public static void EmptyViewMembersKernel(
+        Index1D index,
+        ArrayView1D<long, Stride1D.Dense> result)
+    {
+        var view = ArrayView<int>.Empty;
+        result[index * 7 + 0] = view.IntLength;
+        result[index * 7 + 1] = view.Length;
+        result[index * 7 + 2] = view.LengthInBytes;
+        result[index * 7 + 3] = view.Extent.X;
+        result[index * 7 + 4] = view.IsValid ? 1 : 0;
+        result[index * 7 + 5] = view.SubView(0, 0).Length;
+        result[index * 7 + 6] = view.Cast<long>().Length;
+    }
+
+    /// <summary>
+    /// Stores the members of a default view.
+    /// </summary>
+    public static void DefaultViewMembersKernel(
+        Index1D index,
+        ArrayView1D<long, Stride1D.Dense> result)
+    {
+        ArrayView<int> view = default;
+        result[index * 7 + 0] = view.IntLength;
+        result[index * 7 + 1] = view.Length;
+        result[index * 7 + 2] = view.LengthInBytes;
+        result[index * 7 + 3] = view.Extent.X;
+        result[index * 7 + 4] = view.IsValid ? 1 : 0;
+        result[index * 7 + 5] = view.SubView(0, 0).Length;
+        result[index * 7 + 6] = view.Cast<long>().Length;
+    }
+
+    /// <summary>
+    /// Reads an element of the empty view behind a length check, which keeps
+    /// an element access on the null view in the generated code.
+    /// </summary>
+    public static void EmptyViewElementKernel(
+        Index1D index,
+        ArrayView1D<long, Stride1D.Dense> result)
+    {
+        var view = ArrayView<long>.Empty;
+        if (view.Length > index)
+            result[index] = view[index];
+        else
+            result[index] = 7;
+    }
 }

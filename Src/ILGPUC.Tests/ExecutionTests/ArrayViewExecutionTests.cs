@@ -74,6 +74,30 @@ public abstract class ArrayViewExecutionTests : ExecutionTestBase
             new CompilationProperties(OptimizationLevel: opt));
     }
 
+    /// <summary>
+    /// The members of the empty view and of a default view are constants:
+    /// their lengths are zero and they are not valid, also for sub views and
+    /// casts of them.
+    /// </summary>
+    [SkippableTheory]
+    [MemberData(nameof(TestTypes.OptLevels), MemberType = typeof(TestTypes))]
+    public async Task EmptyView_ProducesCorrectOutput(OptimizationLevel opt)
+    {
+        await VerifyProgramOutputAsync(
+            "TestPrograms/ArrayView/EmptyView.cs",
+            [
+                "Kernels.EmptyIntLengthKernel",
+                "Kernels.EmptyMembersKernel",
+                "Kernels.DefaultMembersKernel",
+            ],
+            [
+                "0 0 0 0",
+                "0 0 0 0 0 0 0", "0 0 0 0 0 0 0",
+                "0 0 0 0 0 0 0", "0 0 0 0 0 0 0",
+            ],
+            new CompilationProperties(OptimizationLevel: opt));
+    }
+
     [SkippableFact]
     public async Task SubViewSelect_ProducesCorrectOutput()
     {

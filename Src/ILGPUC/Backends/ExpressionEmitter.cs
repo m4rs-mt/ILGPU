@@ -179,6 +179,7 @@ sealed class ExpressionEmitter(GenerationContext context, TypeEmitter typeEmitte
                     typeEmitter.GetTypeName(nullPointer.Type)), Prec.Atom),
             NullValue nullValue => new Emitted(
                 context.LanguageConfig.FormatNullLiteral(
+                    nullValue.Type,
                     typeEmitter.GetTypeName(nullValue.Type)), Prec.Atom),
             UndefinedValue undef => EmitUndefined(undef),
 

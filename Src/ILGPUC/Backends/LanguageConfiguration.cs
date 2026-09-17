@@ -151,10 +151,13 @@ abstract class LanguageConfiguration
     public virtual string? FormatGlobalAddress(Global global, string name) => null;
 
     /// <summary>
-    /// Formats a null literal for a given type name.
-    /// Default: C-style <c>TypeNULL</c>. CPU override: <c>default</c>.
+    /// Formats a null literal of the given type.
+    /// Default: a zero-initialized C-style compound literal. CPU override:
+    /// <c>default</c>.
     /// </summary>
-    public virtual string FormatNullLiteral(string typeName) =>
+    /// <param name="type">The type of the null value.</param>
+    /// <param name="typeName">The name of the type in the target language.</param>
+    public virtual string FormatNullLiteral(TypeValue type, string typeName) =>
         $"(({typeName}){{}})";  // Zero-initialized struct/value
 
     /// <summary>
