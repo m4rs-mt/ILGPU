@@ -994,6 +994,66 @@ public sealed class KernelDiagnosticTests
             ExceptionHandlingMessage,
             optimizationLevel);
 
+    /// <summary>
+    /// The filter of a catch clause ends in an endfilter instruction, which
+    /// the disassembler rejected: the kernel was left without a body and the
+    /// build failed with an InvalidOperationException without a location.
+    /// </summary>
+    [Theory]
+    [InlineData(RoslynOptimizationLevel.Debug)]
+    [InlineData(RoslynOptimizationLevel.Release)]
+    public Task ExceptionFilter_FailsBuild(RoslynOptimizationLevel optimizationLevel) =>
+        AssertBuildErrorAsync(
+            """
+            static class K
+            {
+                public static void Kern(Index1D i, ArrayView1D<int, Stride1D.Dense> data)
+                {
+                    try
+                    {
+                        data[i] = data[i] + 1; // error
+                    }
+                    catch (Exception) when (data[i] > 0)
+                    {
+                        data[i] = -1;
+                    }
+                }
+            }
+            """,
+            "ILGPU1200",
+            ExceptionHandlingMessage,
+            optimizationLevel);
+
+    /// <summary>
+    /// The variable of a catch clause with a filter is first used in the
+    /// filter.
+    /// </summary>
+    [Theory]
+    [InlineData(RoslynOptimizationLevel.Debug)]
+    [InlineData(RoslynOptimizationLevel.Release)]
+    public Task CatchExceptionVariableWithFilter_FailsBuild(
+        RoslynOptimizationLevel optimizationLevel) =>
+        AssertBuildErrorAsync(
+            """
+            static class K
+            {
+                public static void Kern(Index1D i, ArrayView1D<int, Stride1D.Dense> data)
+                {
+                    try
+                    {
+                        data[i] = data[i] + 1; // error
+                    }
+                    catch (Exception e) when (e.HResult > 0)
+                    {
+                        data[i] = -1;
+                    }
+                }
+            }
+            """,
+            "ILGPU1200",
+            ExceptionHandlingMessage,
+            optimizationLevel);
+
     [Theory]
     [InlineData(RoslynOptimizationLevel.Debug)]
     [InlineData(RoslynOptimizationLevel.Release)]

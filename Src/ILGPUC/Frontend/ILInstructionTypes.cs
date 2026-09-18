@@ -364,7 +364,11 @@ enum ILInstructionType
     ///
     /// <summary>EndFinallyBlock</summary>
     ///
-    EndFinally
+    EndFinally,
+    ///
+    /// <summary>EndFilterBlock</summary>
+    ///
+    EndFilter
 }
 
 /// <summary>
@@ -552,6 +556,8 @@ static class ILInstructionTypes
             { ILInstructionType.Rethrow, (0, 0) },
             { ILInstructionType.Leave, (0, 0) },
             { ILInstructionType.EndFinally, (0, 0) },
+            // endfilter pops the result that decides whether the handler runs
+            { ILInstructionType.EndFilter, (1, 0) },
         };
 
     /// <summary>

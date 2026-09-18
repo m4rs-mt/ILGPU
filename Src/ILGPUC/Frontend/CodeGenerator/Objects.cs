@@ -314,8 +314,8 @@ partial class CodeGenerator
 
     /// <summary>
     /// Creates the error for exception handling in the current method, located
-    /// at the innermost try block whose try block or handler contains the given
-    /// instruction, or at the current location if there is none.
+    /// at the innermost try block whose try block, filter or handler contains
+    /// the given instruction, or at the current location if there is none.
     /// </summary>
     /// <param name="instructionIndex">The index of the instruction.</param>
     private InternalCompilerException GetExceptionHandlingException(
@@ -343,6 +343,15 @@ partial class CodeGenerator
             int tryStart = clause.TryStart;
             int tryLength = clause.TryLength;
             Include(tryStart, tryStart + tryLength, tryStart, tryLength, null);
+            if (clause.FilterBlock is int filterStart)
+            {
+                Include(
+                    filterStart,
+                    clause.HandlerStart,
+                    tryStart,
+                    tryLength,
+                    null);
+            }
             Include(
                 clause.HandlerStart,
                 clause.HandlerStart + clause.HandlerLength,
@@ -366,15 +375,16 @@ partial class CodeGenerator
     }
 
     /// <summary>
-    /// Returns true if the given instruction lies in the handler of a catch
-    /// clause.
+    /// Returns true if the given instruction lies in the filter or the handler
+    /// of a catch clause.
     /// </summary>
     /// <param name="instructionIndex">The index of the instruction.</param>
     private bool IsInCatchHandler(int instructionIndex)
     {
         foreach (var clause in DisassembledMethod.CatchClauses.Span)
         {
-            if (instructionIndex >= clause.HandlerStart &&
+            // The filter of a catch clause directly precedes its handler
+            if (instructionIndex >= (clause.FilterBlock ?? clause.HandlerStart) &&
                 instructionIndex < clause.HandlerStart + clause.HandlerLength)
             {
                 return true;

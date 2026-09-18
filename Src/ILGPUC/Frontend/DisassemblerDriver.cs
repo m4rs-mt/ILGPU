@@ -710,6 +710,9 @@ namespace ILGPUC.Frontend
                 case ILOpCode.Endfinally:
                     AppendInstruction(ILInstructionType.EndFinally);
                     return true;
+                case ILOpCode.Endfilter:
+                    AppendInstruction(ILInstructionType.EndFilter);
+                    return true;
 
                 default:
                     return false;
