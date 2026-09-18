@@ -931,6 +931,10 @@ public sealed class KernelDiagnosticTests
         "try block, which C# also creates for using statements, foreach loops " +
         "over disposable enumerators and fixed statements left by a jump";
 
+    private const string ThrowMessage =
+        "Exceptions are not supported in kernels: 'K.Kern' throws " +
+        "'InvalidOperationException'";
+
     /// <summary>
     /// A try block is reported at its first statement: C# has no sequence
     /// point for the try keyword.
@@ -1111,6 +1115,97 @@ public sealed class KernelDiagnosticTests
             """,
             "ILGPU1200",
             ExceptionHandlingMessage,
+            optimizationLevel);
+
+    /// <summary>
+    /// A try block that ends in a throw is directly followed by its handler,
+    /// which the frontend entered as if the throw fell through to it: with the
+    /// exception missing from the stack, which failed the "Invalid stack
+    /// counter" assertion. The throw is the error.
+    /// </summary>
+    [Theory]
+    [InlineData(RoslynOptimizationLevel.Debug)]
+    [InlineData(RoslynOptimizationLevel.Release)]
+    public Task ThrowAtEndOfTry_FailsBuild(RoslynOptimizationLevel optimizationLevel) =>
+        AssertBuildErrorAsync(
+            """
+            static class K
+            {
+                public static void Kern(Index1D i, ArrayView1D<int, Stride1D.Dense> data)
+                {
+                    try
+                    {
+                        throw new InvalidOperationException(); // error
+                    }
+                    catch (InvalidOperationException)
+                    {
+                        data[i] = 2;
+                    }
+                }
+            }
+            """,
+            "ILGPU1200",
+            ThrowMessage,
+            optimizationLevel);
+
+    /// <summary>
+    /// A try block that ends in a throw is directly followed by the filter of
+    /// its catch clause, which the frontend must not enter either.
+    /// </summary>
+    [Theory]
+    [InlineData(RoslynOptimizationLevel.Debug)]
+    [InlineData(RoslynOptimizationLevel.Release)]
+    public Task ThrowAtEndOfTryWithFilter_FailsBuild(
+        RoslynOptimizationLevel optimizationLevel) =>
+        AssertBuildErrorAsync(
+            """
+            static class K
+            {
+                public static void Kern(Index1D i, ArrayView1D<int, Stride1D.Dense> data)
+                {
+                    try
+                    {
+                        throw new InvalidOperationException(); // error
+                    }
+                    catch (InvalidOperationException) when (data[i] > 0)
+                    {
+                        data[i] = 2;
+                    }
+                }
+            }
+            """,
+            "ILGPU1200",
+            ThrowMessage,
+            optimizationLevel);
+
+    /// <summary>
+    /// A try block that ends in a throw is directly followed by its finally
+    /// handler, whose endfinally was reported instead of the throw.
+    /// </summary>
+    [Theory]
+    [InlineData(RoslynOptimizationLevel.Debug)]
+    [InlineData(RoslynOptimizationLevel.Release)]
+    public Task ThrowAtEndOfTryWithFinally_FailsBuild(
+        RoslynOptimizationLevel optimizationLevel) =>
+        AssertBuildErrorAsync(
+            """
+            static class K
+            {
+                public static void Kern(Index1D i, ArrayView1D<int, Stride1D.Dense> data)
+                {
+                    try
+                    {
+                        throw new InvalidOperationException(); // error
+                    }
+                    finally
+                    {
+                        data[i] = 2;
+                    }
+                }
+            }
+            """,
+            "ILGPU1200",
+            ThrowMessage,
             optimizationLevel);
 
     /// <summary>

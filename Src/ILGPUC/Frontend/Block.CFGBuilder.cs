@@ -67,6 +67,7 @@ partial class Block
             new(new Value.Comparer());
         private readonly Dictionary<Block, List<Block>> _successorMapping = [];
         private readonly HashSet<int> _tailCalls = [];
+        private readonly HashSet<int> _handlerStarts = [];
 
         /// <summary>
         /// Constructs a new CFG builder.
@@ -97,6 +98,7 @@ partial class Block
                     mainEntry.BasicBlock.Name));
             _blockMapping.Add(0, internalEntryBlock);
             _basicBlockMapping.Add(internalEntryBlock.BasicBlock, internalEntryBlock);
+            RegisterHandlerStarts();
             BuildBasicBlocks();
 
             var visited = new HashSet<Block>();
@@ -134,6 +136,23 @@ partial class Block
                 _basicBlockMapping.Add(block.BasicBlock, block);
             }
             return block;
+        }
+
+        /// <summary>
+        /// Registers the first instructions of all exception handlers and filters,
+        /// which control never falls through into.
+        /// </summary>
+        private void RegisterHandlerStarts()
+        {
+            var disassembledMethod = CodeGenerator.DisassembledMethod;
+            foreach (var clause in disassembledMethod.CatchClauses.Span)
+            {
+                _handlerStarts.Add(clause.HandlerStart);
+                if (clause.FilterBlock is int filterStart)
+                    _handlerStarts.Add(filterStart);
+            }
+            foreach (var clause in disassembledMethod.FinallyClauses.Span)
+                _handlerStarts.Add(clause.FinallyStart);
         }
 
         /// <summary>
@@ -225,6 +244,12 @@ partial class Block
                 instructionIdx < e;
                 ++instructionIdx)
             {
+                // A try block that ends in a throw is directly followed by a
+                // handler or a filter, which control never falls through into:
+                // they are only entered by the exception handling of the runtime
+                if (_handlerStarts.Contains(instructionIdx))
+                    break;
+
                 var instruction = disassembledMethod[instructionIdx];
                 // Handle implicit cases: jumps to blocks without a jump instruction
                 if (_blockMapping.TryGetValue(instruction.Offset, out Block? other) &&
