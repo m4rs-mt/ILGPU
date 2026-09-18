@@ -324,6 +324,16 @@ sealed partial class CodeGenerator
         for (int i = 0, e = localVariables.Count; i < e; ++i)
         {
             var variable = localVariables[i];
+
+            // The variable of a catch clause holds the caught exception: report
+            // the exception handling instead of its unsupported class type
+            if (typeof(Exception).IsAssignableFrom(variable.LocalType))
+            {
+                int use = FindLocalVariableUse(i);
+                if (IsInCatchHandler(use))
+                    throw GetExceptionHandlingException(use);
+            }
+
             TypeValue variableType;
             try
             {
@@ -370,17 +380,31 @@ sealed partial class CodeGenerator
     /// <param name="index">The index of the local variable.</param>
     private Location? FindLocalVariableLocation(int index)
     {
-        foreach (var instruction in DisassembledMethod.Instructions)
+        int instructionIndex = FindLocalVariableUse(index);
+        return instructionIndex >= 0
+            ? DisassembledMethod[instructionIndex].Location
+            : null;
+    }
+
+    /// <summary>
+    /// Returns the index of the first instruction with a known location using
+    /// the local variable with the given index, or -1 if there is none.
+    /// </summary>
+    /// <param name="index">The index of the local variable.</param>
+    private int FindLocalVariableUse(int index)
+    {
+        for (int i = 0, e = DisassembledMethod.Count; i < e; ++i)
         {
+            var instruction = DisassembledMethod[i];
             if (instruction.InstructionType is ILInstructionType.Ldloc or
                     ILInstructionType.Ldloca or ILInstructionType.Stloc &&
                 instruction.GetArgumentAs<int>() == index &&
                 instruction.Location.IsKnown)
             {
-                return instruction.Location;
+                return i;
             }
         }
-        return null;
+        return -1;
     }
 
     #endregion

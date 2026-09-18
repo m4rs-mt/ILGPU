@@ -321,6 +321,11 @@ partial class CodeGenerator
             case ILInstructionType.Rethrow:
                 MakeThrow(isRethrow: true);
                 return true;
+            // Handlers and filters are only entered by the exception handling
+            // of the runtime, so leaving a try block is what code reaches
+            case ILInstructionType.Leave:
+                MakeExceptionHandling();
+                return true;
 
             default:
                 return false;

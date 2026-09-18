@@ -641,6 +641,10 @@
     <value>Delegates bound with KernelDelegates.Bind can only be used in kernels compiled by ILGPUC.</value>
     <comment/>
   </data>
+  <data name="NotSupportedExceptionHandling" xml:space="preserve">
+    <value>Exception handling is not supported in kernels: '{0}' contains a try block, which C# also creates for using statements, foreach loops over disposable enumerators and fixed statements left by a jump</value>
+    <comment/>
+  </data>
   <data name="NotSupportedExceptionThrow" xml:space="preserve">
     <value>Exceptions are not supported in kernels: '{1}' throws '{0}' in code that is reachable for these type arguments. Exceptions may only be thrown in branches that are removed at compile time, for example by a typeof(T) test</value>
     <comment/>

@@ -924,6 +924,420 @@ public sealed class KernelDiagnosticTests
 
     #endregion
 
+    #region Exception Handling (ILGPU1200)
+
+    private const string ExceptionHandlingMessage =
+        "Exception handling is not supported in kernels: 'K.Kern' contains a " +
+        "try block, which C# also creates for using statements, foreach loops " +
+        "over disposable enumerators and fixed statements left by a jump";
+
+    /// <summary>
+    /// A try block is reported at its first statement: C# has no sequence
+    /// point for the try keyword.
+    /// </summary>
+    [Theory]
+    [InlineData(RoslynOptimizationLevel.Debug)]
+    [InlineData(RoslynOptimizationLevel.Release)]
+    public Task TryCatchFinally_FailsBuild(RoslynOptimizationLevel optimizationLevel) =>
+        AssertBuildErrorAsync(
+            """
+            static class K
+            {
+                public static void Kern(Index1D i, ArrayView1D<int, Stride1D.Dense> data)
+                {
+                    try
+                    {
+                        data[i] = data[i] + 1; // error
+                    }
+                    catch (InvalidOperationException)
+                    {
+                        data[i] = -1;
+                    }
+                    finally
+                    {
+                        data[i] = data[i] * 2;
+                    }
+                }
+            }
+            """,
+            "ILGPU1200",
+            ExceptionHandlingMessage,
+            optimizationLevel);
+
+    /// <summary>
+    /// The variable of a catch clause has an unsupported class type, which
+    /// was reported instead of the exception handling.
+    /// </summary>
+    [Theory]
+    [InlineData(RoslynOptimizationLevel.Debug)]
+    [InlineData(RoslynOptimizationLevel.Release)]
+    public Task CatchExceptionVariable_FailsBuild(
+        RoslynOptimizationLevel optimizationLevel) =>
+        AssertBuildErrorAsync(
+            """
+            static class K
+            {
+                public static void Kern(Index1D i, ArrayView1D<int, Stride1D.Dense> data)
+                {
+                    try
+                    {
+                        data[i] = data[i] + 1; // error
+                    }
+                    catch (Exception e)
+                    {
+                        data[i] = e.HResult;
+                    }
+                }
+            }
+            """,
+            "ILGPU1200",
+            ExceptionHandlingMessage,
+            optimizationLevel);
+
+    [Theory]
+    [InlineData(RoslynOptimizationLevel.Debug)]
+    [InlineData(RoslynOptimizationLevel.Release)]
+    public Task UsingDisposableStruct_FailsBuild(
+        RoslynOptimizationLevel optimizationLevel) =>
+        AssertBuildErrorAsync(
+            """
+            struct Doubler : IDisposable
+            {
+                public ArrayView1D<int, Stride1D.Dense> Data;
+                public int Index;
+                public void Dispose() => Data[Index] = Data[Index] * 2;
+            }
+
+            static class K
+            {
+                public static void Kern(Index1D i, ArrayView1D<int, Stride1D.Dense> data)
+                {
+                    using (new Doubler { Data = data, Index = i }) // error
+                    {
+                        data[i] = data[i] + 1;
+                    }
+                }
+            }
+            """,
+            "ILGPU1200",
+            ExceptionHandlingMessage,
+            optimizationLevel);
+
+    /// <summary>
+    /// The try block of a using declaration spans the rest of the method: it
+    /// was reported at the closing brace of the method.
+    /// </summary>
+    [Theory]
+    [InlineData(RoslynOptimizationLevel.Debug)]
+    [InlineData(RoslynOptimizationLevel.Release)]
+    public Task UsingDeclaration_FailsBuild(RoslynOptimizationLevel optimizationLevel) =>
+        AssertBuildErrorAsync(
+            """
+            struct Doubler : IDisposable
+            {
+                public ArrayView1D<int, Stride1D.Dense> Data;
+                public int Index;
+                public void Dispose() => Data[Index] = Data[Index] * 2;
+            }
+
+            static class K
+            {
+                public static void Kern(Index1D i, ArrayView1D<int, Stride1D.Dense> data)
+                {
+                    using var doubler = new Doubler { Data = data, Index = i }; // error
+                    data[i] = data[i] + 1;
+                }
+            }
+            """,
+            "ILGPU1200",
+            ExceptionHandlingMessage,
+            optimizationLevel);
+
+    /// <summary>
+    /// The innermost try block that is left is reported, not the enclosing one.
+    /// </summary>
+    [Theory]
+    [InlineData(RoslynOptimizationLevel.Debug)]
+    [InlineData(RoslynOptimizationLevel.Release)]
+    public Task NestedTry_FailsBuild(RoslynOptimizationLevel optimizationLevel) =>
+        AssertBuildErrorAsync(
+            """
+            static class K
+            {
+                public static void Kern(Index1D i, ArrayView1D<int, Stride1D.Dense> data)
+                {
+                    try
+                    {
+                        data[i] = 3;
+                        try
+                        {
+                            data[i] = data[i] + 1; // error
+                        }
+                        catch (InvalidOperationException)
+                        {
+                            data[i] = -1;
+                        }
+                    }
+                    finally
+                    {
+                        data[i] = data[i] * 2;
+                    }
+                }
+            }
+            """,
+            "ILGPU1200",
+            ExceptionHandlingMessage,
+            optimizationLevel);
+
+    /// <summary>
+    /// A foreach loop over an enumerator that implements IDisposable disposes
+    /// it in a finally handler.
+    /// </summary>
+    [Theory]
+    [InlineData(RoslynOptimizationLevel.Debug)]
+    [InlineData(RoslynOptimizationLevel.Release)]
+    public Task ForeachDisposableEnumerator_FailsBuild(
+        RoslynOptimizationLevel optimizationLevel) =>
+        AssertBuildErrorAsync(
+            """
+            struct Counter
+            {
+                public int Count;
+                public Enumerator GetEnumerator() => new Enumerator { Count = Count };
+
+                public struct Enumerator : IDisposable
+                {
+                    public int Count;
+                    public int Current { get; private set; }
+                    public bool MoveNext() => ++Current <= Count;
+                    public void Dispose() { }
+                }
+            }
+
+            static class K
+            {
+                public static void Kern(Index1D i, ArrayView1D<int, Stride1D.Dense> data)
+                {
+                    int sum = 0;
+                    foreach (int value in new Counter { Count = data[i] }) // error
+                        sum += value;
+                    data[i] = sum;
+                }
+            }
+            """,
+            "ILGPU1200",
+            ExceptionHandlingMessage,
+            optimizationLevel);
+
+    /// <summary>
+    /// A fixed statement left by a jump releases its pinned variable in a
+    /// finally handler.
+    /// </summary>
+    [Theory]
+    [InlineData(RoslynOptimizationLevel.Debug)]
+    [InlineData(RoslynOptimizationLevel.Release)]
+    public Task FixedLeftByJump_FailsBuild(RoslynOptimizationLevel optimizationLevel) =>
+        AssertBuildErrorAsync(
+            """
+            static unsafe class K
+            {
+                public static void Kern(Index1D i, ArrayView1D<int, Stride1D.Dense> data)
+                {
+                    var values = new int[4];
+                    for (int j = 0; j < 4; ++j)
+                    {
+                        fixed (int* p = &values[0]) // error
+                        {
+                            if (data[i] > j)
+                                break;
+                            p[j] = j;
+                        }
+                    }
+                    data[i] = values[1];
+                }
+            }
+            """,
+            "ILGPU1200",
+            ExceptionHandlingMessage,
+            optimizationLevel);
+
+    /// <summary>
+    /// A while loop that starts a try block jumps to its condition without a
+    /// sequence point: the jump was reported at the statement before the try
+    /// block in release builds and at its opening brace in debug builds.
+    /// </summary>
+    [Theory]
+    [InlineData(RoslynOptimizationLevel.Debug)]
+    [InlineData(RoslynOptimizationLevel.Release)]
+    public Task TryStartingWithWhile_FailsBuild(
+        RoslynOptimizationLevel optimizationLevel) =>
+        AssertBuildErrorAsync(
+            """
+            static class K
+            {
+                public static void Kern(Index1D i, ArrayView1D<int, Stride1D.Dense> data)
+                {
+                    data[i] = 7;
+                    try
+                    {
+                        while (data[i] > 0) // error
+                            data[i] = data[i] - 1;
+                    }
+                    catch (InvalidOperationException)
+                    {
+                        data[i] = -1;
+                    }
+                }
+            }
+            """,
+            "ILGPU1200",
+            ExceptionHandlingMessage,
+            optimizationLevel);
+
+    /// <summary>
+    /// A finally handler that calls Dispose itself does not belong to a using
+    /// statement: it was reported at the statement before the try block.
+    /// </summary>
+    [Theory]
+    [InlineData(RoslynOptimizationLevel.Debug)]
+    [InlineData(RoslynOptimizationLevel.Release)]
+    public Task DisposeInFinally_FailsBuild(RoslynOptimizationLevel optimizationLevel) =>
+        AssertBuildErrorAsync(
+            """
+            struct Doubler : IDisposable
+            {
+                public ArrayView1D<int, Stride1D.Dense> Data;
+                public int Index;
+                public void Dispose() => Data[Index] = Data[Index] * 2;
+            }
+
+            static class K
+            {
+                public static void Kern(Index1D i, ArrayView1D<int, Stride1D.Dense> data)
+                {
+                    var doubler = new Doubler { Data = data, Index = i };
+                    data[i] = 5;
+                    try
+                    {
+                        data[i] = data[i] + 1; // error
+                    }
+                    finally
+                    {
+                        doubler.Dispose();
+                    }
+                }
+            }
+            """,
+            "ILGPU1200",
+            ExceptionHandlingMessage,
+            optimizationLevel);
+
+    /// <summary>
+    /// A using statement in a finally handler disposes its resource in the
+    /// handler: the try block was reported at the statement before it.
+    /// </summary>
+    [Theory]
+    [InlineData(RoslynOptimizationLevel.Debug)]
+    [InlineData(RoslynOptimizationLevel.Release)]
+    public Task UsingInFinally_FailsBuild(RoslynOptimizationLevel optimizationLevel) =>
+        AssertBuildErrorAsync(
+            """
+            struct Doubler : IDisposable
+            {
+                public ArrayView1D<int, Stride1D.Dense> Data;
+                public int Index;
+                public void Dispose() => Data[Index] = Data[Index] * 2;
+            }
+
+            static class K
+            {
+                public static void Kern(Index1D i, ArrayView1D<int, Stride1D.Dense> data)
+                {
+                    data[i] = 1;
+                    try
+                    {
+                        data[i] = data[i] + 1; // error
+                    }
+                    finally
+                    {
+                        using (new Doubler { Data = data, Index = i })
+                            data[i] = 3;
+                    }
+                }
+            }
+            """,
+            "ILGPU1200",
+            ExceptionHandlingMessage,
+            optimizationLevel);
+
+    /// <summary>
+    /// An exception variable outside of catch clauses in a method with catch
+    /// clauses is not the variable of a catch clause: its class type is
+    /// reported, as in methods without catch clauses, at the opening brace of
+    /// the method in debug builds. It was reported as exception handling.
+    /// </summary>
+    [Fact]
+    public Task ExceptionVariableOutsideCatch_FailsBuild() =>
+        AssertBuildErrorAsync(
+            """
+            static class K
+            {
+                public static void Kern(Index1D i, ArrayView1D<int, Stride1D.Dense> data)
+                { // error
+                    if (data[i] > 10)
+                    {
+                        var exception = new InvalidOperationException();
+                        data[i] = exception.HResult;
+                        throw exception;
+                    }
+                    try
+                    {
+                        data[i] = data[i] + 1;
+                    }
+                    catch (InvalidOperationException)
+                    {
+                        data[i] = -1;
+                    }
+                }
+            }
+            """,
+            "ILGPU1200",
+            "Class type 'System.InvalidOperationException' is not supported",
+            RoslynOptimizationLevel.Debug);
+
+    [Theory]
+    [InlineData(RoslynOptimizationLevel.Debug)]
+    [InlineData(RoslynOptimizationLevel.Release)]
+    public Task TryInHelper_FailsBuild(RoslynOptimizationLevel optimizationLevel) =>
+        AssertBuildErrorAsync(
+            """
+            static class K
+            {
+                static int Increment(int x)
+                {
+                    try
+                    {
+                        return x + 1;
+                    }
+                    catch
+                    {
+                        return 0;
+                    }
+                }
+
+                public static void Kern(Index1D i, ArrayView1D<int, Stride1D.Dense> data)
+                {
+                    data[i] = Increment(data[i]); // error
+                }
+            }
+            """,
+            "ILGPU1200",
+            "Exception handling is not supported in kernels: 'K.Increment' " +
+            "contains a try block",
+            optimizationLevel);
+
+    #endregion
+
     #region Delegate Storage and Other Frontend Diagnostics (ILGPU1205-1209, 1214, 1200)
 
     [Fact]
