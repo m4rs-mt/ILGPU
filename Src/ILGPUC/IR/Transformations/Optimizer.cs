@@ -85,11 +85,13 @@ static class Optimizer
         else
         {
             // Single inliner pass — used at O0 for minimal inlining of
-            // only the smallest methods (trivial getters/wrappers).
+            // only the smallest methods (trivial getters/wrappers). The
+            // control-flow simplification runs after SSA construction, which
+            // empties the blocks whose loads and stores become phis.
             builder.Add(static args => new Inliner(args));
-            builder.Add(static args => new SimplifyControlFlow(args));
             builder.Add(static args => new SSAConstruction(args));
             builder.Add(static args => new SSACleanup(args));
+            builder.Add(static args => new SimplifyControlFlow(args));
         }
     }
 

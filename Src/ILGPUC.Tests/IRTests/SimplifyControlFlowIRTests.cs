@@ -20,6 +20,7 @@ using ILGPUC.Tests.Framework;
 using ILGPUC.Tests.Kernels;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 using Xunit;
 using IRModule = ILGPUC.IR.ModuleValues.Module;
@@ -28,8 +29,9 @@ namespace ILGPUC.Tests.IRTests;
 
 /// <summary>
 /// Tests the empty-block cleanup of <see cref="SimplifyControlFlow"/>: empty
-/// forwarding blocks that are no phi sources are removed, while empty blocks
-/// that are phi sources (split edges into merge blocks) are kept.
+/// forwarding blocks that are no phi sources are removed, also when they only
+/// become empty in SSA construction at O0, while empty blocks that are phi
+/// sources (split edges into merge blocks) and empty endless loops are kept.
 /// </summary>
 public sealed class SimplifyControlFlowIRTests : DisposeBase
 {
@@ -72,6 +74,23 @@ public sealed class SimplifyControlFlowIRTests : DisposeBase
             }
             data[index] = value;
         }
+
+        /// <summary>
+        /// Writes a value and spins forever on one side, so the method keeps an
+        /// empty endless loop.
+        /// </summary>
+        public static void EmptyEndlessLoop(
+            Index1D index, ArrayView1D<int, Stride1D.Dense> data, int bound)
+        {
+            if (bound > 5)
+            {
+                data[index] = 1;
+                while (true)
+                {
+                }
+            }
+            data[index] = 2;
+        }
     }
 
     #endregion
@@ -79,16 +98,17 @@ public sealed class SimplifyControlFlowIRTests : DisposeBase
     #region Helpers
 
     /// <summary>
-    /// Compiles the method through the full O1 pipeline.
+    /// Compiles the method through the full pipeline of the given level.
     /// </summary>
-    private IRModule Optimize(MethodInfo method)
+    private IRModule Optimize(
+        MethodInfo method,
+        OptimizationLevel level = OptimizationLevel.O1,
+        CompilationMode mode = CompilationMode.Release)
     {
-        var props = new CompilationProperties(
-            OptimizationLevel: OptimizationLevel.O1)
-            .WithMode(CompilationMode.Release);
+        var props = new CompilationProperties(OptimizationLevel: level)
+            .WithMode(mode);
         var module = _helper.CompileToModule(method, props);
-        return OptimizationLevel.O1.CreateTransformer()
-            .Apply(props, _helper.TypeManager, module);
+        return level.CreateTransformer().Apply(props, _helper.TypeManager, module);
     }
 
     /// <summary>
@@ -146,6 +166,35 @@ public sealed class SimplifyControlFlowIRTests : DisposeBase
         return count;
     }
 
+    /// <summary>
+    /// Returns true if a block of a method with an implementation lies on a
+    /// cycle.
+    /// </summary>
+    private static bool HasCycle(IRModule module)
+    {
+        foreach (var method in module.Methods)
+        {
+            if (!method.HasImplementation)
+                continue;
+            foreach (var block in method.Blocks)
+            {
+                var visited = new HashSet<BasicBlock>();
+                var stack = new Stack<BasicBlock>(block.Successors.ToArray());
+                while (stack.Count > 0)
+                {
+                    var current = stack.Pop();
+                    if (current == block)
+                        return true;
+                    if (!visited.Add(current))
+                        continue;
+                    foreach (var successor in current.Successors)
+                        stack.Push(successor);
+                }
+            }
+        }
+        return false;
+    }
+
     private static MethodInfo GetSnippet(string name) =>
         typeof(Snippets).GetMethod(name, BindingFlags.Public | BindingFlags.Static)!;
 
@@ -174,6 +223,32 @@ public sealed class SimplifyControlFlowIRTests : DisposeBase
         Assert.True(
             CountEmptyPhiSources(module) > 0,
             "expected empty edge blocks that are phi sources");
+    }
+
+    [Theory]
+    [InlineData(CompilationMode.Debug)]
+    [InlineData(CompilationMode.Release)]
+    public void TwoClosuresCrossBlockKernel_O0_RemovesBlocksEmptiedBySSA(
+        CompilationMode mode)
+    {
+        var module = Optimize(
+            typeof(LambdaKernels).GetMethod(
+                nameof(LambdaKernels.TwoClosuresCrossBlockKernel))!,
+            OptimizationLevel.O0,
+            mode);
+        Assert.Empty(FindRemovableEmptyBlocks(module));
+        Assert.True(
+            CountEmptyPhiSources(module) > 0,
+            "expected empty edge blocks that are phi sources");
+    }
+
+    [Fact]
+    public void EmptyEndlessLoop_O0_KeepsTheLoop()
+    {
+        var module = Optimize(
+            GetSnippet(nameof(Snippets.EmptyEndlessLoop)),
+            OptimizationLevel.O0);
+        Assert.True(HasCycle(module), "expected the endless loop to remain");
     }
 
     protected override void Dispose(bool disposing)
