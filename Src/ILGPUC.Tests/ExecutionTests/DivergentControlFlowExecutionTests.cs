@@ -440,4 +440,22 @@ public abstract class DivergentControlFlowExecutionTests : ExecutionTestBase
                 "998"
             ]);
     }
+
+    /// <summary>
+    /// Switch cases that compute different values before one store, and a store behind a
+    /// condition, an atomic and a load, keep their store in one shared tail.
+    /// </summary>
+    [SkippableFact]
+    public async Task SharedStoreTail_ProducesCorrectOutput()
+    {
+        await VerifyProgramOutputAsync(
+            "TestPrograms/DivergentControlFlow/SharedStoreTail.cs",
+            ["Kernels.SharedStoreTailSwitchKernel", "Kernels.SharedStoreTailGuardKernel"],
+            [
+                "12", "8", "106", "103", "16", "12", "118", "107", "20", "12", "8",
+                "106",
+                "0", "-1", "4", "-3", "8", "10", "-6", "14", "16", "0", "-1", "4",
+                "8"
+            ]);
+    }
 }

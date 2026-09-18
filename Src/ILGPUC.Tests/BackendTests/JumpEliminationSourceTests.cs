@@ -26,7 +26,7 @@ namespace ILGPUC.Tests.BackendTests;
 /// Checks that the source backends express jumps by nesting, single breaks
 /// and continues, and duplicated small blocks instead of the jump variable
 /// and breakable regions, while barriers, shuffles and calls stay in a single
-/// place.
+/// place, and stores in merge blocks stay in one shared tail.
 /// </summary>
 public sealed class JumpEliminationSourceTests
 {
@@ -192,6 +192,59 @@ public sealed class JumpEliminationSourceTests
                 break;
         }
         data[index] = r;
+    }
+
+    /// <summary>
+    /// Continues in other switch cases through goto case, where both pairs of
+    /// cases compute their value before one store (a store tail after small
+    /// merge blocks).
+    /// </summary>
+    internal static void SwitchGotoCaseStoreKernel(
+        Index1D index,
+        ArrayView1D<long, Stride1D.Dense> data)
+    {
+        int r = 0;
+        switch (index.X % 9)
+        {
+            case 1:
+                r = 5;
+                goto case 2;
+            case 2:
+                r += 7;
+                break;
+            case 3:
+                r = 1;
+                goto default;
+            default:
+                r += 100;
+                break;
+        }
+        data[index] = r;
+    }
+
+    /// <summary>
+    /// Stores a value selected by a load behind a bounds check (a store tail
+    /// after two short-circuit branches).
+    /// </summary>
+    internal static void GuardedLoadStoreKernel(
+        Index1D index,
+        ArrayView1D<int, Stride1D.Dense> data,
+        ArrayView1D<int, Stride1D.Dense> output,
+        int limit)
+    {
+        output[index] = index.X < limit && data[index.X * 3] > 0 ? 7 : 0;
+    }
+
+    /// <summary>
+    /// Stores a value selected by an atomic behind a condition (a store tail
+    /// after an atomic in a short-circuit branch).
+    /// </summary>
+    internal static void GuardedAtomicStoreKernel(
+        Index1D index,
+        ArrayView1D<int, Stride1D.Dense> output,
+        ArrayView1D<int, Stride1D.Dense> counter)
+    {
+        output[index] = index.X > 1 && Atomic.Add(ref counter[0], 1) >= 0 ? 1 : 0;
     }
 
     /// <summary>
@@ -495,6 +548,43 @@ public sealed class JumpEliminationSourceTests
     {
         var source = Generate(nameof(SwitchGotoCaseKernel), backend);
         AssertNoJumps(source);
+    }
+
+    [Theory]
+    [InlineData(BackendType.Cuda)]
+    [InlineData(BackendType.ROCm)]
+    [InlineData(BackendType.OpenCL)]
+    [InlineData(BackendType.Metal)]
+    public void SwitchGotoCaseStore_SharesTheStore(BackendType backend)
+    {
+        var source = Generate(nameof(SwitchGotoCaseStoreKernel), backend);
+        AssertNoJumps(source);
+        Assert.Equal(1, Count(GetEntryPoint(source), Return));
+    }
+
+    [Theory]
+    [InlineData(BackendType.Cuda)]
+    [InlineData(BackendType.ROCm)]
+    [InlineData(BackendType.OpenCL)]
+    [InlineData(BackendType.Metal)]
+    public void GuardedLoadStore_SharesTheStore(BackendType backend)
+    {
+        var source = Generate(nameof(GuardedLoadStoreKernel), backend);
+        AssertNoJumps(source);
+        Assert.Equal(1, Count(GetEntryPoint(source), Return));
+    }
+
+    [Theory]
+    [InlineData(BackendType.Cuda)]
+    [InlineData(BackendType.ROCm)]
+    [InlineData(BackendType.OpenCL)]
+    [InlineData(BackendType.Metal)]
+    public void GuardedAtomicStore_SharesTheStore(BackendType backend)
+    {
+        var source = Generate(nameof(GuardedAtomicStoreKernel), backend);
+        AssertNoJumps(source);
+        Assert.Equal(1, Count(GetEntryPoint(source), Return));
+        Assert.Equal(1, Count(GetEntryPoint(source), @"\b(atomic\w*|atom_\w+)\s*\("));
     }
 
     [Theory]

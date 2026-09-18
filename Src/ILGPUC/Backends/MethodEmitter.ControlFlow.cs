@@ -140,7 +140,7 @@ partial class MethodEmitter
     private const int MaxDuplicatedStatements = 16;
 
     /// <summary>
-    /// The maximum number of jumps tried to replace by duplicated blocks.
+    /// The maximum number of duplication trials of one search.
     /// </summary>
     private const int MaxDuplicationTrials = 32;
 
@@ -172,15 +172,22 @@ partial class MethodEmitter
     /// the jump, or a follow block whose code lies between the jump and its
     /// target is inlined at all of its edges, so that the jump reaches its
     /// target by falling through. The tree is rebuilt with the inlined blocks,
-    /// and with the targets of the jumps their code adds inlined as well. A
-    /// change is kept only if it lowers the jump cost of the tree, so blocks
-    /// are only duplicated where this removes jumps. Duplicating a block is
-    /// bounded by <see cref="MaxDuplicatedStatements"/>.
+    /// and with the jumps their code adds removed in the same way. A change is
+    /// kept only if it lowers the jump cost of the tree, so blocks are only
+    /// duplicated where this removes jumps. Duplicating a block is bounded by
+    /// <see cref="MaxDuplicatedStatements"/>.
+    ///
+    /// The first search keeps the first change that lowers the jump cost. If
+    /// it leaves jumps or duplicates code, a second search compares all
+    /// changes and keeps the one with the lowest jump cost that duplicates the
+    /// least code (see <see cref="GetDuplicationWeight"/>), so that a store
+    /// in a merge block is shared if duplicating the smaller blocks in front
+    /// of it removes the same jumps. The second result is used only if it has
+    /// a lower jump cost, or the same cost and less duplicated code.
     /// </remarks>
     private Node BuildTree(StructuredControlFlow controlFlow)
     {
         var inlined = controlFlow.InlinedEdges;
-        var rejected = new HashSet<(BasicBlock, BasicBlock)>();
         var sizes = new Dictionary<BasicBlock, int>();
         bool CanDuplicate(BasicBlock block)
         {
@@ -205,7 +212,6 @@ partial class MethodEmitter
             {
                 edges.RemoveAll(inlined.Contains);
                 if (edges.Count > 0
-                    && !rejected.Contains(key)
                     && !candidates.Exists(c => c.Item1 == key))
                 {
                     candidates.Add((key, edges));
@@ -225,59 +231,144 @@ partial class MethodEmitter
             return candidates;
         }
 
-        ResolveTree(controlFlow.BuildTree(), out var cost);
-        var candidates = GetCandidates();
-        for (int trials = 0; candidates.Count > 0 && trials < MaxDuplicationTrials;)
+        // Evaluates one candidate: inlines its edges and, for the jumps the
+        // inlined code adds, either their targets or (preferFollows) the
+        // follow blocks between jumps and their targets. Every edge of the
+        // trial is checked in a resolved tree, and all edges are removed again
+        bool TryTrial(
+            List<(BasicBlock Source, BasicBlock Target)> edges,
+            bool preferFollows,
+            HashSet<(BasicBlock, BasicBlock)> startKeys,
+            out List<(BasicBlock Source, BasicBlock Target)> trial,
+            out JumpCost trialCost,
+            out int trialWeight)
         {
-            var (key, edges) = candidates[0];
-            candidates.RemoveAt(0);
-            ++trials;
-
-            // Inline the blocks and the targets of the jumps their code adds
-            var trial = new List<(BasicBlock Source, BasicBlock Target)>(edges);
+            trial = new List<(BasicBlock Source, BasicBlock Target)>(edges);
+            trialCost = default;
+            trialWeight = 0;
             inlined.UnionWith(edges);
-            bool resolved = false;
-            var trialCost = cost;
-            for (int depth = 0; depth < MaxDuplicationDepth; ++depth)
+            try
             {
-                var tree = controlFlow.BuildTree();
-                var counts = CountBlocks(tree);
-                if (trial.Exists(e => (counts.GetValueOrDefault(e.Target) - 1)
-                    * sizes[e.Target] > MaxDuplicatedStatements))
+                for (int depth = 0; depth < MaxDuplicationDepth; ++depth)
                 {
-                    resolved = false;
-                    break;
-                }
-                resolved = TryResolveTree(tree, out trialCost);
-                if (!resolved)
-                    break;
-                var added = new List<(BasicBlock Source, BasicBlock Target)>();
-                foreach (var (other, otherEdges) in GetCandidates())
-                {
-                    if (other.Item1 != other.Item2
-                        && !candidates.Exists(c => c.Key == other))
+                    var tree = controlFlow.BuildTree();
+                    var counts = CountBlocks(tree);
+                    foreach (var e in trial)
                     {
-                        added.AddRange(otherEdges);
+                        if ((counts.GetValueOrDefault(e.Target) - 1) * sizes[e.Target]
+                            > MaxDuplicatedStatements)
+                        {
+                            return false;
+                        }
                     }
+                    if (!TryResolveTree(tree, out trialCost))
+                        return false;
+                    trialWeight = GetDuplicationWeight(controlFlow, counts);
+                    if (depth + 1 >= MaxDuplicationDepth)
+                        break;
+                    var targets = new List<(BasicBlock Source, BasicBlock Target)>();
+                    var follows = new List<(BasicBlock Source, BasicBlock Target)>();
+                    foreach (var (other, otherEdges) in GetCandidates())
+                    {
+                        if (other.Item1 == other.Item2)
+                            follows.AddRange(otherEdges);
+                        else if (!startKeys.Contains(other))
+                            targets.AddRange(otherEdges);
+                    }
+                    var added = preferFollows && follows.Count > 0 ? follows : targets;
+                    if (added.Count < 1)
+                        break;
+                    trial.AddRange(added);
+                    inlined.UnionWith(added);
                 }
-                if (added.Count < 1)
-                    break;
-                trial.AddRange(added);
-                inlined.UnionWith(added);
+                return true;
             }
-
-            if (resolved && trialCost.CompareTo(cost) < 0)
+            finally
             {
-                // Continue with the jumps of the changed tree
-                cost = trialCost;
-                candidates = GetCandidates();
-                continue;
+                foreach (var edge in trial)
+                    inlined.Remove(edge);
             }
-
-            foreach (var edge in trial)
-                inlined.Remove(edge);
-            rejected.Add(key);
         }
+
+        // A greedy search from the tree without inlined edges. Without
+        // compareAll, it keeps the first trial that lowers the jump cost, with
+        // the targets of added jumps inlined. With compareAll, it tries every
+        // candidate with both ways of removing added jumps, and keeps the
+        // trial with the lowest jump cost and then the least duplicated code
+        (HashSet<(BasicBlock, BasicBlock)> Edges, JumpCost Cost, int Weight)
+            Search(bool compareAll)
+        {
+            inlined.Clear();
+            ResolveTree(controlFlow.BuildTree(), out var cost);
+            int weight = 0;
+            var failed = new HashSet<(BasicBlock, BasicBlock)>();
+            for (int trials = 0; trials < MaxDuplicationTrials;)
+            {
+                var candidates = GetCandidates();
+                candidates.RemoveAll(c => failed.Contains(c.Key));
+                if (candidates.Count < 1)
+                    break;
+                var startKeys = new HashSet<(BasicBlock, BasicBlock)>();
+                foreach (var (key, _) in candidates)
+                    startKeys.Add(key);
+
+                List<(BasicBlock Source, BasicBlock Target)>? best = null;
+                var bestCost = cost;
+                int bestWeight = 0;
+                foreach (var (key, edges) in candidates)
+                {
+                    foreach (bool preferFollows in compareAll
+                        ? new[] { false, true }
+                        : new[] { false })
+                    {
+                        if (trials >= MaxDuplicationTrials)
+                            break;
+                        ++trials;
+                        if (!TryTrial(edges, preferFollows, startKeys,
+                                out var trial, out var trialCost, out int trialWeight)
+                            || trialCost.CompareTo(cost) >= 0)
+                        {
+                            if (!compareAll)
+                                failed.Add(key);
+                            continue;
+                        }
+                        int byCost = trialCost.CompareTo(bestCost);
+                        if (best is null
+                            || byCost < 0
+                            || byCost == 0 && trialWeight < bestWeight)
+                        {
+                            best = trial;
+                            bestCost = trialCost;
+                            bestWeight = trialWeight;
+                        }
+                    }
+                    if (!compareAll && best is not null)
+                        break;
+                }
+                if (best is null)
+                    break;
+                inlined.UnionWith(best);
+                cost = bestCost;
+                weight = bestWeight;
+            }
+            return ([.. inlined], cost, weight);
+        }
+
+        // Keep the result with the lowest jump cost, then the least
+        // duplicated code, then the first search
+        var first = Search(compareAll: false);
+        var chosen = first;
+        if (first.Cost.JumpStatements > 0
+            || first.Cost.Regions > 0
+            || first.Weight > 0)
+        {
+            var second = Search(compareAll: true);
+            int byCost = second.Cost.CompareTo(first.Cost);
+            if (byCost < 0 || byCost == 0 && second.Weight < first.Weight)
+                chosen = second;
+        }
+        inlined.Clear();
+        inlined.UnionWith(chosen.Edges);
 
         // Number the jump targets of the final tree only
         _jumpIds.Clear();
@@ -369,6 +460,54 @@ partial class MethodEmitter
         }
         Count(tree);
         return counts;
+    }
+
+    /// <summary>
+    /// Returns the weighted size of the code duplicated in a tree with the
+    /// given block counts: stores and atomics weigh most, as backend compilers
+    /// do not merge their copies again, then other statements, then phi copies
+    /// (more if their argument is computed inline).
+    /// </summary>
+    private int GetDuplicationWeight(
+        StructuredControlFlow controlFlow,
+        Dictionary<BasicBlock, int> counts)
+    {
+        int weight = 0;
+        foreach (var (block, count) in counts)
+        {
+            if (count < 2)
+                continue;
+            int size = 0;
+            foreach (var value in _placement.AsNotNull().GetPlacedBlock(block))
+            {
+                switch (value)
+                {
+                    case PhiValue:
+                        break;
+                    case PureValue:
+                        if (context.NeedsVariable(value))
+                            size += 2;
+                        break;
+                    case Store:
+                    case AtomicValue:
+                        size += 4;
+                        break;
+                    default:
+                        size += 2;
+                        break;
+                }
+            }
+            foreach (var (source, target) in controlFlow.GetOutgoingEdges(block))
+            {
+                foreach (var (_, argument) in GetEdgeCopies(source, target))
+                {
+                    size += argument is PureValue and not PrimitiveValue
+                        && !context.NeedsVariable(argument) ? 2 : 1;
+                }
+            }
+            weight += (count - 1) * size;
+        }
+        return weight;
     }
 
     /// <summary>
