@@ -92,6 +92,23 @@ sealed class SimplifyControlFlow(TransformationArgs args) : Transformation(args)
         if (toMove.Count < 1)
             return;
 
+        // A chain of empty blocks is left to the empty block cleanup, which
+        // removes all of its blocks instead of keeping the empty merged root
+        if (root.FirstValue is null && root.FirstPhiValue is null)
+        {
+            bool empty = true;
+            foreach (var basicBlock in toMove)
+                empty &= basicBlock.FirstValue is null;
+            var last = toMove[^1];
+            if (empty
+                && last.TerminationKind == BlockTerminationKind.Unconditional
+                && last.Successors[0] != root
+                && last.Successors[0].FirstPhiValue is null)
+            {
+                return;
+            }
+        }
+
         // Move all values to target block
         var lastValue = root.LastValue;
         foreach (var basicBlock in toMove)
