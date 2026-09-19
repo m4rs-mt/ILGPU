@@ -166,7 +166,7 @@
     <comment/>
   </data>
   <data name="NotSupportedIndirectMethodCall" xml:space="preserve">
-    <value>Not supported indirect call to a method with the signature '{0}'</value>
+    <value>Function pointers are not supported in kernels: '{0}' uses delegate*</value>
     <comment/>
   </data>
   <data name="NotSupportedInstruction" xml:space="preserve">
@@ -671,6 +671,14 @@
   </data>
   <data name="NotSupportedBoxing" xml:space="preserve">
     <value>Boxing a value of type '{0}' is not supported in kernels. This includes calling GetType() on it and type tests with 'is' or 'as'; compare typeof(T) with the type instead</value>
+    <comment/>
+  </data>
+  <data name="NotSupportedTypedReference" xml:space="preserve">
+    <value>Typed references are not supported in kernels: '{0}' uses __makeref, __refvalue or __reftype</value>
+    <comment/>
+  </data>
+  <data name="NotSupportedArgList" xml:space="preserve">
+    <value>Variable argument lists are not supported in kernels: '{0}' uses __arglist</value>
     <comment/>
   </data>
   <data name="NotSupportedMethodBody" xml:space="preserve">

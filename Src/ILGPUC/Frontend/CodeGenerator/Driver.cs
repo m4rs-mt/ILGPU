@@ -148,10 +148,18 @@ partial class CodeGenerator
                 MakeVirtualCall(instruction);
                 return true;
             case ILInstructionType.Calli:
-                MakeCalli(instruction.Argument);
+                MakeCalli();
                 return true;
             case ILInstructionType.Jmp:
                 MakeJump(instruction.GetArgumentAs<MethodBase>());
+                return true;
+            case ILInstructionType.TypedReference:
+                MakeTypedReference();
+                return true;
+            case ILInstructionType.ArgList:
+                // Defensive: only a method with a variable argument list uses
+                // arglist, and every call to it is rejected in MakeCall first
+                MakeArgList(Method);
                 return true;
 
             case ILInstructionType.Box:

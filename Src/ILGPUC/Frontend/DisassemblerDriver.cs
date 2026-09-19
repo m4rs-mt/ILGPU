@@ -190,7 +190,7 @@ namespace ILGPUC.Frontend
                     DisassembleCall(ILInstructionType.Call, ReadIntArg());
                     return true;
                 case ILOpCode.Calli:
-                    DisassembleCall(ILInstructionType.Calli, ReadIntArg());
+                    AppendInstruction(ILInstructionType.Calli, ResolveSignature(ReadIntArg()));
                     return true;
                 case ILOpCode.Callvirt:
                     DisassembleCall(ILInstructionType.Callvirt, ReadIntArg());
@@ -699,6 +699,18 @@ namespace ILGPUC.Frontend
                     return true;
                 case ILOpCode.Ldvirtftn:
                     AppendInstruction(ILInstructionType.LdVirtualFunction, ResolveMember(ReadIntArg()));
+                    return true;
+
+                // Typed references and variable argument lists
+                case ILOpCode.Mkrefany:
+                case ILOpCode.Refanyval:
+                    AppendInstruction(ILInstructionType.TypedReference, ReadTypeArg());
+                    return true;
+                case ILOpCode.Refanytype:
+                    AppendInstruction(ILInstructionType.TypedReference);
+                    return true;
+                case ILOpCode.Arglist:
+                    AppendInstruction(ILInstructionType.ArgList);
                     return true;
 
                 // Exceptions

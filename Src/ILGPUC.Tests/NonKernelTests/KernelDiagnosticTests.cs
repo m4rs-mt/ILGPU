@@ -1824,6 +1824,177 @@ public sealed class KernelDiagnosticTests
     #region Unsupported IL Instructions (ILGPU1200)
 
     /// <summary>
+    /// The disassembler rejected mkrefany: the kernel was left without a body
+    /// and the build failed with an InvalidOperationException without a
+    /// location.
+    /// </summary>
+    [Theory]
+    [InlineData(RoslynOptimizationLevel.Debug)]
+    [InlineData(RoslynOptimizationLevel.Release)]
+    public Task TypedReference_FailsBuild(RoslynOptimizationLevel optimizationLevel) =>
+        AssertBuildErrorAsync(
+            """
+            static class K
+            {
+                public static void Kern(Index1D i, ArrayView1D<int, Stride1D.Dense> data)
+                {
+                    int value = data[i];
+                    TypedReference reference = __makeref(value); // error
+                    data[i] = __refvalue(reference, int) + 1;
+                }
+            }
+            """,
+            "ILGPU1200",
+            "Typed references are not supported in kernels: 'K.Kern' uses " +
+            "__makeref, __refvalue or __reftype",
+            optimizationLevel);
+
+    /// <summary>
+    /// A helper that uses a typed reference is reported at its call.
+    /// </summary>
+    [Theory]
+    [InlineData(RoslynOptimizationLevel.Debug)]
+    [InlineData(RoslynOptimizationLevel.Release)]
+    public Task TypedReferenceInHelper_FailsBuild(
+        RoslynOptimizationLevel optimizationLevel) =>
+        AssertBuildErrorAsync(
+            """
+            static class K
+            {
+                static int Read(int value)
+                {
+                    TypedReference reference = __makeref(value);
+                    return __refvalue(reference, int);
+                }
+
+                public static void Kern(Index1D i, ArrayView1D<int, Stride1D.Dense> data)
+                {
+                    data[i] = Read(data[i]); // error
+                }
+            }
+            """,
+            "ILGPU1200",
+            "Typed references are not supported in kernels: 'K.Read' uses " +
+            "__makeref, __refvalue or __reftype",
+            optimizationLevel);
+
+    /// <summary>
+    /// The disassembler resolved the signature token of calli as a method,
+    /// which failed: the kernel was left without a body and the build failed
+    /// with an InvalidOperationException without a location. C# keeps a
+    /// function pointer that is called with arguments in a variable, whose
+    /// function pointer type is reported at its first use.
+    /// </summary>
+    [Theory]
+    [InlineData(RoslynOptimizationLevel.Debug)]
+    [InlineData(RoslynOptimizationLevel.Release)]
+    public Task FunctionPointer_FailsBuild(RoslynOptimizationLevel optimizationLevel) =>
+        AssertBuildErrorAsync(
+            """
+            static unsafe class K
+            {
+                static int Inc(int value) => value + 1;
+
+                public static void Kern(Index1D i, ArrayView1D<int, Stride1D.Dense> data)
+                {
+                    delegate*<int, int> f = &Inc; // error
+                    data[i] = f(data[i]);
+                }
+            }
+            """,
+            "ILGPU1200",
+            "Function pointers are not supported in kernels: 'K.Kern' uses " +
+            "delegate*",
+            optimizationLevel);
+
+    /// <summary>
+    /// A function pointer that is called without arguments is not kept in a
+    /// variable: calli itself is reported.
+    /// </summary>
+    [Theory]
+    [InlineData(RoslynOptimizationLevel.Debug)]
+    [InlineData(RoslynOptimizationLevel.Release)]
+    public Task FunctionPointerWithoutArguments_FailsBuild(
+        RoslynOptimizationLevel optimizationLevel) =>
+        AssertBuildErrorAsync(
+            """
+            static unsafe class K
+            {
+                static int Get() => 42;
+
+                public static void Kern(Index1D i, ArrayView1D<int, Stride1D.Dense> data)
+                {
+                    data[i] = ((delegate*<int>)&Get)(); // error
+                }
+            }
+            """,
+            "ILGPU1200",
+            "Function pointers are not supported in kernels: 'K.Kern' uses " +
+            "delegate*",
+            optimizationLevel);
+
+    /// <summary>
+    /// A call to a helper that takes or returns a function pointer reported an
+    /// unsupported class type for the function pointer type.
+    /// </summary>
+    [Theory]
+    [InlineData(RoslynOptimizationLevel.Debug, "Apply", "Apply(&Inc, data[i])")]
+    [InlineData(RoslynOptimizationLevel.Release, "Apply", "Apply(&Inc, data[i])")]
+    [InlineData(RoslynOptimizationLevel.Debug, "Get", "Get() == null ? 0 : 1")]
+    [InlineData(RoslynOptimizationLevel.Release, "Get", "Get() == null ? 0 : 1")]
+    public Task FunctionPointerParameter_FailsBuild(
+        RoslynOptimizationLevel optimizationLevel,
+        string helper,
+        string value) =>
+        AssertBuildErrorAsync(
+            $$"""
+            static unsafe class K
+            {
+                static int Inc(int value) => value + 1;
+
+                static int Apply(delegate*<int, int> f, int value) => f(value);
+
+                static delegate*<int, int> Get() => &Inc;
+
+                public static void Kern(Index1D i, ArrayView1D<int, Stride1D.Dense> data)
+                {
+                    data[i] = {{value}}; // error
+                }
+            }
+            """,
+            "ILGPU1200",
+            $"Function pointers are not supported in kernels: 'K.{helper}' " +
+            "uses delegate*",
+            optimizationLevel);
+
+    /// <summary>
+    /// The disassembler rejected the arglist instruction of a method with a
+    /// variable argument list, which reported no error until the call failed
+    /// with an unrelated message.
+    /// </summary>
+    [Theory]
+    [InlineData(RoslynOptimizationLevel.Debug)]
+    [InlineData(RoslynOptimizationLevel.Release)]
+    public Task ArgList_FailsBuild(RoslynOptimizationLevel optimizationLevel) =>
+        AssertBuildErrorAsync(
+            """
+            static class K
+            {
+                static int Count(__arglist) =>
+                    new ArgIterator(__arglist).GetRemainingCount();
+
+                public static void Kern(Index1D i, ArrayView1D<int, Stride1D.Dense> data)
+                {
+                    data[i] = Count(__arglist(data[i], 2)); // error
+                }
+            }
+            """,
+            "ILGPU1200",
+            "Variable argument lists are not supported in kernels: 'K.Count' " +
+            "uses __arglist",
+            optimizationLevel);
+
+    /// <summary>
     /// Creates a static method with the given IL code, which returns an int
     /// and takes a pointer to an int.
     /// </summary>

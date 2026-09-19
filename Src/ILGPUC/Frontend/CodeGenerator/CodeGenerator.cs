@@ -324,6 +324,11 @@ sealed partial class CodeGenerator
         for (int i = 0, e = localVariables.Count; i < e; ++i)
         {
             var variable = localVariables[i];
+            if (variable.LocalType.IsFunctionPointer)
+            {
+                Location = FindLocalVariableLocation(i) ?? Location;
+                throw GetFunctionPointerException();
+            }
 
             // The variable of a catch clause holds the caught exception: report
             // the exception handling instead of its unsupported class type

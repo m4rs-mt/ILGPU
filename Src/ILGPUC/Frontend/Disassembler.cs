@@ -424,6 +424,14 @@ sealed partial class Disassembler
     private string ResolveString(int token) =>
         Resolve(token, static (module, t, _, _) => module.ResolveString(t));
 
+    /// <summary>
+    /// Resolves the signature for the given token.
+    /// </summary>
+    /// <param name="token">The token of the signature to resolve.</param>
+    /// <returns>The resolved signature blob.</returns>
+    private byte[] ResolveSignature(int token) =>
+        Resolve(token, static (module, t, _, _) => module.ResolveSignature(t));
+
     #endregion
 
     #region Read Methods
