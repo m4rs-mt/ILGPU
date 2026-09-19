@@ -84,6 +84,7 @@ line in the form `File.cs(line,column): error ILGPU12xx: message`:
 | `ILGPU1209` | Methods taking delegates that call themselves, directly or through the delegates passed to them |
 | `ILGPU1211` | Methods that call themselves, directly or through other methods, on the Metal and OpenCL backends |
 | `ILGPU1212` | Kernels that call themselves, directly or through other methods |
+| `ILGPU1213` | Calls of methods whose type arguments are nested more than 32 levels deep, such as a generic method `F<T>` calling `F<Wrap<T>>`, which would create new instantiations without end |
 
 Invoking a delegate variable that is still `null` on some path, without a null test, is undefined behavior in kernels.
 To call an optional operation, pass a separate flag instead of testing the delegate for null.

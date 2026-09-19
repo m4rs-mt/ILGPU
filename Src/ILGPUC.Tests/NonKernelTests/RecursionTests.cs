@@ -130,6 +130,35 @@ public sealed class RecursionTests
             CallKernel(index, data);
         }
 
+        public struct Wrap<T>
+        {
+            public T Value;
+        }
+
+        private static int Nest<T>(int n, T value)
+            where T : struct =>
+            n <= 0 ? 0 : 1 + Nest(n - 1, new Wrap<T> { Value = value }); // Nest
+
+        public static void PolymorphicRecursionKernel(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data)
+        {
+            data[index] = Nest(data[index], 0);
+        }
+
+        private static int Unwrap<T>(T value)
+            where T : struct =>
+            value is Wrap<Wrap<Wrap<int>>> wrapped ? wrapped.Value.Value.Value : 0;
+
+        public static void NestedTypeArgumentsKernel(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data)
+        {
+            var value = default(Wrap<Wrap<Wrap<int>>>);
+            value.Value.Value.Value = data[index];
+            data[index] = Unwrap(value);
+        }
+
         private static bool Never() => false;
 
         public static void UnreachableRecursionKernel(
@@ -381,6 +410,33 @@ public sealed class RecursionTests
             GetKernel(nameof(Kernels.UnreachableRecursionKernel)),
             backend);
     }
+
+    #endregion
+
+    #region Generic Nesting
+
+    [Fact]
+    public void PolymorphicRecursion_IsRejected()
+    {
+        using var helper = new CompilationHelper(BackendType.CPU);
+        var exception = Assert.Throws<KernelCompilationException>(() =>
+            helper.GenerateBackendCode(
+                GetKernel(nameof(Kernels.PolymorphicRecursionKernel)),
+                BackendType.CPU));
+
+        Assert.Equal("ILGPU1213", exception.Id);
+        Assert.Equal(
+            "Method 'Nest' calls 'Nest' with type arguments nested more than 32 " +
+            "levels deep, as a generic method does that calls itself with a type " +
+            "argument wrapping its own. Such calls create new instantiations " +
+            "without end, which is not supported in kernels.",
+            exception.Message);
+        AssertLocation(exception.Location, "Nest");
+    }
+
+    [Fact]
+    public async Task NestedTypeArguments_AreCompiled() =>
+        Assert.Empty(await GetWarningsAsync(nameof(Kernels.NestedTypeArgumentsKernel)));
 
     #endregion
 

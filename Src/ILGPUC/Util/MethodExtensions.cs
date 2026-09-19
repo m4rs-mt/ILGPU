@@ -21,6 +21,50 @@ namespace ILGPUC.Util;
 static class MethodExtensions
 {
     /// <summary>
+    /// The maximum nesting depth of the type arguments of a method kernels call
+    /// (see <see cref="GetTypeArgumentNesting"/>).
+    /// </summary>
+    public const int MaxTypeArgumentNesting = 32;
+
+    /// <summary>
+    /// Returns how deeply the type arguments of the given method and its
+    /// declaring type are nested: zero without type arguments that are generic
+    /// types, arrays or pointers, and one more for each level of them. A generic
+    /// method calling itself with a type argument that wraps its own, such as
+    /// <c>F&lt;Wrap&lt;T&gt;&gt;</c> in <c>F&lt;T&gt;</c>, creates instantiations
+    /// that are nested ever more deeply, while there are finitely many
+    /// instantiations of a bounded nesting depth.
+    /// </summary>
+    /// <param name="method">The method.</param>
+    /// <returns>The nesting depth of the type arguments.</returns>
+    public static int GetTypeArgumentNesting(this MethodBase method)
+    {
+        int nesting = GetNesting(method.DeclaringType) - 1;
+        if (method.IsGenericMethod)
+        {
+            foreach (var argument in method.GetGenericArguments())
+                nesting = Math.Max(nesting, GetNesting(argument));
+        }
+        return Math.Max(nesting, 0);
+
+        // One more than the nesting of the type arguments or the element type,
+        // or zero for other types
+        static int GetNesting(Type? type)
+        {
+            if (type is null)
+                return 0;
+            if (type.HasElementType)
+                return 1 + GetNesting(type.GetElementType());
+            if (!type.IsGenericType)
+                return 0;
+            int nesting = 0;
+            foreach (var argument in type.GetGenericArguments())
+                nesting = Math.Max(nesting, GetNesting(argument));
+            return 1 + nesting;
+        }
+    }
+
+    /// <summary>
     /// Returns a parameter offset of 1 for instance methods and 0 for static
     /// methods.
     /// </summary>

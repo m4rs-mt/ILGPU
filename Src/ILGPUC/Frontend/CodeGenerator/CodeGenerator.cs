@@ -19,6 +19,7 @@ using ILGPUC.IR.ModuleValues;
 using ILGPUC.IR.ModuleValues.Construction;
 using ILGPUC.IR.PureValues;
 using ILGPUC.IR.Transformations;
+using ILGPUC.Roslyn.Analysis;
 using ILGPUC.Util;
 using System;
 using System.Collections.Generic;
@@ -511,10 +512,35 @@ sealed partial class CodeGenerator
     /// <returns>The declared method.</returns>
     public Method GetMethod(MethodBase methodBase)
     {
+        VerifyGenericNesting(methodBase);
         var declaration = ModuleBuilder.CreateMethodDeclaration(methodBase);
         var result = ModuleBuilder.GetOrCreateMethod(declaration);
         OnNewMethodCalled?.Invoke(this, methodBase);
         return result.Method;
+    }
+
+    /// <summary>
+    /// Rejects a call of a method whose type arguments are nested more than
+    /// <see cref="MethodExtensions.MaxTypeArgumentNesting"/> levels deep (see
+    /// <see cref="MethodExtensions.GetTypeArgumentNesting"/>), which would
+    /// otherwise create new instantiations without end.
+    /// </summary>
+    /// <param name="methodBase">The called method.</param>
+    private void VerifyGenericNesting(MethodBase methodBase)
+    {
+        if (methodBase.GetTypeArgumentNesting() <=
+            MethodExtensions.MaxTypeArgumentNesting)
+        {
+            return;
+        }
+        throw new KernelCompilationException(
+            KernelDiagnostic.GenericNestingId,
+            string.Format(
+                ErrorMessages.KernelDiagnosticGenericNesting,
+                Method.GetDisplayName(),
+                methodBase.GetDisplayName(),
+                MethodExtensions.MaxTypeArgumentNesting),
+            Location);
     }
 
     /// <summary>

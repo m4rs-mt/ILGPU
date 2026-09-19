@@ -593,6 +593,10 @@
     <value>Kernel '{0}' calls itself, directly or through other methods, which is not supported. Move the code that calls itself into a helper method that the kernel calls.</value>
     <comment/>
   </data>
+  <data name="KernelDiagnosticGenericNesting" xml:space="preserve">
+    <value>Method '{0}' calls '{1}' with type arguments nested more than {2} levels deep, as a generic method does that calls itself with a type argument wrapping its own. Such calls create new instantiations without end, which is not supported in kernels.</value>
+    <comment/>
+  </data>
   <data name="NotSupportedKernelDelegateBind" xml:space="preserve">
     <value>Delegates bound with KernelDelegates.Bind can only be used in kernels compiled by ILGPUC.</value>
     <comment/>

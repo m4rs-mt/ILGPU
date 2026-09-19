@@ -1159,6 +1159,15 @@ namespace ILGPU.Resources {
         }
 
         /// <summary>
+        ///   Looks up a localized string similar to Method &apos;{0}&apos; calls &apos;{1}&apos; with type arguments nested more than {2} levels deep, as a generic method does that calls itself with a type argument wrapping its own. Such calls create new instantiations without end, which is not supported in kernels..
+        /// </summary>
+        internal static string KernelDiagnosticGenericNesting {
+            get {
+                return ResourceManager.GetString("KernelDiagnosticGenericNesting", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to Delegates bound with KernelDelegates.Bind can only be used in kernels compiled by ILGPUC.
         /// </summary>
         internal static string NotSupportedKernelDelegateBind {

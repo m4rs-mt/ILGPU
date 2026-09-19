@@ -151,6 +151,13 @@ record KernelDiagnostic(string Id, string Message, Location Location)
     public const string KernelRecursionId = "ILGPU1212";
 
     /// <summary>
+    /// Kernel code calls a method whose type arguments are nested too deeply, as
+    /// a generic method does that calls itself with a type argument wrapping its
+    /// own.
+    /// </summary>
+    public const string GenericNestingId = "ILGPU1213";
+
+    /// <summary>
     /// A launching method whose delegate parameter is captured by an inline
     /// kernel is virtual or implements an interface member.
     /// </summary>

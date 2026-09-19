@@ -601,7 +601,12 @@ sealed class ILFrontend
             // gets disassembled before code generation needs it.
             foreach (var instruction in disassembled.Instructions)
             {
-                if (instruction.Argument is MethodBase calledMethod)
+                // Methods whose type arguments are nested too deeply are left to
+                // code generation, which rejects calls of them, as walking them
+                // could create new instantiations without end
+                if (instruction.Argument is MethodBase calledMethod &&
+                    calledMethod.GetTypeArgumentNesting() <=
+                        MethodExtensions.MaxTypeArgumentNesting)
                 {
                     queue.Enqueue(calledMethod);
 
