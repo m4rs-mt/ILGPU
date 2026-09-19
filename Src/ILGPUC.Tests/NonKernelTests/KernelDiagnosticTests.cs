@@ -12,17 +12,21 @@
 using ILGPU;
 using ILGPU.Runtime;
 using ILGPUC.Backends;
+using ILGPUC.Frontend;
 using ILGPUC.IR;
 using ILGPUC.Roslyn.Generation;
 using ILGPUC.Tests.Framework;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Text;
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
+using System.Reflection.Emit;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using Xunit;
+using MetadataReference = Microsoft.CodeAnalysis.MetadataReference;
 using RoslynLocation = Microsoft.CodeAnalysis.Location;
 using RoslynOptimizationLevel = Microsoft.CodeAnalysis.OptimizationLevel;
 
@@ -468,15 +472,18 @@ public sealed class KernelDiagnosticTests
     /// of ilgpuc builds, and asserts that the build fails with the given error
     /// at the line marked with <c>// error</c>.
     /// </summary>
-    private static async Task AssertBuildErrorAsync(
+    /// <returns>The diagnostic of the build.</returns>
+    private static async Task<string> AssertBuildErrorAsync(
         string kernelClass,
         string id,
         string message,
-        RoslynOptimizationLevel optimizationLevel = RoslynOptimizationLevel.Release)
+        RoslynOptimizationLevel optimizationLevel = RoslynOptimizationLevel.Release,
+        MetadataReference[]? additionalReferences = null)
     {
         var (source, compilation, analysis) = AnalyzeBuild(
             kernelClass,
-            optimizationLevel);
+            optimizationLevel,
+            additionalReferences);
         var exception = await Assert.ThrowsAsync<KernelDiagnosticException>(() =>
             MainKernelProvider.CreateAsync(
                 compilation,
@@ -491,6 +498,7 @@ public sealed class KernelDiagnosticTests
         Assert.StartsWith($"source0.cs({line},", diagnostic, StringComparison.Ordinal);
         Assert.Contains($"): error {id}: ", diagnostic, StringComparison.Ordinal);
         Assert.Contains(message, diagnostic, StringComparison.Ordinal);
+        return diagnostic;
     }
 
     /// <summary>
@@ -518,7 +526,8 @@ public sealed class KernelDiagnosticTests
         CSharpCompilation Compilation,
         AnalysisResult Analysis) AnalyzeBuild(
         string kernelClass,
-        RoslynOptimizationLevel optimizationLevel)
+        RoslynOptimizationLevel optimizationLevel,
+        MetadataReference[]? additionalReferences = null)
     {
         var source = $$"""
             using System;
@@ -545,6 +554,7 @@ public sealed class KernelDiagnosticTests
         var compilation = RoslynCompiler.CreateCompilation(
             [source],
             "KernelDiagnosticTest",
+            additionalReferences: additionalReferences,
             optimizationLevel: optimizationLevel);
         var analysis = CompilationRewriter.Analyze(compilation);
         Assert.Empty(analysis.Diagnostics);
@@ -1807,6 +1817,225 @@ public sealed class KernelDiagnosticTests
                     marker);
             }
         }
+    }
+
+    #endregion
+
+    #region Unsupported IL Instructions (ILGPU1200)
+
+    /// <summary>
+    /// Creates a static method with the given IL code, which returns an int
+    /// and takes a pointer to an int.
+    /// </summary>
+    private static MethodInfo CreateMethod(Action<ILGenerator> emit)
+    {
+        var type = AssemblyBuilder.DefineDynamicAssembly(
+            new AssemblyName("KernelDiagnosticInvalidIL"),
+            AssemblyBuilderAccess.RunAndCollect)
+            .DefineDynamicModule("KernelDiagnosticInvalidIL")
+            .DefineType("Methods", TypeAttributes.Public);
+        var method = type.DefineMethod(
+            "Method",
+            MethodAttributes.Public | MethodAttributes.Static,
+            typeof(int),
+            [typeof(int*)]);
+        emit(method.GetILGenerator());
+        return type.CreateType().GetMethod(method.Name)!;
+    }
+
+    /// <summary>
+    /// Disassembles a static method with the given invalid IL code and returns
+    /// the error.
+    /// </summary>
+    private static DisassemblerException DisassembleInvalidIL(
+        Action<ILGenerator> emit)
+    {
+        var method = CreateMethod(emit);
+        return Assert.Throws<DisassemblerException>(
+            () => Disassembler.TryDisassemble(method));
+    }
+
+    /// <summary>
+    /// Module.ResolveMethod rejects an invalid token with an ArgumentException,
+    /// which reports IL code that cannot be disassembled at its instruction.
+    /// </summary>
+    [Fact]
+    public void InvalidToken_ThrowsDisassemblerException()
+    {
+        var exception = DisassembleInvalidIL(il =>
+        {
+            il.Emit(OpCodes.Nop);
+            // A member reference that the module does not define
+            il.Emit(OpCodes.Call, 0x0A00FFFF);
+            il.Emit(OpCodes.Ret);
+        });
+        Assert.Equal(1, exception.ILOffset);
+        Assert.IsAssignableFrom<ArgumentException>(exception.InnerException);
+    }
+
+    /// <summary>
+    /// IL code that ends within the operand of an instruction cannot be
+    /// disassembled either.
+    /// </summary>
+    [Fact]
+    public void TruncatedOperand_ThrowsDisassemblerException()
+    {
+        var exception = DisassembleInvalidIL(il =>
+        {
+            il.Emit(OpCodes.Nop);
+            // ldc.i4 with one of its four operand bytes
+            il.Emit(OpCodes.Ldc_I4, (byte)1);
+        });
+        Assert.Equal(1, exception.ILOffset);
+        Assert.Equal("The IL code ends within an instruction", exception.Message);
+    }
+
+    /// <summary>
+    /// A switch whose number of targets exceeds the remaining IL code ends
+    /// within the instruction, which is reported before its targets are
+    /// allocated. The number of targets uint.MaxValue failed with an
+    /// IndexOutOfRangeException, which is an internal error.
+    /// </summary>
+    [Fact]
+    public void TruncatedSwitch_ThrowsDisassemblerException()
+    {
+        var exception = DisassembleInvalidIL(il =>
+        {
+            il.Emit(OpCodes.Nop);
+            // switch with uint.MaxValue targets, none of which follow
+            il.Emit(OpCodes.Switch, -1);
+            il.Emit(OpCodes.Ldc_I4_0);
+            il.Emit(OpCodes.Ret);
+        });
+        Assert.Equal(1, exception.ILOffset);
+        Assert.Equal("The IL code ends within an instruction", exception.Message);
+    }
+
+    /// <summary>
+    /// Collects the offsets of an instruction and its prefixes.
+    /// </summary>
+    private readonly struct CollectOffsets(List<int> offsets)
+        : IILInstructionOffsetOperation
+    {
+        public void Apply(ILInstruction instruction, int offset) =>
+            offsets.Add(offset);
+    }
+
+    /// <summary>
+    /// The prefixes no. and unaligned. take a one-byte operand, which was
+    /// disassembled as the next instruction. The offsets of the instruction
+    /// include the start of its prefixes, which branches may target.
+    /// </summary>
+    [Fact]
+    public void PrefixOperands_AreSkipped()
+    {
+        var method = CreateMethod(il =>
+        {
+            il.Emit(OpCodes.Ldarg_0);
+            // no. 1, which has no OpCodes field: its bytes are FE 19 01
+            il.Emit(OpCodes.Prefix1);
+            il.Emit(OpCodes.Ldc_I4_3);
+            il.Emit(OpCodes.Break);
+            il.Emit(OpCodes.Unaligned, (byte)1);
+            il.Emit(OpCodes.Ldind_I4);
+            il.Emit(OpCodes.Ret);
+        });
+        var disassembled = Disassembler.TryDisassemble(method);
+        Assert.NotNull(disassembled);
+        Assert.Equal(3, disassembled.Count);
+        Assert.Equal(ILInstructionType.Ldarg, disassembled[0].InstructionType);
+        Assert.Equal(ILInstructionType.Ldind, disassembled[1].InstructionType);
+        Assert.True(disassembled[1].HasFlags(
+            ILInstructionFlags.Unchecked | ILInstructionFlags.Unaligned));
+        Assert.Equal(ILInstructionType.Ret, disassembled[2].InstructionType);
+
+        var offsets = new List<int>();
+        disassembled[1].ForEachOffset(new CollectOffsets(offsets));
+        Assert.Equal([7, 4, 1], offsets);
+    }
+
+    private const string MissingLibraryName = "KernelDiagnosticMissingLibrary";
+
+    /// <summary>
+    /// Returns a reference to a library that the compilation is built against,
+    /// but that cannot be loaded when its kernels are compiled.
+    /// </summary>
+    private static MetadataReference[] GetMissingLibraryReference() =>
+        [
+            RoslynCompiler.CreateCompilation(
+                ["""
+                public static class Library
+                {
+                    public static int Twice(int value) => 2 * value;
+                }
+                """],
+                MissingLibraryName,
+                Microsoft.CodeAnalysis.OutputKind.DynamicallyLinkedLibrary)
+                .ToMetadataReference(),
+        ];
+
+    /// <summary>
+    /// The kernel calls a method of a library that cannot be loaded, so that
+    /// its IL code cannot be disassembled: this left the kernel without a body
+    /// and the build failed with an InvalidOperationException without a
+    /// location. The call is not the first statement, which tells its location
+    /// apart from the start of the method.
+    /// </summary>
+    [Theory]
+    [InlineData(RoslynOptimizationLevel.Debug)]
+    [InlineData(RoslynOptimizationLevel.Release)]
+    public Task UnresolvableCall_FailsBuild(RoslynOptimizationLevel optimizationLevel) =>
+        AssertBuildErrorAsync(
+            """
+            static class K
+            {
+                public static void Kern(Index1D i, ArrayView1D<int, Stride1D.Dense> data)
+                {
+                    int value = data[i] + 1;
+                    data[i] = Library.Twice(value); // error
+                }
+            }
+            """,
+            "ILGPU1200",
+            "The IL code of 'K.Kern' cannot be compiled: Could not load file or " +
+            $"assembly '{MissingLibraryName}",
+            optimizationLevel,
+            GetMissingLibraryReference());
+
+    /// <summary>
+    /// A helper that calls a method of a library that cannot be loaded fails
+    /// to disassemble, which is reported once a call to it survives. The
+    /// reason is the error of the helper at its location, which was wrapped in
+    /// "An internal compiler error has been detected".
+    /// </summary>
+    [Theory]
+    [InlineData(RoslynOptimizationLevel.Debug)]
+    [InlineData(RoslynOptimizationLevel.Release)]
+    public async Task UnresolvableCallInHelper_FailsBuild(
+        RoslynOptimizationLevel optimizationLevel)
+    {
+        var diagnostic = await AssertBuildErrorAsync(
+            """
+            static class K
+            {
+                static int Twice(int value) => Library.Twice(value);
+
+                public static void Kern(Index1D i, ArrayView1D<int, Stride1D.Dense> data)
+                {
+                    data[i] = Twice(data[i]); // error
+                }
+            }
+            """,
+            "ILGPU1200",
+            "'K.Kern' calls 'K.Twice', which could not be compiled: The IL code " +
+            "of 'K.Twice' cannot be compiled: Could not load file or assembly " +
+            $"'{MissingLibraryName}",
+            optimizationLevel,
+            GetMissingLibraryReference());
+        Assert.EndsWith(
+            ". in file 'source0.cs', line 7 column 36 to 56",
+            diagnostic,
+            StringComparison.Ordinal);
     }
 
     #endregion

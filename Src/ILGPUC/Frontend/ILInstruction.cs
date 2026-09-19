@@ -282,8 +282,9 @@ sealed class ILInstruction(
         {
             if (Flags.HasFlags((ILInstructionFlags)i))
             {
-                // Subtract two bytes (OpCode)
-                offset -= 2;
+                // Subtract two bytes (OpCode) and the one-byte operand of the
+                // no. and unaligned. prefixes
+                offset -= i <= (int)ILInstructionFlags.Unaligned ? 3 : 2;
                 operation.Apply(this, offset);
             }
         }

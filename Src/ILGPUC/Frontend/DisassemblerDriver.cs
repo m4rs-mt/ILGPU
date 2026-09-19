@@ -19,6 +19,7 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
+using ILGPU.Resources;
 using ILGPUC.Util;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection.Emit;
@@ -170,7 +171,7 @@ namespace ILGPUC.Frontend
                     AppendInstruction(ILInstructionType.LdR8, ReadDoubleArg());
                     return true;
                 case ILOpCode.Ldstr:
-                    AppendInstruction(ILInstructionType.Ldstr, AssociatedModule.ResolveString(ReadIntArg()));
+                    AppendInstruction(ILInstructionType.Ldstr, ResolveString(ReadIntArg()));
                     return true;
 
                 // Stack
@@ -280,6 +281,12 @@ namespace ILGPUC.Frontend
                 case ILOpCode.Switch:
                     {
                         uint numSwitchTargets = ReadUIntArg();
+                        if (numSwitchTargets > (uint)(_il.Length - _ilOffset) / sizeof(int))
+                        {
+                            throw new DisassemblerException(
+                                ErrorMessages.NotSupportedTruncatedILInstruction,
+                                _instructionOffset);
+                        }
                         int[] switchTargets = new int[numSwitchTargets + 1];
                         var switchBaseOffset = switchTargets[0] = _ilOffset + sizeof(int) * (int)numSwitchTargets;
                         for (int i = 0, e = (int)numSwitchTargets; i < e; ++i)
@@ -683,15 +690,15 @@ namespace ILGPUC.Frontend
 
                 // Token
                 case ILOpCode.Ldtoken:
-                    AppendInstruction(ILInstructionType.LdToken, AssociatedModule.ResolveMember(ReadIntArg(), TypeGenericArguments, MethodGenericArguments));
+                    AppendInstruction(ILInstructionType.LdToken, ResolveMember(ReadIntArg()));
                     return true;
 
                 // Function
                 case ILOpCode.Ldftn:
-                    AppendInstruction(ILInstructionType.LdFunction, AssociatedModule.ResolveMember(ReadIntArg(), TypeGenericArguments, MethodGenericArguments));
+                    AppendInstruction(ILInstructionType.LdFunction, ResolveMember(ReadIntArg()));
                     return true;
                 case ILOpCode.Ldvirtftn:
-                    AppendInstruction(ILInstructionType.LdVirtualFunction, AssociatedModule.ResolveMember(ReadIntArg(), TypeGenericArguments, MethodGenericArguments));
+                    AppendInstruction(ILInstructionType.LdVirtualFunction, ResolveMember(ReadIntArg()));
                     return true;
 
                 // Exceptions
@@ -725,9 +732,13 @@ namespace ILGPUC.Frontend
             switch (opCode)
             {
                 case ILOpCode.No:
+                    // The operand lists the checks that may be skipped
+                    ReadByteArg();
                     AddFlags(ILInstructionFlags.Unchecked);
                     return true;
                 case ILOpCode.Unaligned:
+                    // The operand is the alignment of the address
+                    ReadByteArg();
                     AddFlags(ILInstructionFlags.Unaligned);
                     return true;
                 case ILOpCode.Volatile:

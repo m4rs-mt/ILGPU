@@ -673,6 +673,15 @@ namespace ILGPU.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to The IL code of &apos;{0}&apos; cannot be compiled: {1}.
+        /// </summary>
+        internal static string NotSupportedMethodBody {
+            get {
+                return ResourceManager.GetString("NotSupportedMethodBody", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Not supported jump to method &apos;{0}&apos;.
         /// </summary>
         internal static string NotSupportedMethodJump {
@@ -786,6 +795,15 @@ namespace ILGPU.Resources {
         internal static string NotSupportedStructureLayout {
             get {
                 return ResourceManager.GetString("NotSupportedStructureLayout", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The IL code ends within an instruction.
+        /// </summary>
+        internal static string NotSupportedTruncatedILInstruction {
+            get {
+                return ResourceManager.GetString("NotSupportedTruncatedILInstruction", resourceCulture);
             }
         }
         
