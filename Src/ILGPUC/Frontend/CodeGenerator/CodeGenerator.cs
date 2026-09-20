@@ -408,8 +408,9 @@ sealed partial class CodeGenerator
     public Backends.BackendType BackendType { get; }
 
     /// <summary>
-    /// Gets or sets the evaluator that folds calls of helper predicates with
-    /// constant arguments, or <see langword="null"/> to compile all calls.
+    /// Gets or sets the evaluator that folds calls with constant arguments (see
+    /// <see cref="TryEvaluateCall"/>), or <see langword="null"/> to compile all
+    /// calls.
     /// </summary>
     public ConstantEvaluator? ConstantEvaluator { get; init; }
 

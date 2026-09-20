@@ -21,7 +21,9 @@ namespace ILGPUC.Tests.ExecutionTests;
 /// Tests kernels calling helpers that call themselves, directly or through each
 /// other, which are compiled as recursive functions instead of being inlined. The
 /// Metal and OpenCL backends reject them (see <c>RecursionTests</c>), but run
-/// helpers calling themselves only in tail position, which become loops.
+/// helpers calling themselves only in tail position, which become loops, and
+/// recursive helpers called with constant arguments, which are evaluated at
+/// compile time.
 /// </summary>
 public abstract class RecursionExecutionTests : ExecutionTestBase
 {
@@ -136,4 +138,8 @@ public abstract class RecursionExecutionTests : ExecutionTestBase
             "TailRecursionStoredAddresses",
             "0 0 2 2 5 5 9 9 14 14 20 20 27 27 35 35");
     }
+
+    [SkippableFact]
+    public Task ConstantRecursion_ProducesCorrectOutput() =>
+        VerifyWithoutRecursionAsync("ConstantRecursion", "1120 1121 1122 1123");
 }

@@ -34,7 +34,8 @@ namespace ILGPUC.Tests.NonKernelTests;
 /// Tests that methods calling themselves, directly or through other methods, are
 /// compiled as recursive functions instead of being inlined, with a warning
 /// (ILGPU1210), and that backends without recursive calls reject them (ILGPU1211).
-/// Calls of a method itself in tail position become loops.
+/// Calls of a method itself in tail position become loops, and calls with constant
+/// arguments are evaluated at compile time.
 /// </summary>
 public sealed class RecursionTests
 {
@@ -250,6 +251,30 @@ public sealed class RecursionTests
             ArrayView1D<int, Stride1D.Dense> data)
         {
             data[index] = CountOdd(data[index]);
+        }
+
+        public static void ConstantFactorialKernel(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data)
+        {
+            data[index] = Factorial(5) + index;
+        }
+
+        public static void ConstantMutualRecursionKernel(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data)
+        {
+            data[index] = IsEven(10) ? index : 0;
+        }
+
+        private static int SumBelow(int n) =>
+            n <= 0 ? 0 : n + SumBelow(n - 1); // SumBelow
+
+        public static void DeepConstantRecursionKernel(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data)
+        {
+            data[index] = SumBelow(1000);
         }
 
         private struct Pair
@@ -784,6 +809,53 @@ public sealed class RecursionTests
 
         Assert.Equal("ILGPU1210", warning.Id);
         AssertLocation(warning.Location, "CountOdd");
+    }
+
+    #endregion
+
+    #region Constant Arguments
+
+    [Theory]
+    [InlineData(nameof(Kernels.ConstantFactorialKernel), "Factorial")]
+    [InlineData(nameof(Kernels.ConstantMutualRecursionKernel), "IsEven")]
+    public async Task RecursionWithConstantArguments_IsEvaluated(
+        string kernelName,
+        string helperName)
+    {
+        Assert.Empty(await GetWarningsAsync(kernelName));
+
+        using var helper = new CompilationHelper(BackendType.CPU);
+        var module = helper.CompileToModule(
+            GetKernel(kernelName),
+            new CompilationProperties());
+        Assert.DoesNotContain(
+            module.Methods.ToArray(),
+            method => method.Source?.Name == helperName);
+    }
+
+    [Theory]
+    [InlineData(BackendType.Metal)]
+    [InlineData(BackendType.OpenCL)]
+    public void BackendsWithoutRecursiveCalls_CompileRecursionWithConstantArguments(
+        BackendType backend)
+    {
+        using var helper = new CompilationHelper(backend);
+        helper.GenerateBackendCode(
+            GetKernel(nameof(Kernels.ConstantFactorialKernel)),
+            backend);
+        helper.GenerateBackendCode(
+            GetKernel(nameof(Kernels.ConstantMutualRecursionKernel)),
+            backend);
+    }
+
+    [Fact]
+    public async Task RecursionWithConstantArguments_DeeperThanTheLimit_StaysRecursive()
+    {
+        var warning = Assert.Single(
+            await GetWarningsAsync(nameof(Kernels.DeepConstantRecursionKernel)));
+
+        Assert.Equal("ILGPU1210", warning.Id);
+        AssertLocation(warning.Location, "SumBelow");
     }
 
     #endregion

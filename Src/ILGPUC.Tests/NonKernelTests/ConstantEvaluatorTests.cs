@@ -134,6 +134,52 @@ public sealed class ConstantEvaluatorTests
     }
 
     [Fact]
+    public void RecursionOverValues_Folds()
+    {
+        // Kernels rely on this when they call a recursive helper with constant
+        // arguments (see CodeGenerator.TryEvaluateCall)
+        var evaluator = CreateEvaluator();
+        var factorial = Get(typeof(ConstantEvaluatorTests), nameof(Factorial));
+
+        var result = evaluator.Evaluate(factorial, [10]);
+
+        Assert.True(result.IsConstant, result.Reason);
+        Assert.Equal(3_628_800, result.Value);
+    }
+
+    [Fact]
+    public void RecursionDeeperThanTheLimit_IsNotConstantAndNotMemoized()
+    {
+        var evaluator = CreateEvaluator();
+        var sumBelow = Get(typeof(ConstantEvaluatorTests), nameof(SumBelow));
+
+        // SumBelow(n) nests n + 1 calls
+        var deep = evaluator.Evaluate(sumBelow, [ConstantEvaluator.MaxCallDepth]);
+        var shallow = evaluator.Evaluate(
+            sumBelow,
+            [ConstantEvaluator.MaxCallDepth - 1]);
+
+        Assert.False(deep.IsConstant);
+        Assert.True(deep.IsBudgetExceeded);
+        Assert.Contains("deep", deep.Reason);
+        Assert.True(shallow.IsConstant, shallow.Reason);
+        Assert.Equal(
+            (ConstantEvaluator.MaxCallDepth - 1) * ConstantEvaluator.MaxCallDepth / 2,
+            shallow.Value);
+    }
+
+    [Fact]
+    public void CallsMethods_IsTrueOnlyForMethodsWithCalls()
+    {
+        var evaluator = CreateEvaluator();
+
+        Assert.True(evaluator.CallsMethods(
+            Get(typeof(ConstantEvaluatorTests), nameof(Factorial))));
+        Assert.False(evaluator.CallsMethods(
+            Get(typeof(ConstantEvaluatorTests), nameof(Work))));
+    }
+
+    [Fact]
     public void LongLoop_ExceedsBudget()
     {
         var evaluator = CreateEvaluator(budget: 10_000);
@@ -285,6 +331,10 @@ public sealed class ConstantEvaluatorTests
     // Methods evaluated by the tests
 
     private static int Spin<T>(int value) => value == 0 ? 0 : Spin<T>(value);
+
+    private static int Factorial(int n) => n <= 1 ? 1 : n * Factorial(n - 1);
+
+    private static int SumBelow(int n) => n <= 0 ? 0 : n + SumBelow(n - 1);
 
     private static int Work(int count)
     {

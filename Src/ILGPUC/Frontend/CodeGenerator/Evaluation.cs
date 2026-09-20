@@ -19,16 +19,18 @@ namespace ILGPUC.Frontend;
 partial class CodeGenerator
 {
     /// <summary>
-    /// Evaluates a call of a helper predicate at compile time if all its arguments
-    /// are constants, and pushes the constant result instead of emitting a call.
+    /// Evaluates a call at compile time if all its arguments are constants, and
+    /// pushes the constant result instead of emitting a call.
     /// </summary>
     /// <remarks>
-    /// Only calls whose result can depend on the closed type arguments of this
-    /// instantiation are attempted: calls of generic methods or members of generic
-    /// types, calls with a <c>typeof(T)</c> argument, and constrained calls (static
+    /// Attempted are calls whose result can depend on the closed type arguments of
+    /// this instantiation: calls of generic methods or members of generic types,
+    /// calls with a <c>typeof(T)</c> argument, and constrained calls (static
     /// abstract members and struct instance members such as
-    /// <c>default(TOp).IsFloat()</c>). Other calls with constant arguments are left
-    /// to the optimizer, as before.
+    /// <c>default(TOp).IsFloat()</c>). So are calls of methods that call other
+    /// methods, such as a recursive <c>Factorial(5)</c>, which inlining cannot
+    /// fold. Calls of methods that call nothing are left to the optimizer, which
+    /// folds them once they are inlined.
     /// </remarks>
     /// <param name="method">The called method.</param>
     /// <param name="arguments">The call arguments.</param>
@@ -81,13 +83,15 @@ partial class CodeGenerator
                 return false;
             }
         }
-        if (!dependsOnTypes)
+        if (!dependsOnTypes && !ConstantEvaluator.CallsMethods(method))
             return false;
 
         var result = ConstantEvaluator.Evaluate(method, operands);
         if (!result.IsConstant)
         {
-            _evaluationFailures[method] = result.Reason ?? string.Empty;
+            // Failures explain type tests that could not be decided
+            if (dependsOnTypes)
+                _evaluationFailures[method] = result.Reason ?? string.Empty;
             return false;
         }
 
