@@ -66,6 +66,7 @@ partial class Block
         private readonly Dictionary<BasicBlock, Block> _basicBlockMapping =
             new(new Value.Comparer());
         private readonly Dictionary<Block, List<Block>> _successorMapping = [];
+        private readonly HashSet<int> _tailCalls = [];
 
         /// <summary>
         /// Constructs a new CFG builder.
@@ -244,6 +245,16 @@ partial class Block
                     Debug.Assert(stackCounter >= 0, "Invalid stack counter");
                     current.InstructionCount += 1;
 
+                    // A call of the method itself in tail position, with only its
+                    // arguments on the stack, jumps to the start of the method
+                    if (stackCounter == pushCount &&
+                        CodeGenerator.IsTailCallCandidate(instructionIdx))
+                    {
+                        _tailCalls.Add(instructionIdx);
+                        SetupBasicBlock(visited, current, 0, 0);
+                        break;
+                    }
+
                     if (instruction.IsTerminator)
                     {
                         if (instruction.Argument is
@@ -326,6 +337,15 @@ partial class Block
         /// Returns the entry block.
         /// </summary>
         public Block EntryBlock { get; }
+
+        /// <summary>
+        /// Returns true if the instruction at the given index is a call of the
+        /// method itself that jumps to the start of the method (see
+        /// <see cref="CodeGenerator.IsTailCallCandidate(int)"/>).
+        /// </summary>
+        /// <param name="instructionIndex">The instruction index.</param>
+        public bool IsTailCall(int instructionIndex) =>
+            _tailCalls.Contains(instructionIndex);
 
         /// <summary>
         /// Resolves the block for the given basic block.

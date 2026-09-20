@@ -319,7 +319,7 @@ after 30 seconds and the test reports a timeout failure.
 | SharedMemoryExecutionTests | 1 | Shared memory allocation |
 | GenericKernelExecutionTests | 2 | Generic closures; kernels launched through generic wrappers, generic classes and constructed type arguments |
 | TypeSpecializationExecutionTests | 5 | `typeof(T)` helpers (issue #1427) in Debug and Release IL, and instantiations skipped because they throw |
-| RecursionExecutionTests | 8 | Helpers calling themselves directly, through each other, twice, at two instantiations of a generic helper, with stores and with loops; skipped on Metal and OpenCL |
+| RecursionExecutionTests | 13 | Helpers calling themselves directly, through each other, twice, at two instantiations of a generic helper, with loops and in tail position passing the address of a variable (as an `nint` or through memory), skipped on Metal and OpenCL; helpers calling themselves in tail position (in Debug and Release IL) on all backends |
 
 **Total: 26 test classes, 39 test methods, 38 test programs.**
 

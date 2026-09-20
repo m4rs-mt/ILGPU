@@ -12,6 +12,15 @@ The CPU, Cuda and ROCm backends run recursive calls; the Metal and OpenCL backen
 unless optimization removes the calls.
 A kernel must not call itself, directly or through other methods; every backend rejects this with error `ILGPU1212`.
 Move the code that calls itself into a helper method that the kernel calls.
+One kind of recursion is removed at compile time and runs on every backend:
+- A static method that calls itself in tail position, returning the result of the call right away (as in
+  `Gcd(int a, int b) => b == 0 ? a : Gcd(b, a % b)`), compiles to a loop. This requires that its parameters and its
+  result are value types other than pointers and ref structs (no `ref` parameters, pointers, delegates or classes),
+  that it declares no delegate variables, handles no exceptions and allocates no arrays or `stackalloc` memory. A
+  method that takes the address of one of its variables or parameters stays recursive if it converts a value to a
+  pointer or `nint`, calls a method returning one, passes an address to a method that converts one (directly or through
+  the methods it calls), or has an `nint`, `nuint` or pointer-holding structure parameter, as its next call could then
+  read the variable of the calling one.
 Kernels and the functions they call must also be able to return: a function in which every path loops forever, such as
 a `while (true)` loop without a `return` or `break`, is rejected with the error "'X' never returns".
 Such a kernel could only be stopped by resetting the device.

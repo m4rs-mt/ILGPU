@@ -197,6 +197,7 @@ sealed partial class CodeGenerator
         _specializations = specializations;
         _delegateTargets = delegateTargets;
 
+        _tailCallCandidates = FindTailCallCandidates();
         _cfgBuilder = new Block.CFGBuilder(this, methodBuilder);
         EntryBlock = _cfgBuilder.EntryBlock;
         Location = disassembledMethod.FirstLocation;
@@ -344,6 +345,7 @@ sealed partial class CodeGenerator
             Value initValue = builder.CreateNull(
                 Location,
                 variableType);
+            _localInitialValues.Add((localRef, initValue));
             if (_variables.Contains(localRef))
             {
                 // Address was taken... emit a temporary alloca and store
