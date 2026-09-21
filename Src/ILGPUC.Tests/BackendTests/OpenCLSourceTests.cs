@@ -128,7 +128,7 @@ public sealed class OpenCLSourceTests
         var source = helper.GenerateBackendCode(kernel, BackendType.OpenCL).SourceCode;
 
         Assert.DoesNotContain("nint", source);
-        Assert.Contains("(global void*)0L", source);
+        Assert.Contains("((global int*)0)", source);
     }
 
     /// <summary>

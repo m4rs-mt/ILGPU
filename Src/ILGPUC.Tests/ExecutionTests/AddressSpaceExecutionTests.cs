@@ -215,4 +215,39 @@ public abstract class AddressSpaceExecutionTests : ExecutionTestBase
             ["1 -1 3 -1"],
             new CompilationProperties { OptimizationLevel = level });
     }
+
+    /// <summary>
+    /// Pointers into local and global memory compared with null: the address
+    /// of a local, a pointer local that holds null, a phi of the null pointer
+    /// and the address of a local, which differs per thread, in the kernel and
+    /// in a helper method, a uniform and a per-thread pointer phi of the
+    /// same block whose arguments include the null pointer, and a select of
+    /// a pointer into shared memory and the null pointer.
+    /// </summary>
+    [SkippableTheory]
+    [InlineData(RoslynOptimizationLevel.Release, OptimizationLevel.O0)]
+    [InlineData(RoslynOptimizationLevel.Debug, OptimizationLevel.O0)]
+    [InlineData(RoslynOptimizationLevel.Release, OptimizationLevel.O1)]
+    [InlineData(RoslynOptimizationLevel.Debug, OptimizationLevel.O2)]
+    public async Task NullPointerCompare_ProducesCorrectOutput(
+        RoslynOptimizationLevel programOptimization,
+        OptimizationLevel level)
+    {
+        await VerifyProgramOutputAsync(
+            "TestPrograms/AddressSpace/NullPointerCompare.cs",
+            [
+                "Kernels.LocalAddressNullKernel",
+                "Kernels.NullPointerPhiKernel",
+                "Kernels.NullPointerPhisKernel",
+                "Kernels.SharedNullPointerKernel",
+            ],
+            [
+                "7", "8", "9", "10",
+                "707", "-101", "909", "-101",
+                "20", "21", "22", "23",
+                "1", "-1", "3", "-1",
+            ],
+            new CompilationProperties { OptimizationLevel = level },
+            programOptimization);
+    }
 }

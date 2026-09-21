@@ -334,4 +334,83 @@ static class AddressSpaceKernels
             data[index] = *pointers[index].P + pointers[index].Tag;
         }
     }
+
+    /// <summary>
+    /// Returns the value the pointer points to plus 7, or -1 for null. Never
+    /// inlined, so the pointer is compared with null in a helper method.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    static unsafe int ValueOrMinusOne(int* p) => p == null ? -1 : *p + 7;
+
+    /// <summary>
+    /// Compares the address of a local with null, which C# emits as a compare
+    /// with the integer zero: the null pointer takes the address space of the
+    /// local pointer. A pointer local that holds null is null.
+    /// </summary>
+    public static unsafe void LocalAddressNullKernel(
+        Index1D index, ArrayView1D<int, Stride1D.Dense> data)
+    {
+        int value = index.X;
+        int* p = &value;
+        int* none = null;
+        data[index] = (p == null ? -1 : *p + 7) + (none == null ? 0 : 100);
+    }
+
+    /// <summary>
+    /// A pointer that is the address of a local for even threads and null for
+    /// odd threads: a phi of the null pointer and a pointer into local memory,
+    /// which differs per thread, compared with null in the kernel and in a
+    /// helper method.
+    /// </summary>
+    public static unsafe void NullPointerPhiKernel(
+        Index1D index, ArrayView1D<int, Stride1D.Dense> data)
+    {
+        int value = index.X;
+        int* p = null;
+        if ((index.X & 1) == 0)
+            p = &value;
+        data[index] = ValueOrMinusOne(p) * 100 + (p == null ? -1 : *p + 7);
+    }
+
+    /// <summary>
+    /// Two pointers start as null and take the address of the first output
+    /// element, which is the same for all threads, and the address of a local,
+    /// which differs per thread: the null pointer is an argument of a uniform
+    /// and of a per-thread pointer phi of the same block.
+    /// </summary>
+    public static unsafe void NullPointerPhisKernel(
+        Index1D index, ArrayView1D<int, Stride1D.Dense> data)
+    {
+        int value = index.X;
+        fixed (int* first = &data[0])
+        {
+            int* p = null;
+            int* q = null;
+            if (data.IntLength > 2)
+            {
+                p = first;
+                q = &value;
+            }
+            data[index] = (p == null ? -1 : 2) * 10 + (q == null ? -1 : *q);
+        }
+    }
+
+    /// <summary>
+    /// A pointer that is the address of the thread's shared-memory element for
+    /// even threads and null for odd threads, compared with null: the null
+    /// pointer takes the shared address space of the other operand.
+    /// </summary>
+    public static unsafe void SharedNullPointerKernel(
+        Index1D index, ArrayView1D<int, Stride1D.Dense> data)
+    {
+        var shared = Group.GetSharedMemory<int>(32);
+        int g = Group.Index;
+        shared[g] = index.X + 1;
+        Group.Barrier();
+        fixed (int* p = &shared[g])
+        {
+            int* q = index.X % 2 == 0 ? p : null;
+            data[index] = q == null ? -1 : *q;
+        }
+    }
 }

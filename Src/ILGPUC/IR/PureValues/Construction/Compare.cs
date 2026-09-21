@@ -119,6 +119,32 @@ partial class PureValueBuilder
             }
         }
 
+        // Two null pointers are equal, such as a pointer local that still holds
+        // null compared with null
+        if (left is NullValue { Type: PointerType } &&
+            right is NullValue { Type: PointerType })
+        {
+            return CreatePrimitiveValue(
+                location,
+                kind is CompareKind.Equal or
+                    CompareKind.LessEqual or
+                    CompareKind.GreaterEqual);
+        }
+
+        // A null pointer is null in every address space: compared with a
+        // pointer into a specific address space, such as &x == null, it takes
+        // the type of that pointer
+        if (left.Type is PointerType leftPointer &&
+            right.Type is PointerType rightPointer &&
+            !leftPointer.Equals(rightPointer) &&
+            leftPointer.ElementType.Equals(rightPointer.ElementType))
+        {
+            if (right is NullValue)
+                right = CreateNull(location, leftPointer);
+            else if (left is NullValue)
+                left = CreateNull(location, rightPointer);
+        }
+
         return Append(new CompareValue(
             GetInitializer(location),
             left,
