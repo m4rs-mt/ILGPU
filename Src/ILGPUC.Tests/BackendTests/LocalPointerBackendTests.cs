@@ -20,8 +20,11 @@ namespace ILGPUC.Tests.BackendTests;
 
 /// <summary>
 /// Compiles kernels whose pointers into local or shared memory are compared
-/// with null with the native compilers at O0 and O2. At O0, the pointers are
-/// compared before any folding, also as phis of the null pointer.
+/// with null or select elements of local arrays, or fields of them, with the
+/// native compilers at O0 and O2. At O0, the pointers are compared before any
+/// folding, also as phis of the null pointer, and the element addresses of
+/// local arrays, and the field addresses derived from them, flow into phis,
+/// which Metal and OpenCL need in local memory.
 /// </summary>
 public sealed class LocalPointerBackendTests
 {
@@ -32,6 +35,9 @@ public sealed class LocalPointerBackendTests
         (typeof(AddressSpaceKernels), nameof(AddressSpaceKernels.NullPointerPhisKernel)),
         (typeof(AddressSpaceKernels),
             nameof(AddressSpaceKernels.SharedNullPointerKernel)),
+        (typeof(LocalArrayKernels), nameof(LocalArrayKernels.RefSelectKernel)),
+        (typeof(LocalArrayKernels), nameof(LocalArrayKernels.RefSelectIndexKernel)),
+        (typeof(LocalArrayKernels), nameof(LocalArrayKernels.RefFieldSelectKernel)),
     ];
 
     public static TheoryData<BackendType, OptimizationLevel, string> KernelCases()

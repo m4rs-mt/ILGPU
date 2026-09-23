@@ -14,6 +14,7 @@ using ILGPUC.Tests.Framework;
 using System.Threading.Tasks;
 using Xunit;
 using Xunit.Abstractions;
+using RoslynOptimizationLevel = Microsoft.CodeAnalysis.OptimizationLevel;
 
 namespace ILGPUC.Tests.ExecutionTests;
 
@@ -118,5 +119,37 @@ public abstract class LocalArrayExecutionTests : ExecutionTestBase
                 "local 2D mismatches 0",
                 "local 3D mismatches 0",
             ]);
+    }
+
+    /// <summary>
+    /// References that select one of two elements of a local array per thread,
+    /// at constant indices and at an index that is not a constant, and a field
+    /// of one of two elements of a local array of structures. At O0, the
+    /// element addresses, and the field addresses derived from them, flow into
+    /// a phi.
+    /// </summary>
+    [SkippableTheory]
+    [InlineData(RoslynOptimizationLevel.Release, OptimizationLevel.O0)]
+    [InlineData(RoslynOptimizationLevel.Debug, OptimizationLevel.O0)]
+    [InlineData(RoslynOptimizationLevel.Release, OptimizationLevel.O1)]
+    [InlineData(RoslynOptimizationLevel.Debug, OptimizationLevel.O2)]
+    public async Task RefSelect_ProducesCorrectOutput(
+        RoslynOptimizationLevel programOptimization,
+        OptimizationLevel level)
+    {
+        await VerifyProgramOutputAsync(
+            "TestPrograms/LocalArray/RefSelect.cs",
+            [
+                "Kernels.RefSelectKernel",
+                "Kernels.RefSelectIndexKernel",
+                "Kernels.RefFieldSelectKernel",
+            ],
+            [
+                "10", "2", "30", "4",
+                "11", "2", "30", "4",
+                "10", "2", "30", "4",
+            ],
+            new CompilationProperties { OptimizationLevel = level },
+            programOptimization);
     }
 }

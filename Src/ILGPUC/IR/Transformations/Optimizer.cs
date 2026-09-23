@@ -172,6 +172,19 @@ static class Optimizer
         if (!specification.SupportsViews)
             builder.Add(static args => new LowerViews(args));
 
+        // Accelerators without generic pointers need the pointers into local
+        // arrays that the lowering casts back to generic ones (such as the
+        // element references of c ? ref a[1] : ref a[2], which flow into a
+        // phi) in local memory
+        if (specification.AcceleratorType is AcceleratorType.Metal
+            or AcceleratorType.OpenCL)
+        {
+            builder.Add(static args =>
+                LowerArrays.CastsElementAddressesToGeneric(args.Module)
+                    ? new InferAddressSpaces(args)
+                    : null);
+        }
+
         // Validate and lower GCInit nodes (managed-object markers)
         builder.Add(static args => new LowerGCInit(args));
 

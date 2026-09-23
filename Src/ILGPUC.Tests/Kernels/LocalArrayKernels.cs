@@ -76,4 +76,52 @@ static class LocalArrayKernels
         local[0] = 1.5f; local[1] = 2.5f; local[2] = 3.5f; local[3] = 4.5f;
         output[index] = local[index];
     }
+
+    /// <summary>
+    /// A reference selects one of two elements of a local array at constant
+    /// indices per thread: at O0, a phi of two element addresses.
+    /// </summary>
+    public static void RefSelectKernel(
+        Index1D index, ArrayView1D<int, Stride1D.Dense> output)
+    {
+        int[] local = new int[4];
+        ref int target = ref (index.X & 1) == 0 ? ref local[1] : ref local[2];
+        target = index.X + 1;
+        output[index] = local[1] * 10 + local[2];
+    }
+
+    /// <summary>
+    /// A reference selects the first element of a local array or an element
+    /// at an index that is not a constant per thread.
+    /// </summary>
+    public static void RefSelectIndexKernel(
+        Index1D index, ArrayView1D<int, Stride1D.Dense> output)
+    {
+        int[] local = new int[4];
+        ref int target = ref (index.X & 1) == 0
+            ? ref local[0]
+            : ref local[index.X & 3];
+        target = index.X + 1;
+        output[index] = local[0] * 10 + local[index.X & 3];
+    }
+
+    private struct Pair
+    {
+        public int A;
+        public int B;
+    }
+
+    /// <summary>
+    /// A reference selects a field of one of two elements of a local array of
+    /// structures per thread: at O0, a phi of two field addresses derived from
+    /// element addresses.
+    /// </summary>
+    public static void RefFieldSelectKernel(
+        Index1D index, ArrayView1D<int, Stride1D.Dense> output)
+    {
+        Pair[] local = new Pair[2];
+        ref int target = ref (index.X & 1) == 0 ? ref local[0].A : ref local[1].B;
+        target = index.X + 1;
+        output[index] = local[0].A * 10 + local[1].B;
+    }
 }
