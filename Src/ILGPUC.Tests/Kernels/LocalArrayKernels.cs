@@ -124,4 +124,105 @@ static class LocalArrayKernels
         target = index.X + 1;
         output[index] = local[0].A * 10 + local[1].B;
     }
+
+    /// <summary>
+    /// Pin a local array with fixed and write through the pointer.
+    /// </summary>
+    public static unsafe void FixedKernel(
+        Index1D index, ArrayView1D<int, Stride1D.Dense> output)
+    {
+        int[] local = new int[4];
+        fixed (int* p = local)
+            p[index.X & 3] = index.X * 10;
+        output[index] = local[index.X & 3];
+    }
+
+    // The field stays unassigned, so that it holds the null array
+#pragma warning disable CS0649
+    private struct ArrayHolder
+    {
+        public int[]? Values;
+    }
+#pragma warning restore CS0649
+
+    private static unsafe int FirstOrMinusOne(int[]? values)
+    {
+        fixed (int* p = values)
+            return p == null ? -1 : p[0];
+    }
+
+    /// <summary>
+    /// Pin an empty array and the unassigned (null) array of a default
+    /// structure in a helper, which both yield a null pointer.
+    /// </summary>
+    public static void FixedNullKernel(
+        Index1D index, ArrayView1D<int, Stride1D.Dense> output)
+    {
+        int[] local = new int[2];
+        local[index.X & 1] = index.X;
+        ArrayHolder holder = default;
+        output[index] = FirstOrMinusOne(local) +
+            FirstOrMinusOne(new int[0]) +
+            FirstOrMinusOne(holder.Values);
+    }
+
+    private static unsafe void Fill(int[] values, int start)
+    {
+        fixed (int* p = values)
+        {
+            for (int i = 0; i < values.Length; ++i)
+                p[i] = start + i;
+        }
+    }
+
+    private static unsafe int SumLowBytes(int[] values)
+    {
+        int sum = 0;
+        fixed (int* p = values)
+        {
+            byte* bytes = (byte*)p;
+            for (int i = 0; i < values.Length; ++i)
+                sum += bytes[i * sizeof(int)];
+        }
+        return sum;
+    }
+
+    /// <summary>
+    /// Pin an array whose length is not a constant in helpers, through an int
+    /// pointer and through a byte pointer cast from it, and compare the pointer
+    /// pinned on an empty array with null.
+    /// </summary>
+    public static unsafe void FixedSelectKernel(
+        Index1D index, ArrayView1D<int, Stride1D.Dense> output)
+    {
+        int[] values = (index.X & 1) == 0 ? new int[4] : new int[2];
+        Fill(values, index.X);
+        output[index] = SumLowBytes(values);
+        fixed (int* p = new int[0])
+            output[index + 4] = p == null ? -7 : 1;
+    }
+
+    private static unsafe int SumThroughVoid(int[] values)
+    {
+        int sum = 0;
+        fixed (void* p = values)
+        {
+            int* ints = (int*)p;
+            for (int i = 0; i < values.Length; ++i)
+                sum += ints[i];
+        }
+        return sum;
+    }
+
+    /// <summary>
+    /// Pin an array whose length is not a constant through a void pointer,
+    /// which is cast from the pointer to the first element.
+    /// </summary>
+    public static void FixedVoidKernel(
+        Index1D index, ArrayView1D<int, Stride1D.Dense> output)
+    {
+        int[] values = (index.X & 1) == 0 ? new int[4] : new int[2];
+        Fill(values, index.X);
+        output[index] = SumThroughVoid(values);
+    }
 }

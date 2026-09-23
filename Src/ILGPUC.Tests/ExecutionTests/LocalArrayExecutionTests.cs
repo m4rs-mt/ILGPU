@@ -65,6 +65,61 @@ public abstract class LocalArrayExecutionTests : ExecutionTestBase
             ["0", "11", "22", "33"]);
     }
 
+    /// <summary>
+    /// fixed statements on arrays, which test the array for null, compiled in
+    /// Debug and in Release. At O0, the pointer to the first element is merged
+    /// with the null pointer of an empty array in a phi, also for arrays whose
+    /// length is not a constant, also through a void pointer, and the pointer
+    /// pinned on an empty array is compared with null.
+    /// </summary>
+    [SkippableTheory]
+    [InlineData(RoslynOptimizationLevel.Release, OptimizationLevel.O1)]
+    [InlineData(RoslynOptimizationLevel.Debug, OptimizationLevel.O1)]
+    [InlineData(RoslynOptimizationLevel.Release, OptimizationLevel.O0)]
+    [InlineData(RoslynOptimizationLevel.Debug, OptimizationLevel.O0)]
+    public async Task FixedArray_ProducesCorrectOutput(
+        RoslynOptimizationLevel programOptimization,
+        OptimizationLevel level)
+    {
+        await VerifyProgramOutputAsync(
+            "TestPrograms/LocalArray/FixedArray.cs",
+            [
+                "Kernels.FixedArrayKernel",
+                "Kernels.FixedSelectKernel",
+                "Kernels.FixedVoidKernel",
+            ],
+            [
+                "0", "11", "22", "33",
+                "6", "46", "86", "126",
+                "-2", "-2", "-2", "-2",
+                "606", "303", "1414", "707",
+                "-7", "-7", "-7", "-7",
+                "6", "3", "14", "7",
+            ],
+            new CompilationProperties { OptimizationLevel = level },
+            programOptimization);
+    }
+
+    /// <summary>
+    /// A fixed statement on the null array of a default structure and on a
+    /// local array, whose pointers flow into two pointer phis of one block with
+    /// the null pointer, one uniform and one per thread. At O0, both phis take
+    /// the null pointer when the block is entered.
+    /// </summary>
+    [SkippableTheory]
+    [InlineData(RoslynOptimizationLevel.Release)]
+    [InlineData(RoslynOptimizationLevel.Debug)]
+    public async Task FixedNullPointers_ProducesCorrectOutput(
+        RoslynOptimizationLevel programOptimization)
+    {
+        await VerifyProgramOutputAsync(
+            "TestPrograms/LocalArray/FixedNullPointers.cs",
+            ["Kernels.FixedNullPointersKernel"],
+            ["-10", "-9", "-8", "-7"],
+            new CompilationProperties { OptimizationLevel = OptimizationLevel.O0 },
+            programOptimization);
+    }
+
     [SkippableFact]
     public async Task IndexCompute_ProducesCorrectOutput()
     {

@@ -44,6 +44,10 @@ by value as kernel arguments.
 Note that you must not pass pointers to non-accessible memory regions since these are also passed by value and cannot be
 marshalled automatically by ILGPU when launching kernels.
 
+Arrays created in kernels, such as `new int[4]`, can be pinned with `fixed` statements, such as
+`fixed (int* p = array)`; the pointer of an empty array is `null`, as in .NET.
+Leaving such a `fixed` statement through `break`, `continue` or `goto` is not supported.
+
 ## Lambdas and Delegates
 
 Kernel code can use delegates (e.g. `Func<int, int>`) whose target is known at compile time.

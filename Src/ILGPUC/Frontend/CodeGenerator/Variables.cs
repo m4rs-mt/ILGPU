@@ -141,7 +141,18 @@ partial class CodeGenerator
             delegateMethod = null;
         }
 
-        var storeValue = Block.Pop(type, flags);
+        // A fixed statement on an array unpins the array at its end by storing
+        // null to the pinned local, which becomes the null value of the array
+        Value storeValue;
+        if (rawValue is NullValue && _pinnedArrayLocals.Contains(var))
+        {
+            Block.Pop();
+            storeValue = Builder.CreateNull(Location, type);
+        }
+        else
+        {
+            storeValue = Block.Pop(type, flags);
+        }
         if (_variables.Contains(var))
         {
             // Address-taken variables never hold delegates (see above)

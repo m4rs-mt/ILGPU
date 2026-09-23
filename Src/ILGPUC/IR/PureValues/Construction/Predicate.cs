@@ -38,6 +38,18 @@ partial class PureValueBuilder
         if (!trueValue.Type.Equals(falseValue.Type))
         {
             if (trueValue.Type is PointerType truePointerType &&
+                falseValue.Type is PointerType falsePointerType &&
+                truePointerType.ElementType.Equals(falsePointerType.ElementType) &&
+                (trueValue is NullValue || falseValue is NullValue))
+            {
+                // A null pointer is null in every address space, such as the
+                // null arm of the pointer of a fixed statement on an array
+                if (falseValue is NullValue)
+                    falseValue = CreateNull(location, truePointerType);
+                else
+                    trueValue = CreateNull(location, falsePointerType);
+            }
+            else if (trueValue.Type is PointerType truePointer &&
                 falseValue.Type is PointerType)
             {
                 // Pointers into different address spaces (e.g. a local closure
@@ -52,7 +64,7 @@ partial class PureValueBuilder
                         location,
                         falseValue,
                         MemoryAddressSpace.Generic),
-                    truePointerType.ElementType).AsNotNull();
+                    truePointer.ElementType).AsNotNull();
             }
             else
             {
