@@ -23,8 +23,9 @@ namespace ILGPUC.Tests.BackendTests;
 
 /// <summary>
 /// Checks that the Metal backend rejects what Metal cannot express with a
-/// clear compile-time error instead of emitting invalid source, and that it
-/// selects precise or fast math and fusion as requested.
+/// clear compile-time error instead of emitting invalid source, that it
+/// selects precise or fast math and fusion as requested and that it keeps
+/// thread storage away from address 0.
 /// </summary>
 public sealed class MetalSourceTests
 {
@@ -164,6 +165,56 @@ public sealed class MetalSourceTests
             BackendType.Metal,
             props: properties);
         Assert.Equal(fastMath, wrapper.Contains("fastMath: true"));
+    }
+
+    /// <summary>
+    /// Holds four integers in thread memory.
+    /// </summary>
+    internal unsafe struct LocalBuffer
+    {
+        public fixed int Data[4];
+    }
+
+    /// <summary>
+    /// Stores into a local array and into a fixed buffer of a local.
+    /// </summary>
+    internal static unsafe void LocalStorageKernel(
+        Index1D index,
+        ArrayView1D<int, Stride1D.Dense> data)
+    {
+        var values = new int[4];
+        values[index & 3] = data[index];
+        LocalBuffer buffer;
+        buffer.Data[index & 3] = values[(index + 1) & 3];
+        data[index] = buffer.Data[(index + 2) & 3];
+    }
+
+    private static readonly MethodInfo LocalStorage = typeof(MetalSourceTests)
+        .GetMethod(
+            nameof(LocalStorageKernel),
+            BindingFlags.NonPublic | BindingFlags.Static)!;
+
+    /// <summary>
+    /// Some Metal devices place the first thread-private object of a kernel at
+    /// address 0, where a local array or local compares equal to null. Local
+    /// arrays and allocations start one element into a longer array instead.
+    /// </summary>
+    [Theory]
+    [InlineData(OptimizationLevel.O0)]
+    [InlineData(OptimizationLevel.O1)]
+    [InlineData(OptimizationLevel.O2)]
+    public void LocalStorage_StartsAfterAddressZero(OptimizationLevel level)
+    {
+        using var helper = new CompilationHelper(BackendType.Metal);
+        var source = helper.GenerateBackendCode(
+            LocalStorage,
+            BackendType.Metal,
+            new CompilationProperties(OptimizationLevel: level)).SourceCode;
+
+        Assert.Matches(@"thread int (\w+)_storage\[5\] = \{0\};", source);
+        Assert.Matches(@"thread int\* (\w+) = \1_storage \+ 1;", source);
+        Assert.Matches(@"thread (\w+) (\w+)_storage_base\[2\] = \{\};", source);
+        Assert.Matches(@"thread \w+\* (\w+)_storage = \1_storage_base \+ 1;", source);
     }
 
     private static string Flatten(Exception exception)

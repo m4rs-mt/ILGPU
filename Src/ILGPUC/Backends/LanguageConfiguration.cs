@@ -151,6 +151,14 @@ abstract class LanguageConfiguration
     public virtual string? FormatGlobalAddress(Global global, string name) => null;
 
     /// <summary>
+    /// Returns true if thread-local arrays and allocations must not start at
+    /// address 0, as on Metal devices that place the first thread-private
+    /// object of a kernel at address 0, where it compares equal to the null
+    /// pointer. They then start one element into a longer array.
+    /// </summary>
+    public virtual bool OffsetsLocalArrays => false;
+
+    /// <summary>
     /// Formats a null literal of the given type.
     /// Default: a zero-initialized C-style compound literal. CPU override:
     /// <c>default</c>.

@@ -173,6 +173,20 @@ sealed class CodeGenerator(
         // Emit with address space qualifier
         var qualifiedTypeName = context.LanguageConfig.GetQualifiedTypeName(
             typeName, addressSpaceKeyword);
+
+        if (addressSpace == MemoryAddressSpace.Local &&
+            global.ArrayLength.HasValue &&
+            context.LanguageConfig.OffsetsLocalArrays)
+        {
+            // Start the array one element into a longer zeroed array, which
+            // keeps it away from address 0, the null pointer
+            var length = global.ArrayLength.Value.Int32Value + 1;
+            context.WriteLine(
+                $"{qualifiedTypeName} {globalName}_storage[{length}] = {{0}};");
+            context.WriteLine(
+                $"{qualifiedTypeName}* {globalName} = {globalName}_storage + 1;");
+            return;
+        }
         context.Write($"{qualifiedTypeName} {globalName}");
 
         // Handle array allocations

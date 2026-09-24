@@ -286,6 +286,8 @@ sealed class MetalLanguageConfiguration : LanguageConfiguration
         return $"  {typeName} {paramName} = ({typeName})thread_position_in_grid.x;";
     }
 
+    public override bool OffsetsLocalArrays => true;
+
     public override bool IsFileScopeAddressSpace(MemoryAddressSpace addressSpace) =>
         addressSpace == MemoryAddressSpace.Constant;
 

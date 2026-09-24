@@ -199,7 +199,8 @@ public sealed class StructuredControlFlowSourceTests
 
     private const string EndlessLoop = @"while\s*\(\s*true\s*\)";
     private const string JumpVariable = @"\b_jump\d+\b";
-    private const string StorageDeclaration = @"\b\w+_storage\s*\[\s*\d+\s*\]\s*;";
+    private const string StorageDeclaration =
+        @"\b\w+_storage(_base)?\s*\[\s*\d+\s*\]\s*(=\s*\{\s*\}\s*)?;";
 
     [Theory]
     [InlineData(BackendType.Cuda)]

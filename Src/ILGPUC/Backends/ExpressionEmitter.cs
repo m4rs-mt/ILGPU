@@ -332,7 +332,24 @@ sealed class ExpressionEmitter(GenerationContext context, TypeEmitter typeEmitte
         // Emit the storage array
         var storageTypeName = context.LanguageConfig.GetQualifiedTypeName(
             elemTypeName, addrSpace);
-        sb.Append($"{storageTypeName} {storageName}[{GetAllocaLength(alloca)}];");
+        int length = GetAllocaLength(alloca);
+        if (pointerType.AddressSpace == MemoryAddressSpace.Local &&
+            context.LanguageConfig.OffsetsLocalArrays)
+        {
+            // Start the storage one element into a longer zeroed array, which
+            // keeps it away from address 0, the null pointer. Without zeroing
+            // the unused element, the Metal compiler read the first bytes of
+            // the storage through byte pointers as zero.
+            sb.Append($"{storageTypeName} {storageName}_base[{length + 1}] = {{}};");
+            sb.Append('\n');
+            sb.Append(
+                context.LanguageConfig.GetPointerTypeName(elemTypeName, addrSpace));
+            sb.Append($" {storageName} = {storageName}_base + 1;");
+        }
+        else
+        {
+            sb.Append($"{storageTypeName} {storageName}[{length}];");
+        }
 
         // Emit the pointer variable. Build the pointer type via the
         // language config so backends that don't carry an address-space
