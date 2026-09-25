@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2017-2021 ILGPU Project
+//                        Copyright (c) 2017-2026 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CudaStream.cs
@@ -93,6 +93,40 @@ namespace ILGPU.Runtime.Cuda
             CudaException.ThrowIfFailed(
                 CurrentAPI.RecordEvent(profilingMarker.EventPtr, StreamPtr));
             return profilingMarker;
+        }
+
+        /// <summary>
+        /// Begins capturing the work submitted to this stream into a
+        /// <see cref="CudaGraph"/>. Submissions made between this call and
+        /// <see cref="EndCapture"/> are recorded rather than executed. The default stream
+        /// (the NULL stream) cannot be captured; create a dedicated stream via
+        /// <see cref="Accelerator.CreateStream()"/> to capture on.
+        /// </summary>
+        /// <param name="mode">The capture mode (see
+        /// <see cref="CudaStreamCaptureMode"/>).</param>
+        public void BeginCapture(
+            CudaStreamCaptureMode mode = CudaStreamCaptureMode.Global)
+        {
+            using var binding = Accelerator.BindScoped();
+
+            CudaException.ThrowIfFailed(
+                CurrentAPI.BeginStreamCapture(streamPtr, mode));
+        }
+
+        /// <summary>
+        /// Ends the capture started by
+        /// <see cref="BeginCapture(CudaStreamCaptureMode)"/> and returns the recorded
+        /// graph. The caller owns the returned <see cref="CudaGraph"/> and is responsible
+        /// for disposing it.
+        /// </summary>
+        /// <returns>The captured graph.</returns>
+        public CudaGraph EndCapture()
+        {
+            using var binding = Accelerator.BindScoped();
+
+            CudaException.ThrowIfFailed(
+                CurrentAPI.EndStreamCapture(streamPtr, out var graphPtr));
+            return new CudaGraph(Accelerator, graphPtr);
         }
 
         #endregion

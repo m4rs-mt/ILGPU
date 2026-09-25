@@ -141,6 +141,29 @@
     <Import Name="cuStreamSynchronize">
         <Parameter Name="stream" Type="IntPtr" />
     </Import>
+    <Import Name="cuStreamBeginCapture_v2">
+        <Parameter Name="stream" Type="IntPtr" />
+        <Parameter Name="mode" Type="CudaStreamCaptureMode" />
+    </Import>
+    <Import Name="cuStreamEndCapture">
+        <Parameter Name="stream" Type="IntPtr" />
+        <Parameter Name="graph" Type="IntPtr" Flags="Out" />
+    </Import>
+    <Import Name="cuGraphInstantiateWithFlags">
+        <Parameter Name="graphExec" Type="IntPtr" Flags="Out" />
+        <Parameter Name="graph" Type="IntPtr" />
+        <Parameter Name="flags" Type="long" />
+    </Import>
+    <Import Name="cuGraphLaunch">
+        <Parameter Name="graphExec" Type="IntPtr" />
+        <Parameter Name="stream" Type="IntPtr" />
+    </Import>
+    <Import Name="cuGraphDestroy">
+        <Parameter Name="graph" Type="IntPtr" />
+    </Import>
+    <Import Name="cuGraphExecDestroy">
+        <Parameter Name="graphExec" Type="IntPtr" />
+    </Import>
     <Import Name="cuGetErrorString">
         <Parameter Name="error" Type="CudaError" />
         <Parameter Name="pStr" Type="IntPtr" Flags="Out" />
