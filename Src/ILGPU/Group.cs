@@ -333,7 +333,12 @@ public static partial class Group
     /// <typeparam name="T">The value type to reduce.</typeparam>
     /// <param name="value">The value from this thread.</param>
     /// <param name="identity">The identity element for the operation.</param>
-    /// <param name="operation">A binary operation (T, T) -> T.</param>
+    /// <param name="operation">
+    /// The operation, which must return one operation of its two operands: one of
+    /// <c>+</c>, <c>*</c>, <c>&amp;</c>, <c>|</c> and <c>^</c>, or <c>Math.Min</c> or
+    /// <c>Math.Max</c>, as in
+    /// <c>(a, b) =&gt; a + b</c>. A kernel with any other operation does not compile.
+    /// </param>
     /// <returns>The reduced value (valid in thread 0).</returns>
     [GroupIntrinsic]
     public static T Reduce<T>(T value, T identity, Func<T, T, T> operation)
@@ -346,7 +351,12 @@ public static partial class Group
     /// <typeparam name="T">The value type to reduce.</typeparam>
     /// <param name="value">The value from this thread.</param>
     /// <param name="identity">The identity element for the operation.</param>
-    /// <param name="operation">A binary operation (T, T) -> T.</param>
+    /// <param name="operation">
+    /// The operation, which must return one operation of its two operands: one of
+    /// <c>+</c>, <c>*</c>, <c>&amp;</c>, <c>|</c> and <c>^</c>, or <c>Math.Min</c> or
+    /// <c>Math.Max</c>, as in
+    /// <c>(a, b) =&gt; a + b</c>. A kernel with any other operation does not compile.
+    /// </param>
     /// <returns>The reduced value (available on all threads).</returns>
     [GroupIntrinsic]
     public static T AllReduce<T>(T value, T identity, Func<T, T, T> operation)
@@ -363,7 +373,12 @@ public static partial class Group
     /// <typeparam name="T">The value type to scan.</typeparam>
     /// <param name="value">The value from this thread.</param>
     /// <param name="identity">The identity element for the operation.</param>
-    /// <param name="operation">A binary operation (T, T) -> T.</param>
+    /// <param name="operation">
+    /// The operation, which must return one operation of its two operands: one of
+    /// <c>+</c>, <c>*</c>, <c>&amp;</c>, <c>|</c> and <c>^</c>, or <c>Math.Min</c> or
+    /// <c>Math.Max</c>, as in
+    /// <c>(a, b) =&gt; a + b</c>. A kernel with any other operation does not compile.
+    /// </param>
     /// <returns>The scanned value for this thread.</returns>
     [GroupIntrinsic]
     public static T InclusiveScan<T>(T value, T identity, Func<T, T, T> operation)
@@ -377,7 +392,12 @@ public static partial class Group
     /// <typeparam name="T">The value type to scan.</typeparam>
     /// <param name="value">The value from this thread.</param>
     /// <param name="identity">The identity element for the operation.</param>
-    /// <param name="operation">A binary operation (T, T) -> T.</param>
+    /// <param name="operation">
+    /// The operation, which must return one operation of its two operands: one of
+    /// <c>+</c>, <c>*</c>, <c>&amp;</c>, <c>|</c> and <c>^</c>, or <c>Math.Min</c> or
+    /// <c>Math.Max</c>, as in
+    /// <c>(a, b) =&gt; a + b</c>. A kernel with any other operation does not compile.
+    /// </param>
     /// <returns>The scanned value for this thread.</returns>
     [GroupIntrinsic]
     public static T ExclusiveScan<T>(T value, T identity, Func<T, T, T> operation)

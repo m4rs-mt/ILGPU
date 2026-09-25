@@ -147,56 +147,80 @@ partial class BasicBlockBuilder
     }
 
     /// <summary>
-    /// Attempts to recognize the <see cref="BinaryArithmeticKind"/> from an
-    /// operation value. Handles both <see cref="Method"/> bodies (pre-inlining)
-    /// and direct <see cref="BinaryArithmeticValue"/> nodes (post-inlining).
+    /// Attempts to recognize the <see cref="BinaryArithmeticKind"/> from the
+    /// operation of a collective, which is the <see cref="Method"/> of its lambda
+    /// or method group: the frontend creates every collective with that method,
+    /// and every rebuild of a collective keeps a method.
     /// </summary>
+    /// <remarks>
+    /// A recognized collective computes the operation and nothing else, so only an
+    /// operation that is exactly what the method computes is recognized; any other
+    /// method keeps the custom operation, which the lowering rejects with an error.
+    /// </remarks>
     /// <param name="operation">The operation value to inspect.</param>
     /// <returns>The recognized kind, or null if unrecognized.</returns>
-    internal static BinaryArithmeticKind? TryRecognizeOperation(Value? operation) =>
-        operation switch
-        {
-            // Pre-inlining: operation is a Method whose compiled body contains
-            // a binary arithmetic as its return expression. Note: do NOT check
-            // NumParameters here — during module rebuilds the Method reference
-            // may point to a fresh declaration whose parameters have not yet
-            // been populated, while the underlying compiled body still exists.
-            Method method when method.HasImplementation =>
-                TryRecognizeMethodBody(method),
-
-            // Post-inlining or direct: operation might be a
-            // BinaryArithmeticValue itself
-            BinaryArithmeticValue arith => arith.Kind,
-
-            _ => null
-        };
+    internal static BinaryArithmeticKind? TryRecognizeOperation(Value? operation)
+    {
+        // The operation is a Method whose compiled body returns a binary
+        // arithmetic of its parameters. Note: do NOT check NumParameters here —
+        // during module rebuilds the Method reference may point to a fresh
+        // declaration whose parameters have not yet been populated, while the
+        // underlying compiled body still exists.
+        if (operation is not Method method || !method.HasImplementation)
+            return null;
+        return TryRecognizeMethodBody(method)?.Kind;
+    }
 
     /// <summary>
-    /// Inspects a method body for a binary arithmetic return value.
-    /// Scans all blocks (the IL frontend may create entry + exit blocks
-    /// even for trivial lambda bodies like <c>(a, b) => a + b</c>).
-    /// Returns null if the method body is not yet compiled (Blocks
-    /// collection uninitialized).
+    /// Returns true if a collective can compute the given operation, which is
+    /// associative and commutative.
     /// </summary>
-    private static BinaryArithmeticKind? TryRecognizeMethodBody(Method method)
+    private static bool IsCollectiveOperation(BinaryArithmeticKind kind) =>
+        kind is BinaryArithmeticKind.Add
+            or BinaryArithmeticKind.Mul
+            or BinaryArithmeticKind.And
+            or BinaryArithmeticKind.Or
+            or BinaryArithmeticKind.Xor
+            or BinaryArithmeticKind.Min
+            or BinaryArithmeticKind.Max;
+
+    /// <summary>
+    /// Inspects a method body for a binary arithmetic return value: the method
+    /// must return the operation applied to two of its parameters and do nothing
+    /// else, as <c>(a, b) => a + b</c> or <c>Math.Max</c> do. A body such as
+    /// <c>(a, b) => a + b + 1</c>, one with side effects, or one that computes the
+    /// operation on converted parameters is not recognized. Returns null if the
+    /// method body is not yet compiled (Blocks collection uninitialized).
+    /// </summary>
+    private static BinaryArithmeticValue? TryRecognizeMethodBody(Method method)
     {
         try
         {
+            if (method.ExitBlock?.TerminationValue is not BinaryArithmeticValue arith
+                || !IsCollectiveOperation(arith.Kind)
+                || arith.Left is not Parameter left
+                || arith.Right is not Parameter right
+                || left == right
+                || left.Method != method
+                || right.Method != method)
+            {
+                return null;
+            }
+
+            // The IL frontend may create entry + exit blocks even for trivial
+            // lambda bodies; none of them may hold a value with an effect
             foreach (var block in method.Blocks)
             {
-                foreach (var value in block.Values)
-                {
-                    if (value is BinaryArithmeticValue arith)
-                        return arith.Kind;
-                }
+                if (block.FirstValue is not null)
+                    return null;
             }
+            return arith;
         }
         catch (System.InvalidOperationException)
         {
             // Blocks collection not yet initialized (method body not compiled)
             return null;
         }
-        return null;
     }
 
     /// <summary>
