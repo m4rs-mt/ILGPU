@@ -73,6 +73,13 @@ sealed partial class Program
             DefaultValueFactory = static _ => FusedMultiplyAddMode.Fast
         };
 
+        /// <summary>Keeps the thread storage of Metal kernels away from address 0.</summary>
+        readonly Option<bool> _metalNullSafeLocalsOption = new("--metal-null-safe-locals")
+        {
+            Description = "Keeps local arrays and the locals whose address is taken away from address 0 on Metal, where some devices place the first of them (true, the default) or not (false)",
+            DefaultValueFactory = static _ => true
+        };
+
         /// <summary>Forces floating-point math to flush denormal values to zero.</summary>
         readonly Option<bool> _mathFlushToZeroOption = new("--ftz")
         {
@@ -145,6 +152,7 @@ sealed partial class Program
             command.Add(_staticFieldModeOption);
             command.Add(_arrayModeOption);
             command.Add(_constantEvaluationBudgetOption);
+            command.Add(_metalNullSafeLocalsOption);
 
             command.Add(_debugOption);
             command.Add(_releaseOption);
@@ -172,6 +180,8 @@ sealed partial class Program
                 ArrayMode = result.GetValue(_arrayModeOption),
                 ConstantEvaluationBudget =
                     result.GetValue(_constantEvaluationBudgetOption),
+                EnableMetalNullSafeLocals =
+                    result.GetValue(_metalNullSafeLocalsOption),
             };
 
             if (result.GetValue(_debugOption))

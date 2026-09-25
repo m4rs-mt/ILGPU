@@ -11,10 +11,12 @@
 
 using ILGPU;
 using ILGPU.Runtime;
+using ILGPU.Runtime.Metal;
 using ILGPUC.Backends;
 using ILGPUC.Tests.Framework;
 using ILGPUC.Tests.Kernels;
 using System;
+using System.CommandLine;
 using System.Reflection;
 using System.Threading.Tasks;
 using Xunit;
@@ -197,24 +199,107 @@ public sealed class MetalSourceTests
     /// <summary>
     /// Some Metal devices place the first thread-private object of a kernel at
     /// address 0, where a local array or local compares equal to null. Local
-    /// arrays and allocations start one element into a longer array instead.
+    /// arrays and allocations start one element into a longer array instead,
+    /// unless null-safe locals are turned off, which the compiled kernel then
+    /// tells the runtime.
     /// </summary>
     [Theory]
-    [InlineData(OptimizationLevel.O0)]
-    [InlineData(OptimizationLevel.O1)]
-    [InlineData(OptimizationLevel.O2)]
-    public void LocalStorage_StartsAfterAddressZero(OptimizationLevel level)
+    [InlineData(OptimizationLevel.O0, true)]
+    [InlineData(OptimizationLevel.O1, true)]
+    [InlineData(OptimizationLevel.O2, true)]
+    [InlineData(OptimizationLevel.O0, false)]
+    [InlineData(OptimizationLevel.O2, false)]
+    public void LocalStorage_StartsAfterAddressZero(
+        OptimizationLevel level,
+        bool nullSafeLocals)
     {
+        var properties = new CompilationProperties(
+            OptimizationLevel: level,
+            EnableMetalNullSafeLocals: nullSafeLocals);
         using var helper = new CompilationHelper(BackendType.Metal);
         var source = helper.GenerateBackendCode(
             LocalStorage,
             BackendType.Metal,
-            new CompilationProperties(OptimizationLevel: level)).SourceCode;
+            properties).SourceCode;
 
-        Assert.Matches(@"thread int (\w+)_storage\[5\] = \{0\};", source);
-        Assert.Matches(@"thread int\* (\w+) = \1_storage \+ 1;", source);
-        Assert.Matches(@"thread (\w+) (\w+)_storage_base\[2\] = \{\};", source);
-        Assert.Matches(@"thread \w+\* (\w+)_storage = \1_storage_base \+ 1;", source);
+        if (nullSafeLocals)
+        {
+            Assert.Matches(@"thread int (\w+)_storage\[5\] = \{0\};", source);
+            Assert.Matches(@"thread int\* (\w+) = \1_storage \+ 1;", source);
+            Assert.Matches(@"thread (\w+) (\w+)_storage_base\[2\] = \{\};", source);
+            Assert.Matches(@"thread \w+\* (\w+)_storage = \1_storage_base \+ 1;", source);
+        }
+        else
+        {
+            Assert.Matches(@"thread int \w+\[4\] = \{0\}\s*;", source);
+            Assert.Matches(@"thread \w+ \w+_storage\[1\];", source);
+            Assert.DoesNotContain("_storage_base", source);
+            Assert.DoesNotContain(" + 1;", source);
+        }
+
+        var (_, wrapper) = helper.GenerateLauncher(
+            LocalStorage,
+            BackendType.Metal,
+            props: properties);
+        Assert.Equal(!nullSafeLocals, wrapper.Contains("nullSafeLocals: false"));
+    }
+
+    /// <summary>
+    /// Null-safe locals are the default of the compilation properties and of the
+    /// command line, which turns them off with false.
+    /// </summary>
+    [Theory]
+    [InlineData(new string[0], true)]
+    [InlineData(new[] { "--metal-null-safe-locals" }, true)]
+    [InlineData(new[] { "--metal-null-safe-locals", "false" }, false)]
+    [InlineData(new[] { "--metal-null-safe-locals=false" }, false)]
+    public void CommandLine_SelectsNullSafeLocals(string[] args, bool expected)
+    {
+        Assert.True(new CompilationProperties().EnableMetalNullSafeLocals);
+
+        var command = new Command("compile");
+        var options = new Program.CompilationPropertiesOptions(command);
+        var result = command.Parse(args);
+
+        Assert.Empty(result.Errors);
+        Assert.Equal(
+            expected,
+            options.GetProperties(result).EnableMetalNullSafeLocals);
+    }
+
+    /// <summary>
+    /// The Metal runtime warns when it loads a kernel without null-safe locals
+    /// on the Apple Paravirtual device of macOS virtual machines, which places
+    /// the first thread-private object of a kernel at address 0.
+    /// </summary>
+    [Theory]
+    [InlineData(false, "Apple Paravirtual device", true)]
+    [InlineData(true, "Apple Paravirtual device", false)]
+    [InlineData(false, "Apple M4 Max", false)]
+    public void NullSafeLocals_WarnsOnParavirtualDevice(
+        bool nullSafeLocals,
+        string deviceName,
+        bool warns)
+    {
+        var kernel = new MetalCompiledKernel(
+            Guid.NewGuid(),
+            "LocalStorageKernel",
+            CompiledKernelType.Auto,
+            CompiledKernelSharedMemoryMode.Static,
+            MetalTargetOS.macOS,
+            MetalGPUFamily.Apple7,
+            nullSafeLocals: nullSafeLocals);
+        var getWarning = typeof(MetalKernel).GetMethod(
+            "GetNullSafeLocalsWarning",
+            BindingFlags.NonPublic | BindingFlags.Static)!;
+
+        var warning = (string?)getWarning.Invoke(null, [kernel, deviceName]);
+        Assert.Equal(warns, warning is not null);
+        if (warning is not null)
+        {
+            Assert.Contains("'LocalStorageKernel'", warning);
+            Assert.Contains("--metal-null-safe-locals", warning);
+        }
     }
 
     private static string Flatten(Exception exception)

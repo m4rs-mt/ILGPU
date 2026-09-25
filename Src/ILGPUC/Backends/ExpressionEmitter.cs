@@ -334,7 +334,7 @@ sealed class ExpressionEmitter(GenerationContext context, TypeEmitter typeEmitte
             elemTypeName, addrSpace);
         int length = GetAllocaLength(alloca);
         if (pointerType.AddressSpace == MemoryAddressSpace.Local &&
-            context.LanguageConfig.OffsetsLocalArrays)
+            context.OffsetsLocalArrays)
         {
             // Start the storage one element into a longer zeroed array, which
             // keeps it away from address 0, the null pointer. Without zeroing

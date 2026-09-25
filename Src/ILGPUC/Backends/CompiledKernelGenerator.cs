@@ -1059,6 +1059,7 @@ sealed class CompiledKernelGenerator : DisposeBase
             BufferPool = _compiled.BufferPool,
             ActiveEmbedMode = _effectiveEmbedMode,
             MathMode = _module.MathMode,
+            NullSafeLocals = _module.EnableMetalNullSafeLocals,
             KernelSourceCode = _compiled.SourceCode,
         };
 

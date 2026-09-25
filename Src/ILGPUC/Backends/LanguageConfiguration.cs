@@ -154,7 +154,9 @@ abstract class LanguageConfiguration
     /// Returns true if thread-local arrays and allocations must not start at
     /// address 0, as on Metal devices that place the first thread-private
     /// object of a kernel at address 0, where it compares equal to the null
-    /// pointer. They then start one element into a longer array.
+    /// pointer. They then start one element into a longer array, unless
+    /// <see cref="CompilationProperties.EnableMetalNullSafeLocals"/> is turned
+    /// off.
     /// </summary>
     public virtual bool OffsetsLocalArrays => false;
 

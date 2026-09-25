@@ -213,6 +213,14 @@ public enum ArrayMode
 /// a helper predicate (such as <c>IsFloat&lt;T&gt;()</c>) at compile time. Calls
 /// that need more are compiled as calls.
 /// </param>
+/// <param name="EnableMetalNullSafeLocals">
+/// True if Metal kernels keep local arrays and the locals they take the address
+/// of away from address 0, which some devices give to the first thread-private
+/// object of a kernel and which compares equal to null. This is the default
+/// setting (<c>--metal-null-safe-locals</c>); turning it off saves one element
+/// per local array, and the Metal runtime warns when such a kernel is loaded on
+/// a device known to place locals at address 0.
+/// </param>
 public sealed record class CompilationProperties(
     DebugSymbolsMode DebugSymbolsMode = DebugSymbolsMode.Default,
     bool EnableAssertions = true,
@@ -224,7 +232,8 @@ public sealed record class CompilationProperties(
     FusedMultiplyAddMode FusedMultiplyAddMode = FusedMultiplyAddMode.Fast,
     StaticFieldMode StaticFieldMode = StaticFieldMode.Default,
     ArrayMode ArrayMode = ArrayMode.Default,
-    int ConstantEvaluationBudget = CompilationProperties.DefaultConstantEvaluationBudget)
+    int ConstantEvaluationBudget = CompilationProperties.DefaultConstantEvaluationBudget,
+    bool EnableMetalNullSafeLocals = true)
 {
     /// <summary>
     /// The default of <see cref="ConstantEvaluationBudget"/>.

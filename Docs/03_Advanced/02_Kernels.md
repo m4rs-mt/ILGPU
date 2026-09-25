@@ -48,6 +48,22 @@ Arrays created in kernels, such as `new int[4]`, can be pinned with `fixed` stat
 `fixed (int* p = array)`; the pointer of an empty array is `null`, as in .NET.
 Leaving such a `fixed` statement through `break`, `continue` or `goto` is not supported.
 
+Some Metal devices, such as the Apple Paravirtual device of macOS virtual machines, place the first thread-private
+object of a kernel at address 0, where an array created in the kernel or the address of a local would compare equal
+to `null`.
+Metal kernels therefore start such arrays and locals one element into a longer array by default.
+To save this element, turn it off with `--metal-null-safe-locals false`, for instance in the project file:
+
+```xml
+<PropertyGroup>
+  <ILGPUCompilationOptions>--metal-null-safe-locals false</ILGPUCompilationOptions>
+</PropertyGroup>
+```
+
+or with `EnableMetalNullSafeLocals = false` in the `CompilationProperties` passed to the compiler.
+The Metal runtime then writes a warning to `System.Diagnostics.Trace` when it loads such a kernel on the Apple
+Paravirtual device.
+
 ## Lambdas and Delegates
 
 Kernel code can use delegates (e.g. `Func<int, int>`) whose target is known at compile time.

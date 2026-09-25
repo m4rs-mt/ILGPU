@@ -32,6 +32,20 @@ public abstract class LocalArrayExecutionTests : ExecutionTestBase
             ["10", "20", "30", "40"]);
     }
 
+    /// <summary>
+    /// Kernels whose thread storage may start at address 0 still run, on Metal
+    /// through a compiled kernel that tells the runtime.
+    /// </summary>
+    [SkippableFact]
+    public async Task WriteReadWithoutNullSafeLocals_ProducesCorrectOutput()
+    {
+        await VerifyProgramOutputAsync(
+            "TestPrograms/LocalArray/WriteRead.cs",
+            ["Kernels.WriteReadKernel"],
+            ["10", "20", "30", "40"],
+            new CompilationProperties { EnableMetalNullSafeLocals = false });
+    }
+
     [SkippableFact]
     public async Task Length_ProducesCorrectOutput()
     {

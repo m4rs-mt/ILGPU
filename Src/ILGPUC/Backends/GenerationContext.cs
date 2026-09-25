@@ -52,6 +52,13 @@ sealed partial class GenerationContext(
     public LanguageConfiguration LanguageConfig { get; } = languageConfig;
 
     /// <summary>
+    /// Returns true if thread-local arrays and allocations start one element
+    /// into a longer array, which the language needs and the module allows.
+    /// </summary>
+    public bool OffsetsLocalArrays =>
+        LanguageConfig.OffsetsLocalArrays && Module.EnableMetalNullSafeLocals;
+
+    /// <summary>
     /// Returns how the entry point is launched.
     /// </summary>
     public EntryPointLaunch Launch { get; } = launch;

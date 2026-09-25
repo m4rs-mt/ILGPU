@@ -156,6 +156,7 @@ sealed class Module : IGenerationObject, IValueScope, IDumpable
 
         MathMode = moduleBuilder.Properties.MathMode;
         FusedMultiplyAddMode = moduleBuilder.Properties.FusedMultiplyAddMode;
+        EnableMetalNullSafeLocals = moduleBuilder.Properties.EnableMetalNullSafeLocals;
 
         TargetPlatform = moduleBuilder.TargetPlatform;
         IntPointerArithmeticType = moduleBuilder.IntPointerArithmeticType;
@@ -191,6 +192,12 @@ sealed class Module : IGenerationObject, IValueScope, IDumpable
     /// multiply-adds.
     /// </summary>
     public FusedMultiplyAddMode FusedMultiplyAddMode { get; private set; }
+
+    /// <summary>
+    /// Returns true if Metal kernels keep their thread storage away from
+    /// address 0.
+    /// </summary>
+    public bool EnableMetalNullSafeLocals { get; private set; }
 
     /// <summary>
     /// Returns the main entry point handle.

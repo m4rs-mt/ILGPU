@@ -34,6 +34,12 @@ public sealed class MetalKernel : Kernel
     {
         var deviceHandle = accelerator.DeviceHandle;
 
+        if (GetNullSafeLocalsWarning(compiledKernel, accelerator.Name) is
+            string warning)
+        {
+            Trace.WriteLine(warning);
+        }
+
         // Load the Metal library — prefer pre-compiled binary, fall back
         // to runtime source compilation.
         LibraryPtr = LoadLibrary(compiledKernel, deviceHandle);
@@ -72,6 +78,29 @@ public sealed class MetalKernel : Kernel
         }
         PipelineState = pipelineState;
     }
+
+    /// <summary>
+    /// The name of the virtual Metal device of macOS virtual machines, which
+    /// places the first thread-private object of a kernel at address 0.
+    /// </summary>
+    private const string ParavirtualDeviceName = "Apple Paravirtual device";
+
+    /// <summary>
+    /// Returns a warning if the kernel may place a local at address 0 on the
+    /// given device, where it compares equal to null, or null otherwise.
+    /// </summary>
+    /// <param name="compiledKernel">The compiled kernel to load.</param>
+    /// <param name="deviceName">The name of the Metal device.</param>
+    private static string? GetNullSafeLocalsWarning(
+        MetalCompiledKernel compiledKernel,
+        string deviceName) =>
+        !compiledKernel.NullSafeLocals && deviceName == ParavirtualDeviceName
+            ? $"Kernel '{compiledKernel.KernelName}' was compiled with " +
+                "--metal-null-safe-locals false, but the Metal device " +
+                $"'{deviceName}' places the first thread-private object of " +
+                "a kernel at address 0, so a local array or the address of a " +
+                "local may compare equal to null"
+            : null;
 
     /// <summary>
     /// Loads a Metal library from binary data or source code.

@@ -176,7 +176,7 @@ sealed class CodeGenerator(
 
         if (addressSpace == MemoryAddressSpace.Local &&
             global.ArrayLength.HasValue &&
-            context.LanguageConfig.OffsetsLocalArrays)
+            context.OffsetsLocalArrays)
         {
             // Start the array one element into a longer zeroed array, which
             // keeps it away from address 0, the null pointer
