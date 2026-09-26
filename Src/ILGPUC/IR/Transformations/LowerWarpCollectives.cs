@@ -52,14 +52,16 @@ sealed class LowerWarpCollectives(
         specification.AcceleratorType switch
         {
             // Metal: simd_sum, simd_min, simd_max, simd_and, simd_or,
-            // simd_xor, simd_product (32-bit and smaller types only)
+            // simd_xor, simd_product (32-bit and smaller types only), with
+            // unsigned operands for an unsigned minimum or maximum
             AcceleratorType.Metal => !Is64Bit(type) && op is
                 BinaryArithmeticKind.Add or BinaryArithmeticKind.Min or
                 BinaryArithmeticKind.Max or BinaryArithmeticKind.And or
                 BinaryArithmeticKind.Or or BinaryArithmeticKind.Xor or
                 BinaryArithmeticKind.Mul,
             // OpenCL: sub_group_reduce_add, sub_group_reduce_min,
-            // sub_group_reduce_max
+            // sub_group_reduce_max, with unsigned operands for an unsigned
+            // minimum or maximum
             AcceleratorType.OpenCL => op is
                 BinaryArithmeticKind.Add or BinaryArithmeticKind.Min or
                 BinaryArithmeticKind.Max,
@@ -124,7 +126,8 @@ sealed class LowerWarpCollectives(
                 location,
                 left,
                 right,
-                source.IntrinsicOp!.Value).AsNotNull();
+                source.IntrinsicOp!.Value,
+                source.IntrinsicFlags).AsNotNull();
         }
 
         // Custom operation: the Operation value is a Method — emit a call.
@@ -151,7 +154,8 @@ sealed class LowerWarpCollectives(
                 location,
                 left,
                 right,
-                source.IntrinsicOp!.Value).AsNotNull();
+                source.IntrinsicOp!.Value,
+                source.IntrinsicFlags).AsNotNull();
         }
 
         throw new NotSupportedException(
@@ -160,11 +164,6 @@ sealed class LowerWarpCollectives(
             "like (a, b) => a + b.");
     }
 
-    /// <summary>
-    /// Lowers a <see cref="WarpReduce"/> to an unrolled shuffle sequence.
-    /// Skips lowering when the backend supports native emission for the
-    /// recognized intrinsic operation.
-    /// </summary>
     /// <summary>
     /// Attempts late recognition of a custom WarpReduce's operation.
     /// At frontend time, the lambda Method body may not be compiled yet,
@@ -179,7 +178,9 @@ sealed class LowerWarpCollectives(
             return reduce;
 
         // Try late recognition of the custom operation
-        var op = BasicBlockBuilder.TryRecognizeOperation(reduce.Operation);
+        var op = BasicBlockBuilder.TryRecognizeOperation(
+            reduce.Operation,
+            out var flags);
         if (op.HasValue)
         {
             // Create intrinsic variant to replace the custom one
@@ -187,12 +188,18 @@ sealed class LowerWarpCollectives(
                 reduce.Location,
                 transform.Rewrite(reduce.Variable),
                 op.Value,
+                flags,
                 reduce.Kind) as WarpReduce;
         }
 
         return null;
     }
 
+    /// <summary>
+    /// Lowers a <see cref="WarpReduce"/> to an unrolled shuffle sequence.
+    /// Skips lowering when the backend supports native emission for the
+    /// recognized intrinsic operation.
+    /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     private Value? LowerReduce(BasicBlockTransform transform, WarpReduce reduce)
     {

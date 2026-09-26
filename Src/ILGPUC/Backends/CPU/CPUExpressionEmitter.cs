@@ -1428,6 +1428,24 @@ sealed class CPUExpressionEmitter(
     }
 
     /// <summary>
+    /// Returns the C# type that stores the values of a warp reduction or scan and
+    /// the C# type that its operation works with, which is the unsigned type of
+    /// an unsigned minimum or maximum.
+    /// </summary>
+    private (string StorageType, string SemanticType) GetCollectiveTypes(
+        ThreadValue collective,
+        ArithmeticBasicValueType type) =>
+        (GetStorageType(collective.BasicValueType), GetSemanticType(type));
+
+    /// <summary>
+    /// Reinterprets the per-lane result array of a warp reduction or scan that
+    /// works with another C# type than its storage type: an array of an
+    /// unsigned integer type is also an array of the signed type of its size.
+    /// </summary>
+    private static string ReinterpretResult(string array, string from, string to) =>
+        from == to ? array : $"({from}[])(object){array}";
+
+    /// <summary>
     /// Emits a warp reduce operation using the CPU's vectorized helpers.
     /// The operand is resolved through the vectorized path so that
     /// per-lane arrays feed into the <c>ReadOnlySpan&lt;T&gt;</c> parameters
@@ -1440,7 +1458,7 @@ sealed class CPUExpressionEmitter(
         var op = reduce.IntrinsicOp
             ?? throw new System.NotSupportedException(
                 "Custom warp reduce operations must be lowered before codegen");
-        var type = reduce.BasicValueType.GetArithmeticBasicValueType(false);
+        var type = reduce.BasicValueType.GetArithmeticBasicValueType(reduce.IsUnsigned);
 
         if (analysis.IsScalar(reduce.Variable))
         {
@@ -1456,9 +1474,11 @@ sealed class CPUExpressionEmitter(
             variable = bcast;
         }
 
+        var (storageType, semanticType) = GetCollectiveTypes(reduce, type);
         var text = context.IntrinsicEmitter.EmitWarpReduce(
-            variable, op, reduce.Kind, type);
-        context.WriteLine($"{result} = {text};");
+            Reinterpret(variable, storageType, semanticType), op, reduce.Kind, type);
+        context.WriteLine(
+            $"{result} = {ReinterpretResult(text, storageType, semanticType)};");
     }
 
     /// <summary>
@@ -1471,7 +1491,7 @@ sealed class CPUExpressionEmitter(
         var op = scan.IntrinsicOp
             ?? throw new System.NotSupportedException(
                 "Custom warp scan operations must be lowered before codegen");
-        var type = scan.BasicValueType.GetArithmeticBasicValueType(false);
+        var type = scan.BasicValueType.GetArithmeticBasicValueType(scan.IsUnsigned);
 
         if (analysis.IsScalar(scan.Variable))
         {
@@ -1490,9 +1510,15 @@ sealed class CPUExpressionEmitter(
         var identity = scan.Identity is { } scanIdentity
             ? ResolveOperand(scanIdentity)
             : null;
+        var (storageType, semanticType) = GetCollectiveTypes(scan, type);
         var text = CPUIntrinsicEmitter.EmitWarpScan(
-            variable, op, scan.Kind, type, identity);
-        context.WriteLine($"{result} = {text};");
+            Reinterpret(variable, storageType, semanticType),
+            op,
+            scan.Kind,
+            type,
+            identity);
+        context.WriteLine(
+            $"{result} = {ReinterpretResult(text, storageType, semanticType)};");
     }
 
     /// <summary>

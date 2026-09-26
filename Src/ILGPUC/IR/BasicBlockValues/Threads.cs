@@ -243,11 +243,13 @@ sealed partial class WarpReduce : ThreadValue
         in BasicBlockValueInitializer initializer,
         Value data,
         BinaryArithmeticKind intrinsicOp,
+        ArithmeticFlags intrinsicFlags,
         WarpReduceKind kind)
         : base(initializer, data.Type)
     {
         Kind = kind;
         IntrinsicOp = intrinsicOp;
+        IntrinsicFlags = intrinsicFlags;
         Seal(data);
     }
 
@@ -272,6 +274,20 @@ sealed partial class WarpReduce : ThreadValue
     public BinaryArithmeticKind? IntrinsicOp { get; }
 
     /// <summary>
+    /// The flags of the recognized intrinsic operation, which are
+    /// <see cref="ArithmeticFlags.Unsigned"/> for an unsigned minimum or maximum
+    /// and <see cref="ArithmeticFlags.None"/> otherwise.
+    /// </summary>
+    public ArithmeticFlags IntrinsicFlags { get; }
+
+    /// <summary>
+    /// Returns true if the intrinsic operation compares its operands as unsigned
+    /// integers.
+    /// </summary>
+    public bool IsUnsigned =>
+        (IntrinsicFlags & ArithmeticFlags.Unsigned) == ArithmeticFlags.Unsigned;
+
+    /// <summary>
     /// Returns true if this reduction uses a recognized intrinsic operation.
     /// </summary>
     public bool HasIntrinsicOperation => IntrinsicOp.HasValue;
@@ -291,6 +307,7 @@ sealed partial class WarpReduce : ThreadValue
                 Location,
                 data,
                 IntrinsicOp!.Value,
+                IntrinsicFlags,
                 Kind);
         }
         return rewriter.Builder.CreateWarpReduce(
@@ -303,7 +320,7 @@ sealed partial class WarpReduce : ThreadValue
     /// <inheritdoc cref="Value.ToPrefixString"/>
     protected override string ToPrefixString() =>
         HasIntrinsicOperation
-        ? $"warpReduce.{Kind}.{IntrinsicOp}"
+        ? $"warpReduce.{Kind}.{IntrinsicOp}{(IsUnsigned ? ".Unsigned" : "")}"
         : $"warpReduce.{Kind}.custom";
 
     /// <inheritdoc cref="Value.ToArgString()"/>
@@ -329,12 +346,14 @@ sealed partial class WarpScan : ThreadValue
         in BasicBlockValueInitializer initializer,
         Value data,
         BinaryArithmeticKind intrinsicOp,
+        ArithmeticFlags intrinsicFlags,
         WarpScanKind kind,
         Value? identity = null)
         : base(initializer, data.Type)
     {
         Kind = kind;
         IntrinsicOp = intrinsicOp;
+        IntrinsicFlags = intrinsicFlags;
         if (identity is not null)
             Seal(data, identity);
         else
@@ -366,6 +385,20 @@ sealed partial class WarpScan : ThreadValue
     public BinaryArithmeticKind? IntrinsicOp { get; }
 
     /// <summary>
+    /// The flags of the recognized intrinsic operation, which are
+    /// <see cref="ArithmeticFlags.Unsigned"/> for an unsigned minimum or maximum
+    /// and <see cref="ArithmeticFlags.None"/> otherwise.
+    /// </summary>
+    public ArithmeticFlags IntrinsicFlags { get; }
+
+    /// <summary>
+    /// Returns true if the intrinsic operation compares its operands as unsigned
+    /// integers.
+    /// </summary>
+    public bool IsUnsigned =>
+        (IntrinsicFlags & ArithmeticFlags.Unsigned) == ArithmeticFlags.Unsigned;
+
+    /// <summary>
     /// Returns true if this scan uses a recognized intrinsic operation.
     /// </summary>
     public bool HasIntrinsicOperation => IntrinsicOp.HasValue;
@@ -393,6 +426,7 @@ sealed partial class WarpScan : ThreadValue
                 Location,
                 data,
                 IntrinsicOp!.Value,
+                IntrinsicFlags,
                 Kind,
                 identity);
         }
@@ -408,7 +442,7 @@ sealed partial class WarpScan : ThreadValue
     /// <inheritdoc cref="Value.ToPrefixString"/>
     protected override string ToPrefixString() =>
         HasIntrinsicOperation
-        ? $"warpScan.{Kind}.{IntrinsicOp}"
+        ? $"warpScan.{Kind}.{IntrinsicOp}{(IsUnsigned ? ".Unsigned" : "")}"
         : $"warpScan.{Kind}.custom";
 
     /// <inheritdoc cref="Value.ToArgString()"/>
@@ -436,12 +470,14 @@ sealed partial class GroupReduce : ThreadValue
         in BasicBlockValueInitializer initializer,
         Value data,
         BinaryArithmeticKind intrinsicOp,
+        ArithmeticFlags intrinsicFlags,
         GroupReduceKind kind,
         Value identity)
         : base(initializer, data.Type)
     {
         Kind = kind;
         IntrinsicOp = intrinsicOp;
+        IntrinsicFlags = intrinsicFlags;
         Seal(data, identity);
     }
 
@@ -465,6 +501,20 @@ sealed partial class GroupReduce : ThreadValue
     /// The recognized intrinsic binary operation, or null for custom operations.
     /// </summary>
     public BinaryArithmeticKind? IntrinsicOp { get; }
+
+    /// <summary>
+    /// The flags of the recognized intrinsic operation, which are
+    /// <see cref="ArithmeticFlags.Unsigned"/> for an unsigned minimum or maximum
+    /// and <see cref="ArithmeticFlags.None"/> otherwise.
+    /// </summary>
+    public ArithmeticFlags IntrinsicFlags { get; }
+
+    /// <summary>
+    /// Returns true if the intrinsic operation compares its operands as unsigned
+    /// integers.
+    /// </summary>
+    public bool IsUnsigned =>
+        (IntrinsicFlags & ArithmeticFlags.Unsigned) == ArithmeticFlags.Unsigned;
 
     /// <summary>
     /// Returns true if this reduction uses a recognized intrinsic operation.
@@ -494,6 +544,7 @@ sealed partial class GroupReduce : ThreadValue
                 Location,
                 data,
                 IntrinsicOp!.Value,
+                IntrinsicFlags,
                 Kind,
                 identity);
         }
@@ -508,7 +559,7 @@ sealed partial class GroupReduce : ThreadValue
     /// <inheritdoc cref="Value.ToPrefixString"/>
     protected override string ToPrefixString() =>
         HasIntrinsicOperation
-        ? $"groupReduce.{Kind}.{IntrinsicOp}"
+        ? $"groupReduce.{Kind}.{IntrinsicOp}{(IsUnsigned ? ".Unsigned" : "")}"
         : $"groupReduce.{Kind}.custom";
 
     /// <inheritdoc cref="Value.ToArgString()"/>
@@ -531,12 +582,14 @@ sealed partial class GroupScan : ThreadValue
         in BasicBlockValueInitializer initializer,
         Value data,
         BinaryArithmeticKind intrinsicOp,
+        ArithmeticFlags intrinsicFlags,
         GroupScanKind kind,
         Value identity)
         : base(initializer, data.Type)
     {
         Kind = kind;
         IntrinsicOp = intrinsicOp;
+        IntrinsicFlags = intrinsicFlags;
         Seal(data, identity);
     }
 
@@ -560,6 +613,20 @@ sealed partial class GroupScan : ThreadValue
     /// The recognized intrinsic binary operation, or null for custom operations.
     /// </summary>
     public BinaryArithmeticKind? IntrinsicOp { get; }
+
+    /// <summary>
+    /// The flags of the recognized intrinsic operation, which are
+    /// <see cref="ArithmeticFlags.Unsigned"/> for an unsigned minimum or maximum
+    /// and <see cref="ArithmeticFlags.None"/> otherwise.
+    /// </summary>
+    public ArithmeticFlags IntrinsicFlags { get; }
+
+    /// <summary>
+    /// Returns true if the intrinsic operation compares its operands as unsigned
+    /// integers.
+    /// </summary>
+    public bool IsUnsigned =>
+        (IntrinsicFlags & ArithmeticFlags.Unsigned) == ArithmeticFlags.Unsigned;
 
     /// <summary>
     /// Returns true if this scan uses a recognized intrinsic operation.
@@ -589,6 +656,7 @@ sealed partial class GroupScan : ThreadValue
                 Location,
                 data,
                 IntrinsicOp!.Value,
+                IntrinsicFlags,
                 Kind,
                 identity);
         }
@@ -603,7 +671,7 @@ sealed partial class GroupScan : ThreadValue
     /// <inheritdoc cref="Value.ToPrefixString"/>
     protected override string ToPrefixString() =>
         HasIntrinsicOperation
-        ? $"groupScan.{Kind}.{IntrinsicOp}"
+        ? $"groupScan.{Kind}.{IntrinsicOp}{(IsUnsigned ? ".Unsigned" : "")}"
         : $"groupScan.{Kind}.custom";
 
     /// <inheritdoc cref="Value.ToArgString()"/>

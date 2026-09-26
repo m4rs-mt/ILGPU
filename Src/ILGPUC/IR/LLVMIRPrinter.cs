@@ -774,7 +774,8 @@ internal sealed class LLVMIRPrinter
                 Def(wr,
                     wr.HasIntrinsicOperation
                     ? $"call {T(wr.Type)} " +
-                      $"@ilgpu.warp.reduce.{wr.Kind}.{wr.IntrinsicOp}(" +
+                      $"@ilgpu.warp.reduce.{wr.Kind}.{wr.IntrinsicOp}" +
+                      $"{(wr.IsUnsigned ? ".unsigned" : "")}(" +
                       $"{T(wr.Type)} {N(wr.Variable)})"
                     : $"call {T(wr.Type)} " +
                       $"@ilgpu.warp.reduce.{wr.Kind}.custom(" +
@@ -786,7 +787,8 @@ internal sealed class LLVMIRPrinter
                 Def(ws,
                     ws.HasIntrinsicOperation
                     ? $"call {T(ws.Type)} " +
-                      $"@ilgpu.warp.scan.{ws.Kind}.{ws.IntrinsicOp}(" +
+                      $"@ilgpu.warp.scan.{ws.Kind}.{ws.IntrinsicOp}" +
+                      $"{(ws.IsUnsigned ? ".unsigned" : "")}(" +
                       $"{T(ws.Type)} {N(ws.Variable)})"
                     : $"call {T(ws.Type)} " +
                       $"@ilgpu.warp.scan.{ws.Kind}.custom(" +
@@ -798,7 +800,8 @@ internal sealed class LLVMIRPrinter
                 Def(gr,
                     gr.HasIntrinsicOperation
                     ? $"call {T(gr.Type)} " +
-                      $"@ilgpu.group.reduce.{gr.Kind}.{gr.IntrinsicOp}(" +
+                      $"@ilgpu.group.reduce.{gr.Kind}.{gr.IntrinsicOp}" +
+                      $"{(gr.IsUnsigned ? ".unsigned" : "")}(" +
                       $"{T(gr.Type)} {N(gr.Variable)}, " +
                       $"{T(gr.Identity.Type)} {N(gr.Identity)})"
                     : $"call {T(gr.Type)} " +
@@ -812,7 +815,8 @@ internal sealed class LLVMIRPrinter
                 Def(gs,
                     gs.HasIntrinsicOperation
                     ? $"call {T(gs.Type)} " +
-                      $"@ilgpu.group.scan.{gs.Kind}.{gs.IntrinsicOp}(" +
+                      $"@ilgpu.group.scan.{gs.Kind}.{gs.IntrinsicOp}" +
+                      $"{(gs.IsUnsigned ? ".unsigned" : "")}(" +
                       $"{T(gs.Type)} {N(gs.Variable)}, " +
                       $"{T(gs.Identity.Type)} {N(gs.Identity)})"
                     : $"call {T(gs.Type)} " +

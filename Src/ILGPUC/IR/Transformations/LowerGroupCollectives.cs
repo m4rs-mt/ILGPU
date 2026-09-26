@@ -165,6 +165,7 @@ sealed class LowerGroupCollectives(
             transform.Rewrite(reduce.Variable).AsNotNull(),
             transform.Rewrite(reduce.Identity).AsNotNull(),
             reduce.IntrinsicOp!.Value,
+            reduce.IntrinsicFlags,
             reduce.Kind == GroupReduceKind.AllReduce);
     }
 
@@ -204,6 +205,7 @@ sealed class LowerGroupCollectives(
             data,
             identity,
             op,
+            ArithmeticFlags.None,
             allReduce: true);
 
         // A predicate barrier synchronizes all threads of the group
@@ -220,7 +222,8 @@ sealed class LowerGroupCollectives(
 
     /// <summary>
     /// Emits a group reduction of <paramref name="data"/> using shared memory,
-    /// warp reductions and barriers.
+    /// warp reductions and barriers, which reduce with the operation and its
+    /// flags.
     /// </summary>
     private Value CreateGroupReduce(
         BasicBlockTransform transform,
@@ -228,6 +231,7 @@ sealed class LowerGroupCollectives(
         Value data,
         Value identity,
         BinaryArithmeticKind op,
+        ArithmeticFlags flags,
         bool allReduce)
     {
         // Obtain thread indices
@@ -260,7 +264,7 @@ sealed class LowerGroupCollectives(
         // --- Step 1: Per-warp AllReduce ---
         // All lanes in each warp get their warp's aggregated result.
         var warpResult = transform.CreateWarpReduce(
-            location, data, op, WarpReduceKind.AllReduce).AsNotNull();
+            location, data, op, flags, WarpReduceKind.AllReduce).AsNotNull();
 
         // --- Step 2: Store per-warp result ---
         // All lanes in a warp store the same value to shared[warpIdx].
@@ -290,6 +294,7 @@ sealed class LowerGroupCollectives(
             location,
             val,
             op,
+            flags,
             finalKind).AsNotNull();
 
         return finalResult;
@@ -332,6 +337,7 @@ sealed class LowerGroupCollectives(
         var data = transform.Rewrite(scan.Variable).AsNotNull();
         var identity = transform.Rewrite(scan.Identity);
         var op = scan.IntrinsicOp!.Value;
+        var flags = scan.IntrinsicFlags;
 
         // Obtain thread indices
         var laneIdx = transform.CreateSubGroupLaneIndexValue(location);
@@ -365,6 +371,7 @@ sealed class LowerGroupCollectives(
             location,
             data,
             op,
+            flags,
             warpScanKind,
             identity).AsNotNull();
 
@@ -375,6 +382,7 @@ sealed class LowerGroupCollectives(
             location,
             data,
             op,
+            flags,
             WarpReduceKind.AllReduce).AsNotNull();
         var storeAddr = transform.CreateLoadElementAddress(
             location,
@@ -394,6 +402,7 @@ sealed class LowerGroupCollectives(
             location,
             warpTotals,
             op,
+            flags,
             WarpScanKind.Exclusive,
             identity).AsNotNull();
 
@@ -410,7 +419,8 @@ sealed class LowerGroupCollectives(
             location,
             myWarpPrefix,
             perWarpResult,
-            op);
+            op,
+            flags);
     }
 
     /// <summary>
@@ -533,10 +543,10 @@ sealed class LowerGroupCollectives(
 
             var warpExclScan = transform.CreateWarpScan(
                 location, isZero, BinaryArithmeticKind.Add,
-                WarpScanKind.Exclusive, zero).AsNotNull();
+                ArithmeticFlags.None, WarpScanKind.Exclusive, zero).AsNotNull();
             var warpTotal = transform.CreateWarpReduce(
                 location, isZero, BinaryArithmeticKind.Add,
-                WarpReduceKind.AllReduce).AsNotNull();
+                ArithmeticFlags.None, WarpReduceKind.AllReduce).AsNotNull();
             var storeScratchAddr = transform.CreateLoadElementAddress(
                 location, sharedScratch, warpIdx).AsNotNull();
             transform.CreateStore(location, storeScratchAddr, warpTotal);
@@ -548,7 +558,7 @@ sealed class LowerGroupCollectives(
                 location, readScratchAddr).AsNotNull();
             var crossWarpPrefix = transform.CreateWarpScan(
                 location, warpTotals, BinaryArithmeticKind.Add,
-                WarpScanKind.Exclusive, zero).AsNotNull();
+                ArithmeticFlags.None, WarpScanKind.Exclusive, zero).AsNotNull();
             var myWarpPrefix = transform.CreateShuffle(
                 location, crossWarpPrefix, warpIdx,
                 ShuffleKind.Generic).AsNotNull();
@@ -566,7 +576,7 @@ sealed class LowerGroupCollectives(
                 location, readReduceAddr).AsNotNull();
             var totalZeros = transform.CreateWarpReduce(
                 location, reduceVal, BinaryArithmeticKind.Add,
-                WarpReduceKind.AllReduce).AsNotNull();
+                ArithmeticFlags.None, WarpReduceKind.AllReduce).AsNotNull();
 
             // --- Step 5: Compute target position ---
             // key==0: target = rank0

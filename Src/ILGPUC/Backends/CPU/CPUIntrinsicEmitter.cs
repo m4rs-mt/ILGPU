@@ -434,7 +434,7 @@ sealed class CPUIntrinsicEmitter(int? vectorWidth) : IntrinsicEmitter
                 $"{arguments})";
         }
         if (identity is not null)
-            arguments += $", ({elemType})({identity})";
+            arguments += $", unchecked(({elemType})({identity}))";
         else if (operation is not BinaryArithmeticKind.Add
             and not BinaryArithmeticKind.Mul)
         {

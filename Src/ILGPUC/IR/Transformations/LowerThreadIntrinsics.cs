@@ -71,10 +71,15 @@ sealed class LowerThreadIntrinsics(TransformationArgs args) : Transformation(arg
         Value value = variable;
         if (primitiveType.BasicValueType < BasicValueType.Int32)
         {
+            // The values of an unsigned operation are zero-extended, so that
+            // they compare in 32 bits as they do in their own type
             value = transform.CreateConvert(
                 sourceValue.Location,
                 value,
-                transform.ModuleBuilder.GetPrimitiveType(BasicValueType.Int32));
+                transform.ModuleBuilder.GetPrimitiveType(BasicValueType.Int32),
+                IsUnsignedOperation(sourceValue)
+                    ? ConvertFlags.SourceUnsigned
+                    : ConvertFlags.None);
         }
 
         var result = handler(transform, sourceValue, value);
@@ -87,6 +92,20 @@ sealed class LowerThreadIntrinsics(TransformationArgs args) : Transformation(arg
         }
         return result;
     }
+
+    /// <summary>
+    /// Returns true if the given thread value computes an unsigned operation,
+    /// an unsigned minimum or maximum.
+    /// </summary>
+    private static bool IsUnsignedOperation(ThreadValue value) =>
+        value switch
+        {
+            WarpReduce reduce => reduce.IsUnsigned,
+            WarpScan scan => scan.IsUnsigned,
+            GroupReduce reduce => reduce.IsUnsigned,
+            GroupScan scan => scan.IsUnsigned,
+            _ => false
+        };
 
     /// <summary>
     /// Lowers a structure value recursively.
@@ -195,7 +214,8 @@ sealed class LowerThreadIntrinsics(TransformationArgs args) : Transformation(arg
             (transform, source, field) =>
                 source.HasIntrinsicOperation
                 ? transform.CreateWarpReduce(
-                    source.Location, field, source.IntrinsicOp!.Value, source.Kind)
+                    source.Location, field, source.IntrinsicOp!.Value,
+                    source.IntrinsicFlags, source.Kind)
                 : transform.CreateWarpReduce(
                     source.Location, field,
                     transform.Rewrite(source.Operation!), source.Kind));
@@ -233,7 +253,8 @@ sealed class LowerThreadIntrinsics(TransformationArgs args) : Transformation(arg
                 return source.HasIntrinsicOperation
                     ? transform.CreateWarpScan(
                         source.Location, field,
-                        source.IntrinsicOp!.Value, source.Kind, fieldIdentity)
+                        source.IntrinsicOp!.Value, source.IntrinsicFlags,
+                        source.Kind, fieldIdentity)
                     : transform.CreateWarpScan(
                         source.Location, field,
                         transform.Rewrite(source.Operation!), source.Kind,
@@ -262,7 +283,8 @@ sealed class LowerThreadIntrinsics(TransformationArgs args) : Transformation(arg
                 source.HasIntrinsicOperation
                 ? transform.CreateGroupReduce(
                     source.Location, field, source.IntrinsicOp!.Value,
-                    source.Kind, RewriteOrNull(transform, source.Identity))
+                    source.IntrinsicFlags, source.Kind,
+                    RewriteOrNull(transform, source.Identity))
                 : transform.CreateGroupReduce(
                     source.Location, field, transform.Rewrite(source.Operation!),
                     source.Kind, RewriteOrNull(transform, source.Identity)));
@@ -289,7 +311,8 @@ sealed class LowerThreadIntrinsics(TransformationArgs args) : Transformation(arg
                 source.HasIntrinsicOperation
                 ? transform.CreateGroupScan(
                     source.Location, field, source.IntrinsicOp!.Value,
-                    source.Kind, RewriteOrNull(transform, source.Identity))
+                    source.IntrinsicFlags, source.Kind,
+                    RewriteOrNull(transform, source.Identity))
                 : transform.CreateGroupScan(
                     source.Location, field, transform.Rewrite(source.Operation!),
                     source.Kind, RewriteOrNull(transform, source.Identity)));

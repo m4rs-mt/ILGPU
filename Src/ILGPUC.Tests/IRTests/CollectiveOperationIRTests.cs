@@ -12,6 +12,7 @@
 using ILGPU;
 using ILGPU.Runtime;
 using ILGPUC.Backends;
+using ILGPUC.IR;
 using ILGPUC.IR.BasicBlockValues.Construction;
 using ILGPUC.IR.ModuleValues;
 using ILGPUC.IR.PureValues;
@@ -96,6 +97,46 @@ static class CollectiveOperationKernels
         Index1D i,
         ArrayView1D<int, Stride1D.Dense> d) =>
         d[i] = Group.Reduce(d[i], 0, (x, y) => x - y);
+
+    public static void UnsignedMaxKernel(
+        Index1D i,
+        ArrayView1D<uint, Stride1D.Dense> d) =>
+        d[i] = Warp.Reduce(d[i], (x, y) => Math.Max(x, y));
+
+    public static void UnsignedMinKernel(
+        Index1D i,
+        ArrayView1D<uint, Stride1D.Dense> d) =>
+        d[i] = Group.Reduce(d[i], uint.MaxValue, (x, y) => Math.Min(x, y));
+
+    public static void UnsignedLongMaxKernel(
+        Index1D i,
+        ArrayView1D<ulong, Stride1D.Dense> d) =>
+        d[i] = Warp.AllReduce(d[i], (x, y) => Math.Max(x, y));
+
+    public static void UnsignedShortMinKernel(
+        Index1D i,
+        ArrayView1D<ushort, Stride1D.Dense> d) =>
+        d[i] = Group.InclusiveScan(d[i], ushort.MaxValue, (x, y) => Math.Min(x, y));
+
+    public static void UnsignedMaxMethodGroupKernel(
+        Index1D i,
+        ArrayView1D<uint, Stride1D.Dense> d) =>
+        d[i] = Warp.Reduce(d[i], Math.Max);
+
+    public static void UnsignedMinMethodGroupKernel(
+        Index1D i,
+        ArrayView1D<uint, Stride1D.Dense> d) =>
+        d[i] = Warp.InclusiveScan(d[i], XMath.Min);
+
+    public static void UnsignedMaxScanKernel(
+        Index1D i,
+        ArrayView1D<uint, Stride1D.Dense> d) =>
+        d[i] = Warp.ExclusiveScan(d[i], 0u, XMath.Max);
+
+    public static void UnsignedMaxGroupScanKernel(
+        Index1D i,
+        ArrayView1D<uint, Stride1D.Dense> d) =>
+        d[i] = Group.ExclusiveScan(d[i], 0u, Math.Max);
 }
 
 /// <summary>
@@ -109,7 +150,16 @@ public sealed class CollectiveOperationIRTests
     /// <summary>
     /// Compiles the given kernel and returns what its lambda is recognized as.
     /// </summary>
-    private static BinaryArithmeticKind? Recognize(string kernelName)
+    private static BinaryArithmeticKind? Recognize(string kernelName) =>
+        Recognize(kernelName, out _);
+
+    /// <summary>
+    /// Compiles the given kernel and returns what its lambda is recognized as,
+    /// with the flags of the recognized operation.
+    /// </summary>
+    private static BinaryArithmeticKind? Recognize(
+        string kernelName,
+        out ArithmeticFlags flags)
     {
         using var helper = new CompilationHelper();
         var module = helper.CompileToModule(GetKernel(kernelName));
@@ -123,7 +173,7 @@ public sealed class CollectiveOperationIRTests
             }
         }
         Assert.NotNull(lambda);
-        return BasicBlockBuilder.TryRecognizeOperation(lambda);
+        return BasicBlockBuilder.TryRecognizeOperation(lambda, out flags);
     }
 
     private static MethodInfo GetKernel(string kernelName) =>
@@ -131,15 +181,31 @@ public sealed class CollectiveOperationIRTests
             kernelName,
             BindingFlags.Public | BindingFlags.Static)!;
 
+    /// <summary>
+    /// A recognized operation keeps the unsigned flag of an unsigned minimum or
+    /// maximum, the only operations that depend on the signedness of their
+    /// operands, and no flags otherwise.
+    /// </summary>
     [Theory]
-    [InlineData(nameof(CollectiveOperationKernels.AddKernel), "Add")]
-    [InlineData(nameof(CollectiveOperationKernels.SwappedAddKernel), "Add")]
-    [InlineData(nameof(CollectiveOperationKernels.MaxKernel), "Max")]
-    [InlineData(nameof(CollectiveOperationKernels.XorKernel), "Xor")]
-    [InlineData(nameof(CollectiveOperationKernels.UnsignedAddKernel), "Add")]
-    [InlineData(nameof(CollectiveOperationKernels.UnsignedXorKernel), "Xor")]
-    public void Operation_IsRecognized(string kernelName, string kind) =>
-        Assert.Equal(Enum.Parse<BinaryArithmeticKind>(kind), Recognize(kernelName));
+    [InlineData(nameof(CollectiveOperationKernels.AddKernel), "Add", false)]
+    [InlineData(nameof(CollectiveOperationKernels.SwappedAddKernel), "Add", false)]
+    [InlineData(nameof(CollectiveOperationKernels.MaxKernel), "Max", false)]
+    [InlineData(nameof(CollectiveOperationKernels.XorKernel), "Xor", false)]
+    [InlineData(nameof(CollectiveOperationKernels.UnsignedAddKernel), "Add", false)]
+    [InlineData(nameof(CollectiveOperationKernels.UnsignedXorKernel), "Xor", false)]
+    [InlineData(nameof(CollectiveOperationKernels.UnsignedMaxKernel), "Max", true)]
+    [InlineData(nameof(CollectiveOperationKernels.UnsignedMinKernel), "Min", true)]
+    [InlineData(nameof(CollectiveOperationKernels.UnsignedLongMaxKernel), "Max", true)]
+    [InlineData(nameof(CollectiveOperationKernels.UnsignedShortMinKernel), "Min", true)]
+    public void Operation_IsRecognized(string kernelName, string kind, bool isUnsigned)
+    {
+        Assert.Equal(
+            Enum.Parse<BinaryArithmeticKind>(kind),
+            Recognize(kernelName, out var flags));
+        Assert.Equal(
+            isUnsigned ? ArithmeticFlags.Unsigned : ArithmeticFlags.None,
+            flags);
+    }
 
     [Theory]
     [InlineData(nameof(CollectiveOperationKernels.AddOneKernel))]
@@ -169,7 +235,7 @@ public sealed class CollectiveOperationIRTests
     /// <summary>
     /// A lambda that returns the operation of its two operands compiles, also
     /// with a block body, whose Debug IL keeps the result in a local, and with
-    /// unsigned operands.
+    /// unsigned operands, also of an unsigned minimum or maximum.
     /// </summary>
     [Theory]
     [InlineData(nameof(CollectiveOperationKernels.AddKernel), BackendType.Cuda)]
@@ -182,9 +248,128 @@ public sealed class CollectiveOperationIRTests
     [InlineData(nameof(CollectiveOperationKernels.UnsignedAddKernel), BackendType.Cuda)]
     [InlineData(nameof(CollectiveOperationKernels.UnsignedXorKernel), BackendType.CPU)]
     [InlineData(nameof(CollectiveOperationKernels.UnsignedXorKernel), BackendType.Metal)]
+    [InlineData(nameof(CollectiveOperationKernels.UnsignedMinKernel), BackendType.CPU)]
+    [InlineData(nameof(CollectiveOperationKernels.UnsignedMinKernel), BackendType.Cuda)]
+    [InlineData(nameof(CollectiveOperationKernels.UnsignedMinKernel), BackendType.Metal)]
+    [InlineData(
+        nameof(CollectiveOperationKernels.UnsignedMinKernel),
+        BackendType.OpenCL)]
+    [InlineData(nameof(CollectiveOperationKernels.UnsignedMinKernel), BackendType.ROCm)]
+    [InlineData(
+        nameof(CollectiveOperationKernels.UnsignedLongMaxKernel),
+        BackendType.Metal)]
+    [InlineData(
+        nameof(CollectiveOperationKernels.UnsignedLongMaxKernel),
+        BackendType.OpenCL)]
     public void Operation_IsCompiled(string kernelName, BackendType backend)
     {
         using var helper = new CompilationHelper(backend);
         helper.GenerateBackendCode(GetKernel(kernelName), backend);
+    }
+
+    /// <summary>
+    /// A collective whose operation is an unsigned minimum or maximum, as a lambda
+    /// or as a method group of <c>Math</c> or of <c>XMath</c>, is recognized as
+    /// that unsigned operation, and a signed one as the signed operation.
+    /// </summary>
+    [Theory]
+    [InlineData(
+        nameof(CollectiveOperationKernels.UnsignedMaxMethodGroupKernel),
+        "@ilgpu.warp.reduce.Reduce.Max.unsigned(")]
+    [InlineData(
+        nameof(CollectiveOperationKernels.UnsignedMinMethodGroupKernel),
+        "@ilgpu.warp.scan.Inclusive.Min.unsigned(")]
+    [InlineData(
+        nameof(CollectiveOperationKernels.UnsignedMaxScanKernel),
+        "@ilgpu.warp.scan.Exclusive.Max.unsigned(")]
+    [InlineData(
+        nameof(CollectiveOperationKernels.UnsignedMaxGroupScanKernel),
+        "@ilgpu.group.scan.Exclusive.Max.unsigned(")]
+    [InlineData(
+        nameof(CollectiveOperationKernels.UnsignedMinKernel),
+        "@ilgpu.group.reduce.Reduce.Min.unsigned(")]
+    [InlineData(
+        nameof(CollectiveOperationKernels.MaxKernel),
+        "@ilgpu.warp.reduce.Reduce.Max(")]
+    public void UnsignedOperation_IsRecognized(string kernelName, string collective)
+    {
+        using var helper = new CompilationHelper();
+        var ir = helper.GetNormalizedIR(
+            GetKernel(kernelName),
+            IRDumpPoint.AfterGlobalOpt);
+        Assert.Contains(collective, ir, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// An unsigned minimum or maximum is computed with the unsigned instruction
+    /// or overload of each backend, and a signed one with the signed one: the
+    /// native SIMD-group and sub-group functions of Metal and OpenCL get unsigned
+    /// operands, and the shuffle trees of Cuda and ROCm compare unsigned values.
+    /// </summary>
+    [Theory]
+    [InlineData(
+        nameof(CollectiveOperationKernels.UnsignedMaxKernel),
+        BackendType.CPU,
+        "CPUVectorIntrinsics.WarpReduceMax<uint>(")]
+    [InlineData(
+        nameof(CollectiveOperationKernels.UnsignedMaxKernel),
+        BackendType.Metal,
+        "simd_max((uint)(")]
+    [InlineData(
+        nameof(CollectiveOperationKernels.UnsignedMaxKernel),
+        BackendType.OpenCL,
+        "sub_group_reduce_max((uint)(")]
+    [InlineData(
+        nameof(CollectiveOperationKernels.UnsignedMaxKernel),
+        BackendType.Cuda,
+        "umax(")]
+    [InlineData(
+        nameof(CollectiveOperationKernels.UnsignedMaxKernel),
+        BackendType.ROCm,
+        "(unsigned int)")]
+    [InlineData(
+        nameof(CollectiveOperationKernels.UnsignedMaxMethodGroupKernel),
+        BackendType.Metal,
+        "simd_max((uint)(")]
+    [InlineData(
+        nameof(CollectiveOperationKernels.UnsignedMinMethodGroupKernel),
+        BackendType.OpenCL,
+        "sub_group_scan_inclusive_min((uint)(")]
+    [InlineData(
+        nameof(CollectiveOperationKernels.UnsignedMinMethodGroupKernel),
+        BackendType.CPU,
+        "CPUVectorIntrinsics.WarpScanInclusiveMin<uint>(")]
+    [InlineData(
+        nameof(CollectiveOperationKernels.UnsignedLongMaxKernel),
+        BackendType.Cuda,
+        "ullmax(")]
+    [InlineData(
+        nameof(CollectiveOperationKernels.UnsignedLongMaxKernel),
+        BackendType.OpenCL,
+        "sub_group_reduce_max((ulong)(")]
+    public void UnsignedOperation_IsEmittedUnsigned(
+        string kernelName,
+        BackendType backend,
+        string expected)
+    {
+        using var helper = new CompilationHelper(backend);
+        var source = helper.GenerateBackendCode(GetKernel(kernelName), backend)
+            .SourceCode;
+        Assert.Contains(expected, source, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData(BackendType.CPU, "<uint>")]
+    [InlineData(BackendType.Metal, "(uint)")]
+    [InlineData(BackendType.OpenCL, "(uint)")]
+    [InlineData(BackendType.Cuda, "umax(")]
+    [InlineData(BackendType.ROCm, "unsigned")]
+    public void SignedOperation_IsEmittedSigned(BackendType backend, string unexpected)
+    {
+        using var helper = new CompilationHelper(backend);
+        var source = helper.GenerateBackendCode(
+            GetKernel(nameof(CollectiveOperationKernels.MaxKernel)),
+            backend).SourceCode;
+        Assert.DoesNotContain(unexpected, source, StringComparison.Ordinal);
     }
 }

@@ -468,8 +468,26 @@ sealed class CLIntrinsicEmitter(CLVendor vendor) : IntrinsicEmitter
                 $"Warp reduce operation {operation} is not supported on OpenCL")
         };
 
-        return $"{intrinsic}({variable})";
+        return $"{intrinsic}({EmitUnsignedOperand(variable, type)})";
     }
+
+    /// <summary>
+    /// Casts the operand of a sub-group function to its unsigned type, if the
+    /// function works with an unsigned type: unsigned values are stored in signed
+    /// variables, and the minimum and maximum functions select their overload by
+    /// the type.
+    /// </summary>
+    private static string EmitUnsignedOperand(
+        string variable,
+        ArithmeticBasicValueType type) =>
+        type switch
+        {
+            ArithmeticBasicValueType.UInt8 => $"(uchar)({variable})",
+            ArithmeticBasicValueType.UInt16 => $"(ushort)({variable})",
+            ArithmeticBasicValueType.UInt32 => $"(uint)({variable})",
+            ArithmeticBasicValueType.UInt64 => $"(ulong)({variable})",
+            _ => variable
+        };
 
     /// <inheritdoc/>
     public override string EmitWarpScan(
@@ -491,7 +509,7 @@ sealed class CLIntrinsicEmitter(CLVendor vendor) : IntrinsicEmitter
                 $"Warp scan operation {operation} is not supported on OpenCL")
         };
 
-        return $"{intrinsic}({variable})";
+        return $"{intrinsic}({EmitUnsignedOperand(variable, type)})";
     }
 
     #endregion
