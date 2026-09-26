@@ -234,6 +234,12 @@ sealed class ModuleTransform : ModuleBuilder, IModuleRewriter, ITransform, IType
     /// </summary>
     private GlobalValueMap<Value?> PeekMapping() => _mappingStack.Peek();
 
+    /// <summary>
+    /// Returns the replacement mapping of the module scope, which the constructor
+    /// pushes first and which outlives every method and inlining scope.
+    /// </summary>
+    private GlobalValueMap<Value?> ModuleMapping => _mappingStack[0];
+
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     public Value? Rewrite(Value oldValue)
@@ -266,8 +272,13 @@ sealed class ModuleTransform : ModuleBuilder, IModuleRewriter, ITransform, IType
                 $"(gen={oldValue.Generation}, module={oldValue.Module})")
         };
 
-        // Register value and return
-        PeekMapping().Add(oldValue, newValue);
+        // Register value and return. A module value means the same thing in every
+        // method, so its rebuild belongs to the module scope (see ModuleMapping): a
+        // global rebuilt again for a second method would give that method storage
+        // of its own. A pass that replaces a module value in one method only does
+        // so with Replace, which writes to the current scope and outranks this
+        // entry.
+        ModuleMapping.Add(oldValue, newValue);
         return newValue;
     }
 
