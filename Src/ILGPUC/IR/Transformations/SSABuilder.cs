@@ -291,6 +291,88 @@ sealed class SSABuilder<TVariable> where TVariable : notnull
         }
 
         /// <summary>
+        /// Returns true if the given value is the null reference of ldnull: a null
+        /// pointer to void. Other null pointers, such as the handles of
+        /// non-capturing lambdas, stand for different targets and are kept apart.
+        /// </summary>
+        /// <param name="value">The value to test.</param>
+        private static bool IsNullReference(Value value) =>
+            value is NullValue { Type: PointerType { ElementType: VoidType } };
+
+        /// <summary>
+        /// Peeks the first reachable definition of the given variable that is not
+        /// the null reference of ldnull. Unlike <see cref="PeekValue(TVariable,
+        /// int)"/>, it searches all reachable definitions, as an IL stack slot can
+        /// hold ldnull on the first path to every predecessor, such as the first
+        /// operand of <c>a ?? b</c> while <c>b</c> is selected. Every block is
+        /// visited at most once.
+        /// </summary>
+        /// <param name="var">The variable reference.</param>
+        /// <param name="marker">The current marker to break cycles.</param>
+        /// <param name="complete">
+        /// Set to false if the search reached a block that has not been processed
+        /// yet or a block without predecessors that does not define the variable.
+        /// </param>
+        /// <returns>
+        /// The definition, or null if all reachable definitions are null
+        /// references.
+        /// </returns>
+        private Value? PeekNonNullValue(TVariable var, int marker, ref bool complete)
+        {
+            var frames = Parent._peekFrames;
+            Block.Assert(frames.Count == 0);
+            try
+            {
+                ValueContainer? container = this;
+                while (container is not null)
+                {
+                    // Visit the block once per marker
+                    if (container.Mark(marker))
+                    {
+                        if (!container.IsProcessed)
+                        {
+                            complete = false;
+                        }
+                        else if (container._values.TryGetValue(var, out Value? value))
+                        {
+                            if (!IsNullReference(value))
+                                return value;
+                        }
+                        else
+                        {
+                            if (container.Block.Predecessors.Length == 0)
+                                complete = false;
+                            frames.Add((container, 0));
+                        }
+                    }
+
+                    // Continue with the next predecessor of the innermost block
+                    // that has not been searched yet
+                    container = null;
+                    while (frames.Count > 0 && container is null)
+                    {
+                        var (current, index) = frames[^1];
+                        var predecessors = current.Block.Predecessors;
+                        if (index < predecessors.Length)
+                        {
+                            frames[^1] = (current, index + 1);
+                            container = Parent[predecessors[index]];
+                        }
+                        else
+                        {
+                            frames.RemoveAt(frames.Count - 1);
+                        }
+                    }
+                }
+                return null;
+            }
+            finally
+            {
+                frames.Clear();
+            }
+        }
+
+        /// <summary>
         /// Returns the type of a new phi for the given variable: the type of the
         /// first value found in a predecessor. If that first value is a bool, the
         /// type is widened to the widest integer type of the other predecessor
@@ -300,10 +382,34 @@ sealed class SSABuilder<TVariable> where TVariable : notnull
         /// </summary>
         /// <param name="var">The variable reference.</param>
         /// <param name="markerProvider">A provider of new marker values.</param>
+        /// <param name="nullValue">
+        /// The null reference of ldnull if all reachable definitions are null
+        /// references, such as for IL stack slots that hold ldnull on all paths.
+        /// </param>
         /// <returns>The phi type.</returns>
-        private TypeValue GetPhiType(TVariable var, ref MarkerProvider markerProvider)
+        private TypeValue GetPhiType(
+            TVariable var,
+            ref MarkerProvider markerProvider,
+            out NullValue? nullValue)
         {
-            var type = PeekValue(var, markerProvider.CreateMarker()).AsNotNull().Type;
+            nullValue = null;
+            var first = PeekValue(var, markerProvider.CreateMarker()).AsNotNull();
+            var type = first.Type;
+            if (IsNullReference(first))
+            {
+                bool complete = true;
+                var value = PeekNonNullValue(
+                    var,
+                    markerProvider.CreateMarker(),
+                    ref complete);
+                if (value?.Type is ArrayType arrayType)
+                    return arrayType;
+                if (value is null && complete)
+                {
+                    nullValue = (NullValue)first;
+                    return type;
+                }
+            }
             if (type is PointerType)
                 return GetPointerPhiType(var, type, ref markerProvider);
             if (type.BasicValueType != BasicValueType.Int1)
@@ -413,8 +519,16 @@ sealed class SSABuilder<TVariable> where TVariable : notnull
                 return null;
             }
 
+            var phiType = GetPhiType(var, ref markerProvider, out var nullValue);
+            if (nullValue is not null && IsSealed)
+            {
+                // All definitions are null references: a phi of them would not
+                // be a null value that converts into a null array
+                SetValue(var, nullValue);
+                return nullValue;
+            }
+
             // Insert the actual phi value
-            var phiType = GetPhiType(var, ref markerProvider);
             // Let the phi point to the beginning of the current block
             var phiBuilder = Builder.CreatePhi(
                 Builder.BasicBlock.Location,
@@ -520,6 +634,16 @@ sealed class SSABuilder<TVariable> where TVariable : notnull
                     phiBuilder.PhiValue.Location,
                     value,
                     primitiveType).AsNotNull();
+            }
+            else if (
+                phiBuilder.Type is ArrayType arrayType &&
+                value is NullValue &&
+                !value.Type.Equals(arrayType))
+            {
+                // The null reference of ldnull becomes the null array
+                value = Parent[predecessor].Builder.CreateNull(
+                    phiBuilder.PhiValue.Location,
+                    arrayType);
             }
             else if (
                 phiBuilder.Type is PointerType pointerType &&

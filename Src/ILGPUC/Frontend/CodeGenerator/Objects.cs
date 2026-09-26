@@ -526,6 +526,15 @@ partial class CodeGenerator
             return;
         }
 
+        // ldind.ref loads an array stored at the address, such as an array
+        // field updated with ??=
+        if (type == typeof(object) &&
+            address.Type is PointerType { ElementType: ArrayType })
+        {
+            Block.Push(Builder.CreateLoad(Location, address));
+            return;
+        }
+
         var targetElementType = ModuleBuilder.CreateType(type);
         Block.Push(CreateLoad(
             address,
@@ -542,6 +551,22 @@ partial class CodeGenerator
     /// <param name="type">The target type.</param>
     private void MakeStoreObject(Type type)
     {
+        // stind.ref stores an array to the address, such as a null array or an
+        // array field updated with ??=
+        var addressRef = new VariableRef(
+            Block.StackCounter - 2,
+            VariableRefType.Stack);
+        if (type == typeof(object) &&
+            Block.GetValue(addressRef).Type is PointerType
+            {
+                ElementType: ArrayType arrayType
+            })
+        {
+            var array = Block.Pop(arrayType, ConvertFlags.None);
+            CreateStore(Block.Pop(), array);
+            return;
+        }
+
         var typeNode = ModuleBuilder.CreateType(type);
         var value = Block.Pop(typeNode, ConvertFlags.None);
         var address = Block.Pop();

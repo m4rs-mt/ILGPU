@@ -29,6 +29,15 @@ a `while (true)` loop without a `return` or `break`, is rejected with the error 
 Such a kernel could only be stopped by resetting the device.
 Loops like `while (true)` that are left through a `return` or `break` are supported.
 
+Arrays created in kernels, such as `new int[4]`, can be `null` (e.g. `c ? new int[4] : null` or `a ?? b`) and can be
+tested for `null` like in .NET.
+Arrays are compared by their buffers, and every allocation site has a single buffer per thread: two arrays allocated by
+the same `new` expression, such as in a loop or in a helper method called twice, are equal.
+Unlike in .NET, the `Length` of a `null` array is 0, and accessing an element of a `null` array is undefined behavior on
+GPUs (the CPU accelerator throws a `NullReferenceException`).
+Accesses to the elements of arrays created in kernels are not bounds-checked: accessing an element outside of an array
+is undefined behavior on every accelerator.
+
 The type of the first parameter must always be a supported index type in the case of implicitly grouped kernels (see
 below).
 In the case of explicitly grouped kernels, the first parameter is manually defined by the programmer (see below)
