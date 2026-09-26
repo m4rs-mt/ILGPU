@@ -33,6 +33,8 @@ Arrays created in kernels, such as `new int[4]`, can be `null` (e.g. `c ? new in
 tested for `null` like in .NET.
 Arrays are compared by their buffers, and every allocation site has a single buffer per thread: two arrays allocated by
 the same `new` expression, such as in a loop or in a helper method called twice, are equal.
+`Array.Empty<T>()` returns the same array for the same `T` and different arrays for different types, also for `int` and
+`uint`, as in .NET.
 Unlike in .NET, the `Length` of a `null` array is 0, and accessing an element of a `null` array is undefined behavior on
 GPUs (the CPU accelerator throws a `NullReferenceException`).
 Accesses to the elements of arrays created in kernels are not bounds-checked: accessing an element outside of an array

@@ -30,6 +30,21 @@ public sealed class NullArrayIRTests : CompilationTestBase
         VerifyAfterFrontend(GetKernel(
             typeof(NullArrayKernels), nameof(NullArrayKernels.ConditionalNullKernel)));
 
+    [Fact]
+    public void NullArgument_AfterFrontend() =>
+        VerifyAfterFrontend(GetKernel(
+            typeof(NullArrayKernels), nameof(NullArrayKernels.NullArgumentKernel)));
+
+    [Fact]
+    public void EmptyNotNull_AfterFrontend() =>
+        VerifyAfterFrontend(GetKernel(
+            typeof(NullArrayKernels), nameof(NullArrayKernels.EmptyNotNullKernel)));
+
+    [Fact]
+    public void EmptyArray_AfterFrontend() =>
+        VerifyAfterFrontend(GetKernel(
+            typeof(NullArrayKernels), nameof(NullArrayKernels.EmptyArrayKernel)));
+
     // --- AfterGlobalOpt ---
 
     [Theory]
@@ -38,6 +53,24 @@ public sealed class NullArrayIRTests : CompilationTestBase
         VerifyAfterGlobalOpt(GetKernel(
             typeof(NullArrayKernels), nameof(NullArrayKernels.ConditionalNullKernel)), opt, mode);
 
+    [Theory]
+    [MemberData(nameof(TestTypes.OptLevelsAndModes), MemberType = typeof(TestTypes))]
+    public void NullArgument_AfterGlobalOpt(OptimizationLevel opt, CompilationMode mode) =>
+        VerifyAfterGlobalOpt(GetKernel(
+            typeof(NullArrayKernels), nameof(NullArrayKernels.NullArgumentKernel)), opt, mode);
+
+    [Theory]
+    [MemberData(nameof(TestTypes.OptLevelsAndModes), MemberType = typeof(TestTypes))]
+    public void EmptyNotNull_AfterGlobalOpt(OptimizationLevel opt, CompilationMode mode) =>
+        VerifyAfterGlobalOpt(GetKernel(
+            typeof(NullArrayKernels), nameof(NullArrayKernels.EmptyNotNullKernel)), opt, mode);
+
+    [Theory]
+    [MemberData(nameof(TestTypes.OptLevelsAndModes), MemberType = typeof(TestTypes))]
+    public void EmptyArray_AfterGlobalOpt(OptimizationLevel opt, CompilationMode mode) =>
+        VerifyAfterGlobalOpt(GetKernel(
+            typeof(NullArrayKernels), nameof(NullArrayKernels.EmptyArrayKernel)), opt, mode);
+
     // --- AfterBackendTransforms ---
 
     [Theory]
@@ -45,5 +78,19 @@ public sealed class NullArrayIRTests : CompilationTestBase
     public void ConditionalNull_AfterBackendTransforms(BackendType backend, OptimizationLevel opt, CompilationMode mode) =>
         VerifyAfterBackendTransforms(GetKernel(
             typeof(NullArrayKernels), nameof(NullArrayKernels.ConditionalNullKernel)),
+            backend, opt, mode);
+
+    [Theory]
+    [MemberData(nameof(TestTypes.BackendTypesAndOptLevelsAndModes), MemberType = typeof(TestTypes))]
+    public void NullArgument_AfterBackendTransforms(BackendType backend, OptimizationLevel opt, CompilationMode mode) =>
+        VerifyAfterBackendTransforms(GetKernel(
+            typeof(NullArrayKernels), nameof(NullArrayKernels.NullArgumentKernel)),
+            backend, opt, mode);
+
+    [Theory]
+    [MemberData(nameof(TestTypes.BackendTypesAndOptLevelsAndModes), MemberType = typeof(TestTypes))]
+    public void EmptyNotNull_AfterBackendTransforms(BackendType backend, OptimizationLevel opt, CompilationMode mode) =>
+        VerifyAfterBackendTransforms(GetKernel(
+            typeof(NullArrayKernels), nameof(NullArrayKernels.EmptyNotNullKernel)),
             backend, opt, mode);
 }

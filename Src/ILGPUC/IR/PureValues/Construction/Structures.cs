@@ -442,17 +442,41 @@ partial class PureValueBuilder
         new(this, location, arrayType);
 
     /// <summary>
-    /// Creates a new empty array value.
+    /// Creates a new empty array value. An empty array has a back buffer of a
+    /// single element, which is never accessed: the address of its first
+    /// element is not null, which distinguishes it from the null array.
     /// </summary>
     /// <param name="location">The current location.</param>
     /// <param name="arrayType">The parent array type of this array.</param>
     /// <returns>A reference to the requested value.</returns>
-    public ArrayValue CreateEmptyArray(Location location, ArrayType arrayType)
+    public ArrayValue CreateEmptyArray(Location location, ArrayType arrayType) =>
+        CreateEmptyArray(
+            location,
+            arrayType,
+            ModuleBuilder.CreateGlobal(
+                location,
+                arrayType.ElementType,
+                MemoryAddressSpace.Local,
+                CreatePrimitiveValue(location, 1)).ThrowIfNull());
+
+    /// <summary>
+    /// Creates a new empty array value with the given back buffer of a single
+    /// element, such as the back buffer that all empty arrays of
+    /// <see cref="System.Array.Empty{T}"/> with the same element type share.
+    /// </summary>
+    /// <param name="location">The current location.</param>
+    /// <param name="arrayType">The parent array type of this array.</param>
+    /// <param name="backBuffer">The back buffer of the array.</param>
+    /// <returns>A reference to the requested value.</returns>
+    public ArrayValue CreateEmptyArray(
+        Location location,
+        ArrayType arrayType,
+        Global backBuffer)
     {
         var combined = ValueBuilderList.Create(
             Generation,
             1 + arrayType.NumDimensions);
-        combined.Add(ModuleBuilder.UndefinedValue);
+        combined.Add(backBuffer);
         for (int i = 0; i < arrayType.NumDimensions; ++i)
             combined.Add(CreatePrimitiveValue(location, 0));
         return FinishArrayValueCombined(location, arrayType, ref combined);

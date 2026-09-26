@@ -239,8 +239,7 @@ sealed class ExpressionEmitter(GenerationContext context, TypeEmitter typeEmitte
             // NewView from a Global → resolve to the global's CPURuntimeView.
             // The global is declared as a CPURuntimeView<T> backed by stackalloc
             // in CPUMethodEmitter.EmitGlobalDeclarations().
-            NewView nv when nv.Pointer is Global g => new Emitted(
-                context.GetValueName(g), Prec.Atom),
+            NewView nv when nv.Pointer is Global g => EmitGlobalView(nv, g),
 
             // Basic block values
             PhiValue phi => new Emitted(
@@ -1332,6 +1331,23 @@ sealed class ExpressionEmitter(GenerationContext context, TypeEmitter typeEmitte
         var inner = Parenthesize(source, Prec.Atom);
         var fieldName = context.LanguageConfig.ViewLengthFieldName;
         return new Emitted($"{inner}.{fieldName}", Prec.Atom);
+    }
+
+    /// <summary>
+    /// Emits the view of a global: the declared view of the global, or a view
+    /// of its first elements if the view is shorter, such as the view of an
+    /// empty array, whose global has a single element.
+    /// </summary>
+    private Emitted EmitGlobalView(NewView view, Global global)
+    {
+        var name = context.GetValueName(global);
+        if (global.ArrayLength is not { } arrayLength ||
+            view.Length is not PrimitiveValue length ||
+            length.Int64Value == arrayLength.Int64Value)
+        {
+            return new Emitted(name, Prec.Atom);
+        }
+        return new Emitted($"{name}.SubView(0, {length.Int64Value})", Prec.Atom);
     }
 
     /// <summary>

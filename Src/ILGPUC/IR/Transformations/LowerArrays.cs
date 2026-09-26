@@ -84,12 +84,6 @@ sealed class LowerArrays(TransformationArgs args) : LowerTypes<ArrayType>(args)
         var backBuffer = transform.Rewrite(value.BackBuffer);
         int numDims = value.NumDimensions;
 
-        // Empty array: BackBuffer is UndefinedValue
-        if (value.BackBuffer is UndefinedValue)
-        {
-            return LowerEmptyArray(transform, value);
-        }
-
         // Compute total length for the view
         Value totalLength = transform.CreatePrimitiveValue(location, 1);
         for (int i = 0; i < numDims; ++i)
@@ -113,40 +107,6 @@ sealed class LowerArrays(TransformationArgs args) : LowerTypes<ArrayType>(args)
         structBuilder.Add(view);
         for (int i = 0; i < numDims; ++i)
             structBuilder.Add(transform.Rewrite(value.Dimensions[i]));
-        return structBuilder.Seal();
-    }
-
-    /// <summary>
-    /// Lowers an empty array to a null view or struct.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    private static Value? LowerEmptyArray(
-        PureValueTransform transform,
-        ArrayValue value)
-    {
-        var location = value.Location;
-        int numDims = value.NumDimensions;
-        var arrayType = value.Type;
-
-        // Create null pointer for empty view
-        var elementType = transform.Rewrite(arrayType.ElementType);
-        var ptrType = transform.ModuleTransform.CreatePointerType(
-            elementType,
-            MemoryAddressSpace.Local);
-        var nullPtr = transform.CreateNull(location, ptrType);
-        var zeroLength = transform.CreatePrimitiveValue(location, 0);
-        var view = transform.CreateNewView(location, nullPtr, zeroLength);
-
-        if (numDims == 1)
-            return view;
-
-        // nD: struct { null view, 0, 0, ..., 0 }
-        var structBuilder = transform.CreateDynamicStructure(
-            location,
-            numDims + 1);
-        structBuilder.Add(view);
-        for (int i = 0; i < numDims; ++i)
-            structBuilder.Add(transform.CreatePrimitiveValue(location, 0));
         return structBuilder.Seal();
     }
 

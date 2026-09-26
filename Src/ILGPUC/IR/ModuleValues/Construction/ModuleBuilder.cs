@@ -66,6 +66,7 @@ partial class ModuleBuilder : IGenerationObject
     private DelegateHandleType? _delegateHandleType;
 
     private InlineList<Global> _globals = InlineList<Global>.Create(32);
+    private readonly Dictionary<Type, Global> _emptyArrayBuffers = [];
     private readonly Dictionary<MethodBase, Method> _methodMapping = new(32);
     private readonly Dictionary<MethodHandle, MethodBuilder> _methods = new(32);
 
@@ -1145,6 +1146,35 @@ partial class ModuleBuilder : IGenerationObject
             addressSpace,
             rawArrayLength: new PrimitiveValueBox(BasicValueType.Int32, count),
             arrayScale: arrayScale);
+
+    /// <summary>
+    /// Returns the back buffer that all empty arrays of the given element type
+    /// returned by <see cref="Array.Empty{T}"/> share, so that they are the
+    /// same array as in .NET. It has a single element, which is never accessed.
+    /// The buffers are keyed by the managed element type, since types such as
+    /// int, uint and int enums share an IR type but not their empty array.
+    /// </summary>
+    /// <param name="location">The current location.</param>
+    /// <param name="managedElementType">The managed element type.</param>
+    /// <param name="elementType">The IR element type.</param>
+    /// <returns>The shared back buffer.</returns>
+    public Global GetEmptyArrayBuffer(
+        Location location,
+        Type managedElementType,
+        TypeValue elementType)
+    {
+        if (!_emptyArrayBuffers.TryGetValue(managedElementType, out var global))
+        {
+            global = CreateGlobalDirect(
+                location,
+                elementType,
+                MemoryAddressSpace.Local,
+                rawArrayLength: new PrimitiveValueBox(BasicValueType.Int32, 1))
+                .AsNotNull();
+            _emptyArrayBuffers.Add(managedElementType, global);
+        }
+        return global;
+    }
 
     #endregion
 

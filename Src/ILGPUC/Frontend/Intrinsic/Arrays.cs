@@ -55,7 +55,9 @@ partial class Intrinsics
     }
 
     /// <summary>
-    /// Creates a new empty 1D array instance.
+    /// Returns the empty 1D array of the element type, whose back buffer all
+    /// calls with the same element type share, as <c>Array.Empty</c> returns the
+    /// same array in .NET.
     /// </summary>
     /// <param name="context">The current invocation context.</param>
     /// <returns>The resulting value.</returns>
@@ -64,10 +66,16 @@ partial class Intrinsics
         var location = context.Location;
         var builder = context.Builder;
 
-        var elementType = context.ModuleBuilder.CreateType(
-            context.GetMethodGenericArguments()[0]);
+        var managedElementType = context.GetMethodGenericArguments()[0];
+        var elementType = context.ModuleBuilder.CreateType(managedElementType);
         var arrayType = context.ModuleBuilder.CreateArrayType(elementType, 1);
-        return builder.CreateEmptyArray(location, arrayType);
+        return builder.CreateEmptyArray(
+            location,
+            arrayType,
+            context.ModuleBuilder.GetEmptyArrayBuffer(
+                location,
+                managedElementType,
+                elementType));
     }
 
     /// <summary>

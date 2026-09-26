@@ -11,7 +11,9 @@
 
 using ILGPU;
 using ILGPU.Runtime;
+using System;
 using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
 
 namespace ILGPUC.Tests.Kernels;
 
@@ -25,12 +27,32 @@ static class NullArrayKernels
         public int[]? Values;
     }
 
+    private enum IntEnum
+    {
+        Zero,
+    }
+
+    // Only the element type of its empty array is used
+#pragma warning disable CS0649
+    private struct IntBox
+    {
+        public int Value;
+    }
+#pragma warning restore CS0649
+
     private static int LengthOrMinusOne(int[]? values) =>
         values == null ? -1 : values.Length;
 
     private static bool IsNotNull(int[]? values) => values != null;
 
     private static int[]? AllocateOrNull(int x) => x > 1 ? new int[4] : null;
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static bool IsEmptyArray(int[] values) => values == Array.Empty<int>();
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static bool IsEmptyUIntArray(int[] values) =>
+        (object?)values == Array.Empty<uint>();
 
     private static void Ensure([NotNull] ref int[]? values)
     {
@@ -112,6 +134,16 @@ static class NullArrayKernels
     }
 
     /// <summary>
+    /// Merge an empty array with null: empty arrays are not null.
+    /// </summary>
+    public static void EmptyNotNullKernel(
+        Index1D index, ArrayView1D<int, Stride1D.Dense> output)
+    {
+        int[]? a = index.X > 1 ? new int[0] : null;
+        output[index] = a == null ? -1 : a.Length;
+    }
+
+    /// <summary>
     /// Compare arrays by reference, also as objects of different types.
     /// </summary>
     public static void ReferenceEqualsKernel(
@@ -154,6 +186,30 @@ static class NullArrayKernels
         Ensure(ref c);
         output[index] = b.Length + (holder.Values == null ? 10 : 0) +
             c.Length * 100 + c[0];
+    }
+
+    /// <summary>
+    /// Compare the arrays of Array.Empty, which are not null and are the same
+    /// array for the same element type, also in a NoInlining helper, but not a
+    /// new empty array or an empty array of another type, also not of uint (also
+    /// in a NoInlining helper), an int enum or a structure of one int, whose IR
+    /// type is the same as int.
+    /// </summary>
+    public static void EmptyArrayKernel(
+        Index1D index, ArrayView1D<int, Stride1D.Dense> output)
+    {
+        int[] a = Array.Empty<int>();
+        int[] b = Array.Empty<int>();
+        float[] f = Array.Empty<float>();
+        int[] c = (index.X & 1) == 0 ? Array.Empty<int>() : new int[0];
+        output[index] = a.Length * 100000 + (a is not null ? 1 : 0) +
+            (a == b ? 10 : 0) + (c == a ? 100 : 0) +
+            (IsEmptyArray(b) ? 1000 : 0) + (new int[0] == a ? 10000 : 0) +
+            ((object?)a == f ? 1000000 : 0) +
+            ((object?)a == Array.Empty<uint>() ? 10000000 : 0) +
+            ((object?)a == Array.Empty<IntEnum>() ? 10000000 : 0) +
+            ((object?)a == Array.Empty<IntBox>() ? 10000000 : 0) +
+            (IsEmptyUIntArray(b) ? 10000000 : 0);
     }
 
     /// <summary>
