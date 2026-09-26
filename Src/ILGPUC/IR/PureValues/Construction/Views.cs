@@ -165,6 +165,19 @@ partial class PureValueBuilder
             elementIndex = convertValue.Value;
         }
 
+        // The first element of a null view, such as the view of the null array,
+        // is at the null address
+        if (source is NullValue &&
+            addressSpaceType is ViewType &&
+            elementIndex.IsPrimitiveValue(0))
+        {
+            return CreateNull(
+                location,
+                ModuleBuilder.CreatePointerType(
+                    addressSpaceType.ElementType,
+                    addressSpaceType.AddressSpace));
+        }
+
         // Fold primitive pointer arithmetic that does not change anything
         return source.Type is PointerType && elementIndex.IsPrimitiveValue(0)
             ? source

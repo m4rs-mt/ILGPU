@@ -66,6 +66,9 @@ partial class PureValueBuilder
                 flags);
         }
 
+        if (TryFoldArrayCompare(left, right, kind, out bool equal))
+            return CreatePrimitiveValue(location, equal);
+
         var leftValue = left as PrimitiveValue;
         var rightValue = right as PrimitiveValue;
         if (leftValue is not null && rightValue is not null)
@@ -170,5 +173,74 @@ partial class PureValueBuilder
                 CreatePointerAsIntCast(location, value, nativeIntType),
             _ => CreateConvert(location, value, nativeIntType),
         };
+    }
+
+    /// <summary>
+    /// Folds comparisons of array references, which compare the addresses of
+    /// the first elements of the arrays: every array allocation has a buffer
+    /// of its own, also an empty one, while the null array has none.
+    /// </summary>
+    /// <param name="left">The left operand.</param>
+    /// <param name="right">The right operand.</param>
+    /// <param name="kind">The operation kind.</param>
+    /// <param name="result">The result, if folded.</param>
+    /// <returns>True if the comparison was folded.</returns>
+    private static bool TryFoldArrayCompare(
+        Value left,
+        Value right,
+        CompareKind kind,
+        out bool result)
+    {
+        result = false;
+        if (kind is not (CompareKind.Equal or CompareKind.NotEqual) ||
+            !TryGetArrayReference(left, out var leftArray) ||
+            !TryGetArrayReference(right, out var rightArray))
+        {
+            return false;
+        }
+
+        bool equal;
+        switch (leftArray, rightArray)
+        {
+            case (NullValue, NullValue):
+                equal = true;
+                break;
+            case (NullValue, ArrayValue):
+            case (ArrayValue, NullValue):
+                equal = false;
+                break;
+            case (ArrayValue leftValue, ArrayValue rightValue):
+                equal = leftValue.BackBuffer == rightValue.BackBuffer;
+                break;
+            default:
+                return false;
+        }
+        result = equal == (kind == CompareKind.Equal);
+        return true;
+    }
+
+    /// <summary>
+    /// Returns the array whose first element the given address points to, or
+    /// the null pointer, such as the lowered address of the null array.
+    /// </summary>
+    /// <param name="address">The address.</param>
+    /// <param name="array">The array or the null pointer, if any.</param>
+    /// <returns>True if the address points to the first element.</returns>
+    private static bool TryGetArrayReference(Value address, out Value array)
+    {
+        if (address is PointerCast cast)
+            address = cast.Source;
+        array = address;
+        if (address is NullValue)
+            return true;
+        if (address is not LoadArrayElementAddress laea)
+            return false;
+        foreach (var dimension in laea.Dimensions)
+        {
+            if (!dimension.IsPrimitiveValue(0))
+                return false;
+        }
+        array = laea.ArrayValue;
+        return true;
     }
 }

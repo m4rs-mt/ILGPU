@@ -169,7 +169,8 @@ partial class CodeGenerator
 
         // For pointer types, compare against a null of the same pointer type
         // instead of a primitive zero to avoid Int64 → ptr conversion failures.
-        var rightValue = comparisonValue.Type is AddressSpaceType
+        // Arrays are compared with the null array.
+        var rightValue = comparisonValue.Type is AddressSpaceType or ArrayType
             ? Builder.CreateNull(Location, comparisonValue.Type)
             : Builder.CreatePrimitiveValue(
                 Location,

@@ -301,7 +301,7 @@ sealed partial class Block
 
     /// <summary>
     /// Pops a value from the stack that can be used in the context of
-    /// compare operations.
+    /// compare operations. Arrays are compared as references.
     /// </summary>
     /// <param name="location">The current location.</param>
     /// <param name="flags">The conversion flags.</param>
@@ -309,7 +309,8 @@ sealed partial class Block
     /// The popped value from the stack that can be used in the
     /// context of compare and arithmetic operations.</returns>
     public Value PopCompareValue(Location location, ConvertFlags flags) =>
-        PeekBasicValueType(location) == BasicValueType.Int1
+        PeekBasicValueType(location) == BasicValueType.Int1 ||
+        PeekType(location) is ArrayType
         ? Pop()
         : PopCompareOrArithmeticValue(location, flags);
 
