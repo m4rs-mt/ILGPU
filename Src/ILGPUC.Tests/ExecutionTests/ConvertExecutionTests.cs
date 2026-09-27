@@ -311,4 +311,23 @@ public abstract class ConvertExecutionTests : ExecutionTestBase
             ["-290", "824", "1938", "3052"],
             programOptimization: programOptimization);
     }
+
+    /// <summary>
+    /// The address of a local variable converted to an integer and back to a
+    /// pointer, also in a field of a structure passed to a helper, keeps
+    /// pointing to local memory, so backends without generic pointers do not
+    /// reject it with ILGPU1215.
+    /// </summary>
+    [SkippableTheory]
+    [InlineData(RoslynOptimizationLevel.Release)]
+    [InlineData(RoslynOptimizationLevel.Debug)]
+    public async Task LocalAddressRoundTrip_ProducesCorrectOutput(
+        RoslynOptimizationLevel programOptimization)
+    {
+        await VerifyProgramOutputAsync(
+            "TestPrograms/ConvertPointer/LocalAddressRoundTrip.cs",
+            ["Kernels.RoundTripKernel", "Kernels.FieldKernel"],
+            ["0 0", "1 2", "2 4", "3 6"],
+            programOptimization: programOptimization);
+    }
 }

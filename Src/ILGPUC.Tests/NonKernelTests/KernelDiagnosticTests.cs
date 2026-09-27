@@ -382,6 +382,35 @@ public sealed class KernelDiagnosticTests
             data[index] = shared[0] + shared[1];
         }
 
+        // A helper that converts the integer it is passed to a pointer
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static unsafe void WriteAt(long address, int value) =>
+            *(int*)address = value; // LocalAddressHelper
+
+        // An integer holding a local address passed to a helper
+        public static unsafe void LocalAddressHelperKernel(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data)
+        {
+            int value = 0;
+            WriteAt((long)&value, data[index]);
+            data[index] = value;
+        }
+
+        // A helper that returns the integer it is passed
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static long Id(long address) => address;
+
+        // An integer holding a local address returned from a helper
+        public static unsafe void LocalAddressReturnKernel(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data)
+        {
+            int value = 0;
+            *(int*)Id((long)&value) = data[index]; // LocalAddressReturn
+            data[index] = value;
+        }
+
         // The distance of two local addresses, which is never converted back to
         // an address, moved after a conditional
         public static unsafe void LocalOffsetSelectKernel(
@@ -394,6 +423,33 @@ public sealed class KernelDiagnosticTests
             if (data[index] > 0)
                 offset += 1;
             data[index] = (int)offset + first + second;
+        }
+
+        // The distance of two local addresses stored as a native integer
+        public static unsafe void LocalOffsetStoreKernel(
+            Index1D index,
+            ArrayView1D<nint, Stride1D.Dense> data)
+        {
+            int first = 0;
+            int second = 0;
+            nint offset = (nint)(&second) - (nint)(&first);
+            if (data[index] > 0)
+                offset += 1;
+            data[index] = offset + first + second;
+        }
+
+        // A helper that converts the native integer it is passed to an integer
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static int ToInt(nint offset) => (int)offset;
+
+        // The distance of two local addresses passed to a helper
+        public static unsafe void LocalOffsetHelperKernel(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data)
+        {
+            int first = 0;
+            int second = 0;
+            data[index] = ToInt((nint)(&second) - (nint)(&first)) + first + second;
         }
 
         // A mask computed from the distance of two local addresses in a loop
@@ -443,6 +499,28 @@ public sealed class KernelDiagnosticTests
             data[index] = first + second;
         }
 
+        // A helper that aligns the native integer it is passed
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static unsafe void WriteAligned(nint address, int value) =>
+            *(int*)(address & ~(nint)3) = value; // SharedAddressAlignedHelper
+
+        // A native integer holding a shared address passed to a helper
+        public static unsafe void SharedAddressAlignedHelperKernel(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data)
+        {
+            var shared = Group.GetSharedMemory<int>(1);
+            WriteAligned((nint)(long)Unsafe.AsPointer(ref shared[0]), data[index]);
+            Group.Barrier();
+            data[index] = shared[0];
+        }
+
+        // A helper that returns the native integer it is passed, calling itself
+        // in tail position
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static nint Pass(nint value, int count) =>
+            count <= 0 ? value : Pass(value, count - 1);
+
         public struct IntPair
         {
             public int A;
@@ -462,6 +540,110 @@ public sealed class KernelDiagnosticTests
             data[index] = pair.A + pair.B;
         }
 
+        private struct NativeValue
+        {
+            public nint Value;
+            public int Count;
+        }
+
+        // A helper that writes to the address in a field of a structure
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static unsafe void WriteTo(NativeValue target, int value) =>
+            *(int*)target.Value = value + target.Count;
+
+        // A native integer holding a local address in a field of a structure
+        public static unsafe void LocalAddressFieldKernel(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data)
+        {
+            int value = 0;
+            NativeValue target = default;
+            target.Value = (nint)(long)&value; // LocalAddressField
+            target.Count = data[index];
+            WriteTo(target, data[index]);
+            data[index] = value;
+        }
+
+        // The distance of two local addresses returned from a helper
+        public static unsafe void LocalOffsetReturnKernel(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data)
+        {
+            int first = 0;
+            int second = 0;
+            nint distance = Pass((nint)(&second) - (nint)(&first), data[index]);
+            data[index] = (int)distance + first + second;
+        }
+
+        // A helper that adds the fields of a structure
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static int Sum(NativeValue value) => (int)value.Value + value.Count;
+
+        // The distance of two local addresses in a field of a structure, moved
+        // after a conditional and passed to a helper
+        public static unsafe void LocalOffsetFieldKernel(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data)
+        {
+            int first = 0;
+            int second = 0;
+            NativeValue distance = default;
+            distance.Value = (nint)(&second) - (nint)(&first);
+            if (data[index] > 0)
+                distance.Value += 1;
+            distance.Count = data[index];
+            data[index] = Sum(distance) + first + second;
+        }
+
+        private struct AddressAndDistance
+        {
+            public long Address;
+            public long Distance;
+        }
+
+        private struct CountedTarget
+        {
+            public int Count;
+            public AddressAndDistance Target;
+        }
+
+        // A helper that sets the distance in a structure
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static AddressAndDistance WithDistance(
+            AddressAndDistance target,
+            long distance)
+        {
+            target.Distance = distance;
+            return target;
+        }
+
+        // A helper that writes the distance in a structure to its address
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static unsafe void WriteDistance(CountedTarget counted) =>
+            *(int*)counted.Target.Address = (int)counted.Target.Distance + counted.Count;
+
+        // One of two structures holding a view address and the distance of two
+        // local addresses in their fields, passed to helpers in a structure
+        public static unsafe void GlobalAddressFieldKernel(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data)
+        {
+            int first = 0;
+            int second = 0;
+            AddressAndDistance forward = default;
+            forward.Address = (long)Unsafe.AsPointer(ref data[index]);
+            forward.Distance = (long)&second - (long)&first;
+            AddressAndDistance backward = default;
+            backward.Address = forward.Address;
+            backward.Distance = (long)&first - (long)&second;
+            CountedTarget counted = default;
+            counted.Count = first + second;
+            counted.Target = WithDistance(
+                data[index] > 0 ? forward : backward,
+                (long)&second - (long)&first);
+            WriteDistance(counted);
+        }
+
         // The address of a field of a view element computed from the offset of
         // the field in a local structure
         public static unsafe void GlobalFieldAddressKernel(
@@ -472,6 +654,21 @@ public sealed class KernelDiagnosticTests
             long offset = (byte*)&pair.B - (byte*)&pair;
             long address = (long)((byte*)Unsafe.AsPointer(ref data[index]) + offset);
             *(int*)address = pair.A + 1;
+        }
+
+        // The byte address of a view element moved by the distance of two local
+        // addresses computed as an integer
+        public static unsafe void GlobalBytesPlusDistanceKernel(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data)
+        {
+            int first = 0;
+            int second = 0;
+            long distance = ((long)&second - (long)&first) *
+                (data[index] == 12345 ? 1 : 0);
+            byte* element = (byte*)Unsafe.AsPointer(ref data[index]);
+            *(int*)(element + distance) = 3;
+            data[index] += first + second;
         }
 
         public static void DelegateMemberKernel(
@@ -2436,6 +2633,42 @@ public sealed class KernelDiagnosticTests
             "holds the address of shared memory to a pointer",
             "SharedAddressSelect");
 
+    // Helper parameters hold the arguments of their calls
+    [Theory]
+    [InlineData(BackendType.Metal, OptimizationLevel.O0)]
+    [InlineData(BackendType.Metal, OptimizationLevel.O1)]
+    [InlineData(BackendType.Metal, OptimizationLevel.O2)]
+    [InlineData(BackendType.OpenCL, OptimizationLevel.O0)]
+    [InlineData(BackendType.OpenCL, OptimizationLevel.O1)]
+    [InlineData(BackendType.OpenCL, OptimizationLevel.O2)]
+    public void LocalAddressHelper_WithoutGenericPointers_Reports1215(
+        BackendType backend,
+        OptimizationLevel level) =>
+        AssertDiagnostic(
+            Generate(nameof(Kernels.LocalAddressHelperKernel), backend, level),
+            "ILGPU1215",
+            "Method 'Kernels.WriteAt' converts an integer that holds the " +
+            "address of local memory to a pointer",
+            "LocalAddressHelper");
+
+    // Helper results hold the values they return
+    [Theory]
+    [InlineData(BackendType.Metal, OptimizationLevel.O0)]
+    [InlineData(BackendType.Metal, OptimizationLevel.O1)]
+    [InlineData(BackendType.Metal, OptimizationLevel.O2)]
+    [InlineData(BackendType.OpenCL, OptimizationLevel.O0)]
+    [InlineData(BackendType.OpenCL, OptimizationLevel.O1)]
+    [InlineData(BackendType.OpenCL, OptimizationLevel.O2)]
+    public void LocalAddressReturn_WithoutGenericPointers_Reports1215(
+        BackendType backend,
+        OptimizationLevel level) =>
+        AssertDiagnostic(
+            Generate(nameof(Kernels.LocalAddressReturnKernel), backend, level),
+            "ILGPU1215",
+            "Method 'Kernels.LocalAddressReturnKernel' converts an integer that " +
+            "holds the address of local memory to a pointer",
+            "LocalAddressReturn");
+
     // Integers are traced through the native integers they were converted
     // from, such as a native integer selected from two local addresses and
     // aligned, through fields of structures, and through native integers moved
@@ -2446,6 +2679,11 @@ public sealed class KernelDiagnosticTests
         "Kernels.LocalAddressAlignedSelectKernel",
         "local",
         "LocalAddressAlignedSelect")]
+    [InlineData(
+        nameof(Kernels.SharedAddressAlignedHelperKernel),
+        "Kernels.WriteAligned",
+        "shared",
+        "SharedAddressAlignedHelper")]
     [InlineData(
         nameof(Kernels.LocalAddressOffsetKernel),
         "Kernels.LocalAddressOffsetKernel",
@@ -2477,20 +2715,53 @@ public sealed class KernelDiagnosticTests
         }
     }
 
+    // Stored native integers are not traced, as integers loaded from memory
+    // are assumed to hold global addresses
+    [Theory]
+    [InlineData(BackendType.Metal, OptimizationLevel.O0)]
+    [InlineData(BackendType.Metal, OptimizationLevel.O1)]
+    [InlineData(BackendType.Metal, OptimizationLevel.O2)]
+    [InlineData(BackendType.OpenCL, OptimizationLevel.O0)]
+    [InlineData(BackendType.OpenCL, OptimizationLevel.O1)]
+    [InlineData(BackendType.OpenCL, OptimizationLevel.O2)]
+    public void LocalOffsetStore_WithoutGenericPointers_GeneratesCode(
+        BackendType backend,
+        OptimizationLevel level)
+    {
+        using var helper = new CompilationHelper(backend);
+        var result = helper.GenerateBackendCode(
+            GetKernel(nameof(Kernels.LocalOffsetStoreKernel)),
+            backend,
+            new CompilationProperties(OptimizationLevel: level));
+        Assert.False(string.IsNullOrWhiteSpace(result.SourceCode));
+    }
+
     // Native integers that are never converted back to addresses, such as the
-    // distance of two local or shared addresses, are integers, also after
-    // conditionals, in loops or added to global addresses
+    // distance of two local or shared addresses, are integers, also in fields of
+    // structures, returned from helpers or added to global addresses
     [SkippableTheory]
     [InlineData(nameof(Kernels.LocalOffsetSelectKernel), BackendType.Metal)]
     [InlineData(nameof(Kernels.LocalOffsetSelectKernel), BackendType.OpenCL)]
+    [InlineData(nameof(Kernels.LocalOffsetHelperKernel), BackendType.Metal)]
+    [InlineData(nameof(Kernels.LocalOffsetHelperKernel), BackendType.OpenCL)]
     [InlineData(nameof(Kernels.LocalOffsetLoopKernel), BackendType.Metal)]
     [InlineData(nameof(Kernels.LocalOffsetLoopKernel), BackendType.OpenCL)]
     [InlineData(nameof(Kernels.SharedOffsetIndexKernel), BackendType.Metal)]
     [InlineData(nameof(Kernels.SharedOffsetIndexKernel), BackendType.OpenCL)]
+    [InlineData(nameof(Kernels.LocalOffsetReturnKernel), BackendType.Metal)]
+    [InlineData(nameof(Kernels.LocalOffsetReturnKernel), BackendType.OpenCL)]
+    [InlineData(nameof(Kernels.LocalOffsetFieldKernel), BackendType.Metal)]
+    [InlineData(nameof(Kernels.LocalOffsetFieldKernel), BackendType.OpenCL)]
+    [InlineData(nameof(Kernels.GlobalAddressFieldKernel), BackendType.Metal)]
+    [InlineData(nameof(Kernels.GlobalAddressFieldKernel), BackendType.OpenCL)]
     [InlineData(nameof(Kernels.GlobalFieldAddressKernel), BackendType.Metal)]
     [InlineData(nameof(Kernels.GlobalFieldAddressKernel), BackendType.OpenCL)]
+    [InlineData(nameof(Kernels.GlobalBytesPlusDistanceKernel), BackendType.Metal)]
+    [InlineData(nameof(Kernels.GlobalBytesPlusDistanceKernel), BackendType.OpenCL)]
     [InlineData(nameof(Kernels.LocalAddressRoundTripKernel), BackendType.Metal)]
     [InlineData(nameof(Kernels.LocalAddressRoundTripKernel), BackendType.OpenCL)]
+    [InlineData(nameof(Kernels.LocalAddressFieldKernel), BackendType.Metal)]
+    [InlineData(nameof(Kernels.LocalAddressFieldKernel), BackendType.OpenCL)]
     public async Task AddressDistance_WithoutGenericPointers_Compiles(
         string kernelName,
         BackendType backend)
@@ -2539,6 +2810,25 @@ public sealed class KernelDiagnosticTests
             "Method 'K.Kern' converts an integer that holds the address of " +
             "local memory to a pointer, which Metal does not support",
             backend: BackendType.Metal);
+
+    // Generic pointers keep the address space of any address
+    [SkippableTheory]
+    [InlineData(BackendType.Cuda)]
+    [InlineData(BackendType.ROCm)]
+    public async Task LocalAddressRoundTrip_WithGenericPointers_Compiles(
+        BackendType backend)
+    {
+        Skip.IfNot(
+            await Availability.IsCompilerAvailableAsync(backend),
+            $"Native compiler for {backend} is not available");
+        using var helper = new CompilationHelper(backend);
+        var result = await AssertionRecorder.RunAsync(() =>
+            helper.CompileToNativeAsync(
+                GetKernel(nameof(Kernels.LocalAddressRoundTripKernel)),
+                backend));
+        Assert.NotNull(result);
+        Assert.True(result!.Success, result.StdErr);
+    }
 
     #endregion
 

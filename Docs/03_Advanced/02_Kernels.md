@@ -86,8 +86,8 @@ points to, also through fields of structures and parameters of helper methods.
 Other integers that hold the address of shared or local memory and are converted back to pointers used as addresses are
 rejected with error `ILGPU1215`, such as a native integer selected from two local addresses and aligned with
 `& ~(nint)3`, or a local address moved in a loop.
-The integer is traced through arithmetic, conditionals, loops and fields of structures, also through native integers
-moved by such an address, such as `offset + (nint)(long)&value`.
+The integer is traced through arithmetic, conditionals, loops, fields of structures and calls of helper methods, also
+through native integers moved by such an address, such as `offset + (nint)(long)&value`.
 An integer computed from such an address counts as holding it, so the address of a view element `p` moved by the
 distance of two local addresses as an integer, such as `(int*)((long)p + ((long)&b - (long)&a))`, is rejected as well;
 move the pointer instead, such as `(int*)((byte*)p + ((byte*)&b - (byte*)&a))`.
@@ -152,7 +152,7 @@ with an error at the offending source line in the form `File.cs(line,column): er
 | `ILGPU1212` | Kernels that call themselves, directly or through other methods |
 | `ILGPU1213` | Calls of methods whose type arguments are nested more than 32 levels deep, such as a generic method `F<T>` calling `F<Wrap<T>>`, which would create new instantiations without end |
 | `ILGPU1214` | Views, pointers and structures or arrays containing them loaded from static fields, including `static readonly` fields, whose values are read at compile time and do not refer to device memory; pass the view as a kernel parameter or capture it instead. Static fields of strings, classes and interfaces, and structures in static fields that hold arrays, strings or class instances, such as `struct H { public int V; public int[] A; }`, are rejected the same way, even if they hold null; pass the data in an `ArrayView` instead. A helper method that loads such a field is only an error if a call to it remains after optimization, such as a call on a path that constant arguments rule out |
-| `ILGPU1215` | On Metal and OpenCL, integers holding the address of shared or local memory converted to pointers that are used as addresses, also after loops, conditionals or fields of structures, such as `*(int*)(address & ~(nint)3)` with `nint address = c ? (nint)&x : (nint)&y` |
+| `ILGPU1215` | On Metal and OpenCL, integers holding the address of shared or local memory converted to pointers that are used as addresses, also after loops, conditionals, fields of structures or calls of helper methods that pass them on or return them, such as `*(int*)(address & ~(nint)3)` with `nint address = c ? (nint)&x : (nint)&y` |
 
 Invoking a delegate variable that is still `null` on some path, without a null test, is undefined behavior in kernels.
 To call an optional operation, pass a separate flag instead of testing the delegate for null.

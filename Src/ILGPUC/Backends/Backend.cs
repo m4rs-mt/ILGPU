@@ -253,6 +253,7 @@ abstract class Backend(
             PointerAddressSpaces.AnalysisFlags.IgnoreGenericAddressSpace);
         var visited = new HashSet<Value>();
         var worklist = new Stack<Value>();
+        Dictionary<Method, List<MethodCall>>? calls = null;
         foreach (var method in module.Methods)
         {
             if (!method.HasImplementation)
@@ -277,23 +278,28 @@ abstract class Backend(
                 VerifyNotGeneric(module, results, method, value);
                 if (value is Store store)
                     VerifyNotStoredGeneric(module, results, method, store);
-                if (value is IntAsPointerCast cast && IsUsedAsAddress(cast))
+                if (value is IntAsPointerCast cast &&
+                    IsUsedAsAddress(module, cast, ref calls))
                 {
                     VerifyIntegerPointer(
+                        module,
                         results,
                         method,
                         cast.Source,
-                        cast.Location);
+                        cast.Location,
+                        ref calls);
                 }
                 if (value is LoadElementAddress address &&
                     !IsKnownAddress(results, address.Source) &&
-                    IsUsedAsAddress(address))
+                    IsUsedAsAddress(module, address, ref calls))
                 {
                     VerifyIntegerPointer(
+                        module,
                         results,
                         method,
                         address.Offset,
-                        address.Location);
+                        address.Location,
+                        ref calls);
                 }
                 foreach (var operand in value.Values)
                     worklist.Push(operand);
@@ -421,11 +427,14 @@ abstract class Backend(
     /// difference of two addresses are converted to pointers even if they never
     /// become addresses again. Converting them back to integers, comparing them
     /// and storing them are no address uses, also after phis, selects, fields
-    /// of structures and moves by bytes, such as <c>(int)(b - a)</c>, and
-    /// integers passed to helpers or returned are not traced into other
-    /// methods. All other uses are, such as loads and stores to the address.
+    /// of structures, helper parameters, helper results and moves by bytes, such
+    /// as <c>(int)(b - a)</c>. All other uses are, such as loads and stores to
+    /// the address.
     /// </summary>
-    private static bool IsUsedAsAddress(Value value)
+    private static bool IsUsedAsAddress(
+        Module module,
+        Value value,
+        ref Dictionary<Method, List<MethodCall>>? calls)
     {
         // Fields are the indices of the flattened fields of structure values
         // that hold the native integer, or -1 for other values
@@ -448,6 +457,9 @@ abstract class Backend(
                     case Store when use.Index == 1:
                         // Stored integers are not traced: integers loaded from
                         // memory are assumed to hold global addresses
+                        break;
+                    case Method:
+                        // The method declaring a parameter
                         break;
                     case PhiValue:
                     case Predicate when use.Index > 0:
@@ -486,14 +498,24 @@ abstract class Backend(
                                     : -1));
                         }
                         break;
-                    case MethodCall { Target.HasImplementation: true }
+                    case MethodCall { Target.HasImplementation: true } call
                         when use.Index > 0:
+                        // Arguments are the parameters of the called helper
+                        worklist.Push((
+                            call.Target.Parameters[use.Index - 1],
+                            field));
+                        break;
                     case BasicBlock
                     {
                         TerminationKind: BlockTerminationKind.Return
-                    }:
-                        // Arguments of helpers and returned values are not
-                        // traced into other methods
+                    } block:
+                        // Returned values are the results of all calls
+                        calls ??= GetCalls(module);
+                        if (calls.TryGetValue(block.Scope, out var methodCalls))
+                        {
+                            foreach (var call in methodCalls)
+                                worklist.Push((call, field));
+                        }
                         break;
                     default:
                         return true;
@@ -531,15 +553,17 @@ abstract class Backend(
     /// of shared or local memory. Without generic pointers, integers converted
     /// to pointers refer to global memory, which is what addresses of unknown
     /// origin, such as addresses passed by the host, refer to. The integer is
-    /// traced through phis, selects, fields of structures, arithmetic and the
-    /// native integers it was converted from. Integers loaded from memory are
-    /// assumed to hold global addresses.
+    /// traced through phis, selects, fields of structures, helper parameters,
+    /// helper results, arithmetic and the native integers it was converted
+    /// from. Integers loaded from memory are assumed to hold global addresses.
     /// </summary>
     private void VerifyIntegerPointer(
+        Module module,
         AddressSpaceResults results,
         Method method,
         Value integer,
-        Location location)
+        Location location,
+        ref Dictionary<Method, List<MethodCall>>? calls)
     {
         const AddressSpaceFlags Spaces =
             AddressSpaceFlags.Shared | AddressSpaceFlags.Local;
@@ -568,6 +592,24 @@ abstract class Backend(
                 case Predicate predicate:
                     worklist.Push((predicate.TrueValue, field));
                     worklist.Push((predicate.FalseValue, field));
+                    break;
+                case Parameter parameter when parameter.Method != module.EntryPoint:
+                    // Helper parameters hold the arguments of all calls
+                    calls ??= GetCalls(module);
+                    if (!calls.TryGetValue(parameter.Method, out var methodCalls))
+                        break;
+                    foreach (var call in methodCalls)
+                        worklist.Push((call.Arguments[parameter.Index], field));
+                    break;
+                case MethodCall { Target.HasImplementation: true } call:
+                    foreach (var block in call.Target.Blocks)
+                    {
+                        if (block.TerminationKind == BlockTerminationKind.Return &&
+                            block.TerminationValue is { } returnValue)
+                        {
+                            worklist.Push((returnValue, field));
+                        }
+                    }
                     break;
                 case StructureValue structure
                     when field >= 0 && field < structure.Count:
@@ -612,6 +654,26 @@ abstract class Backend(
                 FormatSpaces(flags),
                 BackendType),
             location);
+    }
+
+    /// <summary>
+    /// Returns the calls of each method of the given module.
+    /// </summary>
+    private static Dictionary<Method, List<MethodCall>> GetCalls(Module module)
+    {
+        var calls = new Dictionary<Method, List<MethodCall>>();
+        foreach (var method in module.Methods)
+        {
+            if (!method.HasImplementation)
+                continue;
+            method.ForEachValue<MethodCall>(call =>
+            {
+                if (!calls.TryGetValue(call.Target, out var targetCalls))
+                    calls.Add(call.Target, targetCalls = []);
+                targetCalls.Add(call);
+            });
+        }
+        return calls;
     }
 
     /// <summary>
