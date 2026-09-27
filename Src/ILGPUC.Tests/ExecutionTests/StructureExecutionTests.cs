@@ -14,6 +14,7 @@ using ILGPUC.Tests.Framework;
 using System.Threading.Tasks;
 using Xunit;
 using Xunit.Abstractions;
+using RoslynOptimizationLevel = Microsoft.CodeAnalysis.OptimizationLevel;
 
 namespace ILGPUC.Tests.ExecutionTests;
 
@@ -99,5 +100,27 @@ public abstract class StructureExecutionTests : ExecutionTestBase
                 "16909060", "84281112", "16909060", "84281112",
             ],
             new CompilationProperties { OptimizationLevel = level });
+    }
+
+    /// <summary>
+    /// A struct whose only field is a pointer or reference has the IR type of that
+    /// pointer, and a read of its field from a struct value gives the pointer itself
+    /// instead of dereferencing the value as the address of the struct.
+    /// </summary>
+    [SkippableTheory]
+    [InlineData(OptimizationLevel.O0, RoslynOptimizationLevel.Release)]
+    [InlineData(OptimizationLevel.O1, RoslynOptimizationLevel.Release)]
+    [InlineData(OptimizationLevel.O2, RoslynOptimizationLevel.Release)]
+    [InlineData(OptimizationLevel.O1, RoslynOptimizationLevel.Debug)]
+    public async Task PointerStructValue_ProducesCorrectOutput(
+        OptimizationLevel level,
+        RoslynOptimizationLevel programOptimization)
+    {
+        await VerifyProgramOutputAsync(
+            "TestPrograms/Structure/PointerStructValue.cs",
+            ["Kernels.HelperKernel", "Kernels.RefKernel", "Kernels.RefHelperKernel"],
+            ["1 8 15 22", "1 8 15 22", "1 8 15 22"],
+            new CompilationProperties { OptimizationLevel = level },
+            programOptimization);
     }
 }
