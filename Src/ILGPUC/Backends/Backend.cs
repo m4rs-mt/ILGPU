@@ -17,10 +17,12 @@ using ILGPUC.IR.Analyses;
 using ILGPUC.IR.BasicBlockValues;
 using ILGPUC.IR.MethodValues;
 using ILGPUC.IR.ModuleValues;
+using ILGPUC.IR.PureValues;
 using ILGPUC.IR.Transformations;
 using ILGPUC.Roslyn.Analysis;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -275,6 +277,24 @@ abstract class Backend(
                 VerifyNotGeneric(module, results, method, value);
                 if (value is Store store)
                     VerifyNotStoredGeneric(module, results, method, store);
+                if (value is IntAsPointerCast cast && IsUsedAsAddress(cast))
+                {
+                    VerifyIntegerPointer(
+                        results,
+                        method,
+                        cast.Source,
+                        cast.Location);
+                }
+                if (value is LoadElementAddress address &&
+                    !IsKnownAddress(results, address.Source) &&
+                    IsUsedAsAddress(address))
+                {
+                    VerifyIntegerPointer(
+                        results,
+                        method,
+                        address.Offset,
+                        address.Location);
+                }
                 foreach (var operand in value.Values)
                     worklist.Push(operand);
             }
@@ -392,6 +412,206 @@ abstract class Backend(
         return new NotSupportedException(
             $"{message}. {BackendType} does not support generic pointers; make " +
             "each pointer or reference point into a single address space.");
+    }
+
+    /// <summary>
+    /// Returns true if the given native integer, an integer converted to a
+    /// pointer or a native integer moved by an offset, is used as an address.
+    /// Native integers are untyped pointers in the IR, so integers such as the
+    /// difference of two addresses are converted to pointers even if they never
+    /// become addresses again. Converting them back to integers, comparing them
+    /// and storing them are no address uses, also after phis, selects, fields
+    /// of structures and moves by bytes, such as <c>(int)(b - a)</c>, and
+    /// integers passed to helpers or returned are not traced into other
+    /// methods. All other uses are, such as loads and stores to the address.
+    /// </summary>
+    private static bool IsUsedAsAddress(Value value)
+    {
+        // Fields are the indices of the flattened fields of structure values
+        // that hold the native integer, or -1 for other values
+        var visited = new HashSet<(Value, int)>();
+        var worklist = new Stack<(Value Value, int Field)>();
+        worklist.Push((value, -1));
+        while (worklist.TryPop(out var entry))
+        {
+            if (!visited.Add(entry))
+                continue;
+            var field = entry.Field;
+            foreach (Use use in entry.Value.Uses)
+            {
+                switch (use.Target)
+                {
+                    case PointerAsIntCast:
+                    case CompareValue:
+                        // Converted back to an integer or compared
+                        break;
+                    case Store when use.Index == 1:
+                        // Stored integers are not traced: integers loaded from
+                        // memory are assumed to hold global addresses
+                        break;
+                    case PhiValue:
+                    case Predicate when use.Index > 0:
+                        // Values: an address only if they are used as one
+                        worklist.Push((use.Target, field));
+                        break;
+                    case PointerCast:
+                    case AddressSpaceCast:
+                    case LoadElementAddress:
+                        // Typed or moved addresses: an address only if they are
+                        // used as one
+                        worklist.Push((use.Target, -1));
+                        break;
+                    case StructureValue:
+                        // Fields of structures: an address only if they are
+                        // loaded and used as one
+                        worklist.Push((use.Target, use.Index));
+                        break;
+                    case SetField setField when use.Index == 1:
+                        worklist.Push((
+                            setField,
+                            setField.FieldSpan.Index + Math.Max(field, 0)));
+                        break;
+                    case SetField setField:
+                        // Other fields keep the native integer
+                        if (!Contains(setField.FieldSpan, field))
+                            worklist.Push((setField, field));
+                        break;
+                    case GetField getField:
+                        if (Contains(getField.FieldSpan, field))
+                        {
+                            worklist.Push((
+                                getField,
+                                getField.FieldSpan.HasSpan
+                                    ? field - getField.FieldSpan.Index
+                                    : -1));
+                        }
+                        break;
+                    case MethodCall { Target.HasImplementation: true }
+                        when use.Index > 0:
+                    case BasicBlock
+                    {
+                        TerminationKind: BlockTerminationKind.Return
+                    }:
+                        // Arguments of helpers and returned values are not
+                        // traced into other methods
+                        break;
+                    default:
+                        return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    /// <summary>
+    /// Returns true if the given field span contains the given flattened field
+    /// of a structure value.
+    /// </summary>
+    private static bool Contains(FieldSpan span, int field) =>
+        field >= span.Index && field < span.Index + span.Span;
+
+    /// <summary>
+    /// Returns true if the given value is a pointer to known memory only, not a
+    /// native integer or a pointer of unknown origin, such as a pointer loaded
+    /// from memory. Offsets move such a pointer inside its memory, while native
+    /// integers moved by an offset, such as <c>n + (nint)(long)&amp;x</c>, hold
+    /// the sum of both integers.
+    /// </summary>
+    private static bool IsKnownAddress(AddressSpaceResults results, Value value)
+    {
+        if (value.Type is not AddressSpaceType)
+            return false;
+        var flags = results[value].Flags;
+        return flags != AddressSpaceFlags.None &&
+            (flags & AddressSpaceFlags.Generic) == AddressSpaceFlags.None;
+    }
+
+    /// <summary>
+    /// Throws if the given integer, which becomes an address, holds the address
+    /// of shared or local memory. Without generic pointers, integers converted
+    /// to pointers refer to global memory, which is what addresses of unknown
+    /// origin, such as addresses passed by the host, refer to. The integer is
+    /// traced through phis, selects, fields of structures, arithmetic and the
+    /// native integers it was converted from. Integers loaded from memory are
+    /// assumed to hold global addresses.
+    /// </summary>
+    private void VerifyIntegerPointer(
+        AddressSpaceResults results,
+        Method method,
+        Value integer,
+        Location location)
+    {
+        const AddressSpaceFlags Spaces =
+            AddressSpaceFlags.Shared | AddressSpaceFlags.Local;
+        var flags = AddressSpaceFlags.None;
+        var visited = new HashSet<(Value, int)>();
+        var worklist = new Stack<(Value Value, int Field)>();
+        worklist.Push((integer, -1));
+        while (worklist.TryPop(out var entry))
+        {
+            var (value, field) = entry;
+            if (!visited.Add(entry))
+                continue;
+            if (value.Type is AddressSpaceType)
+            {
+                // Pointers hold the addresses of the memory they point to
+                flags |= results[value].Flags & Spaces;
+                if (IsKnownAddress(results, value))
+                    continue;
+            }
+            switch (value)
+            {
+                case PhiValue phi:
+                    foreach (var argument in phi.Arguments)
+                        worklist.Push((argument, field));
+                    break;
+                case Predicate predicate:
+                    worklist.Push((predicate.TrueValue, field));
+                    worklist.Push((predicate.FalseValue, field));
+                    break;
+                case StructureValue structure
+                    when field >= 0 && field < structure.Count:
+                    worklist.Push((structure.Values[field], -1));
+                    break;
+                case GetField getField:
+                    for (int i = 0; i < getField.FieldSpan.Span; ++i)
+                    {
+                        if (field < 0 || field == i)
+                        {
+                            worklist.Push((
+                                getField.Source,
+                                getField.FieldSpan.Index + i));
+                        }
+                    }
+                    break;
+                case SetField setField when Contains(setField.FieldSpan, field):
+                    worklist.Push((
+                        setField.Value,
+                        setField.FieldSpan.HasSpan
+                            ? field - setField.FieldSpan.Index
+                            : -1));
+                    break;
+                case SetField setField when field >= 0:
+                    worklist.Push((setField.Source, field));
+                    break;
+                case PureValue:
+                    foreach (var operand in value.Values)
+                        worklist.Push((operand, -1));
+                    break;
+            }
+        }
+        if (flags == AddressSpaceFlags.None)
+            return;
+
+        throw new KernelCompilationException(
+            KernelDiagnostic.IntegerToPointerId,
+            string.Format(
+                CultureInfo.InvariantCulture,
+                ErrorMessages.KernelDiagnosticIntegerToPointer,
+                GetDisplayName(method),
+                FormatSpaces(flags),
+                BackendType),
+            location);
     }
 
     /// <summary>

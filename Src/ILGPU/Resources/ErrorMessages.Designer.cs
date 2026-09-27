@@ -1303,6 +1303,15 @@ namespace ILGPU.Resources {
         }
 
         /// <summary>
+        ///   Looks up a localized string similar to Method &apos;{0}&apos; converts an integer that holds the address of {1} memory to a pointer, which {2} does not support: without generic pointers, integers converted to pointers refer to global memory. Use the original pointer or reference instead..
+        /// </summary>
+        internal static string KernelDiagnosticIntegerToPointer {
+            get {
+                return ResourceManager.GetString("KernelDiagnosticIntegerToPointer", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to Delegates bound with KernelDelegates.Bind can only be used in kernels compiled by ILGPUC.
         /// </summary>
         internal static string NotSupportedKernelDelegateBind {

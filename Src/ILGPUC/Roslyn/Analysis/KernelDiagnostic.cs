@@ -165,6 +165,12 @@ record KernelDiagnostic(string Id, string Message, Location Location)
     public const string StaticMemoryReferenceFieldId = "ILGPU1214";
 
     /// <summary>
+    /// Kernel code converts an integer that holds the address of shared or local
+    /// memory to a pointer on a backend without generic pointers.
+    /// </summary>
+    public const string IntegerToPointerId = "ILGPU1215";
+
+    /// <summary>
     /// A launching method whose delegate parameter is captured by an inline
     /// kernel is virtual or implements an interface member.
     /// </summary>

@@ -332,6 +332,148 @@ public sealed class KernelDiagnosticTests
             data[index] = e.Parameters.Count;
         }
 
+        // The address of a local variable converted to an integer and back
+        public static unsafe void LocalAddressRoundTripKernel(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data)
+        {
+            int value = 0;
+            long address = (long)&value;
+            *(int*)address = data[index]; // LocalAddressRoundTrip
+            data[index] = value;
+        }
+
+        // An integer holding a local address moved in a loop
+        public static unsafe void LocalAddressLoopKernel(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data)
+        {
+            int value = 0;
+            long address = (long)&value;
+            for (int i = 0; i < data[index]; ++i)
+                address += 4;
+            *(int*)address = data[index]; // LocalAddressLoop
+            data[index] = value;
+        }
+
+        // One of two integers holding local addresses
+        public static unsafe void LocalAddressSelectKernel(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data)
+        {
+            int first = 0;
+            int second = 0;
+            long address = data[index] > 0 ? (long)&first : (long)&second;
+            *(int*)address = data[index]; // LocalAddressSelect
+            data[index] = first + second;
+        }
+
+        // One of two integers holding shared addresses
+        public static unsafe void SharedAddressSelectKernel(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data)
+        {
+            var shared = Group.GetSharedMemory<int>(2);
+            long address = data[index] > 0
+                ? (long)Unsafe.AsPointer(ref shared[0])
+                : (long)Unsafe.AsPointer(ref shared[1]);
+            *(int*)address = data[index]; // SharedAddressSelect
+            Group.Barrier();
+            data[index] = shared[0] + shared[1];
+        }
+
+        // The distance of two local addresses, which is never converted back to
+        // an address, moved after a conditional
+        public static unsafe void LocalOffsetSelectKernel(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data)
+        {
+            int first = 0;
+            int second = 0;
+            nint offset = (nint)(&second) - (nint)(&first);
+            if (data[index] > 0)
+                offset += 1;
+            data[index] = (int)offset + first + second;
+        }
+
+        // A mask computed from the distance of two local addresses in a loop
+        public static unsafe void LocalOffsetLoopKernel(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data)
+        {
+            int first = 0;
+            int second = 0;
+            int count = 0;
+            nint mask = (nint)(&second) - (nint)(&first);
+            for (int i = 0; i < data[index]; ++i)
+            {
+                mask += 1;
+                if (mask != 0)
+                    ++count;
+                mask &= 7;
+            }
+            data[index] = (int)mask + count + first + second;
+        }
+
+        // Shared memory indexed by one of two distances of shared addresses
+        public static unsafe void SharedOffsetIndexKernel(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data)
+        {
+            var shared = Group.GetSharedMemory<int>(4);
+            nint start = (nint)Unsafe.AsPointer(ref shared[0]);
+            nint distance = data[index] > 0
+                ? (nint)Unsafe.AsPointer(ref shared[2]) - start
+                : (nint)Unsafe.AsPointer(ref shared[1]) - start;
+            shared[(int)(distance / 4)] = data[index];
+            Group.Barrier();
+            data[index] = shared[1] + shared[2];
+        }
+
+        // One of two native integers holding local addresses, aligned before it
+        // is converted to a pointer
+        public static unsafe void LocalAddressAlignedSelectKernel(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data)
+        {
+            int first = 0;
+            int second = 0;
+            nint address = data[index] > 0 ? (nint)(long)&first : (nint)(long)&second;
+            *(int*)(address & ~(nint)3) = data[index]; // LocalAddressAlignedSelect
+            data[index] = first + second;
+        }
+
+        public struct IntPair
+        {
+            public int A;
+            public int B;
+        }
+
+        // A local address moved by a native integer offset computed in a loop
+        public static unsafe void LocalAddressOffsetKernel(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data)
+        {
+            IntPair pair = default;
+            nint offset = 0;
+            for (int i = 0; i < (data[index] & 1); ++i)
+                offset += 4;
+            *(int*)((nint)(long)&pair.A + offset) = data[index]; // LocalAddressOffset
+            data[index] = pair.A + pair.B;
+        }
+
+        // The address of a field of a view element computed from the offset of
+        // the field in a local structure
+        public static unsafe void GlobalFieldAddressKernel(
+            Index1D index,
+            ArrayView1D<IntPair, Stride1D.Dense> data)
+        {
+            IntPair pair = default;
+            long offset = (byte*)&pair.B - (byte*)&pair;
+            long address = (long)((byte*)Unsafe.AsPointer(ref data[index]) + offset);
+            *(int*)address = pair.A + 1;
+        }
+
         public static void DelegateMemberKernel(
             Index1D index,
             ArrayView1D<int, Stride1D.Dense> data)
@@ -441,6 +583,33 @@ public sealed class KernelDiagnosticTests
     }
 
     /// <summary>
+    /// Generates code for the given kernel on the given backend, which must
+    /// reject it with a diagnostic.
+    /// </summary>
+    private static KernelCompilationException Generate(
+        string kernelName,
+        BackendType backend,
+        OptimizationLevel level = OptimizationLevel.O1)
+    {
+        using var helper = new CompilationHelper(backend);
+        return Assert.Throws<KernelCompilationException>(() =>
+            helper.GenerateBackendCode(
+                GetKernel(kernelName),
+                backend,
+                new CompilationProperties(OptimizationLevel: level)));
+    }
+
+    /// <summary>
+    /// Returns the given kernel of <see cref="Kernels"/>.
+    /// </summary>
+    private static MethodInfo GetKernel(string kernelName) =>
+        typeof(Kernels).GetMethod(
+            kernelName,
+            BindingFlags.Public | BindingFlags.Static)
+        ?? throw new InvalidOperationException(
+            $"Kernel method '{kernelName}' not found.");
+
+    /// <summary>
     /// Asserts that the given diagnostic has the given identifier and message
     /// and points at the line of this file marked with the given comment.
     /// </summary>
@@ -478,7 +647,8 @@ public sealed class KernelDiagnosticTests
         string id,
         string message,
         RoslynOptimizationLevel optimizationLevel = RoslynOptimizationLevel.Release,
-        MetadataReference[]? additionalReferences = null)
+        MetadataReference[]? additionalReferences = null,
+        BackendType backend = BackendType.CPU)
     {
         var (source, compilation, analysis) = AnalyzeBuild(
             kernelClass,
@@ -488,7 +658,7 @@ public sealed class KernelDiagnosticTests
             MainKernelProvider.CreateAsync(
                 compilation,
                 analysis,
-                [CompilationHelper.CreateBackend(BackendType.CPU)],
+                [CompilationHelper.CreateBackend(backend)],
                 new KernelCompiler()));
         int line = Array.FindIndex(
             source.Split('\n'),
@@ -2208,6 +2378,167 @@ public sealed class KernelDiagnosticTests
             diagnostic,
             StringComparison.Ordinal);
     }
+
+    #endregion
+
+    #region Integers Converted to Pointers (ILGPU1215)
+
+    // Integers are traced through phis, as the addresses they hold remain the
+    // addresses of local or shared memory
+    [Theory]
+    [InlineData(BackendType.Metal, OptimizationLevel.O0)]
+    [InlineData(BackendType.Metal, OptimizationLevel.O1)]
+    [InlineData(BackendType.Metal, OptimizationLevel.O2)]
+    [InlineData(BackendType.OpenCL, OptimizationLevel.O0)]
+    [InlineData(BackendType.OpenCL, OptimizationLevel.O1)]
+    [InlineData(BackendType.OpenCL, OptimizationLevel.O2)]
+    public void LocalAddressLoop_WithoutGenericPointers_Reports1215(
+        BackendType backend,
+        OptimizationLevel level) =>
+        AssertDiagnostic(
+            Generate(nameof(Kernels.LocalAddressLoopKernel), backend, level),
+            "ILGPU1215",
+            "Method 'Kernels.LocalAddressLoopKernel' converts an integer that " +
+            "holds the address of local memory to a pointer",
+            "LocalAddressLoop");
+
+    [Theory]
+    [InlineData(BackendType.Metal, OptimizationLevel.O0)]
+    [InlineData(BackendType.Metal, OptimizationLevel.O1)]
+    [InlineData(BackendType.Metal, OptimizationLevel.O2)]
+    [InlineData(BackendType.OpenCL, OptimizationLevel.O0)]
+    [InlineData(BackendType.OpenCL, OptimizationLevel.O1)]
+    [InlineData(BackendType.OpenCL, OptimizationLevel.O2)]
+    public void LocalAddressSelect_WithoutGenericPointers_Reports1215(
+        BackendType backend,
+        OptimizationLevel level) =>
+        AssertDiagnostic(
+            Generate(nameof(Kernels.LocalAddressSelectKernel), backend, level),
+            "ILGPU1215",
+            "Method 'Kernels.LocalAddressSelectKernel' converts an integer that " +
+            "holds the address of local memory to a pointer",
+            "LocalAddressSelect");
+
+    [Theory]
+    [InlineData(BackendType.Metal, OptimizationLevel.O0)]
+    [InlineData(BackendType.Metal, OptimizationLevel.O1)]
+    [InlineData(BackendType.Metal, OptimizationLevel.O2)]
+    [InlineData(BackendType.OpenCL, OptimizationLevel.O0)]
+    [InlineData(BackendType.OpenCL, OptimizationLevel.O1)]
+    [InlineData(BackendType.OpenCL, OptimizationLevel.O2)]
+    public void SharedAddressSelect_WithoutGenericPointers_Reports1215(
+        BackendType backend,
+        OptimizationLevel level) =>
+        AssertDiagnostic(
+            Generate(nameof(Kernels.SharedAddressSelectKernel), backend, level),
+            "ILGPU1215",
+            "Method 'Kernels.SharedAddressSelectKernel' converts an integer that " +
+            "holds the address of shared memory to a pointer",
+            "SharedAddressSelect");
+
+    // Integers are traced through the native integers they were converted
+    // from, such as a native integer selected from two local addresses and
+    // aligned, through fields of structures, and through native integers moved
+    // by an offset that holds the address
+    [Theory]
+    [InlineData(
+        nameof(Kernels.LocalAddressAlignedSelectKernel),
+        "Kernels.LocalAddressAlignedSelectKernel",
+        "local",
+        "LocalAddressAlignedSelect")]
+    [InlineData(
+        nameof(Kernels.LocalAddressOffsetKernel),
+        "Kernels.LocalAddressOffsetKernel",
+        "local",
+        "LocalAddressOffset")]
+    public void TracedLocalAddress_WithoutGenericPointers_Reports1215(
+        string kernelName,
+        string methodName,
+        string space,
+        string marker)
+    {
+        foreach (var backend in new[] { BackendType.Metal, BackendType.OpenCL })
+        {
+            foreach (var level in new[]
+            {
+                OptimizationLevel.O0,
+                OptimizationLevel.O1,
+                OptimizationLevel.O2,
+            })
+            {
+                AssertDiagnostic(
+                    Generate(kernelName, backend, level),
+                    "ILGPU1215",
+                    $"Method '{methodName}' converts an integer that holds the " +
+                    $"address of {space} memory to a pointer, which {backend} " +
+                    "does not support",
+                    marker);
+            }
+        }
+    }
+
+    // Native integers that are never converted back to addresses, such as the
+    // distance of two local or shared addresses, are integers, also after
+    // conditionals, in loops or added to global addresses
+    [SkippableTheory]
+    [InlineData(nameof(Kernels.LocalOffsetSelectKernel), BackendType.Metal)]
+    [InlineData(nameof(Kernels.LocalOffsetSelectKernel), BackendType.OpenCL)]
+    [InlineData(nameof(Kernels.LocalOffsetLoopKernel), BackendType.Metal)]
+    [InlineData(nameof(Kernels.LocalOffsetLoopKernel), BackendType.OpenCL)]
+    [InlineData(nameof(Kernels.SharedOffsetIndexKernel), BackendType.Metal)]
+    [InlineData(nameof(Kernels.SharedOffsetIndexKernel), BackendType.OpenCL)]
+    [InlineData(nameof(Kernels.GlobalFieldAddressKernel), BackendType.Metal)]
+    [InlineData(nameof(Kernels.GlobalFieldAddressKernel), BackendType.OpenCL)]
+    [InlineData(nameof(Kernels.LocalAddressRoundTripKernel), BackendType.Metal)]
+    [InlineData(nameof(Kernels.LocalAddressRoundTripKernel), BackendType.OpenCL)]
+    public async Task AddressDistance_WithoutGenericPointers_Compiles(
+        string kernelName,
+        BackendType backend)
+    {
+        Skip.IfNot(
+            await Availability.IsCompilerAvailableAsync(backend),
+            $"Native compiler for {backend} is not available");
+        using var helper = new CompilationHelper(backend);
+        foreach (var level in new[]
+        {
+            OptimizationLevel.O0,
+            OptimizationLevel.O1,
+            OptimizationLevel.O2,
+        })
+        {
+            var result = await AssertionRecorder.RunAsync(() =>
+                helper.CompileToNativeAsync(
+                    GetKernel(kernelName),
+                    backend,
+                    new CompilationProperties(OptimizationLevel: level)));
+            Assert.NotNull(result);
+            Assert.True(result!.Success, $"{level}: {result.StdErr}");
+        }
+    }
+
+    // The build reports the loop of Release IL at its line
+    [Fact]
+    public Task LocalAddressLoop_InReleaseBuild_FailsBuild() =>
+        AssertBuildErrorAsync(
+            """
+            static class K
+            {
+                public static unsafe void Kern(
+                    Index1D i, ArrayView1D<int, Stride1D.Dense> data)
+                {
+                    int value = 0;
+                    long address = (long)&value;
+                    for (int k = 0; k < data[i]; ++k)
+                        address += 4;
+                    *(int*)address = data[i]; // error
+                    data[i] = value;
+                }
+            }
+            """,
+            "ILGPU1215",
+            "Method 'K.Kern' converts an integer that holds the address of " +
+            "local memory to a pointer, which Metal does not support",
+            backend: BackendType.Metal);
 
     #endregion
 
