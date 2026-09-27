@@ -374,8 +374,9 @@ sealed class MethodTransform :
             return RebuildAndMemoize(oldValue);
 
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not KernelCompilationException)
         {
+            // Diagnostics of converters already carry their locations
             throw new InvalidOperationException(
                 $"[Rewrite] Failed for {oldValue.GetType().Name} " +
                 $"Id={oldValue.Id} Gen={oldValue.Generation} " +

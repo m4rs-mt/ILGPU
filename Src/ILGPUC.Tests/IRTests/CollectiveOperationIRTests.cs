@@ -18,7 +18,9 @@ using ILGPUC.IR.ModuleValues;
 using ILGPUC.IR.PureValues;
 using ILGPUC.Tests.Framework;
 using System;
+using System.IO;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using Xunit;
 
 namespace ILGPUC.Tests.IRTests;
@@ -62,14 +64,14 @@ static class CollectiveOperationKernels
         d[i] = Group.Reduce(d[i], 0u, (x, y) => x ^ y);
 
     public static void DoubledKernel(Index1D i, ArrayView1D<int, Stride1D.Dense> d) =>
-        d[i] = Warp.Reduce(d[i], (x, y) => x + x);
+        d[i] = Warp.Reduce(d[i], (x, y) => x + x); // DoubledKernel
 
     public static void CapturedAddKernel(
         Index1D i,
         ArrayView1D<int, Stride1D.Dense> d)
     {
         int offset = d[0];
-        d[i] = Warp.Reduce(d[i], (x, y) => x + y + offset);
+        d[i] = Warp.Reduce(d[i], (x, y) => x + y + offset); // CapturedAddKernel
     }
 
     public static void StoringAddKernel(
@@ -77,7 +79,7 @@ static class CollectiveOperationKernels
         ArrayView1D<int, Stride1D.Dense> d)
     {
         var view = d;
-        d[i] = Warp.Reduce(d[i], (x, y) =>
+        d[i] = Warp.Reduce(d[i], (x, y) => // StoringAddKernel
         {
             view[0] = x;
             return x + y;
@@ -85,7 +87,7 @@ static class CollectiveOperationKernels
     }
 
     public static void AddOneKernel(Index1D i, ArrayView1D<int, Stride1D.Dense> d) =>
-        d[i] = Warp.Reduce(d[i], (x, y) => x + y + 1);
+        d[i] = Warp.Reduce(d[i], (x, y) => x + y + 1); // AddOneKernel
 
     public static void MulAddKernel(Index1D i, ArrayView1D<int, Stride1D.Dense> d) =>
         d[i] = Warp.Reduce(d[i], (x, y) => x * 3 + y);
@@ -96,7 +98,7 @@ static class CollectiveOperationKernels
     public static void SubGroupReduceKernel(
         Index1D i,
         ArrayView1D<int, Stride1D.Dense> d) =>
-        d[i] = Group.Reduce(d[i], 0, (x, y) => x - y);
+        d[i] = Group.Reduce(d[i], 0, (x, y) => x - y); // SubGroupReduceKernel
 
     public static void UnsignedMaxKernel(
         Index1D i,
@@ -137,13 +139,51 @@ static class CollectiveOperationKernels
         Index1D i,
         ArrayView1D<uint, Stride1D.Dense> d) =>
         d[i] = Group.ExclusiveScan(d[i], 0u, Math.Max);
+
+    public static void SubScanKernel(Index1D i, ArrayView1D<int, Stride1D.Dense> d) =>
+        d[i] = Warp.InclusiveScan(d[i], (x, y) => x - y); // SubScanKernel
+
+    public static void SubGroupScanKernel(
+        Index1D i,
+        ArrayView1D<int, Stride1D.Dense> d) =>
+        d[i] = Group.ExclusiveScan(d[i], 0, (x, y) => x - y); // SubGroupScanKernel
+
+    public static void StructureKernel(
+        Index1D i,
+        ArrayView1D<Pair, Stride1D.Dense> d) =>
+        d[i] = Warp.AllReduce( // StructureKernel
+            d[i],
+            (x, y) => new Pair(x.X + y.X, x.Y + y.Y));
+
+    public static void PointerShuffleKernel(
+        Index1D i,
+        ArrayView1D<PointerPair, Stride1D.Dense> d) =>
+        d[i] = Warp.Shuffle(d[i], 1); // PointerShuffleKernel
+
+    public static void PointerBroadcastKernel(
+        Index1D i,
+        ArrayView1D<PointerPair, Stride1D.Dense> d) =>
+        d[i] = Group.Broadcast(d[i], 1); // PointerBroadcastKernel
+
+    public struct Pair(int x, int y)
+    {
+        public int X = x;
+        public int Y = y;
+    }
+
+    public unsafe struct PointerPair(int* pointer, int value)
+    {
+        public int* Pointer = pointer;
+        public int Value = value;
+    }
 }
 
 /// <summary>
 /// Verifies that a collective takes over the operation of its lambda only if the
 /// lambda computes exactly that operation of its two operands, and that any other
-/// lambda is rejected at compile time instead of being reduced with the wrong
-/// operation.
+/// lambda, and any value a collective cannot exchange, is rejected at compile time
+/// with ILGPU1200 at the location of the collective instead of being reduced with
+/// the wrong operation.
 /// </summary>
 public sealed class CollectiveOperationIRTests
 {
@@ -217,19 +257,145 @@ public sealed class CollectiveOperationIRTests
     public void OtherOperation_IsNotRecognized(string kernelName) =>
         Assert.Null(Recognize(kernelName));
 
-    [Theory]
-    [InlineData(nameof(CollectiveOperationKernels.AddOneKernel), BackendType.CPU)]
-    [InlineData(nameof(CollectiveOperationKernels.AddOneKernel), BackendType.Cuda)]
-    [InlineData(nameof(CollectiveOperationKernels.AddOneKernel), BackendType.Metal)]
-    [InlineData(
-        nameof(CollectiveOperationKernels.SubGroupReduceKernel),
-        BackendType.Cuda)]
-    public void OtherOperation_IsRejected(string kernelName, BackendType backend)
+    /// <summary>
+    /// Compiles the given kernel, which must be rejected with ILGPU1200: the
+    /// diagnostic itself is thrown, not an error wrapping it.
+    /// </summary>
+    private static KernelCompilationException Compile(
+        string kernelName,
+        BackendType backend)
     {
         using var helper = new CompilationHelper(backend);
-        var exception = Assert.ThrowsAny<Exception>(
+        var exception = Assert.Throws<KernelCompilationException>(
             () => helper.GenerateBackendCode(GetKernel(kernelName), backend));
-        Assert.IsType<NotSupportedException>(exception.GetBaseException());
+        Assert.Equal("ILGPU1200", exception.Id);
+        return exception;
+    }
+
+    /// <summary>
+    /// Asserts that the given diagnostic points at the line of this file marked
+    /// with the given comment.
+    /// </summary>
+    private static void AssertLocation(
+        KernelCompilationException exception,
+        string marker,
+        [CallerFilePath] string sourcePath = "")
+    {
+        var location = Assert.IsAssignableFrom<FileLocation>(exception.Location);
+        Assert.Equal(
+            Path.GetFileName(sourcePath),
+            Path.GetFileName(location.FileName));
+        var lines = File.ReadAllLines(sourcePath);
+        int line = Array.FindIndex(
+            lines,
+            l => l.EndsWith("// " + marker, StringComparison.Ordinal)) + 1;
+        Assert.True(line > 0, $"Marker '{marker}' not found");
+        Assert.Equal(line, location.StartLine);
+    }
+
+    [Theory]
+    [InlineData(
+        nameof(CollectiveOperationKernels.AddOneKernel),
+        BackendType.CPU,
+        "Warp.Reduce")]
+    [InlineData(
+        nameof(CollectiveOperationKernels.AddOneKernel),
+        BackendType.Cuda,
+        "Warp.Reduce")]
+    [InlineData(
+        nameof(CollectiveOperationKernels.AddOneKernel),
+        BackendType.Metal,
+        "Warp.Reduce")]
+    [InlineData(
+        nameof(CollectiveOperationKernels.SubGroupReduceKernel),
+        BackendType.CPU,
+        "Group.Reduce")]
+    [InlineData(
+        nameof(CollectiveOperationKernels.SubGroupReduceKernel),
+        BackendType.Cuda,
+        "Group.Reduce")]
+    [InlineData(
+        nameof(CollectiveOperationKernels.DoubledKernel),
+        BackendType.CPU,
+        "Warp.Reduce")]
+    [InlineData(
+        nameof(CollectiveOperationKernels.CapturedAddKernel),
+        BackendType.Cuda,
+        "Warp.Reduce")]
+    [InlineData(
+        nameof(CollectiveOperationKernels.StoringAddKernel),
+        BackendType.Metal,
+        "Warp.Reduce")]
+    [InlineData(
+        nameof(CollectiveOperationKernels.SubScanKernel),
+        BackendType.CPU,
+        "Warp.InclusiveScan")]
+    [InlineData(
+        nameof(CollectiveOperationKernels.SubScanKernel),
+        BackendType.OpenCL,
+        "Warp.InclusiveScan")]
+    [InlineData(
+        nameof(CollectiveOperationKernels.SubGroupScanKernel),
+        BackendType.Cuda,
+        "Group.ExclusiveScan")]
+    [InlineData(
+        nameof(CollectiveOperationKernels.StructureKernel),
+        BackendType.CPU,
+        "Warp.AllReduce")]
+    [InlineData(
+        nameof(CollectiveOperationKernels.StructureKernel),
+        BackendType.Cuda,
+        "Warp.AllReduce")]
+    public void OtherOperation_IsRejected(
+        string kernelName,
+        BackendType backend,
+        string collective)
+    {
+        var exception = Compile(kernelName, backend);
+        Assert.StartsWith(
+            $"The operation of {collective} is not supported.",
+            exception.Message,
+            StringComparison.Ordinal);
+        AssertLocation(exception, kernelName);
+    }
+
+    [Fact]
+    public void OtherOperation_IsRejectedWithTheSupportedOperations() =>
+        Assert.Equal(
+            "The operation of Warp.Reduce is not supported. It must return one " +
+            "operation of its two operands: one of +, *, &, | and ^, or Math.Min " +
+            "or Math.Max, as in " +
+            "(a, b) => a + b. Custom operations, including operations on " +
+            "structures, are not supported.",
+            Compile(
+                nameof(CollectiveOperationKernels.AddOneKernel),
+                BackendType.Cuda).Message);
+
+    [Theory]
+    [InlineData(
+        nameof(CollectiveOperationKernels.PointerShuffleKernel),
+        BackendType.CPU,
+        "Warp.Shuffle")]
+    [InlineData(
+        nameof(CollectiveOperationKernels.PointerShuffleKernel),
+        BackendType.Cuda,
+        "Warp.Shuffle")]
+    [InlineData(
+        nameof(CollectiveOperationKernels.PointerBroadcastKernel),
+        BackendType.Cuda,
+        "Group.Broadcast")]
+    public void OtherType_IsRejected(
+        string kernelName,
+        BackendType backend,
+        string collective)
+    {
+        var exception = Compile(kernelName, backend);
+        Assert.Equal(
+            $"{collective} does not support values of type 'ptr<Int32, Generic>'. " +
+            "Only primitive types and structures of primitive types can be " +
+            "broadcast, shuffled, reduced or scanned.",
+            exception.Message);
+        AssertLocation(exception, kernelName);
     }
 
     /// <summary>

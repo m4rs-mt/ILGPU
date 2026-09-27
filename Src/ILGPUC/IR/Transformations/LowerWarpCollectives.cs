@@ -15,7 +15,6 @@ using ILGPUC.IR.BasicBlockValues;
 using ILGPUC.IR.BasicBlockValues.Construction;
 using ILGPUC.IR.ModuleValues;
 using ILGPUC.IR.PureValues;
-using System;
 using System.Runtime.CompilerServices;
 
 namespace ILGPUC.IR.Transformations;
@@ -109,60 +108,39 @@ sealed class LowerWarpCollectives(
     }
 
     /// <summary>
-    /// Inlines a binary operation, producing a single
-    /// <see cref="BinaryArithmeticValue"/> for intrinsic operations or
-    /// falling back to a <see cref="MethodCall"/> for custom operations.
+    /// Inlines the intrinsic binary operation of a reduce node, producing a
+    /// single <see cref="BinaryArithmeticValue"/>. A custom operation is rejected
+    /// before the node is lowered.
     /// </summary>
     private static Value InlineApply(
         BasicBlockTransform transform,
         Location location,
         WarpReduce source,
         Value left,
-        Value right)
-    {
-        if (source.HasIntrinsicOperation)
-        {
-            return transform.CreateArithmetic(
-                location,
-                left,
-                right,
-                source.IntrinsicOp!.Value,
-                source.IntrinsicFlags).AsNotNull();
-        }
-
-        // Custom operation: the Operation value is a Method — emit a call.
-        // The inliner will inline it in a subsequent pass.
-        throw new NotSupportedException(
-            "Custom warp reduce operations are not yet supported for " +
-            "shuffle-based lowering. Use a recognized binary operation " +
-            "like (a, b) => a + b.");
-    }
+        Value right) =>
+        transform.CreateArithmetic(
+            location,
+            left,
+            right,
+            source.IntrinsicOp!.Value,
+            source.IntrinsicFlags).AsNotNull();
 
     /// <summary>
-    /// Inlines a binary operation for a scan node.
+    /// Inlines the intrinsic binary operation of a scan node. A custom operation
+    /// is rejected before the node is lowered.
     /// </summary>
     private static Value InlineApply(
         BasicBlockTransform transform,
         Location location,
         WarpScan source,
         Value left,
-        Value right)
-    {
-        if (source.HasIntrinsicOperation)
-        {
-            return transform.CreateArithmetic(
-                location,
-                left,
-                right,
-                source.IntrinsicOp!.Value,
-                source.IntrinsicFlags).AsNotNull();
-        }
-
-        throw new NotSupportedException(
-            "Custom warp scan operations are not yet supported for " +
-            "shuffle-based lowering. Use a recognized binary operation " +
-            "like (a, b) => a + b.");
-    }
+        Value right) =>
+        transform.CreateArithmetic(
+            location,
+            left,
+            right,
+            source.IntrinsicOp!.Value,
+            source.IntrinsicFlags).AsNotNull();
 
     /// <summary>
     /// Attempts late recognition of a custom WarpReduce's operation.
@@ -205,14 +183,8 @@ sealed class LowerWarpCollectives(
     {
         // Try late recognition for custom operations whose Method body
         // wasn't compiled at frontend time
-        var recognized = TryConvertToIntrinsic(transform, reduce);
-        if (recognized is null)
-        {
-            throw new NotSupportedException(
-                "Cannot recognize the binary operation in the WarpReduce lambda. " +
-                "Use a simple binary operation like (a, b) => a + b.");
-        }
-        reduce = recognized;
+        reduce = TryConvertToIntrinsic(transform, reduce)
+            ?? throw CollectiveDiagnostics.UnsupportedOperation(reduce);
 
         // If the backend supports this operation natively, leave the node
         // for the ExpressionEmitter to emit via IntrinsicEmitter.
@@ -260,13 +232,11 @@ sealed class LowerWarpCollectives(
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     private Value? LowerScan(BasicBlockTransform transform, WarpScan scan)
     {
-        if (scan.HasIntrinsicOperation
-            && SupportsNativeWarpScan(
-                scan.IntrinsicOp!.Value,
-                scan.BasicValueType))
-        {
+        if (!scan.HasIntrinsicOperation)
+            throw CollectiveDiagnostics.UnsupportedOperation(scan);
+
+        if (SupportsNativeWarpScan(scan.IntrinsicOp!.Value, scan.BasicValueType))
             return scan;
-        }
 
         if (!_warpSize.HasValue)
             return scan;

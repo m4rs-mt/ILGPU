@@ -597,6 +597,14 @@
     <value>Method '{0}' calls '{1}' with type arguments nested more than {2} levels deep, as a generic method does that calls itself with a type argument wrapping its own. Such calls create new instantiations without end, which is not supported in kernels.</value>
     <comment/>
   </data>
+  <data name="KernelDiagnosticUnsupportedCollectiveOperation" xml:space="preserve">
+    <value>The operation of {0} is not supported. It must return one operation of its two operands: one of +, *, &amp;, | and ^, or Math.Min or Math.Max, as in (a, b) =&gt; a + b. Custom operations, including operations on structures, are not supported.</value>
+    <comment/>
+  </data>
+  <data name="KernelDiagnosticUnsupportedCollectiveType" xml:space="preserve">
+    <value>{0} does not support values of type '{1}'. Only primitive types and structures of primitive types can be broadcast, shuffled, reduced or scanned.</value>
+    <comment/>
+  </data>
   <data name="NotSupportedKernelDelegateBind" xml:space="preserve">
     <value>Delegates bound with KernelDelegates.Bind can only be used in kernels compiled by ILGPUC.</value>
     <comment/>

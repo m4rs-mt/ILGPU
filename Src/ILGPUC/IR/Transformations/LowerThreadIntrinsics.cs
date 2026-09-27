@@ -61,12 +61,9 @@ sealed class LowerThreadIntrinsics(TransformationArgs args) : Transformation(arg
         {
             // Returning null from a converter deletes the value (see the
             // converter contract) — never a valid outcome here. Reject leaf
-            // types that are neither structures nor primitives explicitly.
-            throw new NotSupportedException(
-                $"Cannot lower the thread intrinsic '{sourceValue}': the " +
-                $"operand type '{variable?.Type}' is not supported. Only " +
-                "primitive types and structures of primitive types can be " +
-                "used in broadcast, shuffle, reduce, and scan operations.");
+            // types that are neither structures nor primitives explicitly, such
+            // as a pointer field of a structure.
+            throw CollectiveDiagnostics.UnsupportedType(sourceValue, variable?.Type);
         }
         Value value = variable;
         if (primitiveType.BasicValueType < BasicValueType.Int32)

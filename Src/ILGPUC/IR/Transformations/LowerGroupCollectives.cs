@@ -14,7 +14,6 @@ using ILGPU.Util;
 using ILGPUC.IR.BasicBlockValues;
 using ILGPUC.IR.ModuleValues;
 using ILGPUC.IR.PureValues;
-using System;
 using System.Runtime.CompilerServices;
 
 namespace ILGPUC.IR.Transformations;
@@ -153,11 +152,7 @@ sealed class LowerGroupCollectives(
         GroupReduce reduce)
     {
         if (!reduce.HasIntrinsicOperation)
-        {
-            throw new NotSupportedException(
-                "Custom group reduce operations are not yet supported. " +
-                "Use a recognized binary operation like (a, b) => a + b.");
-        }
+            throw CollectiveDiagnostics.UnsupportedOperation(reduce);
 
         return CreateGroupReduce(
             transform,
@@ -327,11 +322,7 @@ sealed class LowerGroupCollectives(
         GroupScan scan)
     {
         if (!scan.HasIntrinsicOperation)
-        {
-            throw new NotSupportedException(
-                "Custom group scan operations are not yet supported. " +
-                "Use a recognized binary operation like (a, b) => a + b.");
-        }
+            throw CollectiveDiagnostics.UnsupportedOperation(scan);
 
         var location = scan.Location;
         var data = transform.Rewrite(scan.Variable).AsNotNull();
