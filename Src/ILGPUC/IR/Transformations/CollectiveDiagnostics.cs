@@ -65,7 +65,7 @@ static class CollectiveDiagnostics
 
     /// <summary>
     /// Creates the error for a collective on a value of a type that it cannot
-    /// exchange or combine, such as a structure with a pointer field.
+    /// exchange or combine, such as a pointer or a structure with a pointer field.
     /// </summary>
     /// <param name="collective">The collective.</param>
     /// <param name="type">The unsupported type of the value or of its field.</param>

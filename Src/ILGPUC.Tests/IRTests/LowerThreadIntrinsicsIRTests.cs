@@ -13,7 +13,10 @@
 // disable: max_line_length
 using ILGPU;
 using ILGPU.Runtime;
+using ILGPUC.IR;
 using ILGPUC.IR.BasicBlockValues;
+using ILGPUC.IR.BasicBlockValues.Construction;
+using ILGPUC.IR.PureValues;
 using ILGPUC.IR.Transformations;
 using ILGPUC.Tests.Framework;
 using System.Reflection;
@@ -27,6 +30,7 @@ namespace ILGPUC.Tests.IRTests;
 /// (primitive) broadcasts and shuffles must be left unchanged by the pass.
 /// Under the converter contract, returning <c>null</c> from a converter
 /// deletes the value — the pass must return the same reference instead.
+/// A collective on a pointer is rejected with ILGPU1200.
 /// </summary>
 public sealed class LowerThreadIntrinsicsIRTests
 {
@@ -55,6 +59,101 @@ public sealed class LowerThreadIntrinsicsIRTests
         {
             data[index] = Warp.Broadcast(data[index]);
         }
+
+        public static void WarpReduceKernel(
+            Index1D index, ArrayView1D<int, Stride1D.Dense> data)
+        {
+            data[index] = Warp.Reduce(data[index], (x, y) => x + y);
+        }
+
+        public static void WarpExclusiveScanKernel(
+            Index1D index, ArrayView1D<int, Stride1D.Dense> data)
+        {
+            data[index] = Warp.ExclusiveScan(data[index], 0, (x, y) => x + y);
+        }
+
+        public static void GroupReduceKernel(
+            Index1D index, ArrayView1D<int, Stride1D.Dense> data)
+        {
+            data[index] = Group.Reduce(data[index], 0, (x, y) => x + y);
+        }
+
+        public static void GroupInclusiveScanKernel(
+            Index1D index, ArrayView1D<int, Stride1D.Dense> data)
+        {
+            data[index] = Group.InclusiveScan(data[index], 0, (x, y) => x + y);
+        }
+    }
+
+    /// <summary>
+    /// Turns every <see cref="WarpReduce"/>, <see cref="WarpScan"/>,
+    /// <see cref="GroupReduce"/> and <see cref="GroupScan"/> into an <c>Add</c>
+    /// collective of the same kind over its value as a pointer, with its identity
+    /// as a pointer, and returns the result as an integer. The frontend never
+    /// builds a pointer collective with a recognized operation, as C# has no
+    /// such operation on two pointers, so this pass stands in for one.
+    /// </summary>
+    private sealed class PointerCollectives(TransformationArgs args) :
+        Transformation(args)
+    {
+        protected override void OnMap(ModuleTransform transform)
+        {
+            base.OnMap(transform);
+
+            // Each converter creates the pointer collective as an operand of
+            // the cast it returns, which only a deferred mapping places in the
+            // block
+            DeferBlockValueMapping = true;
+            MapBasicBlockValue<WarpReduce>(static (transform, value) =>
+                GetInteger(transform, value, transform.CreateWarpReduce(
+                    value.Location,
+                    GetPointer(transform, value.Variable),
+                    BinaryArithmeticKind.Add,
+                    ArithmeticFlags.None,
+                    value.Kind)));
+            MapBasicBlockValue<WarpScan>(static (transform, value) =>
+                GetInteger(transform, value, transform.CreateWarpScan(
+                    value.Location,
+                    GetPointer(transform, value.Variable),
+                    BinaryArithmeticKind.Add,
+                    ArithmeticFlags.None,
+                    value.Kind,
+                    GetPointer(transform, value.Identity))));
+            MapBasicBlockValue<GroupReduce>(static (transform, value) =>
+                GetInteger(transform, value, transform.CreateGroupReduce(
+                    value.Location,
+                    GetPointer(transform, value.Variable),
+                    BinaryArithmeticKind.Add,
+                    ArithmeticFlags.None,
+                    value.Kind,
+                    GetPointer(transform, value.Identity))));
+            MapBasicBlockValue<GroupScan>(static (transform, value) =>
+                GetInteger(transform, value, transform.CreateGroupScan(
+                    value.Location,
+                    GetPointer(transform, value.Variable),
+                    BinaryArithmeticKind.Add,
+                    ArithmeticFlags.None,
+                    value.Kind,
+                    GetPointer(transform, value.Identity))));
+        }
+
+        private static Value? GetPointer(
+            BasicBlockTransform transform,
+            Value? value) =>
+            value is null
+            ? null
+            : transform.CreateIntAsPointerCast(
+                value.Location,
+                transform.Rewrite(value));
+
+        private static Value? GetInteger(
+            BasicBlockTransform transform,
+            ThreadValue value,
+            Value? collective) =>
+            transform.CreatePointerAsIntCast(
+                value.Location,
+                collective,
+                value.BasicValueType);
     }
 
     /// <summary>
@@ -105,6 +204,40 @@ public sealed class LowerThreadIntrinsicsIRTests
         int after = CountValues<T>(transformed);
 
         return (before, after);
+    }
+
+    [Theory]
+    [InlineData(nameof(RegressionKernels.WarpReduceKernel), "Warp.Reduce")]
+    [InlineData(
+        nameof(RegressionKernels.WarpExclusiveScanKernel),
+        "Warp.ExclusiveScan")]
+    [InlineData(nameof(RegressionKernels.GroupReduceKernel), "Group.Reduce")]
+    [InlineData(
+        nameof(RegressionKernels.GroupInclusiveScanKernel),
+        "Group.InclusiveScan")]
+    public void PointerCollective_IsRejected(string kernelName, string collective)
+    {
+        using var helper = new CompilationHelper();
+        var kernel = typeof(RegressionKernels).GetMethod(
+            kernelName,
+            BindingFlags.Public | BindingFlags.Static)!;
+
+        var properties = new CompilationProperties();
+        var module = helper.CompileToModule(kernel, properties);
+
+        // A pointer has the basic value type of an integer, but no operation
+        // combines two addresses
+        var transformer = Transformer.Create(
+            static args => new PointerCollectives(args),
+            static args => new LowerThreadIntrinsics(args));
+        var exception = Assert.Throws<KernelCompilationException>(
+            () => transformer.Apply(properties, helper.TypeManager, module));
+        Assert.Equal("ILGPU1200", exception.Id);
+        Assert.Equal(
+            $"{collective} does not support values of type 'ptr<void, Generic>'. " +
+            "Only primitive types and structures of primitive types can be " +
+            "broadcast, shuffled, reduced or scanned.",
+            exception.Message);
     }
 
     [Fact]

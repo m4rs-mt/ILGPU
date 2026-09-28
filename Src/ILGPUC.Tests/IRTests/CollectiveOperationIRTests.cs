@@ -165,6 +165,41 @@ static class CollectiveOperationKernels
         ArrayView1D<PointerPair, Stride1D.Dense> d) =>
         d[i] = Group.Broadcast(d[i], 1); // PointerBroadcastKernel
 
+    public static void LonePointerShuffleKernel(
+        Index1D i,
+        ArrayView1D<LonePointer, Stride1D.Dense> d) =>
+        d[i] = Warp.Shuffle(d[i], 1); // LonePointerShuffleKernel
+
+    public static void LonePointerShuffleDownKernel(
+        Index1D i,
+        ArrayView1D<LonePointer, Stride1D.Dense> d) =>
+        d[i] = Warp.ShuffleDown(d[i], 1); // LonePointerShuffleDownKernel
+
+    public static void LonePointerShuffleUpKernel(
+        Index1D i,
+        ArrayView1D<LonePointer, Stride1D.Dense> d) =>
+        d[i] = Warp.ShuffleUp(d[i], 1); // LonePointerShuffleUpKernel
+
+    public static void LonePointerShuffleXorKernel(
+        Index1D i,
+        ArrayView1D<LonePointer, Stride1D.Dense> d) =>
+        d[i] = Warp.ShuffleXor(d[i], 1); // LonePointerShuffleXorKernel
+
+    public static void LonePointerBroadcastKernel(
+        Index1D i,
+        ArrayView1D<LonePointer, Stride1D.Dense> d) =>
+        d[i] = Warp.Broadcast(d[i]); // LonePointerBroadcastKernel
+
+    public static void LonePointerGroupBroadcastKernel(
+        Index1D i,
+        ArrayView1D<LonePointer, Stride1D.Dense> d) =>
+        d[i] = Group.Broadcast(d[i], 1); // LonePointerGroupBroadcastKernel
+
+    public static void LonePointerReduceKernel(
+        Index1D i,
+        ArrayView1D<LonePointer, Stride1D.Dense> d) =>
+        d[i] = Warp.Reduce(d[i], (x, y) => x); // LonePointerReduceKernel
+
     public struct Pair(int x, int y)
     {
         public int X = x;
@@ -175,6 +210,15 @@ static class CollectiveOperationKernels
     {
         public int* Pointer = pointer;
         public int Value = value;
+    }
+
+    /// <summary>
+    /// A structure whose only field is a pointer, which has the type of the
+    /// pointer in the IR.
+    /// </summary>
+    public unsafe struct LonePointer(int* pointer)
+    {
+        public int* Pointer = pointer;
     }
 }
 
@@ -381,8 +425,128 @@ public sealed class CollectiveOperationIRTests
         BackendType.Cuda,
         "Warp.Shuffle")]
     [InlineData(
+        nameof(CollectiveOperationKernels.PointerShuffleKernel),
+        BackendType.Metal,
+        "Warp.Shuffle")]
+    [InlineData(
+        nameof(CollectiveOperationKernels.PointerShuffleKernel),
+        BackendType.OpenCL,
+        "Warp.Shuffle")]
+    [InlineData(
+        nameof(CollectiveOperationKernels.PointerBroadcastKernel),
+        BackendType.CPU,
+        "Group.Broadcast")]
+    [InlineData(
         nameof(CollectiveOperationKernels.PointerBroadcastKernel),
         BackendType.Cuda,
+        "Group.Broadcast")]
+    [InlineData(
+        nameof(CollectiveOperationKernels.PointerBroadcastKernel),
+        BackendType.Metal,
+        "Group.Broadcast")]
+    [InlineData(
+        nameof(CollectiveOperationKernels.PointerBroadcastKernel),
+        BackendType.OpenCL,
+        "Group.Broadcast")]
+    [InlineData(
+        nameof(CollectiveOperationKernels.LonePointerShuffleKernel),
+        BackendType.CPU,
+        "Warp.Shuffle")]
+    [InlineData(
+        nameof(CollectiveOperationKernels.LonePointerShuffleKernel),
+        BackendType.Cuda,
+        "Warp.Shuffle")]
+    [InlineData(
+        nameof(CollectiveOperationKernels.LonePointerShuffleKernel),
+        BackendType.Metal,
+        "Warp.Shuffle")]
+    [InlineData(
+        nameof(CollectiveOperationKernels.LonePointerShuffleKernel),
+        BackendType.OpenCL,
+        "Warp.Shuffle")]
+    [InlineData(
+        nameof(CollectiveOperationKernels.PointerShuffleKernel),
+        BackendType.ROCm,
+        "Warp.Shuffle")]
+    [InlineData(
+        nameof(CollectiveOperationKernels.PointerBroadcastKernel),
+        BackendType.ROCm,
+        "Group.Broadcast")]
+    [InlineData(
+        nameof(CollectiveOperationKernels.LonePointerShuffleKernel),
+        BackendType.ROCm,
+        "Warp.Shuffle")]
+    [InlineData(
+        nameof(CollectiveOperationKernels.LonePointerShuffleDownKernel),
+        BackendType.CPU,
+        "Warp.ShuffleDown")]
+    [InlineData(
+        nameof(CollectiveOperationKernels.LonePointerShuffleDownKernel),
+        BackendType.Metal,
+        "Warp.ShuffleDown")]
+    [InlineData(
+        nameof(CollectiveOperationKernels.LonePointerShuffleUpKernel),
+        BackendType.Cuda,
+        "Warp.ShuffleUp")]
+    [InlineData(
+        nameof(CollectiveOperationKernels.LonePointerShuffleUpKernel),
+        BackendType.ROCm,
+        "Warp.ShuffleUp")]
+    [InlineData(
+        nameof(CollectiveOperationKernels.LonePointerShuffleXorKernel),
+        BackendType.CPU,
+        "Warp.ShuffleXor")]
+    [InlineData(
+        nameof(CollectiveOperationKernels.LonePointerShuffleXorKernel),
+        BackendType.OpenCL,
+        "Warp.ShuffleXor")]
+    [InlineData(
+        nameof(CollectiveOperationKernels.LonePointerBroadcastKernel),
+        BackendType.CPU,
+        "Warp.Broadcast")]
+    [InlineData(
+        nameof(CollectiveOperationKernels.LonePointerBroadcastKernel),
+        BackendType.Cuda,
+        "Warp.Broadcast")]
+    [InlineData(
+        nameof(CollectiveOperationKernels.LonePointerBroadcastKernel),
+        BackendType.Metal,
+        "Warp.Broadcast")]
+    [InlineData(
+        nameof(CollectiveOperationKernels.LonePointerBroadcastKernel),
+        BackendType.OpenCL,
+        "Warp.Broadcast")]
+    [InlineData(
+        nameof(CollectiveOperationKernels.LonePointerGroupBroadcastKernel),
+        BackendType.CPU,
+        "Group.Broadcast")]
+    [InlineData(
+        nameof(CollectiveOperationKernels.LonePointerGroupBroadcastKernel),
+        BackendType.Cuda,
+        "Group.Broadcast")]
+    [InlineData(
+        nameof(CollectiveOperationKernels.LonePointerGroupBroadcastKernel),
+        BackendType.Metal,
+        "Group.Broadcast")]
+    [InlineData(
+        nameof(CollectiveOperationKernels.LonePointerGroupBroadcastKernel),
+        BackendType.OpenCL,
+        "Group.Broadcast")]
+    [InlineData(
+        nameof(CollectiveOperationKernels.LonePointerReduceKernel),
+        BackendType.CPU,
+        "Warp.Reduce")]
+    [InlineData(
+        nameof(CollectiveOperationKernels.LonePointerReduceKernel),
+        BackendType.Cuda,
+        "Warp.Reduce")]
+    [InlineData(
+        nameof(CollectiveOperationKernels.LonePointerReduceKernel),
+        BackendType.ROCm,
+        "Warp.Reduce")]
+    [InlineData(
+        nameof(CollectiveOperationKernels.LonePointerGroupBroadcastKernel),
+        BackendType.ROCm,
         "Group.Broadcast")]
     public void OtherType_IsRejected(
         string kernelName,

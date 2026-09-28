@@ -62,7 +62,8 @@ sealed class LowerThreadIntrinsics(TransformationArgs args) : Transformation(arg
             // Returning null from a converter deletes the value (see the
             // converter contract) — never a valid outcome here. Reject leaf
             // types that are neither structures nor primitives explicitly, such
-            // as a pointer field of a structure.
+            // as a pointer or a pointer field of a structure: no backend can
+            // exchange an address with its shuffles and broadcasts.
             throw CollectiveDiagnostics.UnsupportedType(sourceValue, variable?.Type);
         }
         Value value = variable;

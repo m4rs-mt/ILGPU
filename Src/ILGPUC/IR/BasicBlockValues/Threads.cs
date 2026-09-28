@@ -131,9 +131,10 @@ abstract class ThreadValue(in BasicBlockValueInitializer initializer, TypeValue 
 
     /// <summary>
     /// Returns true if this communication operation works on intrinsic primitive
-    /// types.
+    /// types. A pointer has the basic value type of an integer, but is not one.
     /// </summary>
-    public bool IsBuiltIn => BasicValueType >= BasicValueType.Int32;
+    public bool IsBuiltIn =>
+        Type is PrimitiveType && BasicValueType >= BasicValueType.Int32;
 }
 
 /// <summary>
