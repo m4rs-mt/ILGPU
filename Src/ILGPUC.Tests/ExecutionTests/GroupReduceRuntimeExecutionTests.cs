@@ -11,6 +11,7 @@
 
 using ILGPUC.Backends;
 using ILGPUC.Tests.Framework;
+using System.Linq;
 using System.Threading.Tasks;
 using Xunit;
 using Xunit.Abstractions;
@@ -83,5 +84,42 @@ public abstract class GroupReduceRuntimeExecutionTests : ExecutionTestBase
             "TestPrograms/GroupReduceRuntime/GroupAllReduceMaxRuntime.cs",
             ["Kernels.GroupAllReduceMaxRuntimeKernel"],
             ["4", "4", "4", "4"]);
+    }
+
+    /// <summary>
+    /// Group and warp collectives over short and sbyte values with a negative
+    /// identity, and with an unsigned minimum or maximum over ushort and byte
+    /// values with the highest bit set, computed in 32 bits, in groups of several
+    /// warps.
+    /// </summary>
+    [SkippableFact]
+    public async Task SmallIntCollectives_Runtime_ProducesCorrectOutput()
+    {
+        string[] names =
+        [
+            "group reduce max",
+            "group all reduce max",
+            "group all reduce min",
+            "group inclusive scan max",
+            "group exclusive scan max",
+            "group exclusive scan min",
+            "warp exclusive scan max",
+            "warp all reduce max",
+            "warp inclusive scan min",
+        ];
+        await VerifyProgramOutputAsync(
+            "TestPrograms/GroupReduceRuntime/SmallIntCollectivesRuntime.cs",
+            [
+                "Kernels.ShortCollectivesKernel",
+                "Kernels.SByteCollectivesKernel",
+                "Kernels.UShortCollectivesKernel",
+                "Kernels.ByteCollectivesKernel",
+            ],
+            [
+                .. names.Select(name => $"short {name} mismatches 0"),
+                .. names.Select(name => $"sbyte {name} mismatches 0"),
+                .. names.Select(name => $"ushort {name} mismatches 0"),
+                .. names.Select(name => $"byte {name} mismatches 0"),
+            ]);
     }
 }

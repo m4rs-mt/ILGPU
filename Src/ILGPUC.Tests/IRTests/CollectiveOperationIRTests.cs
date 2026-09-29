@@ -586,6 +586,12 @@ public sealed class CollectiveOperationIRTests
         BackendType.OpenCL)]
     [InlineData(nameof(CollectiveOperationKernels.UnsignedMinKernel), BackendType.ROCm)]
     [InlineData(
+        nameof(CollectiveOperationKernels.UnsignedShortMinKernel),
+        BackendType.CPU)]
+    [InlineData(
+        nameof(CollectiveOperationKernels.UnsignedShortMinKernel),
+        BackendType.Metal)]
+    [InlineData(
         nameof(CollectiveOperationKernels.UnsignedLongMaxKernel),
         BackendType.Metal)]
     [InlineData(

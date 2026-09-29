@@ -322,6 +322,24 @@ partial class BasicBlockBuilder
     }
 
     /// <summary>
+    /// Ensures that the identity of a scan or reduction has the type of its
+    /// value, as the lowering splits a structure identity into its fields
+    /// together with the value and widens it with the value below 32 bits.
+    /// </summary>
+    /// <param name="location">The current location.</param>
+    /// <param name="data">The value of the collective.</param>
+    /// <param name="identity">The identity of the collective, or null.</param>
+    private static void VerifyIdentity(Location location, Value data, Value? identity)
+    {
+        if (identity is not null && !identity.Type.Equals(data.Type))
+        {
+            throw location.GetInvalidOperationException(
+                $"Identity {identity} does not have the type {data.Type} of the " +
+                $"value {data} of its collective");
+        }
+    }
+
+    /// <summary>
     /// Creates a warp scan with a known intrinsic binary operation, of which
     /// it keeps the flags that the operation depends on.
     /// </summary>
@@ -334,6 +352,7 @@ partial class BasicBlockBuilder
         Value? identity = null)
     {
         if (data is null) return null;
+        VerifyIdentity(location, data, identity);
 
         if (kind == WarpScanKind.Inclusive
             && IsShuffleOrBroadcastConstant(data, groupLevel: false)
@@ -380,6 +399,7 @@ partial class BasicBlockBuilder
         }
 
         // Custom operation — keep the value reference
+        VerifyIdentity(location, data, identity);
         return Append(new WarpScan(
             GetInitializer(location),
             data,
@@ -403,6 +423,7 @@ partial class BasicBlockBuilder
         Value? identity)
     {
         if (data is null || identity is null) return null;
+        VerifyIdentity(location, data, identity);
 
         if (IsShuffleOrBroadcastConstant(data, groupLevel: true)
             && IsIdempotentOperation(intrinsicOp))
@@ -445,6 +466,7 @@ partial class BasicBlockBuilder
                 identity);
         }
 
+        VerifyIdentity(location, data, identity);
         return Append(new GroupReduce(
             GetInitializer(location),
             data,
@@ -466,6 +488,7 @@ partial class BasicBlockBuilder
         Value? identity)
     {
         if (data is null || identity is null) return null;
+        VerifyIdentity(location, data, identity);
 
         if (kind == GroupScanKind.Inclusive
             && IsShuffleOrBroadcastConstant(data, groupLevel: true)
@@ -509,6 +532,7 @@ partial class BasicBlockBuilder
                 identity);
         }
 
+        VerifyIdentity(location, data, identity);
         return Append(new GroupScan(
             GetInitializer(location),
             data,

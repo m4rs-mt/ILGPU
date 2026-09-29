@@ -47,14 +47,20 @@ sealed class LowerThreadIntrinsics(TransformationArgs args) : Transformation(arg
     /// <param name="transform">The basic block transform.</param>
     /// <param name="sourceValue">The source value to get the values from.</param>
     /// <param name="variable">The source variable.</param>
-    /// <param name="handler">The lowering handler.</param>
+    /// <param name="identity">
+    /// The identity of the same type as the variable, or null.
+    /// </param>
+    /// <param name="handler">
+    /// The lowering handler, which gets the variable and the identity.
+    /// </param>
     /// <returns>The lowered thread value.</returns>
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     private static Value? LowerPrimitive<TValue>(
         BasicBlockTransform transform,
         TValue sourceValue,
         Value? variable,
-        Func<BasicBlockTransform, TValue, Value, Value?> handler)
+        Value? identity,
+        Func<BasicBlockTransform, TValue, Value, Value?, Value?> handler)
         where TValue : ThreadValue
     {
         if (variable?.Type is not PrimitiveType primitiveType)
@@ -69,18 +75,30 @@ sealed class LowerThreadIntrinsics(TransformationArgs args) : Transformation(arg
         Value value = variable;
         if (primitiveType.BasicValueType < BasicValueType.Int32)
         {
+            // Widen the identity with the variable, so that both have one type.
             // The values of an unsigned operation are zero-extended, so that
-            // they compare in 32 bits as they do in their own type
+            // they compare in 32 bits as they do in their own type.
+            var int32Type = transform.ModuleBuilder.GetPrimitiveType(
+                BasicValueType.Int32);
+            var widenFlags = IsUnsignedOperation(sourceValue)
+                ? ConvertFlags.SourceUnsigned
+                : ConvertFlags.None;
             value = transform.CreateConvert(
                 sourceValue.Location,
                 value,
-                transform.ModuleBuilder.GetPrimitiveType(BasicValueType.Int32),
-                IsUnsignedOperation(sourceValue)
-                    ? ConvertFlags.SourceUnsigned
-                    : ConvertFlags.None);
+                int32Type,
+                widenFlags);
+            if (identity is not null)
+            {
+                identity = transform.CreateConvert(
+                    sourceValue.Location,
+                    identity,
+                    int32Type,
+                    widenFlags);
+            }
         }
 
-        var result = handler(transform, sourceValue, value);
+        var result = handler(transform, sourceValue, value, identity);
         if (primitiveType.BasicValueType < BasicValueType.Int32)
         {
             result = transform.CreateConvert(
@@ -112,18 +130,27 @@ sealed class LowerThreadIntrinsics(TransformationArgs args) : Transformation(arg
     /// <param name="transform">The basic block transform.</param>
     /// <param name="sourceValue">The source value.</param>
     /// <param name="variable">The variable to lower.</param>
-    /// <param name="handler">The lowering handler.</param>
+    /// <param name="identity">
+    /// The identity of the same type as the variable, or null. It is split into
+    /// its fields together with the variable, so that the handler gets the
+    /// identity of each field.
+    /// </param>
+    /// <param name="handler">
+    /// The lowering handler, which gets each field of the variable and the
+    /// matching field of the identity.
+    /// </param>
     /// <returns>The lowered value.</returns>
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     private static Value? LowerStructure<TValue>(
         BasicBlockTransform transform,
         TValue sourceValue,
         Value? variable,
-        Func<BasicBlockTransform, TValue, Value, Value?> handler)
+        Value? identity,
+        Func<BasicBlockTransform, TValue, Value, Value?, Value?> handler)
         where TValue : ThreadValue
     {
         if (variable?.Type is not StructureType structureType)
-            return LowerPrimitive(transform, sourceValue, variable, handler);
+            return LowerPrimitive(transform, sourceValue, variable, identity, handler);
 
         var instance = transform.CreateDynamicStructure(
             sourceValue.Location,
@@ -134,7 +161,18 @@ sealed class LowerThreadIntrinsics(TransformationArgs args) : Transformation(arg
                 sourceValue.Location,
                 variable,
                 new FieldSpan(i));
-            var loweredField = LowerStructure(transform, sourceValue, fieldValue, handler);
+            var fieldIdentity = identity is null
+                ? null
+                : transform.CreateGetField(
+                    sourceValue.Location,
+                    identity,
+                    new FieldSpan(i));
+            var loweredField = LowerStructure(
+                transform,
+                sourceValue,
+                fieldValue,
+                fieldIdentity,
+                handler);
             instance.Add(loweredField);
         }
         return instance.Seal();
@@ -157,7 +195,8 @@ sealed class LowerThreadIntrinsics(TransformationArgs args) : Transformation(arg
             transform,
             value,
             variable,
-            (transform, source, var) =>
+            null,
+            (transform, source, var, _) =>
                 transform.CreateBroadcast(
                     source.Location,
                     var,
@@ -182,7 +221,8 @@ sealed class LowerThreadIntrinsics(TransformationArgs args) : Transformation(arg
             transform,
             value,
             variable,
-            (transform, source, var) =>
+            null,
+            (transform, source, var, _) =>
                 transform.CreateShuffle(
                     source.Location,
                     var,
@@ -209,7 +249,8 @@ sealed class LowerThreadIntrinsics(TransformationArgs args) : Transformation(arg
             transform,
             value,
             variable,
-            (transform, source, field) =>
+            null,
+            (transform, source, field, _) =>
                 source.HasIntrinsicOperation
                 ? transform.CreateWarpReduce(
                     source.Location, field, source.IntrinsicOp!.Value,
@@ -234,30 +275,22 @@ sealed class LowerThreadIntrinsics(TransformationArgs args) : Transformation(arg
 
         var variable = transform.Rewrite(value.Variable)!;
 
+        // An exclusive scan splits its identity into fields with the variable
         return LowerStructure(
             transform,
             value,
             variable,
-            (transform, source, field) =>
-            {
-                // For exclusive scans with identity, decompose identity too
-                Value? fieldIdentity = null;
-                if (source.Identity is not null)
-                {
-                    // TODO: decompose struct identity per-field
-                    fieldIdentity = transform.Rewrite(source.Identity);
-                }
-
-                return source.HasIntrinsicOperation
-                    ? transform.CreateWarpScan(
-                        source.Location, field,
-                        source.IntrinsicOp!.Value, source.IntrinsicFlags,
-                        source.Kind, fieldIdentity)
-                    : transform.CreateWarpScan(
-                        source.Location, field,
-                        transform.Rewrite(source.Operation!), source.Kind,
-                        fieldIdentity);
-            });
+            RewriteOrNull(transform, value.Identity),
+            (transform, source, field, fieldIdentity) =>
+                source.HasIntrinsicOperation
+                ? transform.CreateWarpScan(
+                    source.Location, field,
+                    source.IntrinsicOp!.Value, source.IntrinsicFlags, source.Kind,
+                    fieldIdentity)
+                : transform.CreateWarpScan(
+                    source.Location, field,
+                    transform.Rewrite(source.Operation!), source.Kind,
+                    fieldIdentity));
     }
 
     /// <summary>
@@ -277,15 +310,15 @@ sealed class LowerThreadIntrinsics(TransformationArgs args) : Transformation(arg
             transform,
             value,
             variable,
-            (transform, source, field) =>
+            transform.Rewrite(value.Identity),
+            (transform, source, field, fieldIdentity) =>
                 source.HasIntrinsicOperation
                 ? transform.CreateGroupReduce(
                     source.Location, field, source.IntrinsicOp!.Value,
-                    source.IntrinsicFlags, source.Kind,
-                    RewriteOrNull(transform, source.Identity))
+                    source.IntrinsicFlags, source.Kind, fieldIdentity)
                 : transform.CreateGroupReduce(
                     source.Location, field, transform.Rewrite(source.Operation!),
-                    source.Kind, RewriteOrNull(transform, source.Identity)));
+                    source.Kind, fieldIdentity));
     }
 
     /// <summary>
@@ -305,15 +338,15 @@ sealed class LowerThreadIntrinsics(TransformationArgs args) : Transformation(arg
             transform,
             value,
             variable,
-            (transform, source, field) =>
+            transform.Rewrite(value.Identity),
+            (transform, source, field, fieldIdentity) =>
                 source.HasIntrinsicOperation
                 ? transform.CreateGroupScan(
                     source.Location, field, source.IntrinsicOp!.Value,
-                    source.IntrinsicFlags, source.Kind,
-                    RewriteOrNull(transform, source.Identity))
+                    source.IntrinsicFlags, source.Kind, fieldIdentity)
                 : transform.CreateGroupScan(
                     source.Location, field, transform.Rewrite(source.Operation!),
-                    source.Kind, RewriteOrNull(transform, source.Identity)));
+                    source.Kind, fieldIdentity));
     }
 
     /// <summary>
