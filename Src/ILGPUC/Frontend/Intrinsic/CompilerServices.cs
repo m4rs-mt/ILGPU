@@ -102,6 +102,16 @@ partial class Intrinsics
     }
 
     /// <summary>
+    /// Handles <c>Unsafe.NullRef&lt;T&gt;()</c>, which returns the null
+    /// reference. The null reference is null in every address space, unlike the
+    /// result of a call of the BCL body, which O0 does not inline.
+    /// </summary>
+    private static Value? Unsafe_NullRef(ref InvocationContext context) =>
+        context.Builder.CreateNull(
+            context.Location,
+            context.ModuleBuilder.CreateType(context.Method.GetReturnType()));
+
+    /// <summary>
     /// Handles <c>Unsafe.BitCast&lt;TFrom, TTo&gt;(TFrom source)</c>, which
     /// reinterprets the bits of a value as another value type of the same size.
     /// </summary>
