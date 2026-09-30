@@ -316,7 +316,7 @@ after 30 seconds and the test reports a timeout failure.
 | GridExecutionTests | 1 | Grid.Dimension intrinsic |
 | GroupExecutionTests | 1 | Group.Barrier intrinsic |
 | WarpExecutionTests | 1 | Warp.Barrier intrinsic |
-| SharedMemoryExecutionTests | 5 | Shared memory allocation; shared memory and barriers in helpers that are not inlined, including a buffer the kernel shares with such a helper |
+| SharedMemoryExecutionTests | 6 | Shared memory allocation; shared memory and barriers in helpers that are not inlined, including a buffer the kernel shares with such a helper; one buffer per call site in a helper inlined twice and in two kernels |
 | GenericKernelExecutionTests | 2 | Generic closures; kernels launched through generic wrappers, generic classes and constructed type arguments |
 | TypeSpecializationExecutionTests | 5 | `typeof(T)` helpers (issue #1427) in Debug and Release IL, and instantiations skipped because they throw |
 | RecursionExecutionTests | 14 | Helpers calling themselves directly, through each other, twice, at two instantiations of a generic helper, with loops and in tail position passing the address of a variable (as an `nint` or through memory), skipped on Metal and OpenCL; helpers calling themselves in tail position (in Debug and Release IL) and recursive helpers with constant arguments on all backends |
