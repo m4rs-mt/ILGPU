@@ -122,4 +122,28 @@ public abstract class GroupReduceRuntimeExecutionTests : ExecutionTestBase
                 .. names.Select(name => $"byte {name} mismatches 0"),
             ]);
     }
+
+    /// <summary>
+    /// Group reductions and scans, each alone in a loop over changing values, in
+    /// groups of as many warps as the device allows, each reusing the shared
+    /// memory of its call site in the next iteration.
+    /// </summary>
+    [SkippableFact]
+    public async Task GroupCollectivesLoop_Runtime_ProducesCorrectOutput()
+    {
+        await VerifyProgramOutputAsync(
+            "TestPrograms/GroupReduceRuntime/GroupCollectivesLoopRuntime.cs",
+            [
+                "Kernels.GroupReduceLoopKernel",
+                "Kernels.GroupAllReduceLoopKernel",
+                "Kernels.GroupInclusiveScanLoopKernel",
+                "Kernels.GroupExclusiveScanLoopKernel",
+            ],
+            [
+                "group reduce max mismatches 0",
+                "group all reduce add mismatches 0",
+                "group inclusive scan add mismatches 0",
+                "group exclusive scan add mismatches 0",
+            ]);
+    }
 }

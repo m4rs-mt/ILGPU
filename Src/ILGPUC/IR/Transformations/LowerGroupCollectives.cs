@@ -28,21 +28,22 @@ namespace ILGPUC.IR.Transformations;
 /// Must run after <see cref="AcceleratorSpecializer"/> (warp size known).
 ///
 /// <para>
-/// Algorithm (2 barriers, no conditional stores, no atomics):
+/// Algorithm (3 barriers, no conditional stores, no atomics):
 /// <list type="number">
 /// <item>Allocate shared[warpDim], init all to identity via benign race</item>
 /// <item>Barrier</item>
 /// <item>Per-warp AllReduce; all lanes store result to shared[warpIdx]</item>
 /// <item>Barrier</item>
-/// <item>Each thread reads shared[laneIdx], warp reduce across results</item>
+/// <item>Each thread reads shared[laneIdx]</item>
+/// <item>Barrier</item>
+/// <item>Warp reduce across the results</item>
 /// </list>
 /// </para>
 /// <para>
-/// No final barrier is emitted: each <see cref="GroupReduce"/> call site
-/// allocates its own unique shared global, so subsequent operations cannot
-/// collide with this call site's shared memory. If the user's kernel has
-/// later code that needs ordering with respect to this reduce, it must
-/// issue its own barrier.
+/// Each call site allocates its own shared global, which the next call from
+/// the same call site, such as in the next iteration of a loop, reuses. The
+/// final barrier keeps a fast warp from storing the identity of that call to
+/// a slot that a slower warp has not read yet.
 /// </para>
 /// </summary>
 /// <param name="args">The transformation args.</param>
@@ -167,7 +168,7 @@ sealed class LowerGroupCollectives(
     /// <summary>
     /// Lowers a group-level <see cref="PredicateBarrier"/> on backends without
     /// a native group vote (Metal) to a group all-reduce over the predicate,
-    /// followed by a barrier.
+    /// which ends with a barrier.
     /// </summary>
     private Value? LowerPredicateBarrier(
         BasicBlockTransform transform,
@@ -194,6 +195,8 @@ sealed class LowerGroupCollectives(
                 (BinaryArithmeticKind.Min, one),
             _ => (BinaryArithmeticKind.Max, zero),
         };
+        // The barrier that ends the group reduction synchronizes all threads of
+        // the group, as a predicate barrier does
         var result = CreateGroupReduce(
             transform,
             location,
@@ -202,9 +205,6 @@ sealed class LowerGroupCollectives(
             op,
             ArithmeticFlags.None,
             allReduce: true);
-
-        // A predicate barrier synchronizes all threads of the group
-        transform.CreateBarrier(location, BarrierKind.GroupLevel);
 
         return barrier.PredicateKind == PredicateBarrierPredicateKind.PopCount
             ? result
@@ -282,6 +282,10 @@ sealed class LowerGroupCollectives(
             laneIdx).AsNotNull();
         var val = transform.CreateLoad(location, readAddr).AsNotNull();
 
+        // The next reduce from this call site, such as in the next iteration of
+        // a loop, must not overwrite the slots before all warps have read them
+        transform.CreateBarrier(location, BarrierKind.GroupLevel);
+
         var finalKind = allReduce
             ? WarpReduceKind.AllReduce
             : WarpReduceKind.Reduce;
@@ -301,7 +305,7 @@ sealed class LowerGroupCollectives(
     /// </summary>
     /// <remarks>
     /// <para>
-    /// Algorithm (2 barriers):
+    /// Algorithm (3 barriers):
     /// <list type="number">
     /// <item>Allocate shared[warpDim], init all to identity via benign
     /// race</item>
@@ -310,8 +314,9 @@ sealed class LowerGroupCollectives(
     /// <see cref="WarpReduce"/>(AllReduce) for per-warp total; all
     /// lanes store total to shared[warpIdx] (benign race)</item>
     /// <item>Barrier</item>
-    /// <item>Each thread loads shared[laneIdx] (per-warp totals),
-    /// <see cref="WarpScan"/>(Exclusive) for cross-warp prefix,
+    /// <item>Each thread loads shared[laneIdx] (per-warp totals)</item>
+    /// <item>Barrier</item>
+    /// <item><see cref="WarpScan"/>(Exclusive) for cross-warp prefix,
     /// <see cref="Shuffle"/>(Generic) to extract this warp's prefix,
     /// combine with per-warp scan result</item>
     /// </list>
@@ -389,6 +394,11 @@ sealed class LowerGroupCollectives(
             view,
             laneIdx).AsNotNull();
         var warpTotals = transform.CreateLoad(location, readAddr).AsNotNull();
+
+        // The next scan from this call site, such as in the next iteration of
+        // a loop, must not overwrite the slots before all warps have read them
+        transform.CreateBarrier(location, BarrierKind.GroupLevel);
+
         var exclusivePrefix = transform.CreateWarpScan(
             location,
             warpTotals,
