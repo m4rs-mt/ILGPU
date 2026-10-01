@@ -76,6 +76,7 @@ var testClasses = new[]
     "RecursionExecutionTests",
     "NativeCompilationExecutionTests",
     "NullPointerExecutionTests",
+    "PointerArithmeticExecutionTests",
 };
 
 var backends = new[] { "CPU", "Metal", "Cuda", "ROCm", "OpenCL" };
