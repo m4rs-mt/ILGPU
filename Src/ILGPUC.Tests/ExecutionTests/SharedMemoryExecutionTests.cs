@@ -98,4 +98,21 @@ public abstract class SharedMemoryExecutionTests : ExecutionTestBase
             ["Kernels.SharedRefSelectSameArrayKernel"],
             ["11", "22", "33", "44"]);
     }
+
+    /// <summary>
+    /// Shared memory with one element per thread, several elements per thread
+    /// and one element per warp of the group, for several group sizes.
+    /// </summary>
+    [SkippableFact]
+    public async Task SharedMemoryPerThread_ProducesCorrectOutput()
+    {
+        await VerifyProgramOutputAsync(
+            "TestPrograms/SharedMemory/SharedMemoryPerThread.cs",
+            ["Kernels.PerThreadKernel"],
+            [
+                "per thread mismatches 0",
+                "multiplier mismatches 0",
+                "per warp mismatches 0",
+            ]);
+    }
 }

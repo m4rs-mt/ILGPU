@@ -54,7 +54,12 @@ sealed class ROCmBackend(string arch) :
 
     /// <inheritdoc/>
     protected override ArchitectureSpecification GetArchitectureSpecification() =>
-        new(Capabilities, CurrentWarpSize, new(0, 0), SupportsViews: false);
+        new(
+            Capabilities,
+            CurrentWarpSize,
+            new(0, 0),
+            SupportsViews: false,
+            MaxNumThreadsPerGroup: MaxNumGPUThreadsPerGroup);
 
     /// <inheritdoc/>
     public override async Task<CompilationResult?> CompileSourceAsync<TManager>(

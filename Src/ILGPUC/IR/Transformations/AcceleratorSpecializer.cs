@@ -12,6 +12,7 @@
 using ILGPU.Runtime;
 using ILGPUC.IR.ModuleValues;
 using ILGPUC.IR.PureValues;
+using System.Diagnostics;
 
 namespace ILGPUC.IR.Transformations;
 
@@ -22,11 +23,16 @@ namespace ILGPUC.IR.Transformations;
 /// <param name="WarpSize">The warp size (if known).</param>
 /// <param name="Architecture">The accelerator architecture (or (0, 0)).</param>
 /// <param name="SupportsViews">True if this accelerator supports views.</param>
+/// <param name="MaxNumThreadsPerGroup">
+/// The maximum number of threads in a group, which sizes the shared memory that
+/// holds elements for every thread or every warp of a group.
+/// </param>
 sealed record class ArchitectureSpecification(
     AcceleratorCapabilities Capabilities,
     int? WarpSize,
     AcceleratorArchitecture Architecture,
-    bool SupportsViews)
+    bool SupportsViews,
+    int MaxNumThreadsPerGroup)
 {
     public AcceleratorType AcceleratorType => Capabilities.AcceleratorType;
 }
@@ -84,6 +90,36 @@ sealed class AcceleratorSpecializer(
 
         MapPureValue<IntAsPointerCast>(Map);
         MapPureValue<PointerAsIntCast>(Map);
+
+        MapModuleValue<Global>(Map);
+    }
+
+    /// <summary>
+    /// Sizes a global holding elements for every thread or every warp of a group
+    /// for the largest group of this accelerator, as globals are allocated
+    /// statically.
+    /// </summary>
+    private Value? Map(ModuleTransform transform, Global global)
+    {
+        if (global.ArrayScale == GlobalArrayScale.None)
+            return global;
+
+        int maxThreads = specification.MaxNumThreadsPerGroup;
+        long scale = global.ArrayScale switch
+        {
+            GlobalArrayScale.GroupThreads => maxThreads,
+            // Without a known warp size, warps of a single thread give the
+            // largest number of warps in a group
+            GlobalArrayScale.GroupWarps when specification.WarpSize is int warpSize =>
+                (maxThreads + warpSize - 1) / warpSize,
+            GlobalArrayScale.GroupWarps => maxThreads,
+            _ => throw new UnreachableException(),
+        };
+        return global.Rewrite(
+            transform,
+            new PrimitiveValueBox(
+                BasicValueType.Int32,
+                global.ArrayLength.GetValueOrDefault().Int64Value * scale));
     }
 
     /// <summary>

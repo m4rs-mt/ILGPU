@@ -434,32 +434,39 @@ partial class Intrinsics
     }
 
     /// <summary>
+    /// Allocates shared memory holding the given number of elements for every
+    /// thread or every warp of the group and returns a view of the given length
+    /// on it. The shared memory is sized for the largest group of the target
+    /// accelerator, as shared memory is allocated statically.
+    /// </summary>
+    private static Value? CreateSharedMemoryPerGroup(
+        ref InvocationContext context,
+        int count,
+        GlobalArrayScale arrayScale,
+        Value? length)
+    {
+        var allocaType = context.GetMethodGenericArguments().First();
+        var alloca = context.ModuleBuilder.CreateScaledGlobal(
+            context.Location,
+            context.ModuleBuilder.CreateType(allocaType),
+            MemoryAddressSpace.Shared,
+            count,
+            arrayScale);
+        return context.Builder.CreateNewView(context.Location, alloca, length);
+    }
+
+    /// <summary>
     /// Handles group shared element buffer-per-thread operations.
     /// </summary>
     /// <param name="context">The current invocation context.</param>
     /// <returns>The resulting value.</returns>
     private static Value? Group_GetSharedMemoryElementPerThread(
-        ref InvocationContext context)
-    {
-        var builder = context.Builder;
-
-        // Create group dimension
-        var groupDimension = builder.CreateGroupDimensionValue(context.Location);
-
-        // Create shared allocation
-        var allocaType = context.GetMethodGenericArguments().First();
-        var alloca = context.ModuleBuilder.CreateGlobal(
-            context.Location,
-            context.ModuleBuilder.CreateType(allocaType),
-            MemoryAddressSpace.Shared,
-            groupDimension);
-
-        // Build view
-        return builder.CreateNewView(
-            context.Location,
-            alloca,
-            groupDimension);
-    }
+        ref InvocationContext context) =>
+        CreateSharedMemoryPerGroup(
+            ref context,
+            1,
+            GlobalArrayScale.GroupThreads,
+            context.Builder.CreateGroupDimensionValue(context.Location));
 
     /// <summary>
     /// Handles group shared element buffer-per-thread operations receiving a multiplier.
@@ -470,35 +477,35 @@ partial class Intrinsics
         ref InvocationContext context)
     {
         var builder = context.Builder;
+        var location = context.Location;
 
-        // Create group dimension
-        var groupDimension = builder.CreateGroupDimensionValue(context.Location);
-
-        // Get multiplier and apply it
+        // The multiplier sizes the static shared memory allocation
         var multiplier = context.Pull();
-        var dimension = builder.CreateArithmetic(
-            context.Location,
-            groupDimension,
+        if (multiplier is not PrimitiveValue { Int64Value: > 0 and <= int.MaxValue }
+            constantMultiplier)
+        {
+            throw location.GetNotSupportedException(
+                "Group.GetSharedMemoryPerThread<T>(int) requires a positive "
+                + "compile-time constant multiplier. Expressions involving "
+                + "kernel parameters or other runtime values are not "
+                + "supported — declare the multiplier as a `const int` or a "
+                + "literal.");
+        }
+
+        var length = builder.CreateArithmetic(
+            location,
+            builder.CreateGroupDimensionValue(location),
             multiplier,
             BinaryArithmeticKind.Mul);
-
-        // Create shared allocation
-        var allocaType = context.GetMethodGenericArguments().First();
-        var alloca = context.ModuleBuilder.CreateGlobal(
-            context.Location,
-            context.ModuleBuilder.CreateType(allocaType),
-            MemoryAddressSpace.Shared,
-            dimension);
-
-        // Build view
-        return builder.CreateNewView(
-            context.Location,
-            alloca,
-            dimension);
+        return CreateSharedMemoryPerGroup(
+            ref context,
+            constantMultiplier.Int32Value,
+            GlobalArrayScale.GroupThreads,
+            length);
     }
 
     /// <summary>
-    /// Handles group shared element buffer-per-thread operations.
+    /// Handles group shared element buffer-per-warp operations.
     /// </summary>
     /// <param name="context">The current invocation context.</param>
     /// <returns>The resulting value.</returns>
@@ -506,23 +513,28 @@ partial class Intrinsics
         ref InvocationContext context)
     {
         var builder = context.Builder;
+        var location = context.Location;
 
-        // Create group dimension
-        var warpDimension = builder.CreateSubGroupDimensionValue(context.Location);
-
-        // Create shared allocation
-        var allocaType = context.GetMethodGenericArguments().First();
-        var alloca = context.ModuleBuilder.CreateGlobal(
-            context.Location,
-            context.ModuleBuilder.CreateType(allocaType),
-            MemoryAddressSpace.Shared,
-            warpDimension);
-
-        // Build view
-        return builder.CreateNewView(
-            context.Location,
-            alloca,
-            warpDimension);
+        // The number of warps in the group, counting a partial last warp
+        var warpDimension = builder.CreateSubGroupDimensionValue(location);
+        var numWarps = builder.CreateArithmetic(
+            location,
+            builder.CreateArithmetic(
+                location,
+                builder.CreateGroupDimensionValue(location),
+                builder.CreateArithmetic(
+                    location,
+                    warpDimension,
+                    builder.CreatePrimitiveValue(location, 1),
+                    BinaryArithmeticKind.Sub),
+                BinaryArithmeticKind.Add),
+            warpDimension,
+            BinaryArithmeticKind.Div);
+        return CreateSharedMemoryPerGroup(
+            ref context,
+            1,
+            GlobalArrayScale.GroupWarps,
+            numWarps);
     }
 
     /// <summary>

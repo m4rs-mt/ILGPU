@@ -106,7 +106,8 @@ public sealed class GroupCollectiveBarrierIRTests
             CPUAcceleratorCapabilities.Default,
             WarpSize: 32,
             new AcceleratorArchitecture(0, 0),
-            SupportsViews: false);
+            SupportsViews: false,
+            MaxNumThreadsPerGroup: 1024);
         var transformer = Transformer.Create(
             args => new LowerGroupCollectives(args, specification));
         var lowered = transformer.Apply(properties, helper.TypeManager, module);
