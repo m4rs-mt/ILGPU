@@ -114,4 +114,16 @@ public abstract class WarpExecutionTests : ExecutionTestBase
             ["Kernels.WarpShuffleLongKernel"],
             ["8589934603", "12884901900", "17179869197", "4294967306"]);
     }
+
+    /// <summary>
+    /// Warp.Permute yields a permutation of the values of each warp.
+    /// </summary>
+    [SkippableFact]
+    public async Task WarpPermute_ProducesCorrectOutput()
+    {
+        await VerifyProgramOutputAsync(
+            "TestPrograms/Warp/WarpPermute.cs",
+            ["Kernels.WarpPermuteKernel"],
+            ["permutation mismatches 0", "moved True"]);
+    }
 }

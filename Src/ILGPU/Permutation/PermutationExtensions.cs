@@ -18,6 +18,12 @@ namespace ILGPU;
 partial class Group
 {
     /// <summary>
+    /// Selects the random bits of a permutation key above the 14 bits that hold
+    /// the index of a thread in its group or warp.
+    /// </summary>
+    internal const int RandomKeyMask = 0x7fffc000;
+
+    /// <summary>
     /// Permutes the given value within a group.
     /// </summary>
     /// <typeparam name="T">The element type.</typeparam>
@@ -54,7 +60,8 @@ partial class Group
         where T : unmanaged
         where TRandomProvider : struct, IRandomProvider
     {
-        var threadValue = random.Next() & 0x7fffc000 + Index;
+        // Random bits above the thread index make the keys unique
+        var threadValue = (random.Next() & RandomKeyMask) + Index;
         return Permute(value, threadValue);
     }
 
@@ -73,9 +80,10 @@ partial class Group
         sharedMemory[Index] = value;
         Barrier();
 
-        // Sort all lanes appropriately
+        // Sort all lanes appropriately and read the value of the thread whose
+        // index is in the low bits of the sorted key
         int index = RadixSort<int, AscendingInt32>(threadValue);
-        var result = sharedMemory[index];
+        var result = sharedMemory[index & ~RandomKeyMask];
 
         // The buffer of this call site is the buffer of every call of this
         // method in a kernel: wait until all threads have read it before a
@@ -124,7 +132,8 @@ partial class Warp
         where T : unmanaged
         where TRandomProvider : struct, IRandomProvider
     {
-        var laneValue = random.Next() & 0x7fffc000 + LaneIndex;
+        // Random bits above the lane index make the keys unique
+        var laneValue = (random.Next() & Group.RandomKeyMask) + LaneIndex;
         return Permute(value, laneValue);
     }
 
