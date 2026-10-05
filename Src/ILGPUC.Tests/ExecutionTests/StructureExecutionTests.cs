@@ -123,4 +123,42 @@ public abstract class StructureExecutionTests : ExecutionTestBase
             new CompilationProperties { OptimizationLevel = level },
             programOptimization);
     }
+
+    /// <summary>
+    /// A struct holds the address of a local or of a field of a local struct, and
+    /// the kernel reads the local through it: the stored address keeps the local in
+    /// memory, also when the pointer or reference is the only field of the struct.
+    /// </summary>
+    [SkippableTheory]
+    [InlineData(OptimizationLevel.O0, RoslynOptimizationLevel.Release)]
+    [InlineData(OptimizationLevel.O1, RoslynOptimizationLevel.Release)]
+    [InlineData(OptimizationLevel.O2, RoslynOptimizationLevel.Release)]
+    [InlineData(OptimizationLevel.O1, RoslynOptimizationLevel.Debug)]
+    public async Task LocalAddressInStruct_ProducesCorrectOutput(
+        OptimizationLevel level,
+        RoslynOptimizationLevel programOptimization)
+    {
+        await VerifyProgramOutputAsync(
+            "TestPrograms/Structure/LocalAddressInStruct.cs",
+            [
+                "Kernels.ConstructorKernel",
+                "Kernels.InitializerKernel",
+                "Kernels.HelperKernel",
+                "Kernels.PaddedKernel",
+                "Kernels.RefKernel",
+                "Kernels.StructFieldKernel",
+                "Kernels.FieldAddressKernel",
+            ],
+            [
+                "1 8 15 22",
+                "1 8 15 22",
+                "1 8 15 22",
+                "1 8 15 22",
+                "1 8 15 22",
+                "1 8 15 22",
+                "1 8 15 22",
+            ],
+            new CompilationProperties { OptimizationLevel = level },
+            programOptimization);
+    }
 }

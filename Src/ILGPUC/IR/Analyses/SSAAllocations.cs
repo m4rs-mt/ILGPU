@@ -129,9 +129,9 @@ abstract class SSAAllocations(GlobalValueMap<SSAValueFieldRef>? valueRefs) :
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     protected static bool CanConvertArrayToStructure(Value allocation, int arrayLength)
     {
-        foreach (Value use in allocation.Uses)
+        foreach (var use in allocation.Uses)
         {
-            switch (use)
+            switch (use.Target)
             {
                 case LoadElementAddress lea:
                     if (lea.Offset is not PrimitiveValue index ||
@@ -147,7 +147,7 @@ abstract class SSAAllocations(GlobalValueMap<SSAValueFieldRef>? valueRefs) :
                     break;
                 case GetViewLength:
                 case Load:
-                case Store:
+                case Store when IsStoreTarget(use):
                     break;
                 case AddressSpaceCast cast:
                     if (RequiresAddress(cast))
@@ -165,7 +165,7 @@ abstract class SSAAllocations(GlobalValueMap<SSAValueFieldRef>? valueRefs) :
     /// </summary>
     protected static bool RequiresAddress(Value node)
     {
-        foreach (Value use in node.Uses)
+        foreach (var use in node.Uses)
         {
             if (RequiresAddressForUse(use))
                 return true;
@@ -174,14 +174,21 @@ abstract class SSAAllocations(GlobalValueMap<SSAValueFieldRef>? valueRefs) :
     }
 
     /// <summary>
+    /// Returns true if the given use of an address is the target of a store. A store
+    /// of the address itself writes it to memory, from where it can be loaded and
+    /// dereferenced again, so the address escapes.
+    /// </summary>
+    private static bool IsStoreTarget(Use use) => use.Index == 0;
+
+    /// <summary>
     /// Returns true if the given use requires an explicit address in memory.
     /// </summary>
-    private static bool RequiresAddressForUse(Value use) =>
-        use switch
+    private static bool RequiresAddressForUse(Use use) =>
+        use.Target switch
         {
             BasicBlock _ => false,
             Load _ => false,
-            Store _ => false,
+            Store _ => !IsStoreTarget(use),
             LoadFieldAddress lfa => RequiresAddress(lfa),
             AddressSpaceCast cast => RequiresAddress(cast),
             _ => true
