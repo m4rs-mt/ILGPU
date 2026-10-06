@@ -15,7 +15,9 @@
 // Kernels read bytes, elements of other types and padded structures through pointers,
 // and move pointers by large and structure-sized byte offsets.
 // Expected output: 40240 33250 32260 31270, 52 96 248 172, 15 94 35 134, 23 43 63 83, 10 40 3 40,
-// 4294967296 17179869200 4294967304 4294967270, 2110 13331 4330 15551
+// 4294967296 17179869200 4294967304 4294967270, 2147483648 2147483648 2147483648 2147483647,
+// 21474836481 21474836482 21474836473 21474836474,
+// 2110 13331 4330 15551
 
 using System;
 using System.Runtime.CompilerServices;
@@ -189,6 +191,39 @@ static unsafe class Kernels
     }
 
     /// <summary>
+    /// Pointers to view elements moved back by the byte offset int.MinValue,
+    /// whose negation overflows on 32 bits. The pointers are not read.
+    /// </summary>
+    public static void NegativeOffsetsKernel(
+        Index1D index,
+        ArrayView1D<long, Stride1D.Dense> data)
+    {
+        byte* b = (byte*)Unsafe.AsPointer(ref data[index]);
+        int k = index.X;
+        int m = int.MinValue + (k >> 1);
+        data[index] = (k & 1) == 0 ? b - int.MinValue - b : b - m - b;
+    }
+
+    /// <summary>
+    /// Addresses moved by native integers made from integers: an int pointer
+    /// moved by a byte offset that is no multiple of the size of int, and a
+    /// byte pointer moved back by an offset of up to int.MinValue, whose
+    /// negation overflows on 32 bits. The moved byte pointer is not read.
+    /// </summary>
+    public static void NativeBytesKernel(
+        Index1D index,
+        ArrayView1D<long, Stride1D.Dense> data)
+    {
+        int x = 0x04030201;
+        int* p = &x;
+        nint k = index.X & 3;
+        byte* b = (byte*)Unsafe.AsPointer(ref data[index]);
+        int m = int.MinValue + (index.X >> 1);
+        data[index] = *(byte*)((nint)p + k) +
+            10 * ((nint)b - (nint)m - (nint)b);
+    }
+
+    /// <summary>
     /// Differences of pointers to structures of 12 bytes, and pointers to such
     /// structures moved by byte offsets that are multiples of 12.
     /// </summary>
@@ -260,6 +295,20 @@ static class Program
         using (var buffer = stream.Allocate1D<long>(4))
         {
             stream.Launch((Index1D)4, index => Kernels.LargeOffsetsKernel(index, buffer.View));
+            stream.Synchronize();
+            foreach (var v in buffer.GetAsArray1D())
+                Console.WriteLine(v);
+        }
+        using (var buffer = stream.Allocate1D<long>(4))
+        {
+            stream.Launch((Index1D)4, index => Kernels.NegativeOffsetsKernel(index, buffer.View));
+            stream.Synchronize();
+            foreach (var v in buffer.GetAsArray1D())
+                Console.WriteLine(v);
+        }
+        using (var buffer = stream.Allocate1D<long>(4))
+        {
+            stream.Launch((Index1D)4, index => Kernels.NativeBytesKernel(index, buffer.View));
             stream.Synchronize();
             foreach (var v in buffer.GetAsArray1D())
                 Console.WriteLine(v);

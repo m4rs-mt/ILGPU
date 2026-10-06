@@ -12,8 +12,8 @@
 
 // disable: max_line_length
 // Test program: PointerArithmetic LocalPointers
-// Kernels index and subtract pointers to the fields of local structures.
-// Expected output: 49 89 129 169, 26 160 66 86, 192 202 212 222, 4222 3333 4222 3333
+// Kernels index, move and subtract pointers to the fields of local structures.
+// Expected output: 49 89 129 169, 26 160 66 86, 3510 6740 9930 13180, 123 112 131 123, 192 202 212 222, 104222 33333 304222 33333
 
 using System;
 using System.Runtime.CompilerServices;
@@ -78,6 +78,45 @@ static unsafe class Kernels
     }
 
     /// <summary>
+    /// Pointers moved by increments, decrements and compound assignments.
+    /// </summary>
+    public static void MoveKernel(
+        Index1D index,
+        ArrayView1D<int, Stride1D.Dense> data)
+    {
+        Triple t;
+        t.A = data[index];
+        t.B = 2 * data[index];
+        t.C = 3;
+        int* p = &t.A;
+        int sum = 0;
+        for (int k = 0; k < 3; ++k)
+            sum += *p++;
+        p -= 2;
+        sum = 10 * sum + *p--;
+        p += index.X & 1;
+        data[index] = 10 * sum + *p;
+    }
+
+    /// <summary>
+    /// An int pointer moved backward by native integers and by a long, such as
+    /// p - (nint)2.
+    /// </summary>
+    public static void IntBackKernel(
+        Index1D index,
+        ArrayView1D<int, Stride1D.Dense> data)
+    {
+        Triple t;
+        t.A = 1;
+        t.B = 2;
+        t.C = 3;
+        int* p = &t.C;
+        nint k = index.X % 3;
+        long l = (index.X + 1) % 3;
+        data[index] = *(p - k) + 10 * *(p - l) + 100 * *(p - (nint)2);
+    }
+
+    /// <summary>
     /// Differences of int, byte and padded structure pointers.
     /// </summary>
     public static void DifferenceKernel(
@@ -95,8 +134,8 @@ static unsafe class Kernels
     /// <summary>
     /// Addresses moved by bytes and selected by conditions with other
     /// addresses: untyped addresses, the address of a structure cast to an
-    /// int or byte pointer and moved past its first field, and an int pointer
-    /// moved by one byte.
+    /// int or byte pointer and moved past its first field, an int pointer
+    /// moved by one byte, and an untyped address moved backward by bytes.
     /// </summary>
     public static void SelectOffsetKernel(
         Index1D index,
@@ -114,7 +153,9 @@ static unsafe class Kernels
         int* q = even ? (int*)&t + 1 : &t.C;
         byte* b = even ? (byte*)&t + 4 : (byte*)&t.C;
         byte* c = even ? (byte*)p + 1 : (byte*)r;
-        data[index] = *(int*)a + 10 * *q + 100 * *(int*)b + 1000 * *c;
+        nint s = even ? (nint)(&t.B) - 4 : (nint)(&t.C);
+        data[index] = *(int*)a + 10 * *q + 100 * *(int*)b + 1000 * *c +
+            10000 * *(int*)s;
     }
 }
 
@@ -139,6 +180,21 @@ static class Program
         {
             buffer.View.CopyFromCPU(stream, new int[] { 10, 20, 30, 40 });
             stream.Launch((Index1D)4, index => Kernels.IndexKernel(index, buffer.View));
+            stream.Synchronize();
+            foreach (var v in buffer.GetAsArray1D())
+                Console.WriteLine(v);
+        }
+        using (var buffer = stream.Allocate1D<int>(4))
+        {
+            buffer.View.CopyFromCPU(stream, new int[] { 10, 20, 30, 40 });
+            stream.Launch((Index1D)4, index => Kernels.MoveKernel(index, buffer.View));
+            stream.Synchronize();
+            foreach (var v in buffer.GetAsArray1D())
+                Console.WriteLine(v);
+        }
+        using (var buffer = stream.Allocate1D<int>(4))
+        {
+            stream.Launch((Index1D)4, index => Kernels.IntBackKernel(index, buffer.View));
             stream.Synchronize();
             foreach (var v in buffer.GetAsArray1D())
                 Console.WriteLine(v);

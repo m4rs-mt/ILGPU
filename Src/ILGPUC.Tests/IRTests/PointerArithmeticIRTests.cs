@@ -31,6 +31,11 @@ public sealed class PointerArithmeticIRTests : CompilationTestBase
             typeof(PointerArithmeticKernels), nameof(PointerArithmeticKernels.LocalOffsetsKernel)));
 
     [Fact]
+    public void Move_AfterFrontend() =>
+        VerifyAfterFrontend(GetKernel(
+            typeof(PointerArithmeticKernels), nameof(PointerArithmeticKernels.MoveKernel)));
+
+    [Fact]
     public void Bytes_AfterFrontend() =>
         VerifyAfterFrontend(GetKernel(
             typeof(PointerArithmeticKernels), nameof(PointerArithmeticKernels.BytesKernel)));

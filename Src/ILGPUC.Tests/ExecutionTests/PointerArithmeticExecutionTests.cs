@@ -30,9 +30,10 @@ public abstract class PointerArithmeticExecutionTests : ExecutionTestBase
         : base(output, backend) { }
 
     // Pointers to locals move by elements and untyped addresses by bytes,
-    // also when a condition selects between them. Pointers moved by bytes
-    // keep their pointer types, so that a condition can select them together
-    // with other pointers. The uint indices stay below 2^31.
+    // also when a condition selects between them and when they move backward,
+    // as in p -= 2, p-- and p - (nint)2. Pointers moved by bytes keep their
+    // pointer types, so that a condition can select them together with other
+    // pointers. The uint indices stay below 2^31.
     [SkippableTheory]
     [InlineData(RoslynOptimizationLevel.Release, OptimizationLevel.O1)]
     [InlineData(RoslynOptimizationLevel.Debug, OptimizationLevel.O1)]
@@ -46,14 +47,18 @@ public abstract class PointerArithmeticExecutionTests : ExecutionTestBase
             [
                 "Kernels.LocalOffsetsKernel",
                 "Kernels.IndexKernel",
+                "Kernels.MoveKernel",
+                "Kernels.IntBackKernel",
                 "Kernels.DifferenceKernel",
                 "Kernels.SelectOffsetKernel",
             ],
             [
                 "49", "89", "129", "169",
                 "26", "160", "66", "86",
+                "3510", "6740", "9930", "13180",
+                "123", "112", "131", "123",
                 "192", "202", "212", "222",
-                "4222", "3333", "4222", "3333",
+                "104222", "33333", "304222", "33333",
             ],
             new CompilationProperties { OptimizationLevel = level },
             programOptimization);
@@ -62,7 +67,8 @@ public abstract class PointerArithmeticExecutionTests : ExecutionTestBase
     // (byte*)p + 1 on an int pointer read the first byte, as the byte offset 1
     // was divided by the size of int. Pointers to padded structures move by
     // elements, and byte offsets such as (nint)i * 4 of byte pointers must not
-    // overflow on 32 bits.
+    // overflow on 32 bits, and neither must b - int.MinValue, also when the
+    // offset is a native integer made from an integer.
     [SkippableTheory]
     [InlineData(RoslynOptimizationLevel.Release, OptimizationLevel.O1)]
     [InlineData(RoslynOptimizationLevel.Debug, OptimizationLevel.O1)]
@@ -80,6 +86,8 @@ public abstract class PointerArithmeticExecutionTests : ExecutionTestBase
                 "Kernels.HelperKernel",
                 "Kernels.NativeIntOffsetKernel",
                 "Kernels.LargeOffsetsKernel",
+                "Kernels.NegativeOffsetsKernel",
+                "Kernels.NativeBytesKernel",
                 "Kernels.StructOffsetsKernel",
             ],
             [
@@ -89,6 +97,8 @@ public abstract class PointerArithmeticExecutionTests : ExecutionTestBase
                 "23", "43", "63", "83",
                 "10", "40", "3", "40",
                 "4294967296", "17179869200", "4294967304", "4294967270",
+                "2147483648", "2147483648", "2147483648", "2147483647",
+                "21474836481", "21474836482", "21474836473", "21474836474",
                 "2110", "13331", "4330", "15551",
             ],
             new CompilationProperties { OptimizationLevel = level },

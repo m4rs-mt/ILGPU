@@ -33,6 +33,8 @@ partial class CodeGenerator
 
     /// <summary>
     /// Returns the given index of a pointer moved by <paramref name="kind"/>.
+    /// Indices to move backward by are negated on 64 bits, as the negation of
+    /// int.MinValue overflows on 32 bits.
     /// </summary>
     /// <param name="index">The index to move the pointer forward by.</param>
     /// <param name="kind">Add or Sub to move forward or backward.</param>
@@ -45,7 +47,10 @@ partial class CodeGenerator
         {
             index = Builder.CreateArithmetic(
                 Location,
-                index,
+                CreateConversion(
+                    index,
+                    ModuleBuilder.GetPrimitiveType(BasicValueType.Int64),
+                    ConvertFlags.None),
                 UnaryArithmeticKind.Neg).AsNotNull();
         }
 
@@ -269,10 +274,7 @@ partial class CodeGenerator
 
         if (negate)
         {
-            index = Builder.CreateArithmetic(
-                Location,
-                index is IntAsPointerCast cast ? cast.Source : index,
-                UnaryArithmeticKind.Neg).AsNotNull();
+            index = GetMoveIndex(index, BinaryArithmeticKind.Sub);
         }
         result = Builder.CreateLoadElementAddress(
             Location,
@@ -312,56 +314,6 @@ partial class CodeGenerator
     private static bool IsAddress(Value value) =>
         value.Type is PointerType &&
         value is not (IntAsPointerCast or NullValue or BinaryArithmeticValue);
-
-    /// <summary>
-    /// Returns the given address moved by the given number of bytes: untyped
-    /// addresses move by bytes, as void pointers have no element size, and
-    /// typed addresses by elements.
-    /// </summary>
-    /// <param name="address">The address.</param>
-    /// <param name="offset">The offset in bytes.</param>
-    /// <param name="negate">True to move the address backwards.</param>
-    /// <returns>The moved address.</returns>
-    private Value CreateByteOffset(Value address, Value offset, bool negate)
-    {
-        var pointerType = address.GetTypeAs<PointerType>();
-        bool untyped = pointerType.ElementType is VoidType;
-        if (!untyped)
-        {
-            offset = Builder.CreateArithmetic(
-                Location,
-                offset,
-                Builder.CreateSizeOf(Location, pointerType.ElementType),
-                BinaryArithmeticKind.Div).AsNotNull();
-        }
-        if (negate)
-        {
-            offset = Builder.CreateArithmetic(
-                Location,
-                offset,
-                UnaryArithmeticKind.Neg).AsNotNull();
-        }
-        if (!untyped)
-        {
-            return Builder.CreateLoadElementAddress(
-                Location,
-                address,
-                offset).AsNotNull();
-        }
-
-        var bytePointer = Builder.CreatePointerCast(
-            Location,
-            address,
-            ModuleBuilder.GetPrimitiveType(BasicValueType.Int8));
-        var movedPointer = Builder.CreateLoadElementAddress(
-            Location,
-            bytePointer,
-            offset);
-        return Builder.CreatePointerCast(
-            Location,
-            movedPointer,
-            ModuleBuilder.VoidType).AsNotNull();
-    }
 
     /// <summary>
     /// Realizes an arithmetic operation.
@@ -428,10 +380,7 @@ partial class CodeGenerator
                 IsAddress(left) &&
                 right is IntAsPointerCast byteOffset)
             {
-                result = CreateByteOffset(
-                    left,
-                    byteOffset.Source,
-                    kind == BinaryArithmeticKind.Sub);
+                result = CreatePointerOffset(left, byteOffset.Source, kind);
             }
             // Native integers are pointers: all other operations on them
             // compute on their integer values, except for the strides of

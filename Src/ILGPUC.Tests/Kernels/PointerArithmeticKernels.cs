@@ -104,6 +104,45 @@ static unsafe class PointerArithmeticKernels
     }
 
     /// <summary>
+    /// Pointers moved by increments, decrements and compound assignments.
+    /// </summary>
+    public static void MoveKernel(
+        Index1D index,
+        ArrayView1D<int, Stride1D.Dense> data)
+    {
+        Triple t;
+        t.A = data[index];
+        t.B = 2 * data[index];
+        t.C = 3;
+        int* p = &t.A;
+        int sum = 0;
+        for (int k = 0; k < 3; ++k)
+            sum += *p++;
+        p -= 2;
+        sum = 10 * sum + *p--;
+        p += index.X & 1;
+        data[index] = 10 * sum + *p;
+    }
+
+    /// <summary>
+    /// An int pointer moved backward by native integers and by a long, such as
+    /// p - (nint)2.
+    /// </summary>
+    public static void IntBackKernel(
+        Index1D index,
+        ArrayView1D<int, Stride1D.Dense> data)
+    {
+        Triple t;
+        t.A = 1;
+        t.B = 2;
+        t.C = 3;
+        int* p = &t.C;
+        nint k = index.X % 3;
+        long l = (index.X + 1) % 3;
+        data[index] = *(p - k) + 10 * *(p - l) + 100 * *(p - (nint)2);
+    }
+
+    /// <summary>
     /// Differences of int, byte and padded structure pointers.
     /// </summary>
     public static void DifferenceKernel(
@@ -121,8 +160,8 @@ static unsafe class PointerArithmeticKernels
     /// <summary>
     /// Addresses moved by bytes and selected by conditions with other
     /// addresses: untyped addresses, the address of a structure cast to an
-    /// int or byte pointer and moved past its first field, and an int pointer
-    /// moved by one byte.
+    /// int or byte pointer and moved past its first field, an int pointer
+    /// moved by one byte, and an untyped address moved backward by bytes.
     /// </summary>
     public static void SelectOffsetKernel(
         Index1D index,
@@ -140,7 +179,9 @@ static unsafe class PointerArithmeticKernels
         int* q = even ? (int*)&t + 1 : &t.C;
         byte* b = even ? (byte*)&t + 4 : (byte*)&t.C;
         byte* c = even ? (byte*)p + 1 : (byte*)r;
-        data[index] = *(int*)a + 10 * *q + 100 * *(int*)b + 1000 * *c;
+        nint s = even ? (nint)(&t.B) - 4 : (nint)(&t.C);
+        data[index] = *(int*)a + 10 * *q + 100 * *(int*)b + 1000 * *c +
+            10000 * *(int*)s;
     }
 
     /// <summary>
@@ -273,6 +314,39 @@ static unsafe class PointerArithmeticKernels
             2 => b + ((nint)x << 2) - b,
             _ => b + ((nint)y + (nint)y) - b,
         };
+    }
+
+    /// <summary>
+    /// Pointers to view elements moved back by the byte offset int.MinValue,
+    /// whose negation overflows on 32 bits. The pointers are not read.
+    /// </summary>
+    public static void NegativeOffsetsKernel(
+        Index1D index,
+        ArrayView1D<long, Stride1D.Dense> data)
+    {
+        byte* b = (byte*)Unsafe.AsPointer(ref data[index]);
+        int k = index.X;
+        int m = int.MinValue + (k >> 1);
+        data[index] = (k & 1) == 0 ? b - int.MinValue - b : b - m - b;
+    }
+
+    /// <summary>
+    /// Addresses moved by native integers made from integers: an int pointer
+    /// moved by a byte offset that is no multiple of the size of int, and a
+    /// byte pointer moved back by an offset of up to int.MinValue, whose
+    /// negation overflows on 32 bits. The moved byte pointer is not read.
+    /// </summary>
+    public static void NativeBytesKernel(
+        Index1D index,
+        ArrayView1D<long, Stride1D.Dense> data)
+    {
+        int x = 0x04030201;
+        int* p = &x;
+        nint k = index.X & 3;
+        byte* b = (byte*)Unsafe.AsPointer(ref data[index]);
+        int m = int.MinValue + (index.X >> 1);
+        data[index] = *(byte*)((nint)p + k) +
+            10 * ((nint)b - (nint)m - (nint)b);
     }
 
     /// <summary>
