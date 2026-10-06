@@ -101,4 +101,20 @@ public abstract class LocalArrayExecutionTests : ExecutionTestBase
             ["Kernels.AllocateInHelperInLoopKernel"],
             ["1271", "1271", "1271", "1271"]);
     }
+
+    /// <summary>
+    /// Local memory per thread, also in a helper that is not inlined, for
+    /// several group sizes.
+    /// </summary>
+    [SkippableFact]
+    public async Task LocalMemoryPerThread_ProducesCorrectOutput()
+    {
+        await VerifyProgramOutputAsync(
+            "TestPrograms/LocalArray/LocalMemoryPerThread.cs",
+            ["Kernels.LocalPerThreadKernel"],
+            [
+                "local 1D mismatches 0",
+                "local helper mismatches 0",
+            ]);
+    }
 }
