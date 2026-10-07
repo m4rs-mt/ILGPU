@@ -11,6 +11,7 @@
 
 using ILGPU;
 using ILGPU.Runtime;
+using ILGPUC.Backends;
 using ILGPUC.IR;
 using ILGPUC.Tests.Framework;
 using Xunit;
@@ -41,6 +42,19 @@ public sealed class LocalMemoryPerThreadIRTests(ITestOutputHelper output) :
     }
 
     /// <summary>
+    /// Writes 2D local memory per thread at an index that depends on the thread.
+    /// </summary>
+    internal static void Local2DKernel(ArrayView1D<int, Stride1D.Dense> output)
+    {
+        int global = (int)Grid.GlobalThreadIndex;
+        var grid = Group.GetLocalMemoryPerThread2D<int, Stride2D.DenseX>(
+            new Index2D(3, 2));
+        var index = new Index2D(global % 3, 1);
+        grid[index] = global;
+        output[global] = grid[index];
+    }
+
+    /// <summary>
     /// The view returned for local memory keeps pointing to its global, which
     /// the view's escape keeps from being promoted to registers.
     /// </summary>
@@ -52,5 +66,29 @@ public sealed class LocalMemoryPerThreadIRTests(ITestOutputHelper output) :
             IRDumpPoint.AfterGlobalOpt);
         Assert.Contains("@ilgpu.view.new(ptr @g0, i64 5)", ir);
         Assert.DoesNotContain("ptr null", ir);
+    }
+
+    /// <summary>
+    /// The 2D local memory, whose length inlining makes a constant, is a
+    /// per-thread global of that length on every backend.
+    /// </summary>
+    [Theory]
+    [InlineData(BackendType.CPU)]
+    [InlineData(BackendType.Metal)]
+    [InlineData(BackendType.Cuda)]
+    [InlineData(BackendType.ROCm)]
+    [InlineData(BackendType.OpenCL)]
+    public void LocalMemory2D_IsGlobal(BackendType backend)
+    {
+        var kernel = GetKernel(
+            typeof(LocalMemoryPerThreadIRTests),
+            nameof(Local2DKernel));
+        using var helper = new CompilationHelper(backend);
+        var ir = helper.GetNormalizedIR(
+            kernel,
+            IRDumpPoint.AfterBackendTransforms,
+            backend: backend);
+        Assert.Contains("internal global i32 zeroinitializer ; local", ir);
+        Assert.DoesNotContain("alloca i32, i32 %", ir);
     }
 }

@@ -162,6 +162,10 @@ static class Optimizer
         builder.Add(static args => new Inliner(args));
         builder.Add(static args => new SimplifyControlFlow(args));
 
+        // Turn local memory per thread, whose length inlining has made a
+        // constant, into globals
+        builder.Add(static args => new LowerArrayAllocas(args));
+
         // Specialize accelerator properties, arrays, and views
         builder.Add(static args => new LowerThreadIntrinsics(args));
         builder.Add(static args => new LowerArrays(args));

@@ -103,8 +103,8 @@ public abstract class LocalArrayExecutionTests : ExecutionTestBase
     }
 
     /// <summary>
-    /// Local memory per thread, also in a helper that is not inlined, for
-    /// several group sizes.
+    /// Local memory per thread in 1D, 2D and 3D and in a helper that is not
+    /// inlined, for several group sizes.
     /// </summary>
     [SkippableFact]
     public async Task LocalMemoryPerThread_ProducesCorrectOutput()
@@ -115,6 +115,8 @@ public abstract class LocalArrayExecutionTests : ExecutionTestBase
             [
                 "local 1D mismatches 0",
                 "local helper mismatches 0",
+                "local 2D mismatches 0",
+                "local 3D mismatches 0",
             ]);
     }
 }

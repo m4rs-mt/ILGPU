@@ -299,9 +299,10 @@ public static partial class Group
     /// An allocated region of local memory for each thread in the group.
     /// </returns>
     /// <remarks>
-    /// Each call site of this method yields one buffer per thread and kernel,
-    /// also in a helper that a kernel calls or inlines more than once: every call
-    /// of the helper returns the same buffer.
+    /// A call site of this method with a constant extent yields one buffer per
+    /// thread and kernel, also in a helper that a kernel calls or inlines more than
+    /// once: every call of the helper returns the same buffer. An extent that
+    /// becomes a constant only after inlining yields one buffer per inlined call.
     /// </remarks>
     [GroupIntrinsic]
     public static ArrayView<T> GetLocalMemoryPerThread<T>(int extent)
@@ -318,9 +319,10 @@ public static partial class Group
     /// An allocated region of local memory for each thread in the group.
     /// </returns>
     /// <remarks>
-    /// The buffer is allocated by a call site in this method, which yields one
-    /// buffer per thread and kernel: every call of this method with the same type
-    /// arguments in a kernel returns the same buffer.
+    /// Each inlined call of this method yields its own buffer per thread; a helper
+    /// that a kernel calls without inlining it returns the same buffer from every
+    /// call. The extent has to be a compile-time constant once this method is
+    /// inlined.
     /// </remarks>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static ArrayView2D<T, TStride> GetLocalMemoryPerThread2D<T, TStride>(
@@ -344,9 +346,10 @@ public static partial class Group
     /// An allocated region of local memory for each thread in the group.
     /// </returns>
     /// <remarks>
-    /// The buffer is allocated by a call site in this method, which yields one
-    /// buffer per thread and kernel: every call of this method with the same type
-    /// arguments in a kernel returns the same buffer.
+    /// Each inlined call of this method yields its own buffer per thread; a helper
+    /// that a kernel calls without inlining it returns the same buffer from every
+    /// call. The extent has to be a compile-time constant once this method is
+    /// inlined.
     /// </remarks>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static ArrayView3D<T, TStride> GetLocalMemoryPerThread3D<T, TStride>(
