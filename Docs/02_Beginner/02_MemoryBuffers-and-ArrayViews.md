@@ -53,7 +53,7 @@ Basic usage, copying everything from IntArray to OnDeviceInts
 
 #### CopyToCPU
 
-To copy memory out of a MemoyBuffer and into an array on host you use CopyToCPU.
+To copy memory out of a MemoryBuffer and into an array on host you use CopyToCPU.
 
 Basic usage, copying everything from OnDeviceInts to IntArray
 
