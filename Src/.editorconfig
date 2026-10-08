@@ -153,3 +153,6 @@ dotnet_diagnostic.CA1305.severity = none
 
 # CA1308: Normalize strings to uppercase
 dotnet_diagnostic.CA1308.severity = none
+
+# CA2007:Consider calling ConfigureAwait on the awaited task
+dotnet_diagnostic.CA2007.severity = none
