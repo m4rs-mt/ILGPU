@@ -1,6 +1,6 @@
 // ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                           Copyright (c) 2026 ILGPU Project
+//                           Copyright (c) 2024-2026 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: InterinsicProvider.cs
@@ -10,7 +10,6 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPUC.IR;
-using ILGPUC.IR.Values;
 
 namespace ILGPUC.Frontend.Intrinsic;
 
@@ -21,7 +20,7 @@ partial class Intrinsics
     /// </summary>
     /// <param name="context">The current invocation context.</param>
     /// <returns>The resulting value.</returns>
-    private static ValueReference IntrinsicProvider_Provide(
+    private static Value IntrinsicProvider_Provide(
         ref InvocationContext context) =>
         throw context.Location.GetInvalidOperationException();
 }

@@ -1,0 +1,47 @@
+// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                           Copyright (c) 2026 ILGPU Project
+//                                    www.ilgpu.net
+//
+// File: OpenCLIntelBackend.cs
+//
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details.
+// ---------------------------------------------------------------------------------------
+
+using ILGPUC.Compilers;
+using System.Threading;
+using System.Threading.Tasks;
+
+namespace ILGPUC.Backends.OpenCL;
+
+#pragma warning disable CS9107
+
+/// <summary>
+/// OpenCL backend variant that compiles generated OpenCL C source to SPIR-V via
+/// Intel's <c>ocloc</c> tool.
+/// </summary>
+sealed class OpenCLIntelBackend(int clcMajor, int clcMinor) :
+    OpenCLBackend(clcMajor, clcMinor, CLVendor.Intel, warpSize: 16)
+{
+    /// <inheritdoc/>
+    public override CompiledKernelEmitter CreateCompiledKernelEmitter() =>
+        new OpenCLCompiledKernelEmitter(clcMajor, clcMinor, KernelEmbedMode.Binary);
+
+    /// <inheritdoc/>
+    public override async Task<CompilationResult?> CompileSourceAsync<TManager>(
+        CodeGenerationResult source,
+        TManager manager,
+        CancellationToken ct = default)
+    {
+        return await manager.CompileAsync(new CompileRequest
+        {
+            SourceCode = source.SourceCode,
+            Target = CompilationTarget.OpenCLIntel,
+            OutputType = OutputType.SpirV,
+        }, ct).ConfigureAwait(false);
+    }
+}
+
+
+#pragma warning restore CS9107

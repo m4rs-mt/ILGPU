@@ -1,6 +1,6 @@
 // ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                           Copyright (c) 2026 ILGPU Project
+//                           Copyright (c) 2020-2026 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: ILocation.cs
@@ -172,5 +172,25 @@ static class Locations
             throw location.GetException(new InvalidOperationException(
                 ErrorMessages.InternalCompilerError));
         }
+    }
+
+    /// <summary>
+    /// Ensures a certain compiler-internal assertion to hold, throwing with a custom
+    /// diagnostic message on failure. The standard internal-compiler-error prefix is
+    /// preserved in the outer <see cref="InternalCompilerException"/>; the supplied
+    /// <paramref name="message"/> appears as the inner exception message.
+    /// </summary>
+    /// <remarks>
+    /// This assertion method implementation will not be present in release modes.
+    /// </remarks>
+    /// <param name="location">The current location.</param>
+    /// <param name="condition">The condition to hold.</param>
+    /// <param name="message">Diagnostic detail to include on failure.</param>
+    [Conditional("DEBUG")]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void Assert(this ILocation? location, bool condition, string message)
+    {
+        if (!condition)
+            throw location.GetException(new InvalidOperationException(message));
     }
 }

@@ -1,6 +1,6 @@
 // ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                           Copyright (c) 2026 ILGPU Project
+//                           Copyright (c) 2020-2026 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Accelerator.cs
@@ -9,7 +9,7 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
-using ILGPUC.IR.Values;
+using ILGPUC.IR;
 
 namespace ILGPUC.Frontend.Intrinsic;
 
@@ -20,7 +20,7 @@ partial class Intrinsics
     /// </summary>
     /// <param name="context">The current invocation context.</param>
     /// <returns>The resulting value.</returns>
-    private static ValueReference Accelerator_CurrentType(
+    private static Value? Accelerator_CurrentType(
         ref InvocationContext context) =>
         context.Builder.CreateAcceleratorTypeValue(
             context.Location);

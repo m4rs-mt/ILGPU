@@ -1,6 +1,6 @@
 // ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                           Copyright (c) 2026 ILGPU Project
+//                           Copyright (c) 2018-2026 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: AddressSpace.cs
@@ -38,7 +38,12 @@ enum MemoryAddressSpace : int
     /// <summary>
     /// Represents the local address space.
     /// </summary>
-    Local = 3
+    Local = 3,
+
+    /// <summary>
+    /// Represents the constant address space.
+    /// </summary>
+    Constant = 4,
 }
 
 /// <summary>

@@ -391,6 +391,39 @@
             <Generator Name="op_Explicit" Target="Convert_ExplicitOperation" />
         </Generators>
     </Type>
+    <Type Name="System.Half">
+        <Generators Target="Frontend.Intrinsic.Intrinsics">
+            <Generator Name="op_UnaryNegation" Target="Math_UnaryOperation"
+                Arguments="UnaryArithmeticKind.Neg" />
+
+            <Generator Name="op_Addition" Target="Math_BinaryOperation"
+                Arguments="BinaryArithmeticKind.Add" />
+            <Generator Name="op_Subtraction" Target="Math_BinaryOperation"
+                Arguments="BinaryArithmeticKind.Sub" />
+            <Generator Name="op_Multiply" Target="Math_BinaryOperation"
+                Arguments="BinaryArithmeticKind.Mul" />
+            <Generator Name="op_Division" Target="Math_BinaryOperation"
+                Arguments="BinaryArithmeticKind.Div" />
+
+            <Generator Name="op_Equality" Target="Compare_Operation"
+                Arguments="CompareKind.Equal,CompareFlags.None" />
+            <Generator Name="op_Inequality" Target="Compare_Operation"
+                Arguments="CompareKind.NotEqual,CompareFlags.UnsignedOrUnordered" />
+
+            <Generator Name="op_LessThan" Target="Compare_OperationDynamic"
+                Arguments="CompareKind.LessThan" />
+            <Generator Name="op_LessThanOrEqual" Target="Compare_OperationDynamic"
+                Arguments="CompareKind.LessEqual" />
+
+            <Generator Name="op_GreaterThan" Target="Compare_OperationDynamic"
+                Arguments="CompareKind.GreaterThan" />
+            <Generator Name="op_GreaterThanOrEqual" Target="Compare_OperationDynamic"
+                Arguments="CompareKind.GreaterEqual" />
+
+            <Generator Name="op_Implicit" Target="Convert_ImplicitOperation" />
+            <Generator Name="op_Explicit" Target="Convert_ExplicitOperation" />
+        </Generators>
+    </Type>
     <Type Name="XMath">
         <Generators Target="Frontend.Intrinsic.Intrinsics" UnsignedMatcher="true"
             Default="ArithmeticFlags.None" Unsigned="ArithmeticFlags.Unsigned">

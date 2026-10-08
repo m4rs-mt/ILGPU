@@ -1,6 +1,6 @@
 // ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                           Copyright (c) 2026 ILGPU Project
+//                           Copyright (c) 2020-2026 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Location.cs
@@ -310,12 +310,10 @@ sealed class CompilationStackLocation : Location
         foreach (var location in Stack)
         {
             var line = location.FormatErrorMessage(string.Empty);
-            if (!string.IsNullOrEmpty(line))
-            {
-                builder.AppendLine();
-                builder.Append(ErrorMessages.LocationCompilationStackLinePrefix);
-                builder.Append(line);
-            }
+            if (string.IsNullOrEmpty(line)) continue;
+            builder.AppendLine();
+            builder.Append(ErrorMessages.LocationCompilationStackLinePrefix);
+            builder.Append(line);
         }
 
         return builder.ToString();
