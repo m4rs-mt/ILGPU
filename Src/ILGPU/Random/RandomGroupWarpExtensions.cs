@@ -1,6 +1,6 @@
 // ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                           Copyright (c) 2026 ILGPU Project
+//                           Copyright (c) 2024-2026 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: RandomGroupWarpExtensions.cs
@@ -9,10 +9,10 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
+using System;
 using ILGPU.Intrinsic.Providers;
 using ILGPU.Random;
 using ILGPU.Util;
-using System;
 
 #pragma warning disable CA1051 // Do not declare visible instance fields
 
@@ -134,7 +134,7 @@ partial class Warp
         {
             _view = GetRandomProviderView<TRandomProvider>();
 
-            var firstLaneValue = new FirstLaneValue<TRandomProvider>(_view[GlobalIndex]);
+            var firstLaneValue = _view[GlobalIndex];
             var value = Broadcast(firstLaneValue);
             value.ShiftPeriod(LaneIndex);
 

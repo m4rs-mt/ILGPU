@@ -83,7 +83,7 @@ public sealed class CLMemoryBuffer : MemoryBuffer
         var source = sourceView.Buffer;
         var target = targetView.Buffer;
 
-        if (sourceType == AcceleratorType.Debug &&
+        if (sourceType == AcceleratorType.CPU &&
             targetType == AcceleratorType.OpenCL)
         {
             // Copy from CPU to GPU
@@ -101,7 +101,7 @@ public sealed class CLMemoryBuffer : MemoryBuffer
         {
             switch (targetType)
             {
-                case AcceleratorType.Debug:
+                case AcceleratorType.CPU:
                     // Copy from GPU to CPU
                     CLException.ThrowIfFailed(
                         CurrentAPI.ReadBuffer(

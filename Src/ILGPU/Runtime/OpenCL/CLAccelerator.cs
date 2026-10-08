@@ -92,7 +92,11 @@ public sealed class CLAccelerator : Accelerator
         : base(context, description)
     {
         if (!description.Capabilities.GenericAddressSpace)
-            throw CLCapabilityContext.GetNotSupportedGenericAddressSpaceException();
+        {
+            throw new CapabilityNotSupportedException(
+                "OpenCL device does not support generic address space,"
+                + " which is required.");
+        }
 
         // Create new context
         CLException.ThrowIfFailed(CurrentAPI.CreateContext(DeviceId, out var contextPtr));
@@ -112,7 +116,8 @@ public sealed class CLAccelerator : Accelerator
     {
         // Check major vendor features
         if (Device.Vendor == CLDeviceVendor.Nvidia ||
-            Device.Vendor == CLDeviceVendor.AMD)
+            Device.Vendor == CLDeviceVendor.AMD ||
+            Device.Vendor == CLDeviceVendor.Intel)
         {
             return;
         }
@@ -149,12 +154,12 @@ public sealed class CLAccelerator : Accelerator
     /// <param name="acceleratorId">The current accelerator id.</param>
     private void InitSubGroupSupport(CLDevice acceleratorId)
     {
-        // Check sub group support
-        Capabilities.SubGroups = acceleratorId.HasAnyExtension(SubGroupExtensions);
-        if (!Capabilities.SubGroups)
+        // Check sub group support via device extensions.
+        bool hasSubGroups = acceleratorId.HasAnyExtension(SubGroupExtensions);
+        if (!hasSubGroups)
             return;
 
-        // Verify support using a simple kernel
+        // Verify support using a simple kernel.
         if (CLKernel.LoadKernel(
             this,
             DummyKernelName,
@@ -166,11 +171,11 @@ public sealed class CLAccelerator : Accelerator
         {
             // Some drivers return an internal handler delegate
             // that crashes during invocation instead of telling that the
-            // sub-group feature is not supported
+            // sub-group feature is not supported.
             try
             {
                 var localGroupSizes = new IntPtr[] { new(MaxNumThreadsPerGroup) };
-                Capabilities.SubGroups = acceleratorId.TryGetKernelSubGroupInfo(
+                hasSubGroups = acceleratorId.TryGetKernelSubGroupInfo(
                     kernelPtr,
                     DeviceId,
                     CLKernelSubGroupInfoType
@@ -183,8 +188,8 @@ public sealed class CLAccelerator : Accelerator
             {
                 // This exception can be raised due to driver issues
                 // on several platforms -> we will just disable sub-group
-                // support for these platforms
-                Capabilities.SubGroups = false;
+                // support for these platforms.
+                hasSubGroups = false;
             }
             finally
             {
@@ -193,6 +198,13 @@ public sealed class CLAccelerator : Accelerator
                 CLException.ThrowIfFailed(
                     CurrentAPI.ReleaseProgram(programPtr));
             }
+        }
+
+        if (hasSubGroups)
+        {
+            // Publish updated capabilities back to the device.
+            Device.SetCapabilities(
+                Device.Capabilities with { SubGroups = true });
         }
     }
 
@@ -258,7 +270,7 @@ public sealed class CLAccelerator : Accelerator
     /// <summary>
     /// Returns the capabilities of this accelerator.
     /// </summary>
-    public new CLCapabilityContext Capabilities => Device.Capabilities;
+    public new CLAcceleratorCapabilities Capabilities => Device.Capabilities;
 
     #endregion
 

@@ -168,11 +168,15 @@ public void SetMakeMethodNameFunc(Func<string, string> func) =>
 /// </summary>
 public void WriteMethodNativeImport(string libName, EntryPoint entryPoint)
 {
-    WriteLine($"#if NET7_0_OR_GREATER");
+    // This functionality is old and can be used to generate imports for .Net7 and older
+    // WriteLine($"#if NET7_0_OR_GREATER");
+    // WriteMethodNativeImportInternal(libName, entryPoint, true);
+    // WriteLine($"#else");
+    // WriteMethodNativeImportInternal(libName, entryPoint, false);
+    // WriteLine($"#endif");
+
+    // The new method only creates imports using the latest import API
     WriteMethodNativeImportInternal(libName, entryPoint, true);
-    WriteLine($"#else");
-    WriteMethodNativeImportInternal(libName, entryPoint, false);
-    WriteLine($"#endif");
 }
 
 /// <summary>

@@ -10,7 +10,9 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.Intrinsic;
+using ILGPU.RadixSort;
 using ILGPU.Runtime;
+using System;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 
@@ -325,6 +327,84 @@ public static partial class Group
     /// </summary>
     [GroupIntrinsic]
     public static void MemoryFence() => throw new InvalidKernelOperationException();
+
+    #endregion
+
+    #region Reduce
+
+    /// <summary>
+    /// Performs a group-wide reduction. Result valid in first thread only.
+    /// </summary>
+    /// <typeparam name="T">The value type to reduce.</typeparam>
+    /// <param name="value">The value from this thread.</param>
+    /// <param name="identity">The identity element for the operation.</param>
+    /// <param name="operation">A binary operation (T, T) -> T.</param>
+    /// <returns>The reduced value (valid in thread 0).</returns>
+    [GroupIntrinsic]
+    public static T Reduce<T>(T value, T identity, Func<T, T, T> operation)
+        where T : unmanaged =>
+        throw new InvalidKernelOperationException();
+
+    /// <summary>
+    /// Performs a group-wide reduction. Result broadcast to all threads.
+    /// </summary>
+    /// <typeparam name="T">The value type to reduce.</typeparam>
+    /// <param name="value">The value from this thread.</param>
+    /// <param name="identity">The identity element for the operation.</param>
+    /// <param name="operation">A binary operation (T, T) -> T.</param>
+    /// <returns>The reduced value (available on all threads).</returns>
+    [GroupIntrinsic]
+    public static T AllReduce<T>(T value, T identity, Func<T, T, T> operation)
+        where T : unmanaged =>
+        throw new InvalidKernelOperationException();
+
+    #endregion
+
+    #region Scan
+
+    /// <summary>
+    /// Performs a group-wide inclusive prefix scan.
+    /// </summary>
+    /// <typeparam name="T">The value type to scan.</typeparam>
+    /// <param name="value">The value from this thread.</param>
+    /// <param name="identity">The identity element for the operation.</param>
+    /// <param name="operation">A binary operation (T, T) -> T.</param>
+    /// <returns>The scanned value for this thread.</returns>
+    [GroupIntrinsic]
+    public static T InclusiveScan<T>(T value, T identity, Func<T, T, T> operation)
+        where T : unmanaged =>
+        throw new InvalidKernelOperationException();
+
+    /// <summary>
+    /// Performs a group-wide exclusive prefix scan.
+    /// The first thread receives the identity value.
+    /// </summary>
+    /// <typeparam name="T">The value type to scan.</typeparam>
+    /// <param name="value">The value from this thread.</param>
+    /// <param name="identity">The identity element for the operation.</param>
+    /// <param name="operation">A binary operation (T, T) -> T.</param>
+    /// <returns>The scanned value for this thread.</returns>
+    [GroupIntrinsic]
+    public static T ExclusiveScan<T>(T value, T identity, Func<T, T, T> operation)
+        where T : unmanaged =>
+        throw new InvalidKernelOperationException();
+
+    #endregion
+
+    #region RadixSort
+
+    /// <summary>
+    /// Performs a group-wide radix sort pass.
+    /// </summary>
+    /// <typeparam name="T">The element type.</typeparam>
+    /// <typeparam name="TRadixSortOperation">The radix sort operation.</typeparam>
+    /// <param name="value">The original value in the current lane.</param>
+    /// <returns>The sorted value in the current lane.</returns>
+    [GroupIntrinsic]
+    public static T RadixSort<T, TRadixSortOperation>(T value)
+        where T : unmanaged
+        where TRadixSortOperation : struct, IRadixSortOperation<T> =>
+        throw new InvalidKernelOperationException();
 
     #endregion
 }

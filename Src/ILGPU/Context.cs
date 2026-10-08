@@ -11,7 +11,7 @@
 
 using ILGPU.Resources;
 using ILGPU.Runtime;
-using ILGPU.Runtime.Debugging;
+using ILGPU.Runtime.CPU;
 using ILGPU.Util;
 using System;
 using System.Collections;
@@ -152,7 +152,7 @@ public sealed partial class Context : DisposeBase
         if (devices.IsDefaultOrEmpty)
         {
             // Add a default debug device
-            Devices = [DebugDevice.Default];
+            Devices = [CPUDevice.Default];
         }
 
         // Create a mapping
@@ -235,7 +235,7 @@ public sealed partial class Context : DisposeBase
     {
         if (preferCPU)
         {
-            return _deviceMapping.TryGetValue(AcceleratorType.Debug, out var devices)
+            return _deviceMapping.TryGetValue(AcceleratorType.CPU, out var devices)
                 ? devices
                 : throw new NotSupportedException(
                         RuntimeErrorMessages.NotSupportedTargetAccelerator);
@@ -243,7 +243,7 @@ public sealed partial class Context : DisposeBase
 
         var sorted = Devices
             .OrderByDescending(d => d.MemorySize)
-            .Where(d => d.AcceleratorType != AcceleratorType.Debug)
+            .Where(d => d.AcceleratorType != AcceleratorType.CPU)
             .ToList();
 
         if (sorted.Count > 0)
@@ -263,7 +263,7 @@ public sealed partial class Context : DisposeBase
         }
         else
         {
-            return _deviceMapping.TryGetValue(AcceleratorType.Debug, out var devices)
+            return _deviceMapping.TryGetValue(AcceleratorType.CPU, out var devices)
                 ? devices
                 : throw new NotSupportedException(
                         RuntimeErrorMessages.NotSupportedTargetAccelerator);

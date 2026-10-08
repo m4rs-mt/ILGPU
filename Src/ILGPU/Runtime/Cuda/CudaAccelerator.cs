@@ -77,7 +77,7 @@ public sealed class CudaAccelerator : Accelerator
     /// <param name="instructionSet">The instruction set (if any).</param>
     /// <returns>True, if the instruction set could be determined.</returns>
     public static bool TryGetInstructionSet(
-        CudaArchitecture architecture,
+        AcceleratorArchitecture architecture,
         CudaDriverVersion installedDriverVersion,
         out CudaDriverVersion minDriverVersion,
         out CudaInstructionSet instructionSet)
@@ -113,7 +113,7 @@ public sealed class CudaAccelerator : Accelerator
     /// <param name="installedDriverVersion">The Cuda driver version</param>
     /// <returns>The PTX instruction set</returns>
     public static CudaInstructionSet GetInstructionSet(
-        CudaArchitecture architecture,
+        AcceleratorArchitecture architecture,
         CudaDriverVersion installedDriverVersion) =>
         TryGetInstructionSet(
             architecture,
@@ -187,7 +187,7 @@ public sealed class CudaAccelerator : Accelerator
     /// <summary>
     /// Returns the PTX architecture.
     /// </summary>
-    public CudaArchitecture Architecture =>
+    public AcceleratorArchitecture Architecture =>
         Device.Architecture.GetValueOrDefault();
 
     /// <summary>
@@ -327,8 +327,8 @@ public sealed class CudaAccelerator : Accelerator
     /// <summary>
     /// Returns the capabilities of this accelerator.
     /// </summary>
-    public new CudaCapabilityContext Capabilities =>
-        base.Capabilities.AsNotNullCast<CudaCapabilityContext>();
+    public new CudaAcceleratorCapabilities Capabilities =>
+        (CudaAcceleratorCapabilities)base.Capabilities;
 
     #endregion
 

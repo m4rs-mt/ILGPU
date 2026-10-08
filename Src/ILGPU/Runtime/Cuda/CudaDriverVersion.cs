@@ -177,7 +177,7 @@ public static partial class CudaDriverVersionUtils
     /// <param name="architecture">The PTX architecture</param>
     /// <returns>The minimum driver version</returns>
     public static CudaDriverVersion GetMinimumDriverVersion(
-        CudaArchitecture architecture)
+        AcceleratorArchitecture architecture)
     {
         if (ArchitectureLookup.TryGetValue(architecture, out var result))
             return result;

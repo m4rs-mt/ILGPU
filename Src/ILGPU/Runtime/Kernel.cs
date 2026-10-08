@@ -30,22 +30,17 @@ public abstract class Kernel(Accelerator accelerator, CompiledKernel compiledKer
     /// Returns assigned shared memory mode for kernel dispatch.
     /// </summary>
     public CompiledKernelSharedMemoryMode SharedMemoryMode { get; } =
-        compiledKernel.Data.SharedMemoryMode;
-
-    /// <summary>
-    /// Returns assigned static shared memory in bytes.
-    /// </summary>
-    public int SharedMemorySize { get; } = compiledKernel.Data.SharedMemorySize;
-
-    /// <summary>
-    /// Returns assigned static local memory in bytes.
-    /// </summary>
-    public int LocalMemorySize { get; } = compiledKernel.Data.LocalMemorySize;
+        compiledKernel.SharedMemoryMode;
 
     /// <summary>
     /// Returns the desired maximum number of threads per group (if any).
     /// </summary>
-    public int? MaxNumThreadsPerGroup { get; } = compiledKernel.MaxNumThreadsPerGroup;
+    public int? MaxNumThreadsPerGroup { get; }
+
+    /// <summary>
+    /// Gets or sets the automatic group size.
+    /// </summary>
+    public int AutoGroupSize { get; protected internal set; }
 
     /// <summary>
     /// Combines static and dynamic shared memory information into the given kernel
@@ -62,8 +57,7 @@ public abstract class Kernel(Accelerator accelerator, CompiledKernel compiledKer
             CompiledKernelSharedMemoryMode.Static =>
                 config with { SharedMemoryBytes = 0 },
             CompiledKernelSharedMemoryMode.Dynamic => config,
-            CompiledKernelSharedMemoryMode.Hybrid =>
-                config.WithSharedMemory(SharedMemorySize),
+            CompiledKernelSharedMemoryMode.Hybrid => config,
             _ => throw new NotSupportedException()
         };
 }

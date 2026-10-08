@@ -471,6 +471,29 @@ unsafe partial class CLAPI
     }
 
     /// <summary>
+    /// Creates a new program from SPIR-V intermediate language (OpenCL 2.1+).
+    /// </summary>
+    /// <param name="context">The context.</param>
+    /// <param name="il">The SPIR-V binary.</param>
+    /// <param name="program">The created program.</param>
+    /// <returns>The error code.</returns>
+    public CLError CreateProgramWithIL(
+        IntPtr context,
+        ReadOnlySpan<byte> il,
+        out IntPtr program)
+    {
+        fixed (byte* ilPtr = il)
+        {
+            program = clCreateProgramWithIL(
+                context,
+                ilPtr,
+                new IntPtr(il.Length),
+                out CLError errorStatus);
+            return errorStatus;
+        }
+    }
+
+    /// <summary>
     /// Builds a program.
     /// </summary>
     /// <param name="program">The program to build.</param>

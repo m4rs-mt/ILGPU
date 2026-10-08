@@ -125,9 +125,9 @@ public sealed class CudaDevice : Device, IDeviceAcceleratorTypeInfo
     public static bool TryGetArchitecture(
         int major,
         int minor,
-        out CudaArchitecture architecture)
+        out AcceleratorArchitecture architecture)
     {
-        architecture = new CudaArchitecture(major, minor);
+        architecture = new(major, minor);
         return architecture >= CudaArchitecture.SM_30;
     }
 
@@ -137,7 +137,7 @@ public sealed class CudaDevice : Device, IDeviceAcceleratorTypeInfo
     /// <param name="major">The major version.</param>
     /// <param name="minor">The minor version.</param>
     /// <returns>The resolved Cuda version.</returns>
-    public static CudaArchitecture GetArchitecture(int major, int minor) =>
+    public static AcceleratorArchitecture GetArchitecture(int major, int minor) =>
         TryGetArchitecture(major, minor, out var arch)
         ? arch
         : throw new NotSupportedException(
@@ -165,7 +165,7 @@ public sealed class CudaDevice : Device, IDeviceAcceleratorTypeInfo
         InitMiscInfo();
         InitPCIInfo();
 
-        Capabilities = new CudaCapabilityContext(
+        Capabilities = CudaAcceleratorCapabilities.FromArchitecture(
             Architecture ?? CudaArchitecture.SM_30);
     }
 
@@ -375,7 +375,7 @@ public sealed class CudaDevice : Device, IDeviceAcceleratorTypeInfo
     /// <summary>
     /// Returns the PTX architecture (if supported).
     /// </summary>
-    public CudaArchitecture? Architecture { get; private set; }
+    public AcceleratorArchitecture? Architecture { get; private set; }
 
     /// <summary>
     /// Returns the PTX instruction set (if supported).

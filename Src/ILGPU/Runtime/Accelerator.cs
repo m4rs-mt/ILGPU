@@ -28,9 +28,9 @@ public enum AcceleratorType : int
     None,
 
     /// <summary>
-    /// Represents a debug accelerator.
+    /// Represents a CPU accelerator.
     /// </summary>
-    Debug,
+    CPU,
 
     /// <summary>
     /// Represents a Cuda accelerator.
@@ -38,9 +38,24 @@ public enum AcceleratorType : int
     Cuda,
 
     /// <summary>
+    /// Represents a ROCm accelerator.
+    /// </summary>
+    ROCm,
+
+    /// <summary>
     /// Represents an OpenCL accelerator.
     /// </summary>
     OpenCL,
+
+    /// <summary>
+    /// Represents a Metal accelerator.
+    /// </summary>
+    Metal,
+
+    /// <summary>
+    /// Represents the number of accelerator types.
+    /// </summary>
+    NumAcceleratorTypes
 }
 
 /// <summary>
@@ -104,10 +119,12 @@ public abstract partial class Accelerator : DisposeBase, IDevice
         MaxNumThreads = device.MaxNumThreads;
         MaxNumThreadsPerGroup = device.MaxNumThreadsPerGroup;
         OptimalKernelSize = device.OptimalKernelSize;
-        _kernels = new(Context.NumCompiledKernels);
 
         InitGC();
-        LoadKernels();
+
+        // NB: LoadKernels() is called by OnAcceleratorCreated() after the
+        // derived constructor has initialized device handles. Calling it
+        // here would use uninitialized handles (base ctor runs first).
 
         // NB: Initialized later by derived classes.
         DefaultStream = Utilities.InitNotNullable<AcceleratorStream>();
@@ -153,7 +170,13 @@ public abstract partial class Accelerator : DisposeBase, IDevice
     /// <summary>
     /// Invoked when the accelerator instance has been created.
     /// </summary>
-    protected void OnAcceleratorCreated() => Context.OnAcceleratorCreated(this);
+    protected void OnAcceleratorCreated()
+    {
+        // Load kernels after the derived constructor has initialized
+        // device-specific handles (DeviceHandle, command queues, etc.)
+        LoadKernels();
+        Context.OnAcceleratorCreated(this);
+    }
 
     /// <summary>
     /// Creates a new accelerator stream.
@@ -612,7 +635,7 @@ public abstract partial class Accelerator : DisposeBase, IDevice
     /// <summary>
     /// Returns the supported capabilities of this accelerator.
     /// </summary>
-    public CapabilityContext Capabilities => Device.Capabilities;
+    public AcceleratorCapabilities Capabilities => Device.Capabilities;
 
     /// <summary>
     /// Returns a kernel extent (a grouped index) with the maximum number of groups

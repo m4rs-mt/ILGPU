@@ -1,6 +1,6 @@
 // ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                           Copyright (c) 2026 ILGPU Project
+//                           Copyright (c) 2024-2026 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: CPUPageLock.cs
@@ -27,7 +27,6 @@ public static class CPUPageLock
     [DllImport("kernel32.dll", SetLastError = true)]
     [SupportedOSPlatform("windows")]
     private static extern bool VirtualLock(IntPtr lpAddress, nuint dwSize);
-
 
     [DllImport("kernel32.dll", SetLastError = true)]
     [SupportedOSPlatform("windows")]
