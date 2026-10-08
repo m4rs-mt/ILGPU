@@ -1,6 +1,6 @@
 # Tutorial 02 MemoryBuffers and ArrayViews
 
-Welcome to the seccond ILGPU tutorial. In this tutorial we will cover the basics
+Welcome to the second ILGPU tutorial. In this tutorial we will cover the basics
 of the Memory in ILGPU. In the best case, C# programmers will think of memory
 in terms of stack and heap objects, ref / in / out parameters, and GC. Once you
 introduce a coprocessor like a GPU, memory gets a little more complex.
