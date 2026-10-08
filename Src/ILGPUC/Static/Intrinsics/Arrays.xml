@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Intrinsics>
+    <Type Name="Array">
+        <Generators Target="Frontend.Intrinsic.Intrinsics">
+            <Generator Name=".ctor" Target="Arrays_CreateNew" />
+            <Generator Name="Empty" Target="Arrays_Empty" />
+            <Generator Name="GetValue" Target="Arrays_GetElement" />
+            <Generator Name="GetLength" Target="Arrays_Length" />
+            <Generator Name="GetLongLength" Target="Arrays_LongLength" />
+            <Generator Name="GetLowerBound" Target="Arrays_GetLowerBound" />
+            <Generator Name="GetUpperBound" Target="Arrays_GetUpperBound" />
+            <Generator Name="SetValue" Target="Arrays_SetElement" />
+            <Generator Name="get_Length" Target="Arrays_LengthGet" />
+            <Generator Name="get_LongLength" Target="Arrays_LongLengthGet" />
+        </Generators>
+    </Type>
+</Intrinsics>

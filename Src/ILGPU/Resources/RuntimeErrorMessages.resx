@@ -60,45 +60,45 @@
             : and then encoded with base64 encoding.
     -->
   <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
-    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace"/>
     <xsd:element name="root" msdata:IsDataSet="true">
       <xsd:complexType>
         <xsd:choice maxOccurs="unbounded">
           <xsd:element name="metadata">
             <xsd:complexType>
               <xsd:sequence>
-                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+                <xsd:element name="value" type="xsd:string" minOccurs="0"/>
               </xsd:sequence>
-              <xsd:attribute name="name" use="required" type="xsd:string" />
-              <xsd:attribute name="type" type="xsd:string" />
-              <xsd:attribute name="mimetype" type="xsd:string" />
-              <xsd:attribute ref="xml:space" />
+              <xsd:attribute name="name" use="required" type="xsd:string"/>
+              <xsd:attribute name="type" type="xsd:string"/>
+              <xsd:attribute name="mimetype" type="xsd:string"/>
+              <xsd:attribute ref="xml:space"/>
             </xsd:complexType>
           </xsd:element>
           <xsd:element name="assembly">
             <xsd:complexType>
-              <xsd:attribute name="alias" type="xsd:string" />
-              <xsd:attribute name="name" type="xsd:string" />
+              <xsd:attribute name="alias" type="xsd:string"/>
+              <xsd:attribute name="name" type="xsd:string"/>
             </xsd:complexType>
           </xsd:element>
           <xsd:element name="data">
             <xsd:complexType>
               <xsd:sequence>
-                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
-                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1"/>
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2"/>
               </xsd:sequence>
-              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
-              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
-              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
-              <xsd:attribute ref="xml:space" />
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1"/>
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3"/>
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4"/>
+              <xsd:attribute ref="xml:space"/>
             </xsd:complexType>
           </xsd:element>
           <xsd:element name="resheader">
             <xsd:complexType>
               <xsd:sequence>
-                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1"/>
               </xsd:sequence>
-              <xsd:attribute name="name" type="xsd:string" use="required" />
+              <xsd:attribute name="name" type="xsd:string" use="required"/>
             </xsd:complexType>
           </xsd:element>
         </xsd:choice>
@@ -119,131 +119,178 @@
   </resheader>
   <data name="CannotEnablePeerAccessToOtherAccelerator" xml:space="preserve">
     <value>Cannot enable peer access to an accelerator of a different kind</value>
+    <comment/>
   </data>
   <data name="CannotResolveErrorString" xml:space="preserve">
     <value>Error-description string could not be resolved</value>
+    <comment/>
   </data>
   <data name="CLNotSupported" xml:space="preserve">
     <value>OpenCL is not supported on this platform</value>
+    <comment/>
   </data>
   <data name="CudaNotSupported" xml:space="preserve">
     <value>Cuda is not supported on this platform</value>
+    <comment/>
   </data>
   <data name="CudaPlatform64" xml:space="preserve">
     <value>Cuda accelerator requires 64-bit application ({0} not supported). Ensure Prefer32Bit is set to 'false'.</value>
+    <comment/>
   </data>
   <data name="InvalidCodeGenerationOperation0" xml:space="preserve">
     <value>Invalid code generation operation</value>
+    <comment/>
   </data>
   <data name="InvalidCodeGenerationOperation1" xml:space="preserve">
     <value>Invalid code generation operation:\n{0}</value>
+    <comment/>
   </data>
   <data name="InvalidConcurrentModification" xml:space="preserve">
     <value>Concurrent modification detected</value>
+    <comment/>
   </data>
   <data name="InvalidCustomGroupSize" xml:space="preserve">
     <value>Invalid custom group size &gt; 0 in a grouped-index scenario</value>
+    <comment/>
   </data>
   <data name="InvalidDeviceTypeAttribute" xml:space="preserve">
     <value>The parent device class is not annotated with the DeviceTypeAttribute</value>
+    <comment/>
   </data>
   <data name="InvalidDowngradeOfDebugSymbols" xml:space="preserve">
     <value>Invalid downgrade of debug symbols mode.</value>
+    <comment/>
   </data>
   <data name="InvalidGridDimension" xml:space="preserve">
     <value>Invalid grid dimension</value>
+    <comment/>
   </data>
   <data name="InvalidGroupDimension" xml:space="preserve">
     <value>Invalid group dimension</value>
+    <comment/>
   </data>
   <data name="InvalidKernelLaunchGridDimension" xml:space="preserve">
     <value>Invalid grid dimensions {0} (exceeds maximum {1})</value>
+    <comment/>
   </data>
   <data name="InvalidKernelLaunchGroupDimension" xml:space="preserve">
     <value>Invalid group dimensions {0} (exceeds maximum {1})</value>
+    <comment/>
   </data>
   <data name="InvalidKernelSpecializationGroupSize" xml:space="preserve">
     <value>The given kernel specialization is not compatible with the defined group size.</value>
+    <comment/>
   </data>
   <data name="InvalidlyAssumedPointerOrViewAlignment" xml:space="preserve">
     <value>Invalidly assumed pointer or view orientation</value>
+    <comment/>
   </data>
   <data name="InvalidNumberOfUniformArgs" xml:space="preserve">
     <value>The number of provided arguments does not match the required length</value>
+    <comment/>
   </data>
   <data name="InvalidProfilingMarker" xml:space="preserve">
     <value>Profiling marker '{0}' is not compatible with '{1}'</value>
+    <comment/>
   </data>
   <data name="InvalidSharedMemorySize" xml:space="preserve">
     <value>Shared-memory size cannot be &lt; 0</value>
+    <comment/>
   </data>
   <data name="NotSupportedAcceleratorStream" xml:space="preserve">
     <value>The accelerator stream is not supported for this operation</value>
+    <comment/>
   </data>
   <data name="NotSupportedDriverVersion" xml:space="preserve">
     <value>Not supported driver version '{0}' (&gt;= {1} required)</value>
+    <comment/>
   </data>
   <data name="NotSupportedEfficientStrideCopy" xml:space="preserve">
     <value>The stride information does not allow to perform an efficient copy operation without reordering. Use AsGeneral to convert the view to a general view with a CPU-based reordering operation.</value>
+    <comment/>
   </data>
   <data name="NotSupportedExplicitlyGroupedKernel" xml:space="preserve">
     <value>Not supported explicitly-grouped kernel</value>
+    <comment/>
   </data>
   <data name="NotSupportedIndexType" xml:space="preserve">
     <value>Not supported index type</value>
+    <comment/>
   </data>
   <data name="NotSupportedKernel" xml:space="preserve">
     <value>Not supported kernel</value>
+    <comment/>
   </data>
   <data name="NotSupportedKernelSpecialization" xml:space="preserve">
     <value>The given kernel specialization is not compatible with the current accelerator.</value>
+    <comment/>
   </data>
   <data name="NotSupportedLibDeviceEnvironmentVariable" xml:space="preserve">
     <value>Could not find environment variable '{0}'</value>
+    <comment/>
   </data>
   <data name="NotSupportedLibDeviceNotFoundBitCode" xml:space="preserve">
     <value>Could not find LibDevice BitCode in '{0}'</value>
+    <comment/>
   </data>
   <data name="NotSupportedLibDeviceNotFoundNvvmDll" xml:space="preserve">
     <value>Could not find NVVM DLL in '{0}'</value>
+    <comment/>
   </data>
   <data name="NotSupportedNonBlittableType" xml:space="preserve">
     <value>Type '{0}' is not blittable</value>
+    <comment/>
   </data>
   <data name="NotSupportedOpenCLCVersion" xml:space="preserve">
     <value>Not supported OpenCL C version (&gt;= {0} required)</value>
+    <comment/>
   </data>
   <data name="NotSupportedPageLock" xml:space="preserve">
     <value>Creating a page lock is not supported on the current accelerator.</value>
+    <comment/>
   </data>
   <data name="NotSupportedPitchedAllocation" xml:space="preserve">
     <value>Not supported pitched allocation for type '{0}' and byte pitch {1}</value>
+    <comment/>
   </data>
   <data name="NotSupportedProfilingMarker" xml:space="preserve">
     <value>Cannot add profiling marker. Ensure that profiling is enabled from the ContextBuilder.</value>
+    <comment/>
   </data>
   <data name="NotSupportedPTXArchitecture" xml:space="preserve">
     <value>Not supported PTX architecture</value>
+    <comment/>
   </data>
   <data name="NotSupportedPTXInstructionSet" xml:space="preserve">
     <value>Not supported PTX instruction set</value>
+    <comment/>
   </data>
   <data name="NotSupportedTargetAccelerator" xml:space="preserve">
     <value>Not supported target accelerator</value>
+    <comment/>
   </data>
   <data name="NotSupportedTotalGroupSize" xml:space="preserve">
     <value>Not supported total group size. The total group size must be &lt;= the number of available threads ({0})</value>
+    <comment/>
   </data>
   <data name="NotSupportedUninitalizedArrayInitialization" xml:space="preserve">
     <value>Creating an uninitialized array is not supported on the current platform.</value>
+    <comment/>
   </data>
   <data name="UnknownParentAccelerator" xml:space="preserve">
     <value>Unknown parent accelerator</value>
+    <comment/>
   </data>
-  <data name="VelocityPlatform64" xml:space="preserve">
-      <value>Velocity accelerator requires 64-bit application ({0} not supported). Ensure Prefer32Bit is set to 'false'</value>
+  <data name="NotSupportedTemporaryAllocation" xml:space="preserve">
+    <value>No temporary allocation manager registered</value>
+    <comment/>
   </data>
-  <data name="VelocityLittleEndian" xml:space="preserve">
-      <value>The Velocity accelerator supports little-endian machines only</value>
+  <data name="NotSupportedNumberOfRadixSortBits" xml:space="preserve">
+    <value>Not supported number of radix sort bits</value>
+    <comment/>
+  </data>
+  <data name="ExtensionAlreadyRegistered" xml:space="preserve">
+    <value>The given extension is already registered</value>
+    <comment/>
   </data>
 </root>

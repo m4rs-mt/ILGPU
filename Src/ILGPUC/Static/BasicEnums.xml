@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Enums>
+    <Enum Name="BasicValueType" Description="Represents a basic value type">
+        <Value Name="None" Description="Represent a non-basic value type" Type="object" />
+        <Value Name="Int1" Description="Represents a 1-bit integer" Type="bool" />
+        <Value Name="Int8" Description="Represents an 8-bit integer" Type="byte" />
+        <Value Name="Int16" Description="Represents a 16-bit integer" Type="short" />
+        <Value Name="Int32" Description="Represents a 32-bit integer" Type="int" />
+        <Value Name="Int64" Description="Represents a 64-bit integer" Type="long" />
+        <Value Name="Float16" Description="Represents a 16-bit float" Type="Half" />
+        <Value Name="Float32" Description="Represents a 32-bit float" Type="float" />
+        <Value Name="Float64" Description="Represents a 64-bit float" Type="double" />
+    </Enum>
+    <Enum Name="ArithmeticBasicValueType" Description="Represents an arithmetic basic value type">
+        <Value Name="None" Description="Represent a non-arithmetic value type" Type="object" />
+        <Value Name="UInt1" Description="Represents an 1-bit integer" Type="bool" />
+        <Value Name="Int8" Description="Represents an 8-bit integer" Type="sbyte" />
+        <Value Name="Int16" Description="Represents a 16-bit integer" Type="short" />
+        <Value Name="Int32" Description="Represents a 32-bit integer" Type="int" />
+        <Value Name="Int64" Description="Represents a 64-bit integer" Type="long" />
+        <Value Name="Float16" Description="Represents a 16-bit float" Type="Half" />
+        <Value Name="Float32" Description="Represents a 32-bit float" Type="float" />
+        <Value Name="Float64" Description="Represents a 64-bit float" Type="double" />
+        <Value Name="UInt8" Description="Represents an 8-bit unsigned integer" Type="byte" />
+        <Value Name="UInt16" Description="Represents a 16-bit unsigned integer" Type="ushort" />
+        <Value Name="UInt32" Description="Represents a 32-bit unsigned integer" Type="uint" />
+        <Value Name="UInt64" Description="Represents a 64-bit unsigned integer" Type="ulong" />
+    </Enum>
+</Enums>

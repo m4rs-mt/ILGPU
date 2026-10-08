@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Intrinsics>
+    <Type Name="System.BitConverter">
+        <Remapping>
+            <Remap Name="DoubleToInt64Bits"
+                Target="PlatformSupport.BitConverter.DoubleToInt64Bits">
+                <Specialization Type="double" />
+            </Remap>
+            <Remap Name="Int64BitsToDouble"
+                Target="PlatformSupport.BitConverter.Int64BitsToDouble">
+                <Specialization Type="long" />
+            </Remap>
+            <Remap Name="SingleToInt32Bits"
+                Target="PlatformSupport.BitConverter.SingleToInt32Bits">
+                <Specialization Type="float" />
+            </Remap>
+            <Remap Name="Int32BitsToSingle"
+                Target="PlatformSupport.BitConverter.Int32BitsToSingle">
+                <Specialization Type="int" />
+            </Remap>
+        </Remapping>
+    </Type>
+</Intrinsics>

@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Backend Type="PTX" CodeGenerator="Backends.PTX.PTXCodeGenerator">
+    <Mappings>
+        <Map Source="UnaryArithmetic" Target="Backends.PTX.Intrinsics.PTXMath" Partial="true"
+            ArithmeticBasicValueType="true" />
+        <Map Source="BinaryArithmetic" Target="Backends.PTX.Intrinsics.PTXMath" Partial="true"
+            ArithmeticBasicValueType="true" />
+        <Map Source="TernaryArithmetic" Target="Backends.PTX.Intrinsics.PTXMath" Partial="true"
+            ArithmeticBasicValueType="true" />
+
+        <Map Source="Barrier" Target="Backends.PTX.Intrinsics.PTXThreads"
+            BasicValueType="true" />
+        <Map Source="PredicateBarrier" Target="Backends.PTX.Intrinsics.PTXThreads"
+            BasicValueType="true" />
+        <Map Source="MemoryBarrier" Target="Backends.PTX.Intrinsics.PTXThreads" />
+
+        <Map Source="Broadcast" Target="Backends.PTX.Intrinsics.PTXThreads"
+            BasicValueType="true" />
+        <Map Source="Shuffle" Target="Backends.PTX.Intrinsics.PTXThreads"
+            BasicValueType="true" />
+    </Mappings>
+    <Generators>
+        <Generator Source="AsAligned" Target="Backends.PTX.Intrinsics.PTXDebug" />
+        <Generator Source="DebugAssert" Target="Backends.PTX.Intrinsics.PTXDebug" />
+        <Generator Source="WriteToOutput" Target="Backends.PTX.Intrinsics.PTXDebug" />
+    </Generators>
+    <BackendMappings>
+        <BackendMap Source="IntAsPointerCast" Target="value.Value" />
+        <BackendMap Source="PointerAsIntCast" Target="value.Value" />
+        <BackendMap Source="PointerCast" Target="value.Value" />
+        <BackendMap Source="AsAligned" Target="value.Source" />
+    </BackendMappings>
+    <Incompatibilities>
+        <Incompatibility Group="Arrays" />
+        <Incompatibility Group="Internal" />
+        <Incompatibility Group="Views" />
+
+        <Incompatibility Type="AcceleratorType" />
+        <Incompatibility Type="WarpSize" />
+    </Incompatibilities>
+</Backend>

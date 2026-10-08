@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Intrinsics>
+    <Type Name="Interop">
+        <Generators Target="Frontend.Intrinsic.Intrinsics">
+            <Generator Name="SizeOf" Target="Interop_SizeOf" Generics="1" />
+            <Generator Name="OffsetOf" Target="Interop_OffsetOf" />
+            <Generator Name="FloatAsInt" Target="Interop_FloatAsInt" />
+            <Generator Name="IntAsFloat" Target="Interop_IntAsFloat" />
+            <Generator Name="Write" Target="Interop_Write" />
+            <Generator Name="WriteLine" Target="Interop_WriteLine" />
+        </Generators>
+    </Type>
+    <Type Name="Utilities">
+        <Generators Target="Frontend.Intrinsic.Intrinsics">
+            <Generator Name="Select" Target="Utilities_Select" />
+        </Generators>
+    </Type>
+    <Type Name="ILGPU.Runtime.Cuda.CudaAsm">
+        <Generators Target="Frontend.Intrinsic.Intrinsics">
+            <Generator Name="Emit" Target="CudaAsm_Emit" />
+        </Generators>
+    </Type>
+</Intrinsics>

@@ -1,11 +1,11 @@
 ﻿<Project>
   <!-- Library Project Configuration -->
   <PropertyGroup>
-    <LibraryTargetFrameworks>net8.0</LibraryTargetFrameworks>
+    <LibraryTargetFrameworks>net9.0</LibraryTargetFrameworks>
     <LibraryLatestTargetFramework>$(LibraryTargetFrameworks)</LibraryLatestTargetFramework>
   </PropertyGroup>
   <PropertyGroup Condition="'$(GITHUB_ACTIONS)' == 'true'">
-    <LibraryTargetFrameworks>$(LibraryTargetFrameworks);net6.0;net7.0</LibraryTargetFrameworks>
+    <LibraryTargetFrameworks>$(LibraryTargetFrameworks);net8.0</LibraryTargetFrameworks>
     <CheckEolTargetFramework>false</CheckEolTargetFramework>
   </PropertyGroup>
 
@@ -13,16 +13,16 @@
     <LibraryVersionPrefix>2.0.0-beta1</LibraryVersionPrefix>
     <LibraryAssemblyVersion>2.0.0.0</LibraryAssemblyVersion>
     <LibraryFileVersion>2.0.0.0</LibraryFileVersion>
-    <LibraryPackageValidationBaselineVersion>1.5.0</LibraryPackageValidationBaselineVersion>
+    <LibraryPackageValidationBaselineVersion>1.5.2</LibraryPackageValidationBaselineVersion>
   </PropertyGroup>
 
   <!-- Unit Test Project Configuration -->
   <PropertyGroup>
-    <LibraryUnitTestTargetFrameworks>net8.0</LibraryUnitTestTargetFrameworks>
+    <LibraryUnitTestTargetFrameworks>net9.0</LibraryUnitTestTargetFrameworks>
     <LibraryLatestUnitTestTargetFramework>$(LibraryUnitTestTargetFrameworks)</LibraryLatestUnitTestTargetFramework>
   </PropertyGroup>
   <PropertyGroup Condition="'$(GITHUB_ACTIONS)' == 'true'">
-    <LibraryUnitTestTargetFrameworks>$(LibraryUnitTestTargetFrameworks);net6.0;net7.0</LibraryUnitTestTargetFrameworks>
+    <LibraryUnitTestTargetFrameworks>$(LibraryUnitTestTargetFrameworks);net8.0</LibraryUnitTestTargetFrameworks>
     <CheckEolTargetFramework>false</CheckEolTargetFramework>
   </PropertyGroup>
 

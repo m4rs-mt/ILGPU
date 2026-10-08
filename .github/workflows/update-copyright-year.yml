@@ -1,9 +1,10 @@
 name: 'Update Copyright Year'
 
 on:
-  workflow_dispatch: # Allows you to run this workflow manually from the Actions tab
-  schedule:
-    - cron:  '0 0 * * *' # Run once per day, at midnight.
+  # Workflow is intentionally disabled on this PR branch. It will re-enable once the
+  # branch merges onto master with the redesigned canonical CI pipeline that uses
+  # the new ILGPUC.Tests suite. Use workflow_dispatch to trigger manually if needed.
+  workflow_dispatch:
 
 jobs:
   update-copyright-year:

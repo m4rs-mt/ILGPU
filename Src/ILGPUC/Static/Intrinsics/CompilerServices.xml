@@ -1,0 +1,12 @@
+<Intrinsics>
+    <Type Name="System.Runtime.CompilerServices.RuntimeHelpers">
+        <Generators Target="Frontend.Intrinsic.Intrinsics">
+            <Generator Name="InitializeArray" Target="RuntimeHelpers_InitializeArray" />
+        </Generators>
+    </Type>
+    <Type Name="System.Runtime.CompilerServices.Unsafe">
+        <Generators Target="Frontend.Intrinsic.Intrinsics">
+            <Generator Name="As" Target="Unsafe_As" />
+        </Generators>
+    </Type>
+</Intrinsics>
