@@ -1,0 +1,130 @@
+# syntax=docker/dockerfile:1.7
+#
+# ILGPUC.CompilerService — ROCm image
+#
+# Base: rocm/dev-ubuntu-24.04:7.1.1-complete (the `-complete` suffix is what
+#       bundles hipcc + amdclang++ + rocm-dev at /opt/rocm/bin/, matching
+#       what ILGPUC.Compilers/CompilerOptions.cs expects).
+#
+# Architectures supported by the base: linux/amd64 only. AMD has no
+# upstream multi-arch ROCm dev image.
+#
+# NOTE: As of ROCm 7.2.0, hipcc is deprecated in favour of amdclang++ — it
+# still works but is now a thin wrapper. The 7.1.1-complete pin keeps hipcc
+# fully functional. Migrate ILGPUC.Compilers later if needed.
+#
+# Build context: REPO ROOT (the parent of Src/), so the build can pick up
+#   - global.json
+#   - Src/Directory.Build.props
+#   - Tools/CheckStyles/ILGPU.CheckStyles.targets   (imported by props above)
+#   - Src/ILGPU/Properties/ILGPU.nuspec.targets     (imported by ILGPU.csproj)
+#
+# Build:
+#   docker build -f Src/docker/Dockerfile.rocm \
+#       -t ilgpuc-compiler-service-rocm:7.1.1 .
+#
+# Run (needs /dev/kfd + /dev/dri exposed and the video group):
+#   docker run --rm -d \
+#       --device=/dev/kfd --device=/dev/dri --group-add video \
+#       -p 5000:5000 \
+#       --name ilgpuc-rocm \
+#       ilgpuc-compiler-service-rocm:7.1.1
+#
+
+############################
+# Stage 1: build
+############################
+FROM mcr.microsoft.com/dotnet/sdk:10.0-noble AS build
+WORKDIR /src
+
+# --- Restore-cache layer ---------------------------------------------------
+COPY global.json ./
+COPY Src/Directory.Build.props                                Src/
+COPY Tools/CheckStyles/ILGPU.CheckStyles.targets              Tools/CheckStyles/
+
+COPY Src/ILGPU/ILGPU.csproj                                   Src/ILGPU/
+COPY Src/ILGPU/Properties/ILGPU.nuspec.targets                Src/ILGPU/Properties/
+COPY Src/ILGPUC.Compilers/ILGPUC.Compilers.csproj             Src/ILGPUC.Compilers/
+COPY Src/ILGPUC.CompilerService/ILGPUC.CompilerService.csproj Src/ILGPUC.CompilerService/
+
+RUN dotnet restore Src/ILGPUC.CompilerService/ILGPUC.CompilerService.csproj
+
+# --- Source + publish ------------------------------------------------------
+# ILGPU's T4 templates pull `.ttinclude` files from Src/ILGPUC/Static/ via
+# `<#@ include file="../../ILGPUC/Static/..." #>`, so the static directory
+# from the (otherwise unrelated) ILGPUC project must be present at codegen
+# time. We do NOT need to build ILGPUC itself.
+COPY Src/ILGPU/                  Src/ILGPU/
+COPY Src/ILGPUC/Static/          Src/ILGPUC/Static/
+COPY Src/ILGPUC.Compilers/       Src/ILGPUC.Compilers/
+COPY Src/ILGPUC.CompilerService/ Src/ILGPUC.CompilerService/
+
+RUN dotnet publish Src/ILGPUC.CompilerService/ILGPUC.CompilerService.csproj \
+        -c Release \
+        -o /app/publish \
+        --no-restore \
+        /p:UseAppHost=false
+
+############################
+# Stage 2: runtime (ROCm dev complete)
+############################
+FROM rocm/dev-ubuntu-24.04:7.1.1-complete AS runtime
+
+# OCI labels — auto-link the published GHCR package back to the source repo
+# (so it appears under the repo's Packages tab) and tag it with the license.
+LABEL org.opencontainers.image.source="https://github.com/m4rs-mt/ILGPU"
+LABEL org.opencontainers.image.licenses="University-of-Illinois/NCSA"
+LABEL org.opencontainers.image.description="ILGPUC CompilerService bundled with the ROCm 7.1.1 toolchain (hipcc + amdclang++). Used as a remote compile-only service AND as a CI test runner: `docker run image dotnet test ...` overrides the default CMD to run tests inside the container with the .NET 10 SDK preinstalled."
+
+ENV DEBIAN_FRONTEND=noninteractive \
+    DOTNET_ROOT=/usr/share/dotnet \
+    DOTNET_RUNNING_IN_CONTAINER=true \
+    DOTNET_NOLOGO=true \
+    DOTNET_PRINT_TELEMETRY_MESSAGE=false \
+    ASPNETCORE_URLS=http://+:5000 \
+    ASPNETCORE_ENVIRONMENT=Production \
+    PATH=/usr/share/dotnet:/opt/rocm/bin:$PATH
+
+# Install the full .NET 10 SDK via dotnet-install.sh. The SDK is a superset
+# of the ASP.NET Core runtime (the CompilerService still starts via the same
+# `dotnet ILGPUC.CompilerService.dll` invocation), but additionally lets
+# `dotnet test` run inside the container — which is how the GitHub Actions
+# CI test workflow uses these images. See Dockerfile.cuda for the rationale.
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends \
+        ca-certificates curl libicu74 libssl3 libstdc++6 zlib1g tzdata \
+ && curl -fsSL https://dot.net/v1/dotnet-install.sh -o /tmp/dotnet-install.sh \
+ && chmod +x /tmp/dotnet-install.sh \
+ && /tmp/dotnet-install.sh --channel 10.0 \
+        --install-dir /usr/share/dotnet \
+ && rm /tmp/dotnet-install.sh \
+ && rm -rf /var/lib/apt/lists/*
+
+# Non-root user. ROCm device access typically also requires the host's
+# `video` (and on newer kernels `render`) groups; pass --group-add at run time.
+#
+# Ubuntu 24.04 ships with a default `ubuntu` user at uid/gid 1000, so we
+# remove it before claiming uid 1000 ourselves. The `|| true` keeps this
+# step idempotent on bases that don't have it (and across rebuilds).
+RUN (userdel -r ubuntu 2>/dev/null || true) \
+ && (groupdel ubuntu 2>/dev/null || true) \
+ && groupadd --system --gid 1000 ilgpuc \
+ && useradd  --system --uid 1000 --gid 1000 \
+             --home /home/ilgpuc --shell /usr/sbin/nologin ilgpuc \
+ && mkdir -p /home/ilgpuc /app \
+ && chown -R ilgpuc:ilgpuc /home/ilgpuc /app
+
+WORKDIR /app
+COPY --from=build --chown=ilgpuc:ilgpuc /app/publish ./
+
+USER ilgpuc
+
+EXPOSE 5000
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
+    CMD curl -fsS http://localhost:5000/api/v1/status || exit 1
+
+# CMD (not ENTRYPOINT) so `docker run image dotnet test ...` cleanly
+# overrides the default. The default behavior is unchanged: `docker run
+# image` (with no args) starts the CompilerService exactly like before.
+CMD ["dotnet", "ILGPUC.CompilerService.dll"]
