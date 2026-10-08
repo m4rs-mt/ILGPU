@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                    ILGPU Samples
-//                           Copyright (c) 2021 ILGPU Project
+//                        Copyright (c) 2021-2024 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Program.cs
@@ -72,7 +72,7 @@ namespace GenericKernel
             ArrayView<T> data,
             int value,
             TKernelFunction function)
-            where TKernelFunction : struct, IKernelFunction<T>
+            where TKernelFunction : unmanaged, IKernelFunction<T>
             where T : unmanaged
         {
             // Invoke the custom "lambda function"

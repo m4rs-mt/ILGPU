@@ -7,3 +7,5 @@ Rule ID | Category | Severity | Notes
 --------|----------|----------|-------
 ILA001 | CodeGeneration | Error | SourceGenerator
 ILA002 | CodeGeneration | Error | SourceGenerator
+ILA003 | Usage | Warning | Analyzer
+ILA004 | Usage | Warning | Analyzer
