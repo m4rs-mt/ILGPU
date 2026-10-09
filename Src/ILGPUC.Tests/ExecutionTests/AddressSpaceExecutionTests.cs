@@ -155,7 +155,6 @@ public abstract class AddressSpaceExecutionTests : ExecutionTestBase
     {
         // x = t + 1, y = 10 * (t + 1); a pointer alternates between x and y
         // until it becomes null after t + 1 iterations
-        RequireCapability(Backend, BackendCapability.GenericAddressSpace);
         await VerifyProgramOutputAsync(
             "TestPrograms/AddressSpace/NullPointerLoop.cs",
             ["Kernels.NullPointerLoopKernel"],

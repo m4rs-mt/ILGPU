@@ -152,8 +152,9 @@ sealed class InferAddressSpaces(TransformationArgs args) : Transformation(args)
     /// this pass, and so are the selected values of predicates and the operands
     /// of field insertions whose structure and inserted value do not match any
     /// more. Comparisons with the null pointer give the null pointer the type of
-    /// the other operand. All other users (e.g. structure values or other
-    /// comparisons) require the original type.
+    /// the other operand, and comparisons of two pointers whose types differ
+    /// compare them as generic pointers. All other users (e.g. structure
+    /// values) require the original type.
     /// </remarks>
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     private bool CanRetype(Value value)
@@ -188,7 +189,7 @@ sealed class InferAddressSpaces(TransformationArgs args) : Transformation(args)
         MethodCall call => use.Index > 0 && call.Target.HasImplementation,
         BasicBlock block => block.TerminationKind == BlockTerminationKind.Return,
         Predicate => use.Index > 0 && CanRetype(use.Target),
-        CompareValue compare => compare.Left is NullValue || compare.Right is NullValue,
+        CompareValue => true,
 
         // Users whose results follow the type of their source
         Load or

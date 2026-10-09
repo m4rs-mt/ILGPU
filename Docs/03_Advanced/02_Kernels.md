@@ -98,6 +98,9 @@ hold global addresses and are not checked.
 On Metal, the addresses of local and shared memory are 32-bit values: converted to integers, their upper 32 bits are
 zero.
 
+Pointers can be compared with each other, for example to move a pointer up to an end pointer with
+`for (int* p = first; p < end; ++p)`.
+
 ## Lambdas and Delegates
 
 Kernel code can use delegates (e.g. `Func<int, int>`) whose target is known at compile time.
