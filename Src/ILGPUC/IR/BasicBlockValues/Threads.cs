@@ -660,7 +660,7 @@ sealed partial class WarpRadixSort : ThreadValue
     /// </summary>
     public Value ExtractRadixBitsMethod => GetValue<Value>(2);
 
-    /// <inheritdoc cref="Value.Rewrite{TRewriter}(in TRewriter)"/>
+    /// <inheritdoc cref="BasicBlockValue.Rewrite{TRewriter}(in TRewriter)"/>
     public override Value? Rewrite<TRewriter>(in TRewriter rewriter) =>
         rewriter.Builder.CreateWarpRadixSort(
             Location,
@@ -725,7 +725,7 @@ sealed partial class GroupRadixSort : ThreadValue
     /// </summary>
     public Value ExtractRadixBitsMethod => GetValue<Value>(2);
 
-    /// <inheritdoc cref="Value.Rewrite{TRewriter}(in TRewriter)"/>
+    /// <inheritdoc cref="BasicBlockValue.Rewrite{TRewriter}(in TRewriter)"/>
     public override Value? Rewrite<TRewriter>(in TRewriter rewriter) =>
         rewriter.Builder.CreateGroupRadixSort(
             Location,

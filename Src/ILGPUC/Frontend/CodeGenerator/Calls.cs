@@ -1,6 +1,6 @@
 // ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                           Copyright (c) 2018-2026 ILGPU Project
+//                        Copyright (c) 2018-2026 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Calls.cs
@@ -21,6 +21,8 @@ using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 
 namespace ILGPUC.Frontend;
+
+#pragma warning disable CA1031 // Do not catch general exception types
 
 partial class CodeGenerator
 {
@@ -286,6 +288,7 @@ partial class CodeGenerator
             return;
 
         DisassembledMethod? disassembled;
+
         try
         {
             disassembled = Disassembler.TryDisassemble(method);
@@ -296,6 +299,7 @@ partial class CodeGenerator
             // method bodiless and fall through to the direct-call path.
             return;
         }
+
         if (disassembled is null)
             return;
 
@@ -406,3 +410,5 @@ partial class CodeGenerator
             ErrorMessages.NotSupportedMethodJump,
             target.Name);
 }
+
+#pragma warning restore CA1031 // Do not catch general exception types

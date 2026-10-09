@@ -1,6 +1,6 @@
 // ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                           Copyright (c) 2024-2026 ILGPU Project
+//                        Copyright (c) 2024-2026 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: AcceleratorStream.Launchers.cs
@@ -93,7 +93,8 @@ partial class AcceleratorStream
     #endregion
 
     /// <summary>
-    /// Triggers a 2D kernel launch. Delegates to <see cref="Launch2D"/>.
+    /// Triggers a 2D kernel launch. Delegates to
+    /// <see cref="Launch2D{TStride}(Index2D, Action{Index2D})"/>.
     /// </summary>
     [MethodImpl(MethodImplOptions.NoInlining)]
     [NotInsideKernel, DelayCodeGeneration, ReplaceWithLauncher]

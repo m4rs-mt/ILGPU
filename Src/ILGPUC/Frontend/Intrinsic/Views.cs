@@ -1,6 +1,6 @@
 // ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                           Copyright (c) 2018-2026 ILGPU Project
+//                        Copyright (c) 2018-2026 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Views.cs
@@ -10,6 +10,7 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU;
+using ILGPU.Util;
 using ILGPUC.IR;
 using ILGPUC.IR.PureValues;
 
@@ -174,7 +175,7 @@ partial class Intrinsics
                 viewLength,
                 offset,
                 BinaryArithmeticKind.Sub,
-                ArithmeticFlags.Unsigned);
+                ArithmeticFlags.Unsigned).AsNotNull();
         }
 
         return builder.CreateSubView(

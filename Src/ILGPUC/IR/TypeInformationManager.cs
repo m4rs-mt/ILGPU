@@ -344,10 +344,8 @@ sealed class TypeInformationManager
         // through Unsafe.Add are wrong (e.g. IntBuffer4 { int _element0; }
         // decorated with [InlineArray(4)] would appear to be 1 int / 4
         // bytes instead of 4 ints / 16 bytes).
-        var inlineArrayAttr = type.GetCustomAttribute(
-            typeof(System.Runtime.CompilerServices.InlineArrayAttribute),
-            inherit: false)
-            as System.Runtime.CompilerServices.InlineArrayAttribute;
+        var inlineArrayAttr = type.GetCustomAttribute<
+            System.Runtime.CompilerServices.InlineArrayAttribute>(inherit: false);
         if (inlineArrayAttr is not null
             && fieldArray.Length == 1
             && inlineArrayAttr.Length > 1)

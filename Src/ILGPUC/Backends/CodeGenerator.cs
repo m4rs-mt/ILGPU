@@ -10,7 +10,6 @@
 // ---------------------------------------------------------------------------------------
 
 
-// disable: max_line_length
 using ILGPU.Util;
 using ILGPUC.Backends.CPU;
 using ILGPUC.IR.ModuleValues;
@@ -35,7 +34,15 @@ readonly record struct LauncherGenerationResult(
 /// <param name="SourceCode">The generated source code.</param>
 /// <param name="EntryPointName">The name of the entry point function.</param>
 /// <param name="Launcher">Optional launcher generation result.</param>
-/// <param name="BufferPool">Optional buffer pool metadata for CPU backend pooling.</param>
+/// <param name="BufferPool">
+/// Optional buffer pool metadata for CPU backend pooling.
+/// </param>
+/// <param name="KernelClassName">
+/// The kernel class name that was used during generation.
+/// </param>
+/// <param name="EntryPointParamTypeNames">
+/// The entry point kernel parameter type names that were used.
+/// </param>
 readonly record struct CodeGenerationResult(
     string SourceCode,
     string EntryPointName,
@@ -117,7 +124,7 @@ sealed class CodeGenerator(Module module, LanguageConfiguration languageConfig)
     /// <summary>
     /// Generates file-scope global variable declarations.
     /// Globals whose address space is not file-scope-eligible
-    /// (e.g. Metal thread/threadgroup) are deferred to function scope.
+    /// (e.g. Metal thread/thread-group) are deferred to function scope.
     /// </summary>
     private void GenerateGlobalDeclarations(GenerationContext context)
     {
@@ -145,7 +152,8 @@ sealed class CodeGenerator(Module module, LanguageConfiguration languageConfig)
         Global global)
     {
         var addressSpace = global.AddressSpace;
-        var addressSpaceKeyword = context.LanguageConfig.GetAddressSpaceKeyword(addressSpace);
+        var addressSpaceKeyword = context.LanguageConfig.GetAddressSpaceKeyword(
+            addressSpace);
         var typeName = typeEmitter.GetTypeName(global.AllocType);
         var globalName = context.GetValueName(global);
 

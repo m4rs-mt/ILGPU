@@ -27,13 +27,7 @@ builder.Services.AddSingleton<ICache, CompilationCache>();
 builder.Services.AddMemoryCache();
 builder.Services.AddControllers();
 
-if (builder.Environment.IsDevelopment())
-    builder.Services.AddOpenApi();
-
 var app = builder.Build();
-
-if (app.Environment.IsDevelopment())
-    app.MapOpenApi();
 
 app.MapControllers();
 app.Run();

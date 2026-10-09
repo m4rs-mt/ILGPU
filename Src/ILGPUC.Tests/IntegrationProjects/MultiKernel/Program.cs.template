@@ -1,0 +1,49 @@
+// MultiKernel: two distinct kernels in a single project. Both must appear in
+// the generated CompiledKernel sources and the registrar.
+// Expected output: A: 0 10 20 30   B: 1 2 3 4
+
+using System;
+using ILGPU;
+using ILGPU.Runtime;
+
+namespace MultiKernel;
+
+static class Kernels
+{
+    public static void TenXKernel(
+        Index1D index, ArrayView1D<int, Stride1D.Dense> data)
+    {
+        data[index] = index.X * 10;
+    }
+
+    public static void PlusOneKernel(
+        Index1D index, ArrayView1D<int, Stride1D.Dense> data)
+    {
+        data[index] = index.X + 1;
+    }
+}
+
+static class Program
+{
+    static void Main()
+    {
+        using var context = Context.Create(b => b.Default());
+        using var accelerator = context.GetPreferredDevice(preferCPU: $(PREFER_CPU))
+            .CreateAccelerator(context);
+        var stream = accelerator.DefaultStream;
+
+        using var bufA = stream.Allocate1D<int>(4);
+        using var bufB = stream.Allocate1D<int>(4);
+
+        stream.Launch(
+            (Index1D)4,
+            index => Kernels.TenXKernel(index, bufA.View));
+        stream.Launch(
+            (Index1D)4,
+            index => Kernels.PlusOneKernel(index, bufB.View));
+        stream.Synchronize();
+
+        Console.WriteLine("A: " + string.Join(' ', bufA.GetAsArray1D()));
+        Console.WriteLine("B: " + string.Join(' ', bufB.GetAsArray1D()));
+    }
+}

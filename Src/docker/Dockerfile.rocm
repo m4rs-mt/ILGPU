@@ -71,10 +71,39 @@ RUN dotnet publish Src/ILGPUC.CompilerService/ILGPUC.CompilerService.csproj \
 FROM rocm/dev-ubuntu-24.04:7.1.1-complete AS runtime
 
 # OCI labels — auto-link the published GHCR package back to the source repo
-# (so it appears under the repo's Packages tab) and tag it with the license.
+# (so it appears under the repo's Packages tab) and tag it with the compound
+# license set that actually applies: ILGPU code is NCSA; ROCm is a per-
+# component multi-license SDK — hipcc is MIT, amdclang++ derives from LLVM
+# (Apache-2.0 with LLVM exception), Comgr is NCSA, runtime libs are MIT/
+# Apache-2.0 mixed. AMD documents this at
+#   https://rocm.docs.amd.com/en/latest/about/license.html
 LABEL org.opencontainers.image.source="https://github.com/m4rs-mt/ILGPU"
-LABEL org.opencontainers.image.licenses="University-of-Illinois/NCSA"
+LABEL org.opencontainers.image.licenses="NCSA AND MIT AND Apache-2.0"
 LABEL org.opencontainers.image.description="ILGPUC CompilerService bundled with the ROCm 7.1.1 toolchain (hipcc + amdclang++). Used as a remote compile-only service AND as a CI test runner: `docker run image dotnet test ...` overrides the default CMD to run tests inside the container with the .NET 10 SDK preinstalled."
+
+# Bundle ILGPU's own license texts. Third-party licenses are already present
+# in the image: every apt-packaged ROCm and system component's copyright /
+# license text sits at /usr/share/doc/<package>/copyright per Debian
+# convention — no further bundling needed for those.
+COPY LICENSE.txt LICENSE-3RD-PARTY.txt /usr/share/doc/ilgpuc/
+
+# Index pointing at every license text already present in the image
+# filesystem, so a consumer inspecting the image has a single starting point.
+RUN printf '%s\n' \
+    'This image is a derivative of rocm/dev-ubuntu-24.04:7.1.1-complete.' \
+    'ROCm is a multi-license SDK — core components are MIT, LLVM-derived' \
+    'components (amdclang++) are Apache-2.0 with LLVM exception, Comgr is' \
+    'NCSA. Per-component details:' \
+    '  https://rocm.docs.amd.com/en/latest/about/license.html' \
+    'Per-package license texts are in the image at:' \
+    '  /usr/share/doc/<package>/copyright' \
+    '' \
+    'ILGPU source code is licensed under the University of Illinois/NCSA' \
+    'Open Source License. The full text is present in the image at:' \
+    '  /usr/share/doc/ilgpuc/LICENSE.txt' \
+    'Attributions for bundled third-party ILGPU dependencies are at:' \
+    '  /usr/share/doc/ilgpuc/LICENSE-3RD-PARTY.txt' \
+    > /usr/share/doc/ilgpuc/NOTICES
 
 ENV DEBIAN_FRONTEND=noninteractive \
     DOTNET_ROOT=/usr/share/dotnet \

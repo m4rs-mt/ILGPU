@@ -1,0 +1,43 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>$(LibraryLatestTargetFramework)</TargetFramework>
+    <IsPackable>false</IsPackable>
+    <Nullable>enable</Nullable>
+    <LangVersion>13.0</LangVersion>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <OutputPath>../../Bin/$(Configuration)/</OutputPath>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
+    <PackageReference Include="xunit" Version="2.9.0" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2">
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="Xunit.SkippableFact" Version="1.4.13" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.12.0" />
+    <PackageReference Include="T4.Build" Version="0.2.5" PrivateAssets="All" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ILGPUC\ILGPUC.csproj" />
+    <ProjectReference Include="..\ILGPUC.Compilers\ILGPUC.Compilers.csproj" />
+    <ProjectReference Include="..\ILGPU\ILGPU.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="Snapshots\**\*.il" CopyToOutputDirectory="PreserveNewest" />
+    <Compile Remove="TestPrograms\**\*.cs" />
+    <None Include="TestPrograms\**\*.cs" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Standalone .csproj templates used by IntegrationTests/. The .cs
+         files inside are user code (not part of the test assembly) and the
+         .template files are tokenized by IntegrationProjectFixture. -->
+    <Compile Remove="IntegrationProjects\**\*.cs" />
+    <None Include="IntegrationProjects\**\*" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+</Project>

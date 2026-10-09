@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                        Copyright (c) 2022-2024 ILGPU Project
+//                        Copyright (c) 2022-2026 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: SourceCodeCopyrightParser.cs
@@ -214,6 +214,10 @@ namespace CopyrightUpdateTool.Parsers
             var endingYear = await VersionControlService.GetCopyrightYearEndAsync(
                 file,
                 CopyrightYearEndType.LastCommitToFile);
+            // Never emit a range that ends before it starts.
+            if (startingYear.HasValue && endingYear < startingYear.Value)
+                endingYear = startingYear.Value;
+
             var copyrightYear =
                 startingYear.HasValue && startingYear.Value != endingYear
                 ? $"{startingYear.Value}-{endingYear}"
