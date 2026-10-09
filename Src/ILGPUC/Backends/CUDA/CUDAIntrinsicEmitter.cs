@@ -11,6 +11,7 @@
 
 
 // disable: max_line_length
+using ILGPUC.IR;
 using ILGPUC.IR.BasicBlockValues;
 using ILGPUC.IR.PureValues;
 using System;
@@ -158,7 +159,11 @@ sealed class CudaIntrinsicEmitter : IntrinsicEmitter
     #region Atomic Operations
 
     /// <inheritdoc/>
-    public override string EmitAtomicAdd(string ptr, string value, ArithmeticBasicValueType type) =>
+    public override string EmitAtomicAdd(
+        string ptr,
+        string value,
+        ArithmeticBasicValueType type,
+        MemoryAddressSpace addressSpace) =>
         type switch
         {
             ArithmeticBasicValueType.Int32 => $"atomicAdd({ptr}, {value})",
@@ -173,7 +178,8 @@ sealed class CudaIntrinsicEmitter : IntrinsicEmitter
     public override string EmitAtomicExchange(
         string ptr,
         string value,
-        ArithmeticBasicValueType type) =>
+        ArithmeticBasicValueType type,
+        MemoryAddressSpace addressSpace) =>
         type switch
         {
             ArithmeticBasicValueType.Int32 => $"atomicExch({ptr}, {value})",
@@ -188,7 +194,8 @@ sealed class CudaIntrinsicEmitter : IntrinsicEmitter
         string ptr,
         string compare,
         string value,
-        ArithmeticBasicValueType type) =>
+        ArithmeticBasicValueType type,
+        MemoryAddressSpace addressSpace) =>
         type switch
         {
             ArithmeticBasicValueType.Int32 => $"atomicCAS({ptr}, {compare}, {value})",
@@ -202,7 +209,8 @@ sealed class CudaIntrinsicEmitter : IntrinsicEmitter
     public override string EmitAtomicMin(
         string ptr,
         string value,
-        ArithmeticBasicValueType type) =>
+        ArithmeticBasicValueType type,
+        MemoryAddressSpace addressSpace) =>
         type switch
         {
             ArithmeticBasicValueType.Int32 => $"atomicMin({ptr}, {value})",
@@ -215,7 +223,8 @@ sealed class CudaIntrinsicEmitter : IntrinsicEmitter
     public override string EmitAtomicMax(
         string ptr,
         string value,
-        ArithmeticBasicValueType type) =>
+        ArithmeticBasicValueType type,
+        MemoryAddressSpace addressSpace) =>
         type switch
         {
             ArithmeticBasicValueType.Int32 => $"atomicMax({ptr}, {value})",
@@ -228,7 +237,8 @@ sealed class CudaIntrinsicEmitter : IntrinsicEmitter
     public override string EmitAtomicAnd(
         string ptr,
         string value,
-        ArithmeticBasicValueType type) =>
+        ArithmeticBasicValueType type,
+        MemoryAddressSpace addressSpace) =>
         type switch
         {
             ArithmeticBasicValueType.Int32 => $"atomicAnd({ptr}, {value})",
@@ -241,7 +251,8 @@ sealed class CudaIntrinsicEmitter : IntrinsicEmitter
     public override string EmitAtomicOr(
         string ptr,
         string value,
-        ArithmeticBasicValueType type) =>
+        ArithmeticBasicValueType type,
+        MemoryAddressSpace addressSpace) =>
         type switch
         {
             ArithmeticBasicValueType.Int32 => $"atomicOr({ptr}, {value})",
@@ -254,13 +265,44 @@ sealed class CudaIntrinsicEmitter : IntrinsicEmitter
     public override string EmitAtomicXor(
         string ptr,
         string value,
-        ArithmeticBasicValueType type) =>
+        ArithmeticBasicValueType type,
+        MemoryAddressSpace addressSpace) =>
         type switch
         {
             ArithmeticBasicValueType.Int32 => $"atomicXor({ptr}, {value})",
             ArithmeticBasicValueType.Int64 => $"atomicXor((unsigned long long*){ptr}, {value})",
             _ => throw new NotSupportedException(
                 $"Atomic XOR not supported for type {type}")
+        };
+
+    #endregion
+
+    #region Bit-Reinterpret Casts
+
+    /// <inheritdoc/>
+    public override string EmitFloatAsInt(
+        string arg,
+        BasicValueType sourceType,
+        BasicValueType targetType) =>
+        sourceType switch
+        {
+            BasicValueType.Float32 => $"__float_as_int({arg})",
+            BasicValueType.Float64 => $"__double_as_longlong({arg})",
+            _ => throw new NotSupportedException(
+                $"Float-as-int reinterpret not supported for source {sourceType}")
+        };
+
+    /// <inheritdoc/>
+    public override string EmitIntAsFloat(
+        string arg,
+        BasicValueType sourceType,
+        BasicValueType targetType) =>
+        targetType switch
+        {
+            BasicValueType.Float32 => $"__int_as_float({arg})",
+            BasicValueType.Float64 => $"__longlong_as_double({arg})",
+            _ => throw new NotSupportedException(
+                $"Int-as-float reinterpret not supported for target {targetType}")
         };
 
     #endregion

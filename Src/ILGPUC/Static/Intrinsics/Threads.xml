@@ -22,6 +22,7 @@
             <Generator Name="GetLocalMemoryPerThread" Target="Group_GetLocalMemoryBuffer" />
             <Generator Name="GetSharedMemory" Target="Group_GetSharedMemoryElement" NumArguments="0" />
             <Generator Name="GetSharedMemory" Target="Group_GetSharedMemoryBuffer" NumArguments="1" />
+            <Generator Name="GetSharedMemory2D" Target="Group_GetSharedMemory2D" NumArguments="1" />
             <Generator Name="GetSharedMemoryPerThread"
                 Target="Group_GetSharedMemoryElementPerThread" NumArguments="0" />
             <Generator Name="GetSharedMemoryPerThreadMultiplier"

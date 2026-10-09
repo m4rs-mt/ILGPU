@@ -467,6 +467,14 @@ sealed class CompiledKernelGenerator : DisposeBase
     {
         return kind switch
         {
+            // Struct-element views: declare the KernelArgs field as
+            // ViewImplementation<byte> to match the assignment site, which
+            // also uses <byte> (line ~723). The IR struct name (e.g.
+            // "struct_613") referenced by GetElementTypeName has no
+            // declaration in the C# wrapper file. Same memory layout
+            // either way under [StructLayout(Sequential)].
+            ParameterKind.View when ((ViewType)type).ElementType is StructureType =>
+                "ViewImplementation<byte>",
             ParameterKind.View =>
                 $"ViewImplementation<{GetElementTypeName((ViewType)type)}>",
             ParameterKind.Pointer => "IntPtr",
@@ -504,6 +512,21 @@ sealed class CompiledKernelGenerator : DisposeBase
         viewType.ElementType is StructureType st
             ? $"struct_{st.Id}"
             : GetPrimitiveTypeName(viewType.ElementType);
+
+    /// <summary>
+    /// Returns <see langword="true"/> when <paramref name="typeName"/> is a
+    /// C# primitive-keyword name (one that supports an explicit
+    /// <c>(target)source</c> cast between any pair). Used by the launcher
+    /// emitter to decide whether a user-facing parameter type can be
+    /// bridged to its IR-flattened type with a plain cast or needs an
+    /// <c>Unsafe.BitCast</c> bitwise reinterpret.
+    /// </summary>
+    private static bool IsPrimitiveCSharpTypeName(string? typeName) =>
+        typeName is "bool" or "byte" or "sbyte"
+            or "short" or "ushort" or "char"
+            or "int" or "uint" or "nint" or "nuint"
+            or "long" or "ulong"
+            or "Half" or "float" or "double";
 
     /// <summary>
     /// Returns the generated user-facing struct name for a structure type.
@@ -689,6 +712,13 @@ sealed class CompiledKernelGenerator : DisposeBase
 
         var ctx = CreateEmissionContext();
         ctx.IndexDimensions = indexDims;
+
+        // Grouped kernels that take a KernelIndex as their first parameter
+        // need the launcher to construct a per-thread KernelIndex struct
+        // before calling KernelEntryPoint. The backend surfaces the
+        // post-backend-transform struct name via EntryPointIndexTypeName.
+        ctx.KernelIndexTypeName = _compiled.EntryPointIndexTypeName;
+
         _launcherEmitter.EmitLaunchBody(ctx, parameters);
 
         CloseScope();
@@ -712,12 +742,31 @@ sealed class CompiledKernelGenerator : DisposeBase
             switch (param.Kind)
             {
                 case ParameterKind.View:
-                    var argElemType = ((ViewType)param.Type).ElementType
-                        is StructureType ? "byte"
-                        : GetElementTypeName((ViewType)param.Type);
-                    WriteLine(
-                        $"args.{param.Name} = " +
-                        $"new ViewImplementation<{argElemType}>({param.Name});");
+                    var viewType = (ViewType)param.Type;
+                    if (viewType.ElementType is StructureType)
+                    {
+                        // Struct-element view: ViewImplementation<byte> has
+                        // no constructor that takes ArrayView<UserStruct>,
+                        // so build the (pointer, length) pair via Unsafe —
+                        // mirrors EmitStructMarshalingCode's view branch.
+                        // Use .BaseView to land on the basic ArrayView<T>
+                        // form so LoadEffectiveAddress<T> can infer T;
+                        // guard against IsValid==false to avoid taking the
+                        // address of a default-initialized view.
+                        WriteLine(
+                            $"args.{param.Name} = {param.Name}.BaseView.IsValid" +
+                            $" ? new ViewImplementation<byte>(" +
+                            $"Unsafe.AsPointer(ref {param.Name}.BaseView" +
+                            $".LoadEffectiveAddress()), {param.Name}.BaseView.Length)" +
+                            $" : default(ViewImplementation<byte>);");
+                    }
+                    else
+                    {
+                        var argElemType = GetElementTypeName(viewType);
+                        WriteLine(
+                            $"args.{param.Name} = " +
+                            $"new ViewImplementation<{argElemType}>({param.Name});");
+                    }
                     break;
 
                 case ParameterKind.StructWithViews:
@@ -739,9 +788,31 @@ sealed class CompiledKernelGenerator : DisposeBase
                     // signedness mismatches like sbyte → byte (IR maps both
                     // Int8 / UInt8 to "byte"). The cast is identity for
                     // matched types.
-                    WriteLine(
-                        $"args.{param.Name} = " +
-                        $"({param.MarshaledTypeName}){param.Name};");
+                    //
+                    // User struct flattened to a primitive by IR transforms
+                    // (e.g. ClosureElimination collapses a single-long
+                    // closure into a long) needs a bitwise reinterpret —
+                    // a plain `(long)closure` cast does not compile because
+                    // there is no user-defined conversion. Detect this by
+                    // checking whether the launch type name is a C#
+                    // primitive keyword; if not, the user-facing parameter
+                    // is still a struct and BitCast is the right bridge.
+                    var userIsPrimitive = IsPrimitiveCSharpTypeName(
+                        param.LaunchTypeName);
+                    if (!userIsPrimitive
+                        && param.LaunchTypeName != param.MarshaledTypeName)
+                    {
+                        WriteLine(
+                            $"args.{param.Name} = Unsafe.BitCast<" +
+                            $"{param.LaunchTypeName}, " +
+                            $"{param.MarshaledTypeName}>({param.Name});");
+                    }
+                    else
+                    {
+                        WriteLine(
+                            $"args.{param.Name} = " +
+                            $"({param.MarshaledTypeName}){param.Name};");
+                    }
                     break;
             }
         }
@@ -869,6 +940,12 @@ sealed class CompiledKernelGenerator : DisposeBase
         WriteLine("// ---------------------------------------------------");
         WriteLine("// Generated by ILGPU Compiler — Compiled Kernel");
         WriteLine("// ---------------------------------------------------");
+        WriteLine();
+        // CS0164 unreferenced label, CS0649 field never assigned, and
+        // CS1717 self-assignment are artifacts of the IR → C# lowering and
+        // are benign in generated code — disable them so downstream
+        // consumers (samples, user projects) don't get noise.
+        WriteLine("#pragma warning disable CS0164, CS0649, CS1717");
         WriteLine();
         WriteLine("using System;");
         WriteLine("using System.Runtime.CompilerServices;");

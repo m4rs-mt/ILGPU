@@ -207,6 +207,18 @@ sealed class ExpressionEmitter(GenerationContext context, TypeEmitter typeEmitte
             TernaryArithmeticValue ternary => EmitTernaryArithmetic(ternary),
             CompareValue compare => EmitCompare(compare),
             ConvertValue convert => EmitConvert(convert),
+            FloatAsIntCast f2i => new Emitted(
+                IntrinsicEmitter.EmitFloatAsInt(
+                    Emit(f2i.Source).Text,
+                    f2i.Source.Type.BasicValueType,
+                    f2i.Type.BasicValueType),
+                Prec.Atom),
+            IntAsFloatCast i2f => new Emitted(
+                IntrinsicEmitter.EmitIntAsFloat(
+                    Emit(i2f.Source).Text,
+                    i2f.Source.Type.BasicValueType,
+                    i2f.Type.BasicValueType),
+                Prec.Atom),
             AddressSpaceCast cast => EmitAddressSpaceCast(cast),
             ViewCast viewCast => EmitViewCast(viewCast),
             PointerCast ptrCast => EmitPointerCast(ptrCast),
@@ -355,20 +367,41 @@ sealed class ExpressionEmitter(GenerationContext context, TypeEmitter typeEmitte
     private Emitted EmitPointerCast(PointerCast cast)
     {
         var source = Emit(cast.Source);
-        // Determine address space from source chain, not target
+
+        // CPU emits C# (not C); raw pointer casts have no equivalent syntax.
+        // Element-type changes are handled via Unsafe.As / view-bitcast paths
+        // in CPUExpressionEmitter, so the base emitter passes through.
+        if (context.LanguageConfig is CPU.CPULanguageConfiguration)
+            return source;
+
         var addrSpace = GetEffectiveAddressSpace(cast.Source);
         var addrKeyword = context.LanguageConfig.GetAddressSpaceKeyword(addrSpace);
 
-        // CPU: no explicit pointer casts in C#
-        if (string.IsNullOrEmpty(addrKeyword))
-            return source;
-
-        // Build cast type using source address space + target element type
+        // Element-type aware cast handling. CUDA returns "" for Global (no
+        // address-space keyword on pointers), but a pointer-element-type
+        // change still needs a C-cast — e.g. `(long long*)double_ptr` for
+        // bit-cast atomics. Skip the cast only when nothing differs.
         var targetPtr = cast.Type as PointerType;
+        var sourcePtr = cast.Source.Type as PointerType;
         var elemTypeName = targetPtr is not null
             ? typeEmitter.GetTypeName(targetPtr.ElementType)
             : typeEmitter.GetTypeName(cast.Type);
-        var castType = $"{addrKeyword} {elemTypeName}*";
+        var sourceElemTypeName = sourcePtr is not null
+            ? typeEmitter.GetTypeName(sourcePtr.ElementType)
+            : null;
+
+        var hasAddrSpace = !string.IsNullOrEmpty(addrKeyword);
+        var elemDiffers = sourceElemTypeName is null
+            || !string.Equals(sourceElemTypeName, elemTypeName, StringComparison.Ordinal);
+
+        // No address-space keyword and same element type: pass through.
+        if (!hasAddrSpace && !elemDiffers)
+            return source;
+
+        // Build cast type using source address space + target element type
+        var castType = hasAddrSpace
+            ? $"{addrKeyword} {elemTypeName}*"
+            : $"{elemTypeName}*";
 
         return new Emitted(
             $"({castType}){Parenthesize(source, Prec.Unary)}",
@@ -1181,23 +1214,24 @@ sealed class ExpressionEmitter(GenerationContext context, TypeEmitter typeEmitte
         var ptr = Emit(atomic.Target).Text;
         var value = Emit(atomic.Value).Text;
         var type = atomic.ArithmeticBasicValueType;
+        var addressSpace = atomic.TargetAddressSpace;
 
         var text = atomic.Kind switch
         {
             GenericAtomicKind.Add =>
-                IntrinsicEmitter.EmitAtomicAdd(ptr, value, type),
+                IntrinsicEmitter.EmitAtomicAdd(ptr, value, type, addressSpace),
             GenericAtomicKind.Exchange =>
-                IntrinsicEmitter.EmitAtomicExchange(ptr, value, type),
+                IntrinsicEmitter.EmitAtomicExchange(ptr, value, type, addressSpace),
             GenericAtomicKind.Min =>
-                IntrinsicEmitter.EmitAtomicMin(ptr, value, type),
+                IntrinsicEmitter.EmitAtomicMin(ptr, value, type, addressSpace),
             GenericAtomicKind.Max =>
-                IntrinsicEmitter.EmitAtomicMax(ptr, value, type),
+                IntrinsicEmitter.EmitAtomicMax(ptr, value, type, addressSpace),
             GenericAtomicKind.And =>
-                IntrinsicEmitter.EmitAtomicAnd(ptr, value, type),
+                IntrinsicEmitter.EmitAtomicAnd(ptr, value, type, addressSpace),
             GenericAtomicKind.Or =>
-                IntrinsicEmitter.EmitAtomicOr(ptr, value, type),
+                IntrinsicEmitter.EmitAtomicOr(ptr, value, type, addressSpace),
             GenericAtomicKind.Xor =>
-                IntrinsicEmitter.EmitAtomicXor(ptr, value, type),
+                IntrinsicEmitter.EmitAtomicXor(ptr, value, type, addressSpace),
             _ => $"/* Unknown atomic: {atomic.Kind} */"
         };
         return new Emitted(text, Prec.Postfix);
@@ -1213,7 +1247,8 @@ sealed class ExpressionEmitter(GenerationContext context, TypeEmitter typeEmitte
         var value = Emit(cas.Value).Text;
 
         var text = IntrinsicEmitter.EmitAtomicCAS(
-            ptr, compare, value, cas.ArithmeticBasicValueType);
+            ptr, compare, value, cas.ArithmeticBasicValueType,
+            cas.TargetAddressSpace);
         return new Emitted(text, Prec.Postfix);
     }
 

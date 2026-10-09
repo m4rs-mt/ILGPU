@@ -1,6 +1,6 @@
-﻿// ---------------------------------------------------------------------------------------
+// ---------------------------------------------------------------------------------------
 //                                    ILGPU Samples
-//                           Copyright (c) 2021 ILGPU Project
+//                           Copyright (c) 2026 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Program.cs
@@ -9,218 +9,121 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
-using ILGPU;
-using ILGPU.Algorithms;
-using ILGPU.Algorithms.Sequencers;
-using ILGPU.Runtime;
 using System;
+using System.Linq;
+using ILGPU;
+using ILGPU.Initialization;
+using ILGPU.Runtime;
 
-namespace AlgorithmsSequence
+namespace AlgorithmsSequence;
+
+struct CustomStruct
 {
-    /// <summary>
-    /// A custom structure that can be used in a memory buffer.
-    /// </summary>
-    struct CustomStruct
-    {
-        public LongIndex1D First;
-        public LongIndex1D Second;
+    public long First;
+    public long Second;
 
-        public override string ToString() =>
-            $"First: {First}, Second: {Second}";
+    public override string ToString() =>
+        $"First: {First}, Second: {Second}";
+}
+
+static class Program
+{
+    static void Sequence(AcceleratorStream stream)
+    {
+        // Simple int sequence 0..63
+        using (var buffer = stream.Allocate1D<int>(64))
+        {
+            stream.Sequence(buffer.View, i => (int)i);
+            stream.Synchronize();
+
+            var data = buffer.GetAsArray1D();
+            for (int i = 0, e = data.Length; i < e; ++i)
+                Console.WriteLine($"Data[{i}] = {data[i]}");
+        }
+
+        // Custom struct sequence
+        using (var buffer = stream.Allocate1D<CustomStruct>(64))
+        {
+            stream.Sequence(buffer.View, i => new CustomStruct
+            {
+                First = i,
+                Second = 32 + i
+            });
+            stream.Synchronize();
+
+            var data = buffer.GetAsArray1D();
+            for (int i = 0, e = data.Length; i < e; ++i)
+                Console.WriteLine($"CustomData[{i}] = {data[i]}");
+        }
     }
 
-    /// <summary>
-    /// A custom sequencer of <see cref="CustomStruct"/> elements.
-    /// </summary>
-    readonly struct CustomSequencer : ISequencer<CustomStruct>
+    static void RepeatedSequence(AcceleratorStream stream)
     {
-        /// <summary>
-        /// Constructs a new custom sequencer.
-        /// </summary>
-        /// <param name="secondOffset">The base offset for the second element.</param>
-        public CustomSequencer(LongIndex1D secondOffset)
-        {
-            SecondOffset = secondOffset;
-        }
+        using var buffer = stream.Allocate1D<int>(64);
 
-        /// <summary>
-        /// Returns the base offset for the second element.
-        /// </summary>
-        public LongIndex1D SecondOffset { get; }
+        // Repeated sequence with sequenceLength = 32 (repeats every 32 elements)
+        stream.Sequence(buffer.View, i => (int)i, sequenceLength: 32);
+        stream.Synchronize();
 
-        /// <summary>
-        /// Computes the sequence element for the corresponding <paramref name="sequenceIndex"/>.
-        /// </summary>
-        /// <param name="sequenceIndex">The sequence index for the computation of the corresponding value.</param>
-        /// <returns>The computed sequence value.</returns>
-        public CustomStruct ComputeSequenceElement(LongIndex1D sequenceIndex) =>
-            new CustomStruct()
-            {
-                First = sequenceIndex,
-                Second = SecondOffset + sequenceIndex
-            };
+        var data = buffer.GetAsArray1D();
+        for (int i = 0, e = data.Length; i < e; ++i)
+            Console.WriteLine($"RepeatedData[{i}] = {data[i]}");
     }
 
-    class Program
+    static void BatchedSequence(AcceleratorStream stream)
     {
-        /// <summary>
-        /// Demonstrates the sequence functionality.
-        /// </summary>
-        /// <param name="accelerator">The target accelerator.</param>
-        static void Sequence(Accelerator accelerator)
-        {
-            using (var buffer = accelerator.Allocate1D<int>(64))
+        using var buffer = stream.Allocate1D<int>(64);
+
+        // Batched sequence with batch size 2
+        // [0,0,1,1,2,2,3,3,...]
+        stream.Sequence(buffer.View, i => (int)i, sequenceBatchLength: 2);
+        stream.Synchronize();
+
+        var data = buffer.GetAsArray1D();
+        for (int i = 0, e = data.Length; i < e; ++i)
+            Console.WriteLine($"BatchedData[{i}] = {data[i]}");
+    }
+
+    static void RepeatedBatchedSequence(AcceleratorStream stream)
+    {
+        using var buffer = stream.Allocate1D<int>(64);
+
+        // Repeated batched sequence
+        stream.Sequence(
+            buffer.View,
+            i => (int)i,
+            sequenceLength: 2,
+            sequenceBatchLength: 4);
+        stream.Synchronize();
+
+        var data = buffer.GetAsArray1D();
+        for (int i = 0, e = data.Length; i < e; ++i)
+            Console.WriteLine($"RepeatedBatchedData[{i}] = {data[i]}");
+    }
+
+    static void Main()
+    {
+        using var context = Context.CreateDefault();
+
+        var device = context.Devices
+            .OrderByDescending(d => d.AcceleratorType switch
             {
-                // Creates a sequence (from 0 to buffer.Length - 1).
-                accelerator.Sequence(accelerator.DefaultStream, buffer.View, new Int32Sequencer());
+                AcceleratorType.Metal  => 5,
+                AcceleratorType.Cuda   => 4,
+                AcceleratorType.ROCm   => 3,
+                AcceleratorType.OpenCL => 2,
+                AcceleratorType.CPU    => 1,
+                _                      => 0,
+            })
+            .First();
 
-                // Reads data from the GPU buffer into a new CPU array.
-                // Implicitly calls accelerator.DefaultStream.Synchronize() to ensure
-                // that the kernel and memory copy are completed first.
-                var data = buffer.GetAsArray1D();
-                for (int i = 0, e = data.Length; i < e; ++i)
-                    Console.WriteLine($"Data[{i}] = {data[i]}");
-            }
+        using var accelerator = device.CreateAccelerator(context);
+        Console.WriteLine($"Using {accelerator}");
+        var stream = accelerator.DefaultStream;
 
-            // Custom sequencer
-            using (var buffer = accelerator.Allocate1D<CustomStruct>(64))
-            {
-                accelerator.Sequence(accelerator.DefaultStream, buffer.View, new CustomSequencer(32));
-
-                // Reads data from the GPU buffer into a new CPU array.
-                // Implicitly calls accelerator.DefaultStream.Synchronize() to ensure
-                // that the kernel and memory copy are completed first.
-                var data = buffer.GetAsArray1D();
-                for (int i = 0, e = data.Length; i < e; ++i)
-                    Console.WriteLine($"CustomData[{i}] = {data[i]}");
-            }
-
-            // Calling the convenient Sequence function on the accelerator
-            // involves internal heap allocations. This can be avoided by constructing
-            // a sequencer explicitly:
-            var sequencer = accelerator.CreateSequencer<CustomStruct, Stride1D.Dense, CustomSequencer>();
-            using (var buffer = accelerator.Allocate1D<CustomStruct>(64))
-            {
-                sequencer(
-                    accelerator.DefaultStream,
-                    buffer.View,
-                    new CustomSequencer(64));
-
-                // Reads data from the GPU buffer into a new CPU array.
-                // Implicitly calls accelerator.DefaultStream.Synchronize() to ensure
-                // that the kernel and memory copy are completed first.
-                var data = buffer.GetAsArray1D();
-                for (int i = 0, e = data.Length; i < e; ++i)
-                    Console.WriteLine($"CustomDataSpecialized[{i}] = {data[i]}");
-            }
-        }
-
-        /// <summary>
-        /// Demonstrates the repeated-sequence functionality.
-        /// </summary>
-        /// <param name="accl">The target accelerator.</param>
-        static void RepeatedSequence(Accelerator accl)
-        {
-            using var buffer = accl.Allocate1D<int>(64);
-
-            // Creates a sequence (from 0 to buffer.Length - 1):
-            // - [0, sequenceLength - 1] = [0, sequenceLength]
-            // - [sequenceLength, sequenceLength * 2 -1] = [0, sequenceLength]
-            accl.RepeatedSequence(
-                accl.DefaultStream,
-                buffer.View.SubView(0, buffer.Length),
-                2,
-                new Int32Sequencer());
-
-            // Reads data from the GPU buffer into a new CPU array.
-            // Implicitly calls accl.DefaultStream.Synchronize() to ensure
-            // that the kernel and memory copy are completed first.
-            var data = buffer.GetAsArray1D();
-            for (int i = 0, e = data.Length; i < e; ++i)
-                Console.WriteLine($"RepeatedData[{i}] = {data[i]}");
-
-            // There is also a CreateRepeatedSequencer function that avoids
-            // unnecessary heap allocations.
-        }
-
-        /// <summary>
-        /// Demonstrates the batched-sequence functionality.
-        /// </summary>
-        /// <param name="accl">The target accelerator.</param>
-        static void BatchedSequence(Accelerator accl)
-        {
-            using var buffer = accl.Allocate1D<int>(64);
-
-            // Creates a sequence (from 0 to buffer.Length):
-            // - [0, sequenceBatchLength - 1] = 0,
-            // - [sequenceBatchLength, sequenceBatchLength * 2 -1] = 1,
-            accl.BatchedSequence(
-                accl.DefaultStream,
-                buffer.View,
-                2,
-                new Int32Sequencer());
-
-            // Reads data from the GPU buffer into a new CPU array.
-            // Implicitly calls accl.DefaultStream.Synchronize() to ensure
-            // that the kernel and memory copy are completed first.
-            var data = buffer.GetAsArray1D();
-            for (int i = 0, e = data.Length; i < e; ++i)
-                Console.WriteLine($"BatchedData[{i}] = {data[i]}");
-
-            // There is also a CreateBatchedSequencer function that avoids
-            // unnecessary heap allocations.
-        }
-
-        /// <summary>
-        /// Demonstrates the repeated-batched-sequence functionality.
-        /// </summary>
-        /// <param name="accl">The target accelerator.</param>
-        static void RepeatedBatchedSequence(Accelerator accl)
-        {
-            using var buffer = accl.Allocate1D<int>(64);
-
-            // Creates a sequence (from 0 to buffer.Length):
-            // - [0, sequenceLength - 1] = 
-            //       - [0, sequenceBatchLength - 1] = sequencer(0),
-            //       - [sequenceBatchLength, sequenceBatchLength * 2 - 1] = sequencer(1),
-            //       - ...
-            // - [sequenceLength, sequenceLength * 2 - 1]
-            //       - [sequenceLength, sequenceLength + sequenceBatchLength - 1] = sequencer(0),
-            //       - [sequenceLength + sequenceBatchLength, sequenceLength + sequenceBatchLength * 2 - 1] = sequencer(1),
-            //       - ...
-            accl.RepeatedBatchedSequence(
-                accl.DefaultStream,
-                buffer.View,
-                2,
-                4,
-                new Int32Sequencer());
-
-            // Reads data from the GPU buffer into a new CPU array.
-            // Implicitly calls accl.DefaultStream.Synchronize() to ensure
-            // that the kernel and memory copy are completed first.
-            var data = buffer.GetAsArray1D();
-            for (int i = 0, e = data.Length; i < e; ++i)
-                Console.WriteLine($"RepeatedBatchedData[{i}] = {data[i]}");
-
-            // There is also a CreateRepeatedBatchedSequencer function that avoids
-            // unnecessary heap allocations.
-        }
-
-        static void Main()
-        {
-            using var context = Context.CreateDefault();
-
-            // For each available accelerator...
-            foreach (var device in context)
-            {
-                using var accelerator = device.CreateAccelerator(context);
-                Console.WriteLine($"Performing operations on {accelerator}");
-
-                Sequence(accelerator);
-                RepeatedSequence(accelerator);
-                BatchedSequence(accelerator);
-                RepeatedBatchedSequence(accelerator);
-            }
-        }
+        Sequence(stream);
+        RepeatedSequence(stream);
+        BatchedSequence(stream);
+        RepeatedBatchedSequence(stream);
     }
 }

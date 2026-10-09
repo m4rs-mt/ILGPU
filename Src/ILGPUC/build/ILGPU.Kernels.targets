@@ -28,6 +28,19 @@
     <!-- User-configurable: compilation options (e.g., -opt O2) -->
     <ILGPUCompilationOptions Condition="'$(ILGPUCompilationOptions)' == ''"></ILGPUCompilationOptions>
 
+    <!-- User-configurable: when true, ILGPUC invokes the native toolchain
+         (nvcc/hipcc/ocloc/xcrun) at build time and embeds the binary
+         instead of source. Off by default — most local builds embed source
+         and let the GPU runtime JIT. -->
+    <ILGPUCompile Condition="'$(ILGPUCompile)' == ''">false</ILGPUCompile>
+
+    <!-- User-configurable: semicolon-delimited list of remote
+         ILGPUC.CompilerService base URLs. Each URL is probed for
+         capabilities; the first URL to advertise a backend wins. Only
+         consulted when ILGPUCompile=true. May be combined with the
+         ILGPU_*_SERVICE_URL environment variables — explicit URLs win. -->
+    <ILGPUCompilerServices Condition="'$(ILGPUCompilerServices)' == ''"></ILGPUCompilerServices>
+
     <!-- Tool path — override for local dev builds -->
     <ILGPUCompilerTool Condition="'$(ILGPUCompilerTool)' == ''">ilgpuc</ILGPUCompilerTool>
   </PropertyGroup>
@@ -51,6 +64,13 @@
       <_ILGPUBackendItem Include="$(ILGPUBackend)" />
     </ItemGroup>
 
+    <!-- Split ILGPUCompilerServices on semicolons; each URL becomes its own
+         response-file argument so the CLI's repeatable
+         &quot;compiler-service&quot; option picks them up. -->
+    <ItemGroup>
+      <_ILGPUCompilerServiceItem Include="$(ILGPUCompilerServices)" />
+    </ItemGroup>
+
     <!-- Write response file -->
     <ItemGroup>
       <_ILGPURspLines Include="build" />
@@ -64,6 +84,13 @@
       <_ILGPURspLines Include="$(MSBuildProjectDirectory)" />
       <_ILGPURspLines Include="-b" />
       <_ILGPURspLines Include="@(_ILGPUBackendItem)" />
+      <_ILGPURspLines Include="--compile" Condition="'$(ILGPUCompile)' == 'true'" />
+      <!-- Emit a &quot;compiler-service&quot; flag plus each URI; the CLI accepts
+           multiple URIs after a single flag thanks to AllowMultipleArgumentsPerToken. -->
+      <_ILGPURspLines Include="--compiler-service"
+                      Condition="'@(_ILGPUCompilerServiceItem)' != ''" />
+      <_ILGPURspLines Include="@(_ILGPUCompilerServiceItem)"
+                      Condition="'@(_ILGPUCompilerServiceItem)' != ''" />
     </ItemGroup>
 
     <WriteLinesToFile

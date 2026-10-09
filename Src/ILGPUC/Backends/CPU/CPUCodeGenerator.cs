@@ -87,7 +87,28 @@ sealed class CPUCodeGenerator(
             GetEntryPointName(),
             BufferPool: methodEmitter?.BufferPool,
             KernelClassName: className,
-            EntryPointParamTypeNames: GetEntryPointParamTypeNames(context));
+            EntryPointParamTypeNames: GetEntryPointParamTypeNames(context),
+            EntryPointIndexTypeName: GetEntryPointIndexTypeName(context));
+    }
+
+    /// <summary>
+    /// Returns the post-backend-transform type name of the entry point's
+    /// index parameter when it is a <c>KernelIndex</c>-shaped struct.
+    /// <see langword="null"/> for scalar indices (<c>Index1D</c>) and for
+    /// grouped launches without an index parameter — callers derive scalar
+    /// index wiring from <see cref="LauncherEmissionContext.IndexDimensions"/>.
+    /// </summary>
+    private string? GetEntryPointIndexTypeName(GenerationContext context)
+    {
+        if (module.EntryPoint is null || module.EntryPoint.Parameters.Count == 0)
+            return null;
+        if (module.EntryPoint.Parameters[0].Type is not StructureType st
+            || !CPUMethodEmitter.IsKernelIndexStructType(st))
+        {
+            return null;
+        }
+        var typeEmitter = new TypeEmitter(context);
+        return typeEmitter.GetTypeName(st);
     }
 
     /// <summary>
@@ -104,13 +125,15 @@ sealed class CPUCodeGenerator(
         var parameters = module.EntryPoint.Parameters;
 
         // Detect whether param 0 is the thread index (Int32 for Index1D,
-        // or an Index2D/3D struct). For grouped kernels, param 0 is a
-        // real kernel parameter (view struct, scalar, etc.).
+        // Index2D/3D struct, or KernelIndex for grouped launches). Pure
+        // grouped kernels without an index parameter start marshaling from
+        // parameter 0.
         bool hasIndexParam = parameters.Count > 0
             && (parameters[0].Type is PrimitiveType
                     { BasicValueType: BasicValueType.Int32 }
                 || (parameters[0].Type is StructureType st
-                    && CPUMethodEmitter.IsIndexStructType(st)));
+                    && (CPUMethodEmitter.IsIndexStructType(st)
+                        || CPUMethodEmitter.IsKernelIndexStructType(st))));
         int startParam = hasIndexParam ? 1 : 0;
 
         var result = new string[parameters.Count - startParam];

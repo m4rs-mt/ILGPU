@@ -1,6 +1,6 @@
 ﻿// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                           Copyright (c) 2022 ILGPU Project
+//                        Copyright (c) 2022-2026 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: IVersionControlService.cs
@@ -32,6 +32,12 @@ namespace CopyrightUpdateTool.Abstractions
     /// </summary>
     interface IVersionControlService
     {
+        /// <summary>
+        /// Returns the working directory of the discovered repository, or null when
+        /// the tool is run outside a git working tree.
+        /// </summary>
+        string? WorkingDirectory { get; }
+
         /// <summary>
         /// Returns the relative path of this file, to the repository.
         /// </summary>

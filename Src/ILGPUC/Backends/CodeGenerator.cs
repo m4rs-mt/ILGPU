@@ -43,13 +43,20 @@ readonly record struct LauncherGenerationResult(
 /// <param name="EntryPointParamTypeNames">
 /// The entry point kernel parameter type names that were used.
 /// </param>
+/// <param name="EntryPointIndexTypeName">
+/// The post-backend-transform type name of the entry point's implicit
+/// thread-index parameter, if any (e.g., <c>KernelIndex</c> for grouped
+/// launches that expose a GridIndex/GroupIndex struct). <see langword="null"/>
+/// when the entry point receives a scalar index or no index at all.
+/// </param>
 readonly record struct CodeGenerationResult(
     string SourceCode,
     string EntryPointName,
     LauncherGenerationResult? Launcher = null,
     BufferPoolMetadata? BufferPool = null,
     string? KernelClassName = null,
-    string[]? EntryPointParamTypeNames = null);
+    string[]? EntryPointParamTypeNames = null,
+    string? EntryPointIndexTypeName = null);
 
 /// <summary>
 /// Abstract base class for generating source code from ILGPU IR.

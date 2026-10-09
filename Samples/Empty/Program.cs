@@ -1,6 +1,6 @@
-﻿// ---------------------------------------------------------------------------------------
+// ---------------------------------------------------------------------------------------
 //                                    ILGPU Samples
-//                           Copyright (c) 2021 ILGPU Project
+//                           Copyright (c) 2026 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Program.cs
@@ -11,25 +11,12 @@
 
 using ILGPU;
 
-namespace Empty
+namespace Empty;
+
+static class Program
 {
-    class Program
+    static void Main()
     {
-        /// <summary>
-        /// Initializes an ILGPU context.
-        /// </summary>
-        static void Main()
-        {
-            // Every application needs an instantiated global ILGPU context
-            using var context = Context.CreateDefault();
-
-            // Note that every other instantiated ILGPU object needs to be disposed before
-            // disposing the global context.
-
-
-            // Note that access to non-public internal user-defined types and methods
-            // requires all internals to be visible to the ILGPU runtime.
-            // Refer to AssemblyAttributes.cs for further information.
-        }
+        using var context = Context.CreateDefault();
     }
 }

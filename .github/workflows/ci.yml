@@ -5,34 +5,31 @@ name: CI
 #
 # Pipeline shape (auto-rendered by GitHub Actions from the `needs:` graph):
 #
-#                       ┌─ check-style-line-lengths ─┐
-#                       ├─ check-style-line-endings  ┼─→ check-style ──┐
-#                       └─ check-style-copyright-h.  ┘                 │
-#                                                                      │
-#                       check-version (parallel) ────────────────────► │
-#                                                                      │
-#                       build (Windows verification, matrix) ────────► │
-#                                                                      │
-#                       build-test-binaries ─→ test-cpu ─┬─ test-metal-compile  ─┐
-#                                                        ├─ test-cuda-compile   ─┤
-#                                                        ├─ test-rocm-compile   ─┤
-#                                                        └─ test-opencl-compile ─┤
-#                                                                                ▼
-#                                                              ┌──→ checks-completed ◄─ all leaves
-#                                                              │   (display name: "All required checks done"
-#                                                              │    — keeps check-required.yml working)
-#                                                              ▼
-#                                                       package-library
-#                                                              │
-#                                                  ┌───────────┴───────────┐
-#                                                  ▼                       ▼
-#                                          publish-preview          publish-release
-#                                          (push to master)         (push to refs/tags/v*)
+#   ┌─ check-style-line-lengths ─┐                ┌─ build (Windows verification, matrix) ─────────────────────────────────────────────────┐
+#   ├─ check-style-line-endings  ┼─→ check-style ─┤                                                                                        │
+#   └─ check-style-copyright-h.  ┘                └─ build-test-binaries ─→ build-samples (CPU) ────────→ test-cpu ─┬─ test-metal-compile  ─→ build-samples-metal  ─┐
+#                                                                                                                   ├─ test-cuda-compile   ─→ build-samples-cuda   ─┤
+#   check-version (parallel) ───────────────────────────────────────────────────────────────────────────────────► │ ├─ test-rocm-compile   ─→ build-samples-rocm   ─┤
+#                                                                                                                   └─ test-opencl-compile ─→ build-samples-opencl ─┤
+#                                                                                                                                                                   ▼
+#                                                                                          ┌──→ checks-completed ◄─ all leaves
+#                                                                                          │   (display name: "All required checks done"
+#                                                                                          │    — keeps check-required.yml working)
+#                                                                                          ▼
+#                                                                                   package-library
+#                                                                                          │
+#                                                                              ┌───────────┴───────────┐
+#                                                                              ▼                       ▼
+#                                                                      publish-preview          publish-release
+#                                                                      (push to master)         (push to refs/tags/v*)
 #
 # Key invariants:
 #  - publishing CANNOT happen unless `checks-completed` succeeded
 #  - `checks-completed` uses `if: always()` + explicit result inspection so
 #    it never silently passes on a skipped upstream
+#  - `check-style` gates the heavy `build` and `build-test-binaries` roots,
+#    so a style violation cascade-skips the entire test/sample tree before
+#    any Windows / Linux / macOS / GPU-container minutes are spent
 #  - the test-cpu job is the gate for the four compile-only jobs: a CPU
 #    regression fails fast and saves the runner credits the GPU pulls would
 #    burn
@@ -163,6 +160,7 @@ jobs:
     # WinForms references on Windows, etc.). Kept on windows-latest with
     # TreatWarningsAsErrors=true.
     if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule' || github.event_name == 'push' || github.event.pull_request.head.repo.id != github.event.pull_request.base.repo.id
+    needs: check-style
     runs-on: windows-latest
     timeout-minutes: 30
     strategy:
@@ -236,6 +234,7 @@ jobs:
     # so each test job uses the EXACT same binaries that this build
     # produced. No re-build per job, no risk of inconsistent inputs.
     if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule' || github.event_name == 'push' || github.event.pull_request.head.repo.id != github.event.pull_request.base.repo.id
+    needs: check-style
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -281,11 +280,15 @@ jobs:
   # CompilerService contract tests. Every compile-only job below depends on
   # this job — a CPU regression here aborts the pipeline before any GPU
   # image pulls or macOS minutes are spent.
+  #
+  # Gated behind `build-samples` so a sample compilation regression fails
+  # fast and skips the 30-minute CPU test run instead of wasting runner
+  # minutes on work that will be cascade-skipped by the aggregator anyway.
 
   test-cpu:
     name: CPU tests (IR + NonKernel + CPU backend + integration)
     if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule' || github.event_name == 'push' || github.event.pull_request.head.repo.id != github.event.pull_request.base.repo.id
-    needs: build-test-binaries
+    needs: build-samples
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -342,6 +345,338 @@ jobs:
           name: test-results-cpu
           path: '**/TestResults/*.trx'
           if-no-files-found: ignore
+
+  # ===========================================================================
+  # Tier 2: Build all sample programs (gate before test-cpu)
+  # ===========================================================================
+  #
+  # Reuses the `test-binaries` artifact so the samples link against the EXACT
+  # same ILGPU.dll / ILGPUC.dll that the rest of the pipeline verifies. The
+  # samples reference those binaries via HintPath at ../Bin/$(Configuration)/
+  # net10.0 (see Samples/Directory.Build.props), so extracting the artifact at
+  # the repo root restores the expected layout. Backend defaults to CPU — no
+  # native toolchain needed on ubuntu-latest. `-c Debug` is required so the
+  # samples' $(Configuration) resolves to the Debug path that the artifact
+  # actually contains.
+  #
+  # Deliberately runs BEFORE test-cpu: a sample regression is detected in
+  # a few minutes and skips the 30-minute CPU test run, saving runner time
+  # on a change that the aggregator would fail anyway.
+
+  # The cheap tier of sample-build validation: source-emit only, no native
+  # toolchain or service required. Runs CPU on Ubuntu so an IR-to-source
+  # regression on the CPU code path fails at sample-build time before the
+  # 30-minute test-cpu run. Metal / CUDA / ROCm / OpenCL sample builds all
+  # live in the *thorough* tier below (build-samples-{metal,cuda,rocm,opencl}),
+  # which runs after test-cpu — keeping test-cpu off the macOS runner queue
+  # so the Cuda/ROCm/OpenCL fan-out is not blocked by macOS availability.
+  #
+  # Matrix structure is preserved for trivial future re-expansion if a second
+  # source-emit-only backend ever makes sense at this tier. The `excludes`
+  # field lists samples that are *expected* to not compile for that backend.
+  build-samples:
+    name: Build sample programs (${{ matrix.name }})
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule' || github.event_name == 'push' || github.event.pull_request.head.repo.id != github.event.pull_request.base.repo.id
+    needs: build-test-binaries
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: CPU
+            backend: CPU
+            os: ubuntu-latest
+            excludes: ""
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Download test binaries
+        uses: actions/download-artifact@v4
+        with:
+          name: test-binaries
+
+      - name: Build samples
+        env:
+          ILGPU_BACKEND: ${{ matrix.backend }}
+          EXCLUDES: ${{ matrix.excludes }}
+        run: |
+          set -e
+          fail=0
+          # Build each sample csproj individually so an excluded one
+          # doesn't fail the whole job. Whitespace-tolerant exclude check.
+          for csproj in Samples/*/*.csproj; do
+            name="$(basename "$(dirname "$csproj")")"
+            if printf '%s\n' $EXCLUDES | grep -qx "$name"; then
+              echo "::notice::skipping $name on $ILGPU_BACKEND (excluded)"
+              continue
+            fi
+            echo "::group::Building $name"
+            if ! dotnet build "$csproj" -c Debug -p:ILGPUBackend=$ILGPU_BACKEND --nologo; then
+              echo "::error::sample build failed: $name on $ILGPU_BACKEND"
+              fail=1
+            fi
+            echo "::endgroup::"
+          done
+          exit $fail
+
+  # Thorough tier: builds samples *with* `--compile`, embedding a native
+  # binary produced by the in-container toolchain (nvcc / hipcc / ocloc).
+  # Same Docker images as the test-{cuda,rocm,opencl}-compile jobs, so
+  # they only become reachable once the toolchain image is healthy. No
+  # remote service URL is needed — the local CompilerManager inside the
+  # container handles the compile.
+  build-samples-cuda:
+    name: Build sample programs (Cuda)
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule' || github.event_name == 'push'
+    needs: test-cuda-compile
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      # Restore the prebuilt ILGPU.dll / ILGPUC.dll under Bin/Debug/net10.0/.
+      # Samples reference these via $(ILGPUBinDir) in Samples/Directory.Build.props
+      # and `dotnet build` invokes ILGPUC.dll as a tool — without the artifact
+      # the build fails with "ILGPUC.dll does not exist".
+      - name: Download test binaries
+        uses: actions/download-artifact@v4
+        with:
+          name: test-binaries
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Pull Cuda compiler image
+        run: |
+          docker pull ghcr.io/${{ github.repository_owner }}/ilgpuc-compiler-service-cuda:latest
+
+      - name: Build samples with --compile inside the container
+        run: |
+          docker run --rm \
+            --user "$(id -u):$(id -g)" \
+            -v "$GITHUB_WORKSPACE:/workspace" -w /workspace \
+            -e HOME=/tmp \
+            -e DOTNET_NOLOGO=1 \
+            -e DOTNET_CLI_TELEMETRY_OPTOUT=1 \
+            ghcr.io/${{ github.repository_owner }}/ilgpuc-compiler-service-cuda:latest \
+            bash -c '
+              dotnet build Samples/ILGPU.Samples.slnx -c Debug \
+                -p:ILGPUBackend=Cuda \
+                -p:ILGPUCompile=true
+            '
+
+  build-samples-rocm:
+    name: Build sample programs (ROCm)
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule' || github.event_name == 'push'
+    needs: test-rocm-compile
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      # See test-rocm-compile for context — the ROCm dev image is ~26.5 GB
+      # and ubuntu-latest needs preinstalled tooling pruned to fit it.
+      - name: Free disk space for the ROCm devel image
+        run: |
+          df -h /
+          sudo rm -rf \
+            /opt/hostedtoolcache \
+            /usr/share/dotnet/sdk \
+            /usr/local/lib/android \
+            /opt/ghc \
+            /usr/local/share/boost
+          df -h /
+
+      # Restore the prebuilt ILGPU.dll / ILGPUC.dll under Bin/Debug/net10.0/
+      # — see build-samples-cuda for rationale.
+      - name: Download test binaries
+        uses: actions/download-artifact@v4
+        with:
+          name: test-binaries
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Pull ROCm compiler image
+        run: |
+          docker pull ghcr.io/${{ github.repository_owner }}/ilgpuc-compiler-service-rocm:latest
+
+      - name: Build samples with --compile inside the container
+        run: |
+          docker run --rm \
+            --user "$(id -u):$(id -g)" \
+            -v "$GITHUB_WORKSPACE:/workspace" -w /workspace \
+            -e HOME=/tmp \
+            -e DOTNET_NOLOGO=1 \
+            -e DOTNET_CLI_TELEMETRY_OPTOUT=1 \
+            ghcr.io/${{ github.repository_owner }}/ilgpuc-compiler-service-rocm:latest \
+            bash -c '
+              dotnet build Samples/ILGPU.Samples.slnx -c Debug \
+                -p:ILGPUBackend=ROCm \
+                -p:ILGPUCompile=true
+            '
+
+  build-samples-opencl:
+    name: Build sample programs (OpenCL)
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule' || github.event_name == 'push'
+    needs: test-opencl-compile
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      # Restore the prebuilt ILGPU.dll / ILGPUC.dll under Bin/Debug/net10.0/
+      # — see build-samples-cuda for rationale.
+      - name: Download test binaries
+        uses: actions/download-artifact@v4
+        with:
+          name: test-binaries
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Pull OpenCL compiler image
+        run: |
+          docker pull ghcr.io/${{ github.repository_owner }}/ilgpuc-compiler-service-opencl:latest
+
+      - name: Build samples with --compile inside the container
+        env:
+          # Samples that depend on Float64 atomics — OpenCL has no
+          # native `atomic_add` on doubles. AdvancedAtomics intentionally
+          # exercises that path; mirrors the build-samples-metal exclusion.
+          EXCLUDES: "AdvancedAtomics"
+        run: |
+          docker run --rm \
+            --user "$(id -u):$(id -g)" \
+            -v "$GITHUB_WORKSPACE:/workspace" -w /workspace \
+            -e HOME=/tmp \
+            -e DOTNET_NOLOGO=1 \
+            -e DOTNET_CLI_TELEMETRY_OPTOUT=1 \
+            -e EXCLUDES \
+            ghcr.io/${{ github.repository_owner }}/ilgpuc-compiler-service-opencl:latest \
+            bash -c '
+              set -e
+              fail=0
+              for csproj in Samples/*/*.csproj; do
+                name="$(basename "$(dirname "$csproj")")"
+                if printf "%s\n" $EXCLUDES | grep -qx "$name"; then
+                  echo "::notice::skipping $name on OpenCL (excluded)"
+                  continue
+                fi
+                echo "::group::Building $name"
+                if ! dotnet build "$csproj" -c Debug \
+                    -p:ILGPUBackend=OpenCL \
+                    -p:ILGPUCompile=true \
+                    --nologo; then
+                  echo "::error::sample build failed: $name on OpenCL"
+                  fail=1
+                fi
+                echo "::endgroup::"
+              done
+              exit $fail
+            '
+
+  # Metal counterpart to build-samples-{cuda,rocm,opencl}. Runs on macOS
+  # (no Docker; xcrun metal is preinstalled — same env as
+  # test-metal-compile) and exercises the full -p:ILGPUCompile=true round-
+  # trip per-sample so AdvancedAtomics' Float64-atomic limit can be
+  # excluded individually instead of failing the whole job. Mirrors the
+  # cheap-tier build-samples Metal exclude list at the top of this file.
+  build-samples-metal:
+    name: Build sample programs (Metal)
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule' || github.event_name == 'push' || github.event.pull_request.head.repo.id != github.event.pull_request.base.repo.id
+    needs: test-metal-compile
+    runs-on: macos-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Download test binaries
+        uses: actions/download-artifact@v4
+        with:
+          name: test-binaries
+
+      - name: Verify Metal toolchain
+        run: |
+          xcrun --find metal
+          xcrun -sdk macosx metal --version
+
+      - name: Build samples with --compile
+        env:
+          ILGPU_BACKEND: Metal
+          # Samples that depend on Float64 — a permanent Metal limitation
+          # (Metal Shading Language has no `double`), not a codegen
+          # regression. AdvancedAtomics also needs Float64 atomics. Bump
+          # this list when other samples acquire Metal-incompatible
+          # features.
+          EXCLUDES: "AdvancedAtomics AlgorithmsMath FixedSizeBuffers SimpleMath WarpShuffle"
+        run: |
+          set -e
+          fail=0
+          for csproj in Samples/*/*.csproj; do
+            name="$(basename "$(dirname "$csproj")")"
+            if printf '%s\n' $EXCLUDES | grep -qx "$name"; then
+              echo "::notice::skipping $name on $ILGPU_BACKEND (excluded)"
+              continue
+            fi
+            echo "::group::Building $name"
+            if ! dotnet build "$csproj" -c Debug \
+                -p:ILGPUBackend=$ILGPU_BACKEND \
+                -p:ILGPUCompile=true \
+                --nologo; then
+              echo "::error::sample build failed: $name on $ILGPU_BACKEND"
+              fail=1
+            fi
+            echo "::endgroup::"
+          done
+          exit $fail
 
   # ===========================================================================
   # Tier 3: compile-only jobs (parallel after test-cpu)
@@ -642,16 +977,26 @@ jobs:
 
   checks-completed:
     name: All required checks done
+    # All sample-build jobs now gate this aggregator. The GPU jobs
+    # (build-samples-{cuda,rocm,opencl}) need GHCR access and therefore
+    # `skipped` on fork PRs, so they're checked via `check_gpu_private`
+    # (allows skipped only on fork PRs). build-samples-metal runs on macOS
+    # without Docker and is fork-safe, so it's a hard `check_required`.
     needs:
       - check-style
       - check-version
       - build
       - build-test-binaries
+      - build-samples
       - test-cpu
       - test-metal-compile
+      - build-samples-metal
       - test-cuda-compile
       - test-rocm-compile
       - test-opencl-compile
+      - build-samples-cuda
+      - build-samples-rocm
+      - build-samples-opencl
     if: |
       always() &&
       (github.event_name == 'workflow_dispatch' ||
@@ -668,11 +1013,16 @@ jobs:
           RESULT_CHECK_VERSION: ${{ needs.check-version.result }}
           RESULT_BUILD: ${{ needs.build.result }}
           RESULT_BUILD_TEST_BINARIES: ${{ needs.build-test-binaries.result }}
+          RESULT_BUILD_SAMPLES: ${{ needs.build-samples.result }}
           RESULT_TEST_CPU: ${{ needs.test-cpu.result }}
           RESULT_TEST_METAL: ${{ needs.test-metal-compile.result }}
+          RESULT_BUILD_SAMPLES_METAL: ${{ needs.build-samples-metal.result }}
           RESULT_TEST_CUDA: ${{ needs.test-cuda-compile.result }}
           RESULT_TEST_ROCM: ${{ needs.test-rocm-compile.result }}
           RESULT_TEST_OPENCL: ${{ needs.test-opencl-compile.result }}
+          RESULT_BUILD_SAMPLES_CUDA: ${{ needs.build-samples-cuda.result }}
+          RESULT_BUILD_SAMPLES_ROCM: ${{ needs.build-samples-rocm.result }}
+          RESULT_BUILD_SAMPLES_OPENCL: ${{ needs.build-samples-opencl.result }}
         run: |
           fail=0
 
@@ -703,11 +1053,16 @@ jobs:
           check_required  check-version        "$RESULT_CHECK_VERSION"
           check_required  build                "$RESULT_BUILD"
           check_required  build-test-binaries  "$RESULT_BUILD_TEST_BINARIES"
+          check_required  build-samples        "$RESULT_BUILD_SAMPLES"
           check_required  test-cpu             "$RESULT_TEST_CPU"
           check_required  test-metal-compile   "$RESULT_TEST_METAL"
-          check_gpu_private test-cuda-compile  "$RESULT_TEST_CUDA"
-          check_gpu_private test-rocm-compile  "$RESULT_TEST_ROCM"
-          check_gpu_private test-opencl-compile "$RESULT_TEST_OPENCL"
+          check_required  build-samples-metal  "$RESULT_BUILD_SAMPLES_METAL"
+          check_gpu_private test-cuda-compile    "$RESULT_TEST_CUDA"
+          check_gpu_private test-rocm-compile    "$RESULT_TEST_ROCM"
+          check_gpu_private test-opencl-compile  "$RESULT_TEST_OPENCL"
+          check_gpu_private build-samples-cuda   "$RESULT_BUILD_SAMPLES_CUDA"
+          check_gpu_private build-samples-rocm   "$RESULT_BUILD_SAMPLES_ROCM"
+          check_gpu_private build-samples-opencl "$RESULT_BUILD_SAMPLES_OPENCL"
 
           if [[ "$fail" -eq 0 ]]; then
             echo "All upstream jobs OK for event '${{ github.event_name }}' (fork PR: $IS_FORK_PR)."

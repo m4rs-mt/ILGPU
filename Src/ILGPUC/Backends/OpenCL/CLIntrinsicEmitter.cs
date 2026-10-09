@@ -11,6 +11,7 @@
 
 
 // disable: max_line_length
+using ILGPUC.IR;
 using ILGPUC.IR.BasicBlockValues;
 using ILGPUC.IR.PureValues;
 using System;
@@ -143,7 +144,11 @@ sealed class CLIntrinsicEmitter(CLVendor vendor) : IntrinsicEmitter
     #region Atomic Operations
 
     /// <inheritdoc/>
-    public override string EmitAtomicAdd(string ptr, string value, ArithmeticBasicValueType type) =>
+    public override string EmitAtomicAdd(
+        string ptr,
+        string value,
+        ArithmeticBasicValueType type,
+        MemoryAddressSpace addressSpace) =>
         type switch
         {
             ArithmeticBasicValueType.Int32 => $"atomic_add({ptr}, {value})",
@@ -156,7 +161,8 @@ sealed class CLIntrinsicEmitter(CLVendor vendor) : IntrinsicEmitter
     public override string EmitAtomicExchange(
         string ptr,
         string value,
-        ArithmeticBasicValueType type) =>
+        ArithmeticBasicValueType type,
+        MemoryAddressSpace addressSpace) =>
         type switch
         {
             ArithmeticBasicValueType.Int32 => $"atomic_xchg({ptr}, {value})",
@@ -170,16 +176,22 @@ sealed class CLIntrinsicEmitter(CLVendor vendor) : IntrinsicEmitter
         string ptr,
         string compare,
         string value,
-        ArithmeticBasicValueType type) =>
+        ArithmeticBasicValueType type,
+        MemoryAddressSpace addressSpace) =>
         type switch
         {
             ArithmeticBasicValueType.Int32 => $"atomic_cmpxchg({ptr}, {compare}, {value})",
+            ArithmeticBasicValueType.Int64 => $"atom_cmpxchg({ptr}, {compare}, {value})", // 64-bit extension
             _ => throw new NotSupportedException(
                 $"Atomic CAS not supported for type {type} in OpenCL")
         };
 
     /// <inheritdoc/>
-    public override string EmitAtomicMin(string ptr, string value, ArithmeticBasicValueType type) =>
+    public override string EmitAtomicMin(
+        string ptr,
+        string value,
+        ArithmeticBasicValueType type,
+        MemoryAddressSpace addressSpace) =>
         type switch
         {
             ArithmeticBasicValueType.Int32 => $"atomic_min({ptr}, {value})",
@@ -188,7 +200,11 @@ sealed class CLIntrinsicEmitter(CLVendor vendor) : IntrinsicEmitter
         };
 
     /// <inheritdoc/>
-    public override string EmitAtomicMax(string ptr, string value, ArithmeticBasicValueType type) =>
+    public override string EmitAtomicMax(
+        string ptr,
+        string value,
+        ArithmeticBasicValueType type,
+        MemoryAddressSpace addressSpace) =>
         type switch
         {
             ArithmeticBasicValueType.Int32 => $"atomic_max({ptr}, {value})",
@@ -197,7 +213,11 @@ sealed class CLIntrinsicEmitter(CLVendor vendor) : IntrinsicEmitter
         };
 
     /// <inheritdoc/>
-    public override string EmitAtomicAnd(string ptr, string value, ArithmeticBasicValueType type) =>
+    public override string EmitAtomicAnd(
+        string ptr,
+        string value,
+        ArithmeticBasicValueType type,
+        MemoryAddressSpace addressSpace) =>
         type switch
         {
             ArithmeticBasicValueType.Int32 => $"atomic_and({ptr}, {value})",
@@ -206,7 +226,11 @@ sealed class CLIntrinsicEmitter(CLVendor vendor) : IntrinsicEmitter
         };
 
     /// <inheritdoc/>
-    public override string EmitAtomicOr(string ptr, string value, ArithmeticBasicValueType type) =>
+    public override string EmitAtomicOr(
+        string ptr,
+        string value,
+        ArithmeticBasicValueType type,
+        MemoryAddressSpace addressSpace) =>
         type switch
         {
             ArithmeticBasicValueType.Int32 => $"atomic_or({ptr}, {value})",
@@ -215,12 +239,46 @@ sealed class CLIntrinsicEmitter(CLVendor vendor) : IntrinsicEmitter
         };
 
     /// <inheritdoc/>
-    public override string EmitAtomicXor(string ptr, string value, ArithmeticBasicValueType type) =>
+    public override string EmitAtomicXor(
+        string ptr,
+        string value,
+        ArithmeticBasicValueType type,
+        MemoryAddressSpace addressSpace) =>
         type switch
         {
             ArithmeticBasicValueType.Int32 => $"atomic_xor({ptr}, {value})",
             _ => throw new NotSupportedException(
                 $"Atomic XOR not supported for type {type} in OpenCL")
+        };
+
+    #endregion
+
+    #region Bit-Reinterpret Casts
+
+    /// <inheritdoc/>
+    public override string EmitFloatAsInt(
+        string arg,
+        BasicValueType sourceType,
+        BasicValueType targetType) =>
+        sourceType switch
+        {
+            BasicValueType.Float32 => $"as_int({arg})",
+            BasicValueType.Float64 => $"as_long({arg})",
+            _ => throw new NotSupportedException(
+                $"Float-as-int reinterpret not supported for source {sourceType}")
+        };
+
+    /// <inheritdoc/>
+    public override string EmitIntAsFloat(
+        string arg,
+        BasicValueType sourceType,
+        BasicValueType targetType) =>
+        targetType switch
+        {
+            BasicValueType.Float32 => $"as_float({arg})",
+            BasicValueType.Float64 => $"as_double({arg})",
+            _ => throw new NotSupportedException(
+                $"Int-as-float reinterpret not supported for target {targetType}")
         };
 
     #endregion

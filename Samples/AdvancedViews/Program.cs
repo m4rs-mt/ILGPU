@@ -1,6 +1,6 @@
-﻿// ---------------------------------------------------------------------------------------
+// ---------------------------------------------------------------------------------------
 //                                    ILGPU Samples
-//                           Copyright (c) 2021 ILGPU Project
+//                           Copyright (c) 2026 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Program.cs
@@ -9,98 +9,93 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
+
+// disable: max_line_length
+using System;
+using System.Linq;
 using ILGPU;
 using ILGPU.Runtime;
-using System;
 
-namespace AdvancedViews
+namespace AdvancedViews;
+
+struct ComposedStructure
 {
-    /// <summary>
-    /// This structure holds several elements and our desired
-    /// encapsulated element counter field.
-    /// </summary>
-    struct ComposedStructure
+    public static readonly int ElementCounterOffset =
+        Interop.OffsetOf<ComposedStructure>(nameof(ElementCounter));
+
+    public short SomeElement;
+    public byte SomeOtherElement;
+    public int ElementCounter;
+
+    public ComposedStructure(
+        short someElement,
+        byte someOtherElement,
+        int elementCounter)
     {
-        /// <summary>
-        /// Stores the offset of the element-counter field in bytes.
-        /// </summary>
-        public static readonly int ElementCounterOffset =
-            Interop.OffsetOf<ComposedStructure>(nameof(ElementCounter));
+        SomeElement = someElement;
+        SomeOtherElement = someOtherElement;
+        ElementCounter = elementCounter;
+    }
+}
 
-        public short SomeElement;
-        public byte SomeOtherElement;
-        public int ElementCounter;
-
-        public ComposedStructure(
-            short someElement,
-            byte someOtherElement,
-            int elementCounter)
+static class Kernels
+{
+    public static void MyKernel(
+        Index1D index,
+        ArrayView<int> elements,
+        ArrayView<ComposedStructure> view,
+        int comparisonValue)
+    {
+        var element = elements[index];
+        if (element == comparisonValue)
         {
-            SomeElement = someElement;
-            SomeOtherElement = someOtherElement;
-            ElementCounter = elementCounter;
+            // Cast the struct view to bytes, then to int at the field offset
+            var byteView = view.Cast<byte>();
+            int byteOffset = ComposedStructure.ElementCounterOffset;
+            var intView = byteView.SubView(byteOffset).Cast<int>();
+            Atomic.Add(ref intView[0], 1);
         }
     }
+}
 
-    class Program
+static class Program
+{
+    static void Main()
     {
-        /// <summary>
-        /// A simple kernel that uses a variable-sub-view access to compute
-        /// the target memory location for an atomic operation.
-        /// </summary>
-        /// <param name="index">The thread index.</param>
-        /// <param name="elements">The elements to check.</param>
-        /// <param name="view">The target view.</param>
-        /// <param name="comparisonValue">The comparison value to use.</param>
-        static void MyKernel(
-            Index1D index,
-            ArrayView<int> elements,
-            ArrayView<ComposedStructure> view,
-            int comparisonValue)
-        {
-            var element = elements[index];
-            if (element == comparisonValue)
+        using var context = Context.CreateDefault();
+
+        var device = context.Devices
+            .OrderByDescending(d => d.AcceleratorType switch
             {
-                var baseView = view.VariableView(0);
-                var counterView = baseView.SubView<int>(ComposedStructure.ElementCounterOffset);
-                Atomic.Add(ref counterView.Value, 1);
-            }
-        }
+                AcceleratorType.Metal  => 5,
+                AcceleratorType.Cuda   => 4,
+                AcceleratorType.ROCm   => 3,
+                AcceleratorType.OpenCL => 2,
+                AcceleratorType.CPU    => 1,
+                _                      => 0,
+            })
+            .First();
 
-        /// <summary>
-        /// Demonstrates the use of variable-sub-view accesses.
-        /// </summary>
-        static void Main()
-        {
-            // Create main context
-            using var context = Context.CreateDefault();
+        using var accelerator = device.CreateAccelerator(context);
+        Console.WriteLine($"Using {accelerator}");
+        var stream = accelerator.DefaultStream;
 
-            // For each available device...
-            foreach (var device in context)
-            {
-                // Create accelerator for the given device
-                using var accelerator = device.CreateAccelerator(context);
-                Console.WriteLine($"Performing operations on {accelerator}");
+        const int Length = 1024;
+        using var elementsBuffer = stream.Allocate1D<int>(Length);
+        using var composedStructBuffer = stream.Allocate1D<ComposedStructure>(1);
+        elementsBuffer.MemSetToZero();
+        composedStructBuffer.MemSetToZero();
 
-                var kernel = accelerator.LoadAutoGroupedStreamKernel<
-                    Index1D, ArrayView<int>, ArrayView<ComposedStructure>, int>(MyKernel);
+        stream.Launch(
+            (Index1D)Length,
+            index => Kernels.MyKernel(
+                index, elementsBuffer.View, composedStructBuffer.View, 0));
+        stream.Synchronize();
 
-                using var elementsBuffer = accelerator.Allocate1D<int>(1024);
-                using var composedStructBuffer = accelerator.Allocate1D<ComposedStructure>(1);
-                elementsBuffer.MemSetToZero();
-                composedStructBuffer.MemSetToZero();
-
-                kernel((int)elementsBuffer.Length, elementsBuffer.View, composedStructBuffer.View, 0);
-
-                // Reads data from the GPU buffer into a new CPU array.
-                // Implicitly calls accelerator.DefaultStream.Synchronize() to ensure
-                // that the kernel and memory copy are completed first.
-                var results = composedStructBuffer.GetAsArray1D();
-                ComposedStructure composedResult = results[0];
-                Console.WriteLine("Composed.SomeElement = " + composedResult.SomeElement);
-                Console.WriteLine("Composed.SomeOtherElement = " + composedResult.SomeOtherElement);
-                Console.WriteLine("Composed.ElementCounter = " + composedResult.ElementCounter);
-            }
-        }
+        var results = composedStructBuffer.GetAsArray1D();
+        ComposedStructure composedResult = results[0];
+        Console.WriteLine("Composed.SomeElement = " + composedResult.SomeElement);
+        Console.WriteLine("Composed.SomeOtherElement = " + composedResult.SomeOtherElement);
+        Console.WriteLine("Composed.ElementCounter = " + composedResult.ElementCounter);
     }
 }

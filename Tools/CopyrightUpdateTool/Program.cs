@@ -1,6 +1,6 @@
-﻿// ---------------------------------------------------------------------------------------
+// ---------------------------------------------------------------------------------------
 //                                        ILGPU
-//                           Copyright (c) 2022 ILGPU Project
+//                        Copyright (c) 2022-2026 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Program.cs
@@ -12,6 +12,7 @@
 using CopyrightUpdateTool.Abstractions;
 using CopyrightUpdateTool.Parsers;
 using CopyrightUpdateTool.Util;
+using LibGit2Sharp;
 using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.IO;
@@ -31,20 +32,36 @@ namespace CopyrightUpdateTool
                 ? path = args[0]
                 : Directory.GetCurrentDirectory();
 
-            // Register dependency injection.
-            var services = new ServiceCollection();
-            services.AddSingleton<Runner>();
-            services.AddSingleton<IVersionControlService, VersionControlService>();
-            services.AddSingleton<ICopyrightParser, SourceCodeCopyrightParser>();
-            services.AddSingleton<ICopyrightParser, NuspecCopyrightParser>();
-            services.AddSingleton<ICopyrightParser, LicenseCopyrighParser>();
-            services.AddSingleton<ICopyrightParser, ReadmeCopyrightParser>();
+            // Discover and open the git repository once. The shared handle is
+            // reused for every per-file query so we don't pay Repository.Discover
+            // + libgit2 init per file.
+            Repository? repository = null;
+            var repositoryPath = Repository.Discover(path);
+            if (repositoryPath != null)
+                repository = new Repository(repositoryPath);
 
-            // Perform copyright update.
-            var serviceProvider = services.BuildServiceProvider();
-            var runner = serviceProvider.GetRequiredService<Runner>();
+            try
+            {
+                // Register dependency injection.
+                var services = new ServiceCollection();
+                services.AddSingleton<Runner>();
+                services.AddSingleton<IVersionControlService>(
+                    new VersionControlService(repository));
+                services.AddSingleton<ICopyrightParser, SourceCodeCopyrightParser>();
+                services.AddSingleton<ICopyrightParser, NuspecCopyrightParser>();
+                services.AddSingleton<ICopyrightParser, LicenseCopyrighParser>();
+                services.AddSingleton<ICopyrightParser, ReadmeCopyrightParser>();
 
-            await runner.UpdateCopyrightAsync(path, CancellationToken.None);
+                // Perform copyright update.
+                var serviceProvider = services.BuildServiceProvider();
+                var runner = serviceProvider.GetRequiredService<Runner>();
+
+                await runner.UpdateCopyrightAsync(path, CancellationToken.None);
+            }
+            finally
+            {
+                repository?.Dispose();
+            }
         }
     }
 }

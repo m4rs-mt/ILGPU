@@ -1,6 +1,6 @@
-﻿// ---------------------------------------------------------------------------------------
+// ---------------------------------------------------------------------------------------
 //                                    ILGPU Samples
-//                           Copyright (c) 2021 ILGPU Project
+//                           Copyright (c) 2026 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Program.cs
@@ -9,74 +9,72 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
-using ILGPU;
-using ILGPU.Runtime;
 using System;
 using System.Linq;
+using ILGPU;
+using ILGPU.Runtime;
 
-namespace ProfilingMarkers
+namespace ProfilingMarkers;
+
+static class Kernels
 {
-    class Program
+    public static void ProfiledKernel(
+        Index1D index,
+        ArrayView1D<int, Stride1D.Dense> input,
+        ArrayView1D<int, Stride1D.Dense> output)
     {
-        static void ProfiledKernel(
-            Index1D index,
-            ArrayView1D<int, Stride1D.Dense> input,
-            ArrayView1D<int, Stride1D.Dense> output)
-        {
-            int result = 0;
-            for (var i = index; i < input.Length; i++)
-                result += input[i];
+        int result = 0;
+        for (var i = index; i < input.Length; i++)
+            result += input[i];
 
-            output[index] = result;
-        }
+        output[index] = result;
+    }
+}
 
-        static void Main()
-        {
-            // Create default context and enable profiling.
-            // For GPU accelerators, Profiling Markers provide better accuracy than
-            // using the .NET Stopwatch class.
-            using var context = Context.Create(builder => builder.Default().Profiling());
+static class Program
+{
+    static void Main()
+    {
+        // Enable profiling via the context builder
+        using var context = Context.Create(builder => builder.Default().Profiling());
 
-            foreach (var device in context)
+        var device = context.Devices
+            .OrderByDescending(d => d.AcceleratorType switch
             {
-                using var accelerator = device.CreateAccelerator(context);
-                Console.WriteLine($"Performing operations on {accelerator}");
+                AcceleratorType.Metal  => 5,
+                AcceleratorType.Cuda   => 4,
+                AcceleratorType.ROCm   => 3,
+                AcceleratorType.OpenCL => 2,
+                AcceleratorType.CPU    => 1,
+                _                      => 0,
+            })
+            .First();
 
-                using var stream = accelerator.CreateStream();
-                var kernel = accelerator.LoadAutoGroupedKernel<
-                    Index1D,
-                    ArrayView1D<int, Stride1D.Dense>,
-                    ArrayView1D<int, Stride1D.Dense>>(
-                        ProfiledKernel);
+        using var accelerator = device.CreateAccelerator(context);
+        Console.WriteLine($"Using {accelerator}");
 
-                var input = Enumerable.Range(0, 4096).ToArray();
-                using var inputBuffer = accelerator.Allocate1D(input);
-                using var outputBuffer = accelerator.Allocate1D<int>(input.Length);
+        // Use a dedicated stream for profiling
+        using var stream = accelerator.CreateStream();
 
-                // Add a profiling marker into the same stream as the kernel.
-                using var startMarker = stream.AddProfilingMarker();
+        var input = Enumerable.Range(0, 4096).ToArray();
+        using var inputBuffer = stream.Allocate1D(input);
+        using var outputBuffer = stream.Allocate1D<int>(input.Length);
 
-                // Launch the kernel to be profiled.
-                kernel(
-                    stream,
-                    (int)inputBuffer.Length,
-                    inputBuffer.View,
-                    outputBuffer.View);
+        // Add a profiling marker before the kernel
+        using var startMarker = stream.AddProfilingMarker();
 
-                // Enqueue another profiling marker after the kernel.
-                using var endMarker = stream.AddProfilingMarker();
+        // Launch the kernel
+        stream.Launch(
+            (Index1D)input.Length,
+            index => Kernels.ProfiledKernel(index, inputBuffer.View, outputBuffer.View));
 
-                // Measure the time between the markers, which measures the elasped time
-                // of the kernel.
-                // NB: Implicitly synchronizes the stream until the marker is processed.
-                TimeSpan elapsedTime = endMarker.MeasureFrom(startMarker);
+        // Add a profiling marker after the kernel
+        using var endMarker = stream.AddProfilingMarker();
 
-                // Alternatively, use:
-                elapsedTime = endMarker - startMarker;
+        // Measure elapsed time between markers (implicitly synchronizes)
+        TimeSpan elapsedTime = endMarker.MeasureFrom(startMarker);
 
-                Console.WriteLine(
-                    $"Elapsed time: {(int)elapsedTime.TotalMilliseconds}ms");
-            }
-        }
+        Console.WriteLine(
+            $"Elapsed time: {(int)elapsedTime.TotalMilliseconds}ms");
     }
 }

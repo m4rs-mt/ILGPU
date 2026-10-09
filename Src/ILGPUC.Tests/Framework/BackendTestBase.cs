@@ -38,11 +38,20 @@ public abstract class BackendTestBase : DisposeBase
     }
 
     /// <summary>
-    /// Assert source generation succeeds (non-empty source, non-empty entry point).
+    /// Assert source generation succeeds (non-empty source, non-empty entry
+    /// point). If the kernel requires backend capabilities this backend
+    /// doesn't support (Float64 / Float64Atomics / Float16), skips instead.
     /// </summary>
     protected void AssertSourceGenerationSucceeds(
-        MethodInfo kernel, CompilationProperties? props = null)
+        MethodInfo kernel,
+        CompilationProperties? props = null,
+        BackendCapability required = BackendCapability.None)
     {
+        var unsupported = BackendCapabilities.GetUnsupported(Backend, required);
+        Skip.If(
+            unsupported != BackendCapability.None,
+            $"{Backend} does not support: {unsupported}");
+
         var result = _helper.GenerateBackendCode(kernel, Backend, props);
         _output.WriteLine($"// Entry point: {result.EntryPointName}");
         _output.WriteLine(result.SourceCode);
@@ -56,14 +65,25 @@ public abstract class BackendTestBase : DisposeBase
     }
 
     /// <summary>
-    /// Assert native compilation succeeds (skips if compiler unavailable or
-    /// the kernel requires capabilities this backend does not support).
+    /// Assert native compilation succeeds (skips if compiler unavailable,
+    /// the kernel requires capabilities this backend does not support, or
+    /// the kernel is annotated with <see cref="KnownFailingOnAttribute"/>
+    /// for the current backend).
     /// </summary>
     protected async Task AssertNativeCompilationSucceeds(
         MethodInfo kernel,
         CompilationProperties? props = null,
-        BackendCapability required = BackendCapability.None)
+        BackendCapability required = BackendCapability.None,
+        KnownFailingOnAttribute? knownFailing = null)
     {
+        // Skip if kernel is a known-failing holding pen for this backend
+        if (knownFailing is not null
+            && Array.IndexOf(knownFailing.Backends, Backend) >= 0)
+        {
+            Skip.If(true,
+                $"Known failing on {Backend}: {knownFailing.Reason}");
+        }
+
         // Skip if kernel requires unsupported capabilities
         var unsupported = BackendCapabilities.GetUnsupported(Backend, required);
         Skip.If(

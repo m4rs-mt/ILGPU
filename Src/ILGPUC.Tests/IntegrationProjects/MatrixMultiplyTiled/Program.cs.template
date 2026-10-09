@@ -1,0 +1,88 @@
+// MatrixMultiplyTiled: pins the tiled KernelIndex + Group.GetSharedMemory2D
+// + Group.Barrier shape from Samples/MatrixMultiply that hit the SSA-construction
+// + CPU-launcher KernelIndex bugs fixed on temp5. Build-only assertion — the
+// CPU backend cannot run the tiled kernel correctly because Group.Barrier()
+// semantics aren't honoured under the per-thread serial CPU launcher (see the
+// comment in Samples/MatrixMultiply/Program.cs).
+
+using System;
+using ILGPU;
+using ILGPU.Runtime;
+
+namespace MatrixMultiplyTiled;
+
+static class Kernels
+{
+    public const int TileSize = 2;
+
+    public static void MatrixMultiplyTiledKernel(
+        KernelIndex index,
+        ArrayView2D<float, Stride2D.DenseX> aView,
+        ArrayView2D<float, Stride2D.DenseX> bView,
+        ArrayView2D<float, Stride2D.DenseX> cView,
+        int numGroupsY)
+    {
+        var aTile = Group.GetSharedMemory2D<float, Stride2D.DenseX>(
+            new Index2D(TileSize, TileSize));
+        var bTile = Group.GetSharedMemory2D<float, Stride2D.DenseX>(
+            new Index2D(TileSize, TileSize));
+
+        int groupIdxX = (int)(index.GridIndex / numGroupsY);
+        int groupIdxY = (int)(index.GridIndex % numGroupsY);
+        int localX = index.GroupIndex / TileSize;
+        int localY = index.GroupIndex % TileSize;
+
+        int globalX = groupIdxX * TileSize + localX;
+        int globalY = groupIdxY * TileSize + localY;
+        var sum = 0.0f;
+
+        for (var i = 0; i < aView.IntExtent.Y; i += TileSize)
+        {
+            aTile[new Index2D(localX, localY)] =
+                aView[new Index2D(globalX, localY + i)];
+            bTile[new Index2D(localX, localY)] =
+                bView[new Index2D(localX + i, globalY)];
+            Group.Barrier();
+
+            sum += aTile[new Index2D(localX, 0)] * bTile[new Index2D(0, localY)];
+            sum += aTile[new Index2D(localX, 1)] * bTile[new Index2D(1, localY)];
+            Group.Barrier();
+        }
+
+        if (globalX < cView.IntExtent.X && globalY < cView.IntExtent.Y)
+            cView[new Index2D(globalX, globalY)] = sum;
+    }
+}
+
+static class Program
+{
+    static void Main()
+    {
+        // 4x4 identity-multiply scaffolding so the program is wireable.
+        // Output is intentionally not asserted — CPU Group.Barrier semantics
+        // mean the result is unreliable; we run only to prove the binary
+        // links and the launcher accepts the tiled-kernel signature.
+        const int N = 4;
+
+        using var context = Context.Create(b => b.Default());
+        using var accelerator = context.GetPreferredDevice(preferCPU: $(PREFER_CPU))
+            .CreateAccelerator(context);
+        var stream = accelerator.DefaultStream;
+
+        using var aBuffer = stream.Allocate2DDenseX<float>(new Index2D(N, N));
+        using var bBuffer = stream.Allocate2DDenseX<float>(new Index2D(N, N));
+        using var cBuffer = stream.Allocate2DDenseX<float>(new Index2D(N, N));
+
+        int numGroupsY = (N + Kernels.TileSize - 1) / Kernels.TileSize;
+        int totalGroups = numGroupsY * numGroupsY;
+        int groupSize = Kernels.TileSize * Kernels.TileSize;
+        var config = new KernelConfig(totalGroups, groupSize);
+
+        stream.Launch(in config, index =>
+            Kernels.MatrixMultiplyTiledKernel(
+                index, aBuffer.View, bBuffer.View, cBuffer.View, numGroupsY));
+        stream.Synchronize();
+
+        Console.WriteLine("ok");
+    }
+}

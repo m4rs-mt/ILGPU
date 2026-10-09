@@ -175,16 +175,11 @@ public static partial class Group
     /// <typeparam name="TStride">The shared memory stride.</typeparam>
     /// <param name="extent">The extent (number of elements to allocate).</param>
     /// <returns>An allocated region of shared memory.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [GroupIntrinsic]
     public static ArrayView2D<T, TStride> GetSharedMemory2D<T, TStride>(Index2D extent)
         where T : unmanaged
-        where TStride : struct, IStride2D<TStride>
-    {
-        var stride = TStride.FromExtent(extent);
-        int totalLength = stride.ComputeBufferLength(extent);
-        var localPerThread = GetSharedMemory<T>(totalLength);
-        return localPerThread.AsDense().As2DView(extent, stride);
-    }
+        where TStride : struct, IStride2D<TStride> =>
+        throw new InvalidKernelOperationException();
 
     /// <summary>
     /// Allocates a chunk of shared memory with the specified number of elements.

@@ -315,8 +315,12 @@ sealed class ControlFlowReconstructor(Method method)
 
         if (condition != null)
         {
-            if (isDoWhile)
-                return new DoWhileLoop(loop, body, condition);
+            // Self-loops have the same do-while semantics as the canonical
+            // multi-block do-while (body executes before the condition is
+            // checked). Emitting them as `while (cond) { body }` is wrong
+            // because `cond` references SSA values defined inside the body.
+            if (isDoWhile || isSelfLoop)
+                return new DoWhileLoop(loop, body, condition, isSelfLoop);
             else
                 return new WhileLoop(loop, body, condition);
         }
@@ -689,12 +693,21 @@ sealed class WhileLoop(
 sealed class DoWhileLoop(
     Loops<ReversePostOrder<BasicBlock>, Forwards>.Node loop,
     ControlFlowStructure body,
-    Value condition) : LoopStatement(loop, body)
+    Value condition,
+    bool isSelfLoop = false) : LoopStatement(loop, body)
 {
     /// <summary>
     /// Returns the loop condition.
     /// </summary>
     public Value Condition { get; } = condition;
+
+    /// <summary>
+    /// Returns true if the loop header IS the back-edge block (self-loop).
+    /// Self-loop conditions reference SSA values that the back-edge phi
+    /// update would overwrite, so the emitter must capture the condition
+    /// into a temporary before updating the phi variables.
+    /// </summary>
+    public bool IsSelfLoop { get; } = isSelfLoop;
 }
 
 /// <summary>

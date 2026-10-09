@@ -160,8 +160,11 @@ sealed class CompilationHelper : DisposeBase
         var codeGenResult = backendInstance.GenerateCode(
             properties, _typeManager, optimizedModule);
 
+        var target = Availability.MapToTarget(backend)
+            ?? throw new InvalidOperationException(
+                $"Backend '{backend}' has no native compilation target.");
         var compilerManager = await CompilerManagerFactory
-            .GetCompilerManagerAsync(backend).ConfigureAwait(false);
+            .ResolveAsync(target, ct).ConfigureAwait(false);
         return await backendInstance
             .CompileSourceAsync(codeGenResult, compilerManager, ct)
             .ConfigureAwait(false);

@@ -1,6 +1,6 @@
-﻿// ---------------------------------------------------------------------------------------
+// ---------------------------------------------------------------------------------------
 //                                    ILGPU Samples
-//                        Copyright (c) 2021-2023 ILGPU Project
+//                           Copyright (c) 2026 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Program.cs
@@ -9,73 +9,70 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
-using ILGPU;
-using ILGPU.Algorithms;
-using ILGPU.Runtime;
 using System;
+using System.Linq;
+using ILGPU;
+using ILGPU.Runtime;
 
-namespace AlgorithmsMath
+namespace AlgorithmsMath;
+
+static class Kernels
 {
-    class Program
+    public static void KernelWithXMath(Index1D index, ArrayView<float> data, float c)
     {
-        /// <summary>
-        /// A custom kernel using <see cref="XMath"/> functions.
-        /// </summary>
-        public static void KernelWithXMath(Index1D index, ArrayView<float> data, float c)
-        {
-            data[index] = XMath.Sinh(c + index) + XMath.Atan(c);
-        }
+        data[index] = XMath.Sinh(c + index) + XMath.Atan(c);
+    }
 
-        /// <summary>
-        /// A custom kernel leveraging <see cref="Math"/> functions that will be internally
-        /// remapped to their <see cref="XMath"/> counterparts.
-        /// </summary>
-        /// <remarks>
-        /// .Net Core supports the MathF class that has 32bit-float implementations for most
-        /// math functions. These functions will also be automatically remapped to their
-        /// corresponding counterparts (if possible).
-        /// </remarks>
-        public static void KernelWithMath(Index1D index, ArrayView<float> data, float c)
-        {
-            data[index] = (float)(Math.Sinh(c + index) + Math.Atan(c));
-        }
+    public static void KernelWithMath(Index1D index, ArrayView<float> data, float c)
+    {
+        data[index] = (float)(Math.Sinh(c + index) + Math.Atan(c));
+    }
+}
 
-        static void Main()
-        {
-            // Create default context and enable algorithms library
-            using var context = Context.Create(builder => builder.Default().EnableAlgorithms());
+static class Program
+{
+    static void Main()
+    {
+        using var context = Context.CreateDefault();
 
-            // For each available device...
-            foreach (var device in context)
+        var device = context.Devices
+            .OrderByDescending(d => d.AcceleratorType switch
             {
-                // Create the associated accelerator
-                using var accelerator = device.CreateAccelerator(context);
-                Console.WriteLine($"Performing operations on {accelerator}");
+                AcceleratorType.Metal  => 5,
+                AcceleratorType.Cuda   => 4,
+                AcceleratorType.ROCm   => 3,
+                AcceleratorType.OpenCL => 2,
+                AcceleratorType.CPU    => 1,
+                _                      => 0,
+            })
+            .First();
 
-                using var buffer = accelerator.Allocate1D<float>(64);
+        using var accelerator = device.CreateAccelerator(context);
+        Console.WriteLine($"Using {accelerator}");
+        var stream = accelerator.DefaultStream;
 
-                Console.WriteLine(nameof(KernelWithXMath));
-                var xmathKernel = accelerator.LoadAutoGroupedStreamKernel<Index1D, ArrayView<float>, float>(
-                    KernelWithXMath);
-                xmathKernel((int)buffer.Length, buffer.View, 0.1f);
-                WriteData(buffer);
+        const int Length = 64;
+        using var buffer = stream.Allocate1D<float>(Length);
 
-                Console.WriteLine(nameof(KernelWithMath));
-                var mathKernel = accelerator.LoadAutoGroupedStreamKernel<Index1D, ArrayView<float>, float>(
-                    KernelWithMath);
-                mathKernel((int)buffer.Length, buffer.View, 0.1f);
-                WriteData(buffer);
-            }
-        }
+        Console.WriteLine(nameof(Kernels.KernelWithXMath));
+        stream.Launch(
+            (Index1D)Length,
+            index => Kernels.KernelWithXMath(index, buffer.View, 0.1f));
+        stream.Synchronize();
+        WriteData(buffer);
 
-        private static void WriteData(MemoryBuffer1D<float, Stride1D.Dense> buffer)
-        {
-            // Reads data from the GPU buffer into a new CPU array.
-            // Implicitly calls accelerator.DefaultStream.Synchronize() to ensure
-            // that the kernel and memory copy are completed first.
-            var data = buffer.GetAsArray1D();
-            for (int i = 0, e = data.Length; i < e; ++i)
-                Console.WriteLine($"Data[{i}] = {data[i]}");
-        }
+        Console.WriteLine(nameof(Kernels.KernelWithMath));
+        stream.Launch(
+            (Index1D)Length,
+            index => Kernels.KernelWithMath(index, buffer.View, 0.1f));
+        stream.Synchronize();
+        WriteData(buffer);
+    }
+
+    static void WriteData(MemoryBuffer1D<float, Stride1D.Dense> buffer)
+    {
+        var data = buffer.GetAsArray1D();
+        for (int i = 0, e = data.Length; i < e; ++i)
+            Console.WriteLine($"Data[{i}] = {data[i]}");
     }
 }

@@ -1,6 +1,6 @@
-﻿// ---------------------------------------------------------------------------------------
+// ---------------------------------------------------------------------------------------
 //                                    ILGPU Samples
-//                           Copyright (c) 2021 ILGPU Project
+//                           Copyright (c) 2026 ILGPU Project
 //                                    www.ilgpu.net
 //
 // File: Program.cs
@@ -9,63 +9,71 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
+using System;
+using System.Linq;
 using ILGPU;
 using ILGPU.Runtime;
-using System;
 
-namespace FixedSizeBuffers
+namespace FixedSizeBuffers;
+
+public unsafe struct CustomFixedBufferStruct
 {
-    class Program
+    public fixed double Block1[2];
+    public fixed int Block2[3];
+
+    public override string ToString() =>
+        $"[({Block1[0]}, {Block1[1]}), ({Block2[0]}, {Block2[1]}, {Block2[2]})]";
+}
+
+static class Kernels
+{
+    public static unsafe void MyKernel(
+        Index1D index,
+        ArrayView1D<CustomFixedBufferStruct, Stride1D.Dense> view)
     {
-        // .Net arrays are Reference Types, so they are currently not supported
-        // in ILGPU. However, ILGPU does support Fixed Size Buffers, which are
-        // considered Value Types.
-        public unsafe struct CustomFixedBufferStruct
-        {
-            public fixed double Block1[2];
-            public fixed int Block2[3];
+        view[index].Block1[0] = 11;
+        view[index].Block1[1] = 22;
+        view[index].Block2[0] = 33;
+        view[index].Block2[1] = 44;
+        view[index].Block2[2] = 55;
+    }
+}
 
-            public override string ToString() =>
-                $"[({Block1[0]}, {Block1[1]}), ({Block2[0]}, {Block2[1]}, {Block2[2]})]";
-        }
+static class Program
+{
+    static void Main()
+    {
+        using var context = Context.CreateDefault();
 
-        static unsafe void MyKernel(
-            Index1D index,
-            ArrayView1D<CustomFixedBufferStruct, Stride1D.Dense> view)
-        {
-            view[index].Block1[0] = 11;
-            view[index].Block1[1] = 22;
-            view[index].Block2[0] = 33;
-            view[index].Block2[1] = 44;
-            view[index].Block2[2] = 55;
-        }
-
-        static void Main()
-        {
-            using var context = Context.CreateDefault();
-
-            foreach (var device in context)
+        var device = context.Devices
+            .OrderByDescending(d => d.AcceleratorType switch
             {
-                using var accelerator = device.CreateAccelerator(context);
-                Console.WriteLine($"Performing operations on {accelerator}");
+                AcceleratorType.Metal  => 5,
+                AcceleratorType.Cuda   => 4,
+                AcceleratorType.ROCm   => 3,
+                AcceleratorType.OpenCL => 2,
+                AcceleratorType.CPU    => 1,
+                _                      => 0,
+            })
+            .First();
 
-                var kernel = accelerator.LoadAutoGroupedStreamKernel<
-                    Index1D,
-                    ArrayView1D<CustomFixedBufferStruct, Stride1D.Dense>>(
-                        MyKernel);
+        using var accelerator = device.CreateAccelerator(context);
+        Console.WriteLine($"Performing operations on {accelerator}");
+        var stream = accelerator.DefaultStream;
 
-                using var buffer = accelerator.Allocate1D<CustomFixedBufferStruct>(16);
-                buffer.MemSetToZero();
+        const int Length = 16;
+        using var buffer = stream.Allocate1D<CustomFixedBufferStruct>(Length);
+        buffer.MemSetToZero();
 
-                kernel((int)buffer.Length, buffer.View);
+        stream.Launch(
+            (Index1D)Length,
+            index => Kernels.MyKernel(index, buffer.View));
+        stream.Synchronize();
 
-                // Reads data from the GPU buffer into a new CPU array.
-                // Implicitly calls accelerator.DefaultStream.Synchronize() to ensure
-                // that the kernel and memory copy are completed first.
-                var result = buffer.GetAsArray1D();
-                for (int i = 0, e = result.Length; i < e; ++i)
-                    Console.WriteLine($"Result[{i}] = {result[i]}");
-            }
-        }
+        var result = buffer.GetAsArray1D();
+        for (int i = 0, e = result.Length; i < e; ++i)
+            Console.WriteLine($"Result[{i}] = {result[i]}");
+
+        Console.WriteLine("Done.");
     }
 }

@@ -11,6 +11,7 @@
 
 
 // disable: max_line_length
+using ILGPUC.IR;
 using ILGPUC.IR.BasicBlockValues;
 using ILGPUC.IR.PureValues;
 using System;
@@ -159,14 +160,19 @@ sealed class CPUIntrinsicEmitter(int? vectorWidth) : IntrinsicEmitter
     /// <paramref name="ptr"/> is a <c>Tensor&lt;nint&gt;</c> of per-lane target
     /// addresses. The active mask suppresses side effects for inactive lanes.
     /// </remarks>
-    public override string EmitAtomicAdd(string ptr, string value, ArithmeticBasicValueType type) =>
+    public override string EmitAtomicAdd(
+        string ptr,
+        string value,
+        ArithmeticBasicValueType type,
+        MemoryAddressSpace addressSpace) =>
         $"CPUAtomicIntrinsics.Add({ptr}, {value}, {CPUExpressionEmitter.ActiveMaskName})";
 
     /// <inheritdoc/>
     public override string EmitAtomicExchange(
         string ptr,
         string value,
-        ArithmeticBasicValueType type) =>
+        ArithmeticBasicValueType type,
+        MemoryAddressSpace addressSpace) =>
         $"CPUAtomicIntrinsics.Exchange({ptr}, {value}, {CPUExpressionEmitter.ActiveMaskName})";
 
     /// <inheritdoc/>
@@ -174,28 +180,76 @@ sealed class CPUIntrinsicEmitter(int? vectorWidth) : IntrinsicEmitter
         string ptr,
         string compare,
         string value,
-        ArithmeticBasicValueType type) =>
+        ArithmeticBasicValueType type,
+        MemoryAddressSpace addressSpace) =>
         $"CPUAtomicIntrinsics.CompareExchange({ptr}, {value}, {compare}, {CPUExpressionEmitter.ActiveMaskName})";
 
     /// <inheritdoc/>
-    public override string EmitAtomicMin(string ptr, string value, ArithmeticBasicValueType type) =>
+    public override string EmitAtomicMin(
+        string ptr,
+        string value,
+        ArithmeticBasicValueType type,
+        MemoryAddressSpace addressSpace) =>
         $"CPUAtomicIntrinsics.Min({ptr}, {value}, {CPUExpressionEmitter.ActiveMaskName})";
 
     /// <inheritdoc/>
-    public override string EmitAtomicMax(string ptr, string value, ArithmeticBasicValueType type) =>
+    public override string EmitAtomicMax(
+        string ptr,
+        string value,
+        ArithmeticBasicValueType type,
+        MemoryAddressSpace addressSpace) =>
         $"CPUAtomicIntrinsics.Max({ptr}, {value}, {CPUExpressionEmitter.ActiveMaskName})";
 
     /// <inheritdoc/>
-    public override string EmitAtomicAnd(string ptr, string value, ArithmeticBasicValueType type) =>
+    public override string EmitAtomicAnd(
+        string ptr,
+        string value,
+        ArithmeticBasicValueType type,
+        MemoryAddressSpace addressSpace) =>
         $"CPUAtomicIntrinsics.And({ptr}, {value}, {CPUExpressionEmitter.ActiveMaskName})";
 
     /// <inheritdoc/>
-    public override string EmitAtomicOr(string ptr, string value, ArithmeticBasicValueType type) =>
+    public override string EmitAtomicOr(
+        string ptr,
+        string value,
+        ArithmeticBasicValueType type,
+        MemoryAddressSpace addressSpace) =>
         $"CPUAtomicIntrinsics.Or({ptr}, {value}, {CPUExpressionEmitter.ActiveMaskName})";
 
     /// <inheritdoc/>
-    public override string EmitAtomicXor(string ptr, string value, ArithmeticBasicValueType type) =>
+    public override string EmitAtomicXor(
+        string ptr,
+        string value,
+        ArithmeticBasicValueType type,
+        MemoryAddressSpace addressSpace) =>
         $"CPUAtomicIntrinsics.Xor({ptr}, {value}, {CPUExpressionEmitter.ActiveMaskName})";
+
+    #endregion
+
+    #region Bit-Reinterpret Casts
+
+    // The CPU backend handles FloatAsIntCast / IntAsFloatCast via
+    // CPUExpressionEmitter.EmitFloatAsIntCast / EmitIntAsFloatCast and never
+    // routes through the shared ExpressionEmitter dispatch, so these are
+    // unreachable. Kept abstract-conforming with a clear failure mode.
+
+    /// <inheritdoc/>
+    public override string EmitFloatAsInt(
+        string arg,
+        BasicValueType sourceType,
+        BasicValueType targetType) =>
+        throw new NotSupportedException(
+            "CPU backend uses CPUExpressionEmitter.EmitFloatAsIntCast directly; " +
+            "this path should not be reached.");
+
+    /// <inheritdoc/>
+    public override string EmitIntAsFloat(
+        string arg,
+        BasicValueType sourceType,
+        BasicValueType targetType) =>
+        throw new NotSupportedException(
+            "CPU backend uses CPUExpressionEmitter.EmitIntAsFloatCast directly; " +
+            "this path should not be reached.");
 
     #endregion
 

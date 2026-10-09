@@ -101,14 +101,19 @@ sealed partial class Program
         };
 
         /// <summary>
-        /// Optional base URL of a remote <c>ILGPUC.CompilerService</c> for remote
-        /// compilation.
+        /// Zero or more base URLs of remote <c>ILGPUC.CompilerService</c>
+        /// instances. Each URL is probed for capabilities; the first URL to
+        /// advertise a target wins for that target. May be combined with the
+        /// <c>ILGPU_*_SERVICE_URL</c> environment variables — explicit URLs
+        /// take precedence.
         /// </summary>
-        readonly Option<Uri?> _compilerServiceOption = new("--compiler-service")
+        readonly Option<string[]> _compilerServiceOption = new("--compiler-service")
         {
             Description =
-                "Base URL of a remote ILGPUC.CompilerService instance to use for " +
-                "compilation instead of local platform compilers",
+                "Base URL of a remote ILGPUC.CompilerService instance "
+                + "(repeatable; first to advertise a backend wins)",
+            AllowMultipleArgumentsPerToken = true,
+            DefaultValueFactory = static _ => [],
         };
 
         /// <summary>
@@ -228,7 +233,22 @@ sealed partial class Program
         /// <param name="ct">Cancellation token.</param>
         async Task Execute(ParseResult parseResult, CancellationToken ct)
         {
-            var setup = BuildSetup(parseResult);
+            // Resolve compiler manager up-front since the factory is async.
+            ICompilerManager? compilerManager = null;
+            if (parseResult.GetValue(_compileOption))
+            {
+                var rawUrls = parseResult.GetValue(_compilerServiceOption)
+                    ?? [];
+                var serviceUrls = rawUrls
+                    .Where(s => !string.IsNullOrWhiteSpace(s))
+                    .Select(s => new Uri(s))
+                    .ToArray();
+                compilerManager = await CompilerManagerFactory.CreateAsync(
+                    serviceUrls,
+                    allowLocal: true,
+                    ct).ConfigureAwait(false);
+            }
+            var setup = BuildSetup(parseResult, compilerManager);
 
             var parallel = parseResult.GetValue(_parallelOption);
             var compiler = new KernelCompiler(setup.Properties);
@@ -264,22 +284,18 @@ sealed partial class Program
         /// compilation run, returning them as a single <see cref="CompilationSetup"/>.
         /// </summary>
         /// <param name="parseResult">The command-line parse result.</param>
+        /// <param name="compilerManager">
+        /// Pre-resolved compiler manager (constructed asynchronously by the
+        /// caller), or <see langword="null"/> when <c>--compile</c> is not set.
+        /// </param>
         /// <returns>A fully initialized <see cref="CompilationSetup"/>.</returns>
-        CompilationSetup BuildSetup(ParseResult parseResult)
+        CompilationSetup BuildSetup(
+            ParseResult parseResult,
+            ICompilerManager? compilerManager)
         {
             // Resolve backend types and compilation properties
             var backendTypes = parseResult.GetRequiredValue(_backendTypeOption);
             var properties = _compilationPropertiesOptions.GetProperties(parseResult);
-
-            // Create compiler manager if --compile is set
-            ICompilerManager? compilerManager = null;
-            if (parseResult.GetValue(_compileOption))
-            {
-                var serviceUrl = parseResult.GetValue(_compilerServiceOption);
-                compilerManager = serviceUrl is not null
-                    ? new RemoteCompilerManager(serviceUrl)
-                    : new CompilerManager();
-            }
 
             // Load assembly and resolve kernel entry points
             var input = parseResult.GetRequiredValue(_inputAssemblyOption);
