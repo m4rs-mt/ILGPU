@@ -280,6 +280,13 @@ abstract class LanguageConfiguration
     public virtual bool EmitStructTypedefAlias => false;
 
     /// <summary>
+    /// Returns true if stores through pointers to local memory that are based
+    /// on phis or parameters, such as pointers moved in loops, must be emitted
+    /// as volatile stores. Defaults to false; Metal overrides to true.
+    /// </summary>
+    public virtual bool VolatileIndirectLocalStores => false;
+
+    /// <summary>
     /// Returns the intrinsic emitter for this language.
     /// </summary>
     public abstract IntrinsicEmitter CreateIntrinsicEmitter();

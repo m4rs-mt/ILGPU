@@ -52,6 +52,87 @@ static unsafe class PointerLoopKernels
     }
 
     /// <summary>
+    /// The elements of a local array, pinned with fixed, summed backwards by a
+    /// pointer moved down to the first element (p &gt;= first) and forwards by
+    /// a pointer moved up to the last element (p &lt;= last).
+    /// </summary>
+    public static void FixedArrayKernel(
+        Index1D index,
+        ArrayView1D<int, Stride1D.Dense> data)
+    {
+        var values = new int[4];
+        for (int k = 0; k < values.Length; ++k)
+            values[k] = data[index] + k;
+        int sum = 0;
+        fixed (int* first = values)
+        {
+            int* last = first + values.Length - 1;
+            for (int* p = last; p >= first; --p)
+                sum = 10 * sum + *p;
+            for (int* p = first; p <= last; ++p)
+                sum += *p;
+        }
+        data[index] = sum;
+    }
+
+    /// <summary>
+    /// The elements of a local array, pinned with fixed, set by a pointer moved
+    /// up to an end pointer and read at an index that depends on the thread.
+    /// </summary>
+    public static void FixedStoreKernel(
+        Index1D index,
+        ArrayView1D<int, Stride1D.Dense> data)
+    {
+        var values = new int[4];
+        fixed (int* first = values)
+        {
+            for (int* p = first; p < first + 4; ++p)
+                *p = data[index] + (int)(p - first);
+        }
+        data[index] = values[index.X & 3];
+    }
+
+    /// <summary>
+    /// The elements of a local array initialized with non-zero values, pinned
+    /// with fixed, set by a pointer moved up to an end pointer and read at an
+    /// index that depends on the thread.
+    /// </summary>
+    public static void FixedStoreInitKernel(
+        Index1D index,
+        ArrayView1D<int, Stride1D.Dense> data)
+    {
+        var values = new int[4];
+        values[0] = 1;
+        values[1] = 2;
+        values[2] = 3;
+        values[3] = 4;
+        fixed (int* first = values)
+        {
+            for (int* p = first; p < first + 4; ++p)
+                *p = data[index] + (int)(p - first);
+        }
+        data[index] = values[index.X & 3];
+    }
+
+    /// <summary>
+    /// The three elements of a local array, pinned with fixed, set by a pointer
+    /// moved up to an end pointer and read at an index that depends on the
+    /// thread.
+    /// </summary>
+    public static void FixedStoreLength3Kernel(
+        Index1D index,
+        ArrayView1D<int, Stride1D.Dense> data)
+    {
+        var values = new int[3];
+        fixed (int* first = values)
+        {
+            for (int* p = first; p < first + 3; ++p)
+                *p = data[index] + (int)(p - first);
+        }
+        data[index] = values[index.X % 3];
+    }
+
+    /// <summary>
     /// A pointer moved over all view elements until it equals the end pointer
     /// (p != end); the sum becomes the first element.
     /// </summary>

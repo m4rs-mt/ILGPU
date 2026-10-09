@@ -232,6 +232,17 @@ sealed class MetalLanguageConfiguration : LanguageConfiguration
     public override bool HasUnsignedThreadBuiltIns => true;
 
     /// <inheritdoc/>
+    /// <remarks>
+    /// At -O2 and above, Apple's GPU compiler drops the stores of a loop that
+    /// moves a pointer over a small initialized <c>thread</c> array when it
+    /// fully unrolls the loop and the array is read at a dynamic index
+    /// afterwards, as in <c>for (int* q = p; q &lt; p + 4; ++q) *q = x;</c> on
+    /// a pinned local array: the read returns the initial values. The AIR it
+    /// is given is correct; volatile stores keep them.
+    /// </remarks>
+    public override bool VolatileIndirectLocalStores => true;
+
+    /// <inheritdoc/>
     public override string? FormatFieldAlignment(int alignment) =>
         $" __attribute__((aligned({alignment})))";
 

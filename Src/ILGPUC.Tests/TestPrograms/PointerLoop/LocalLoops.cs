@@ -12,9 +12,9 @@
 
 // disable: max_line_length
 // Test program: PointerLoop LocalLoops
-// Kernels move pointers to local structures and to view elements up to end
-// pointers that they compare with, also in helpers.
-// Expected output: 19 29 39 49, 100 20 30 40, -1 -1 1 1, 119 229 339 449
+// Kernels move pointers to local structures and arrays and to view elements up
+// to or down to end pointers that they compare with, also in helpers.
+// Expected output: 19 29 39 49, 14366 25516 36666 47816, 10 21 32 43, 10 21 32 43, 10 21 32 40, 100 20 30 40, -1 -1 1 1, 119 229 339 449
 
 using System;
 using System.Runtime.CompilerServices;
@@ -52,6 +52,87 @@ static unsafe class Kernels
         for (int* p = &q.A; p < end; p++)
             sum += *p;
         data[index] = sum;
+    }
+
+    /// <summary>
+    /// The elements of a local array, pinned with fixed, summed backwards by a
+    /// pointer moved down to the first element (p &gt;= first) and forwards by
+    /// a pointer moved up to the last element (p &lt;= last).
+    /// </summary>
+    public static void FixedArrayKernel(
+        Index1D index,
+        ArrayView1D<int, Stride1D.Dense> data)
+    {
+        var values = new int[4];
+        for (int k = 0; k < values.Length; ++k)
+            values[k] = data[index] + k;
+        int sum = 0;
+        fixed (int* first = values)
+        {
+            int* last = first + values.Length - 1;
+            for (int* p = last; p >= first; --p)
+                sum = 10 * sum + *p;
+            for (int* p = first; p <= last; ++p)
+                sum += *p;
+        }
+        data[index] = sum;
+    }
+
+    /// <summary>
+    /// The elements of a local array, pinned with fixed, set by a pointer moved
+    /// up to an end pointer and read at an index that depends on the thread.
+    /// </summary>
+    public static void FixedStoreKernel(
+        Index1D index,
+        ArrayView1D<int, Stride1D.Dense> data)
+    {
+        var values = new int[4];
+        fixed (int* first = values)
+        {
+            for (int* p = first; p < first + 4; ++p)
+                *p = data[index] + (int)(p - first);
+        }
+        data[index] = values[index.X & 3];
+    }
+
+    /// <summary>
+    /// The elements of a local array initialized with non-zero values, pinned
+    /// with fixed, set by a pointer moved up to an end pointer and read at an
+    /// index that depends on the thread.
+    /// </summary>
+    public static void FixedStoreInitKernel(
+        Index1D index,
+        ArrayView1D<int, Stride1D.Dense> data)
+    {
+        var values = new int[4];
+        values[0] = 1;
+        values[1] = 2;
+        values[2] = 3;
+        values[3] = 4;
+        fixed (int* first = values)
+        {
+            for (int* p = first; p < first + 4; ++p)
+                *p = data[index] + (int)(p - first);
+        }
+        data[index] = values[index.X & 3];
+    }
+
+    /// <summary>
+    /// The three elements of a local array, pinned with fixed, set by a pointer
+    /// moved up to an end pointer and read at an index that depends on the
+    /// thread.
+    /// </summary>
+    public static void FixedStoreLength3Kernel(
+        Index1D index,
+        ArrayView1D<int, Stride1D.Dense> data)
+    {
+        var values = new int[3];
+        fixed (int* first = values)
+        {
+            for (int* p = first; p < first + 3; ++p)
+                *p = data[index] + (int)(p - first);
+        }
+        data[index] = values[index.X % 3];
     }
 
     /// <summary>
@@ -143,6 +224,38 @@ static class Program
         {
             buffer.View.CopyFromCPU(stream, new int[] { 10, 20, 30, 40 });
             stream.Launch((Index1D)4, index => Kernels.LocalLessKernel(index, buffer.View));
+            stream.Synchronize();
+            foreach (var v in buffer.GetAsArray1D())
+                Console.WriteLine(v);
+        }
+        using (var buffer = stream.Allocate1D<int>(4))
+        {
+            buffer.View.CopyFromCPU(stream, new int[] { 10, 20, 30, 40 });
+            stream.Launch((Index1D)4, index => Kernels.FixedArrayKernel(index, buffer.View));
+            stream.Synchronize();
+            foreach (var v in buffer.GetAsArray1D())
+                Console.WriteLine(v);
+        }
+        using (var buffer = stream.Allocate1D<int>(4))
+        {
+            buffer.View.CopyFromCPU(stream, new int[] { 10, 20, 30, 40 });
+            stream.Launch((Index1D)4, index => Kernels.FixedStoreKernel(index, buffer.View));
+            stream.Synchronize();
+            foreach (var v in buffer.GetAsArray1D())
+                Console.WriteLine(v);
+        }
+        using (var buffer = stream.Allocate1D<int>(4))
+        {
+            buffer.View.CopyFromCPU(stream, new int[] { 10, 20, 30, 40 });
+            stream.Launch((Index1D)4, index => Kernels.FixedStoreInitKernel(index, buffer.View));
+            stream.Synchronize();
+            foreach (var v in buffer.GetAsArray1D())
+                Console.WriteLine(v);
+        }
+        using (var buffer = stream.Allocate1D<int>(4))
+        {
+            buffer.View.CopyFromCPU(stream, new int[] { 10, 20, 30, 40 });
+            stream.Launch((Index1D)4, index => Kernels.FixedStoreLength3Kernel(index, buffer.View));
             stream.Synchronize();
             foreach (var v in buffer.GetAsArray1D())
                 Console.WriteLine(v);

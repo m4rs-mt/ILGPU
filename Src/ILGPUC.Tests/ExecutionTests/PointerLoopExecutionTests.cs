@@ -30,7 +30,9 @@ public abstract class PointerLoopExecutionTests : ExecutionTestBase
         : base(output, backend) { }
 
     // Metal and OpenCL kept the loop pointers compared with end pointers generic
-    // and failed to compile them
+    // and failed to compile them, fixed statements on local arrays in loops
+    // failed to lower at O1 and O2 on every backend, and Apple's GPU compiler
+    // dropped the stores of a pointer loop over a local array at O1 and O2
     [SkippableTheory]
     [InlineData(RoslynOptimizationLevel.Release, OptimizationLevel.O0)]
     [InlineData(RoslynOptimizationLevel.Debug, OptimizationLevel.O0)]
@@ -44,12 +46,20 @@ public abstract class PointerLoopExecutionTests : ExecutionTestBase
             "TestPrograms/PointerLoop/LocalLoops.cs",
             [
                 "Kernels.LocalLessKernel",
+                "Kernels.FixedArrayKernel",
+                "Kernels.FixedStoreKernel",
+                "Kernels.FixedStoreInitKernel",
+                "Kernels.FixedStoreLength3Kernel",
                 "Kernels.ViewNotEqualKernel",
                 "Kernels.LocalSearchKernel",
                 "Kernels.HelperKernel",
             ],
             [
                 "19", "29", "39", "49",
+                "14366", "25516", "36666", "47816",
+                "10", "21", "32", "43",
+                "10", "21", "32", "43",
+                "10", "21", "32", "40",
                 "100", "20", "30", "40",
                 "-1", "-1", "1", "1",
                 "119", "229", "339", "449",
