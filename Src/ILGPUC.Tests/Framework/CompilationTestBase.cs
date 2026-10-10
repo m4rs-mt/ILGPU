@@ -13,6 +13,7 @@
 // disable: max_line_length
 using ILGPU.Util;
 using ILGPUC.Backends;
+using ILGPUC.Frontend;
 using ILGPUC.IR;
 using System;
 using System.Reflection;
@@ -34,6 +35,49 @@ public abstract class CompilationTestBase(ITestOutputHelper output) : DisposeBas
     {
         if (DumpIR)
             output.WriteLine(ir);
+    }
+
+    /// <summary>
+    /// Returns the normalized IR for <paramref name="kernel"/> at the given
+    /// <paramref name="point"/>, optionally with explicit
+    /// <paramref name="props"/> (e.g., a specific <c>OptimizationLevel</c>).
+    /// Intended for assertion-style tests that don't compare against a
+    /// committed snapshot — for example, "this IR must contain the
+    /// <c>llvm.abs</c> intrinsic emission" rather than "this IR must
+    /// match this exact .il file".
+    /// </summary>
+    internal string DumpIRString(
+        MethodInfo kernel,
+        IRDumpPoint point,
+        CompilationProperties? props = null)
+    {
+        var ir = _helper.GetNormalizedIR(kernel, point, props);
+        WriteIR(ir);
+        return ir;
+    }
+
+    /// <summary>
+    /// Compiles <paramref name="kernel"/> using a custom
+    /// <see cref="ILFrontendCache"/> (typically pre-populated with
+    /// <see cref="ILFrontendCache.ForcedNonWalkableAssemblyNames"/>) and
+    /// returns the normalized IR string at
+    /// <see cref="IRDumpPoint.AfterFrontend"/>. Round-3 derisking only.
+    /// </summary>
+    internal string DumpAfterFrontendWithCache(
+        MethodInfo kernel,
+        ILFrontendCache cache)
+    {
+        var module = _helper.CompileToModule(
+            kernel, props: null, backendType: null, frontendCache: cache);
+        using var sw = new System.IO.StringWriter();
+        module.Dump(
+            sw,
+            IRDumpMode.Normalized,
+            IRPrinterFormat.LLVM,
+            IRDumpPoint.AfterFrontend);
+        var ir = sw.ToString();
+        WriteIR(ir);
+        return ir;
     }
 
     /// <summary>

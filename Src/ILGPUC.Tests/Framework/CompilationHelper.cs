@@ -77,12 +77,13 @@ sealed class CompilationHelper : DisposeBase
     public IRModule CompileToModule(
         MethodInfo method,
         CompilationProperties? props = null,
-        BackendType? backendType = null)
+        BackendType? backendType = null,
+        ILFrontendCache? frontendCache = null)
     {
         var properties = props ?? new CompilationProperties();
         var bt = backendType ?? _defaultBackendType;
 
-        var frontend = new ILFrontend(bt, GetAssemblyDir(method));
+        var frontend = new ILFrontend(bt, frontendCache, GetAssemblyDir(method));
         frontend.LoadMethods([method]);
 
         var moduleBuilder = new ModuleBuilder(

@@ -94,6 +94,29 @@ sealed class DisassembledMethod(
 {
     private readonly ReadOnlyMemory<ILInstruction> _instructions = instructions;
 
+    // 0 = sequence points not yet attached; 1 = attached.
+    // Flipped exactly once by the first ILFrontend that successfully runs
+    // sequence-point attachment for this body; later frontends sharing the
+    // same cached body see 1 and skip the redundant per-instruction merges.
+    private int _locationsAttached;
+
+    /// <summary>
+    /// Atomically claims the right to attach sequence-point locations to
+    /// this body's instructions. Returns <see langword="true"/> only on the
+    /// first call across all threads; subsequent calls return
+    /// <see langword="false"/> and the caller must skip attachment.
+    /// </summary>
+    /// <remarks>
+    /// Used by <see cref="ILFrontend"/> when a <see cref="DisassembledMethod"/>
+    /// is reused across multiple compilations through
+    /// <see cref="ILFrontendCache"/>: location merging is value-deterministic
+    /// for the same PDB so re-running it would be wasted work, and it would
+    /// also race other frontends concurrently mutating the same instructions.
+    /// </remarks>
+    public bool TryClaimLocationAttachment() =>
+        System.Threading.Interlocked.CompareExchange(
+            ref _locationsAttached, 1, 0) == 0;
+
     /// <summary>
     /// Returns method that was disassembled.
     /// </summary>

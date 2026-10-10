@@ -1,0 +1,20 @@
+<Project>
+
+  <Import Project="Sdk.props" Sdk="Microsoft.NET.Sdk" />
+
+  <PropertyGroup>
+    <TargetFramework>$(SamplesTargetFramework)</TargetFramework>
+    <RootNamespace>MyKernelLib</RootNamespace>
+    <AssemblyName>MyKernelLib</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Reference Include="ILGPU">
+      <HintPath>$(ILGPUBinDir)/ILGPU.dll</HintPath>
+      <Private>true</Private>
+    </Reference>
+  </ItemGroup>
+
+  <Import Project="Sdk.targets" Sdk="Microsoft.NET.Sdk" />
+
+</Project>

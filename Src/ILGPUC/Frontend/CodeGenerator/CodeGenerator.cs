@@ -80,14 +80,20 @@ sealed partial class CodeGenerator
     /// <param name="disassembledMethod">
     /// The corresponding disassembled method.
     /// </param>
+    /// <param name="backendType">
+    /// Backend the IR is being generated for. Used by codegen-time
+    /// intrinsic resolution to pick the backend-specific implementation.
+    /// </param>
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     public CodeGenerator(
         MethodBuilder methodBuilder,
-        DisassembledMethod disassembledMethod)
+        DisassembledMethod disassembledMethod,
+        Backends.BackendType backendType = default)
     {
         ModuleBuilder = methodBuilder.ModuleBuilder;
         MethodBuilder = methodBuilder;
         DisassembledMethod = disassembledMethod;
+        BackendType = backendType;
 
         _cfgBuilder = new Block.CFGBuilder(this, methodBuilder);
         EntryBlock = _cfgBuilder.EntryBlock;
@@ -218,6 +224,15 @@ sealed partial class CodeGenerator
     /// Returns the current module builder.
     /// </summary>
     public ModuleBuilder ModuleBuilder { get; }
+
+    /// <summary>
+    /// Backend type for which IR is being generated. Read by
+    /// <see cref="Intrinsic.Intrinsics.TryGenerateCode"/> when resolving
+    /// backend-specific Implemented intrinsics that may be reached via the
+    /// codegen-time on-the-fly disassembly path (round-3 lazy walk). Default
+    /// is <see cref="Backends.BackendType.CPU"/> for legacy callers.
+    /// </summary>
+    public Backends.BackendType BackendType { get; }
 
     /// <summary>
     /// Returns compilation properties.

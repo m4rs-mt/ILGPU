@@ -94,6 +94,13 @@ ref struct InvocationContext
     public readonly ModuleBuilder ModuleBuilder => CodeGenerator.ModuleBuilder;
 
     /// <summary>
+    /// Returns the backend type the IR is being generated for. Used by
+    /// <see cref="Intrinsic.Intrinsics.TryGenerateCode"/> to resolve
+    /// backend-specific Implemented intrinsics at codegen time.
+    /// </summary>
+    public readonly Backends.BackendType BackendType => CodeGenerator.BackendType;
+
+    /// <summary>
     /// Returns the current IR builder.
     /// </summary>
     public readonly BasicBlockBuilder Builder => Block.Builder;

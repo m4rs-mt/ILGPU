@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Rendered to NuGet.config by EndToEndTest/run.sh, which substitutes
+  @@FEED@@ with the absolute path of the locally-built nupkg feed.
+
+  packageSources: clear inherited config so the consumer restores from
+  ONLY the local feed plus nuget.org. Local feed serves ILGPU + ILGPUC;
+  nuget.org serves Microsoft.* and other transitive deps that ILGPUC
+  doesn't bundle.
+-->
+<configuration>
+  <packageSources>
+    <clear />
+    <add key="local-e2e-feed" value="@@FEED@@" />
+    <add key="nuget.org" value="https://api.nuget.org/v3/index.json" />
+  </packageSources>
+</configuration>
