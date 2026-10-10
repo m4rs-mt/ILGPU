@@ -106,6 +106,20 @@ public sealed class PointerLoopIRTests(ITestOutputHelper output)
         Assert.DoesNotMatch(@"\*\(volatile device ", source);
     }
 
+    // With generic pointers, the address of a local is compared with the address
+    // of a view element as a generic pointer
+    [Theory]
+    [InlineData(OptimizationLevel.O0)]
+    [InlineData(OptimizationLevel.O1)]
+    public void MixedSpace_ComparesGenericPointers(OptimizationLevel opt)
+    {
+        var ir = DumpLoopKernel(
+            nameof(PointerLoopKernels.MixedSpaceKernel),
+            BackendType.Cuda,
+            opt);
+        Assert.Matches(@"icmp (eq|ne) ptr<void> %\d+, %\d+", ir);
+    }
+
     private string DumpLoopKernel(
         string kernelName,
         BackendType backend,

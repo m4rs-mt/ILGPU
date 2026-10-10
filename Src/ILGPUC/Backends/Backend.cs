@@ -245,6 +245,13 @@ abstract class Backend(
     /// address space (for example, pointers loaded from memory) are emitted in
     /// the backend's default (global) address space and are not rejected.
     /// </summary>
+    /// <remarks>
+    /// Comparisons are verified after all other values. Pointers of unknown
+    /// origin, such as pointers loaded from memory, are treated as pointers
+    /// to global memory, so a pointer into shared or local memory that was
+    /// stored to memory and loaded back is reported as a pointer to global
+    /// memory.
+    /// </remarks>
     /// <param name="module">The final module after all transformations.</param>
     private void VerifyNoGenericAddressSpaces(Module module)
     {
@@ -254,6 +261,7 @@ abstract class Backend(
         var visited = new HashSet<Value>();
         var worklist = new Stack<Value>();
         Dictionary<Method, List<MethodCall>>? calls = null;
+        var comparisons = new List<(Method Method, CompareValue Compare)>();
         foreach (var method in module.Methods)
         {
             if (!method.HasImplementation)
@@ -301,10 +309,14 @@ abstract class Backend(
                         address.Location,
                         ref calls);
                 }
+                if (value is CompareValue compare)
+                    comparisons.Add((method, compare));
                 foreach (var operand in value.Values)
                     worklist.Push(operand);
             }
         }
+        foreach (var (method, compare) in comparisons)
+            VerifyPointerComparison(results, method, compare);
     }
 
     /// <summary>
@@ -674,6 +686,57 @@ abstract class Backend(
             });
         }
         return calls;
+    }
+
+    /// <summary>
+    /// Throws if the given comparison compares pointers into different address
+    /// spaces. Without generic pointers, addresses in different address spaces
+    /// can be equal. Pointers of unknown origin are treated as pointers to
+    /// global memory.
+    /// Null pointers point into no address space and can be compared with any
+    /// pointer.
+    /// </summary>
+    private void VerifyPointerComparison(
+        AddressSpaceResults results,
+        Method method,
+        CompareValue compare)
+    {
+        if (compare.Left.Type is not PointerType)
+            return;
+
+        var left = GetKnownSpaces(results, compare.Left);
+        var right = GetKnownSpaces(results, compare.Right);
+        if (left == AddressSpaceFlags.None || right == AddressSpaceFlags.None ||
+            left == right)
+        {
+            return;
+        }
+
+        throw new KernelCompilationException(
+            KernelDiagnostic.PointerComparisonId,
+            string.Format(
+                CultureInfo.InvariantCulture,
+                ErrorMessages.KernelDiagnosticPointerComparison,
+                GetDisplayName(method),
+                FormatSpaces(left),
+                FormatSpaces(right),
+                BackendType),
+            compare.Location);
+    }
+
+    /// <summary>
+    /// Returns the address spaces the given pointer can point into, where
+    /// pointers of unknown origin are treated as pointers into global memory
+    /// (see <see cref="VerifyNoGenericAddressSpaces"/>).
+    /// </summary>
+    private static AddressSpaceFlags GetKnownSpaces(
+        AddressSpaceResults results,
+        Value pointer)
+    {
+        var flags = results[pointer].Flags;
+        if ((flags & AddressSpaceFlags.Generic) != AddressSpaceFlags.None)
+            flags = (flags & ~AddressSpaceFlags.Generic) | AddressSpaceFlags.Global;
+        return flags;
     }
 
     /// <summary>

@@ -11,6 +11,7 @@
 
 using ILGPU;
 using ILGPU.Runtime;
+using ILGPUC.Tests.Framework;
 using System.Runtime.CompilerServices;
 
 namespace ILGPUC.Tests.Kernels;
@@ -226,5 +227,21 @@ static unsafe class PointerLoopKernels
         int* e = (int*)Unsafe.AsPointer(ref data[index]);
         data[index] = SumRange(first, first + 4) +
             10 * SumRangeNoInlining(e, e + 1);
+    }
+
+    /// <summary>
+    /// The address of a local compared with the address of a view element
+    /// (CPU, CUDA and ROCm only: Metal and OpenCL reject comparisons of
+    /// pointers into different address spaces).
+    /// </summary>
+    [RequiresCapability(BackendCapability.GenericAddressSpace)]
+    public static void MixedSpaceKernel(
+        Index1D index,
+        ArrayView1D<int, Stride1D.Dense> data)
+    {
+        int x = data[index];
+        int* e = (int*)Unsafe.AsPointer(ref data[index]);
+        // &x < e && e < &x is always false: it only compares the pointers
+        data[index] = &x == e || &x < e && e < &x ? 1 : 2 + x;
     }
 }

@@ -82,4 +82,22 @@ public abstract class PointerLoopExecutionTests : ExecutionTestBase
             new CompilationProperties { OptimizationLevel = level },
             programOptimization);
     }
+
+    // Metal and OpenCL reject comparisons of pointers into different address
+    // spaces (ILGPU1216)
+    [SkippableTheory]
+    [InlineData(RoslynOptimizationLevel.Release, OptimizationLevel.O0)]
+    [InlineData(RoslynOptimizationLevel.Debug, OptimizationLevel.O1)]
+    public async Task MixedSpaces_ProduceCorrectOutput(
+        RoslynOptimizationLevel programOptimization,
+        OptimizationLevel level)
+    {
+        RequireCapability(Backend, BackendCapability.GenericAddressSpace);
+        await VerifyProgramOutputAsync(
+            "TestPrograms/PointerLoop/MixedSpaces.cs",
+            ["Kernels.MixedSpaceKernel"],
+            ["12", "22", "32", "42"],
+            new CompilationProperties { OptimizationLevel = level },
+            programOptimization);
+    }
 }

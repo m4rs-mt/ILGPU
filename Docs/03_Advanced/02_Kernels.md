@@ -100,6 +100,8 @@ zero.
 
 Pointers can be compared with each other, for example to move a pointer up to an end pointer with
 `for (int* p = first; p < end; ++p)`.
+On Metal and OpenCL, comparing pointers into different address spaces, such as the address of a local variable with the
+address of a view element, is rejected with error `ILGPU1216`.
 
 ## Lambdas and Delegates
 
@@ -156,6 +158,7 @@ with an error at the offending source line in the form `File.cs(line,column): er
 | `ILGPU1213` | Calls of methods whose type arguments are nested more than 32 levels deep, such as a generic method `F<T>` calling `F<Wrap<T>>`, which would create new instantiations without end |
 | `ILGPU1214` | Views, pointers and structures or arrays containing them loaded from static fields, including `static readonly` fields, whose values are read at compile time and do not refer to device memory; pass the view as a kernel parameter or capture it instead. Static fields of strings, classes and interfaces, and structures in static fields that hold arrays, strings or class instances, such as `struct H { public int V; public int[] A; }`, are rejected the same way, even if they hold null; pass the data in an `ArrayView` instead. A helper method that loads such a field is only an error if a call to it remains after optimization, such as a call on a path that constant arguments rule out |
 | `ILGPU1215` | On Metal and OpenCL, integers holding the address of shared or local memory converted to pointers that are used as addresses, also after loops, conditionals, fields of structures or calls of helper methods that pass them on or return them, such as `*(int*)(address & ~(nint)3)` with `nint address = c ? (nint)&x : (nint)&y` |
+| `ILGPU1216` | On Metal and OpenCL, comparisons of pointers into different address spaces, such as `&value == element` with the address of a local variable and the address of a view element |
 
 Invoking a delegate variable that is still `null` on some path, without a null test, is undefined behavior in kernels.
 To call an optional operation, pass a separate flag instead of testing the delegate for null.

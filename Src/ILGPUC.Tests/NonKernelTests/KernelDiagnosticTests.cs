@@ -671,6 +671,42 @@ public sealed class KernelDiagnosticTests
             data[index] += first + second;
         }
 
+        // A pointer loaded from memory, of unknown origin, compared with the
+        // address of a local
+        public static unsafe void LoadedPointerCompareKernel(
+            Index1D index,
+            ArrayView1D<long, Stride1D.Dense> data)
+        {
+            int value = (int)data[index];
+            int* loaded = *(int**)Unsafe.AsPointer(ref data[index]);
+            if (loaded == &value) // LoadedPointerCompare
+                data[index] = 0;
+        }
+
+        // An integer holding the address of a local converted back to a
+        // pointer that is only compared with the address of another local
+        public static unsafe void LocalAddressOnlyCompareKernel(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data)
+        {
+            int value = data[index];
+            int other = 0;
+            int* pointer = (int*)(long)&value;
+            if (pointer == &other)
+                data[index] = 0;
+        }
+
+        // The address of a local compared with the address of a view element
+        public static unsafe void MixedSpaceCompareKernel(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data)
+        {
+            int value = data[index];
+            int* element = (int*)Unsafe.AsPointer(ref data[index]);
+            if (&value == element) // MixedSpaceCompare
+                data[index] = 0;
+        }
+
         public static void DelegateMemberKernel(
             Index1D index,
             ArrayView1D<int, Stride1D.Dense> data)
@@ -2825,6 +2861,90 @@ public sealed class KernelDiagnosticTests
         var result = await AssertionRecorder.RunAsync(() =>
             helper.CompileToNativeAsync(
                 GetKernel(nameof(Kernels.LocalAddressRoundTripKernel)),
+                backend));
+        Assert.NotNull(result);
+        Assert.True(result!.Success, result.StdErr);
+    }
+
+    #endregion
+
+    #region Pointers Compared Across Address Spaces (ILGPU1216)
+
+    // Without generic pointers, addresses in different address spaces can be
+    // equal
+    [Theory]
+    [InlineData(BackendType.Metal)]
+    [InlineData(BackendType.OpenCL)]
+    public void MixedSpaceCompare_WithoutGenericPointers_Reports1216(
+        BackendType backend) =>
+        AssertDiagnostic(
+            Generate(nameof(Kernels.MixedSpaceCompareKernel), backend),
+            "ILGPU1216",
+            "Method 'Kernels.MixedSpaceCompareKernel' compares a pointer to local " +
+            $"memory with a pointer to global memory, which {backend} does not " +
+            "support",
+            "MixedSpaceCompare");
+
+    // Pointers of unknown origin, such as pointers loaded from memory, are
+    // treated as pointers to global memory
+    [Theory]
+    [InlineData(BackendType.Metal)]
+    [InlineData(BackendType.OpenCL)]
+    public void LoadedPointerCompare_WithoutGenericPointers_Reports1216(
+        BackendType backend) =>
+        AssertDiagnostic(
+            Generate(nameof(Kernels.LoadedPointerCompareKernel), backend),
+            "ILGPU1216",
+            "Method 'Kernels.LoadedPointerCompareKernel' compares a pointer to " +
+            "global memory with a pointer to local memory, which " +
+            $"{backend} does not support",
+            "LoadedPointerCompare");
+
+    // An integer holding the address of a local converted back to a pointer
+    // is that pointer again, a pointer to local memory, not a pointer of
+    // unknown origin: its comparison with the address of another local is not
+    // rejected
+    [SkippableTheory]
+    [InlineData(BackendType.Metal)]
+    [InlineData(BackendType.OpenCL)]
+    public async Task LocalAddressOnlyCompare_WithoutGenericPointers_Compiles(
+        BackendType backend)
+    {
+        Skip.IfNot(
+            await Availability.IsCompilerAvailableAsync(backend),
+            $"Native compiler for {backend} is not available");
+        using var helper = new CompilationHelper(backend);
+        foreach (var level in new[]
+        {
+            OptimizationLevel.O0,
+            OptimizationLevel.O1,
+            OptimizationLevel.O2,
+        })
+        {
+            var result = await AssertionRecorder.RunAsync(() =>
+                helper.CompileToNativeAsync(
+                    GetKernel(nameof(Kernels.LocalAddressOnlyCompareKernel)),
+                    backend,
+                    new CompilationProperties(OptimizationLevel: level)));
+            Assert.NotNull(result);
+            Assert.True(result!.Success, $"{level}: {result.StdErr}");
+        }
+    }
+
+    // Generic pointers compare the addresses of all address spaces
+    [SkippableTheory]
+    [InlineData(BackendType.Cuda)]
+    [InlineData(BackendType.ROCm)]
+    public async Task MixedSpaceCompare_WithGenericPointers_Compiles(
+        BackendType backend)
+    {
+        Skip.IfNot(
+            await Availability.IsCompilerAvailableAsync(backend),
+            $"Native compiler for {backend} is not available");
+        using var helper = new CompilationHelper(backend);
+        var result = await AssertionRecorder.RunAsync(() =>
+            helper.CompileToNativeAsync(
+                GetKernel(nameof(Kernels.MixedSpaceCompareKernel)),
                 backend));
         Assert.NotNull(result);
         Assert.True(result!.Success, result.StdErr);
