@@ -207,10 +207,14 @@ partial class XMath
                 }
                 else
                 {
-                    // The fractional part is exactly x.5 - Round To Even.
+                    // The fractional part is exactly x.5 - Round To Even. The
+                    // lowest integer bit is the implicit leading bit for
+                    // values in [1, 2).
                     var evenMask = midpoint << 1;
+                    var significand = mantissa |
+                        (1<#= function.IntValueSuffix #> << <#= function.FloatTypeName #>NumMantissaBits);
                     return Utilities.Select(
-                        (mantissa & evenMask) == 0,
+                        (significand & evenMask) == 0,
                         Interop.IntAsFloat(truncatedValue),
                         Interop.IntAsFloat(truncatedValue + (midpoint << 1)));
                 }

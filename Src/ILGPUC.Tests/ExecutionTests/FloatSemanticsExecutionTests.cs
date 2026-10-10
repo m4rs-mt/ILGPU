@@ -193,4 +193,27 @@ public abstract class FloatSemanticsExecutionTests : ExecutionTestBase
             ["2", "3", "4", "5"],
             new CompilationProperties(MathMode: MathMode.Fast32BitOnly));
     }
+
+    /// <summary>
+    /// MathF.Round rounds halfway cases in [1, 2) to even, XMath.Cbrt keeps the
+    /// sign of negative inputs, XMath.Exp2 folds to 2^x and float.IsInteger and
+    /// float.IsOddInteger are exact.
+    /// </summary>
+    [SkippableFact]
+    public async Task RoundingAndRoots_ProducesCorrectOutput()
+    {
+        await VerifyProgramOutputAsync(
+            "TestPrograms/FloatSemantics/RoundingAndRoots.cs",
+            ["Kernels.RoundingAndRootsKernel"],
+            [
+                "2000", "-2000", "1500", "9500", "0", "0",
+                "-2000", "2000", "-1500", "6500", "0", "0",
+                "0", "0", "500", "8500", "0", "0",
+                "2000", "-2000", "2500", "10500", "0", "0",
+                "-2000", "2000", "-2000", "6000", "1000", "0",
+                "3000", "-3000", "3000", "11000", "1000", "1000",
+                "1000", "-1000", "1250", "9250", "0", "0",
+                "-1000", "1000", "-750", "7250", "0", "0"
+            ]);
+    }
 }

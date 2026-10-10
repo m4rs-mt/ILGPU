@@ -71,7 +71,7 @@ partial class XMath
     /// <returns>2^value.</returns>
     [MathIntrinsic]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static double Exp2(double value) => Math.Pow(value, 2.0);
+    public static double Exp2(double value) => Math.Pow(2.0, value);
 
     /// <summary>
     /// Computes 2^value.
@@ -80,7 +80,7 @@ partial class XMath
     /// <returns>2^value.</returns>
     [MathIntrinsic]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static float Exp2(float value) => MathF.Pow(value, 2.0f);
+    public static float Exp2(float value) => MathF.Pow(2.0f, value);
 
     /// <summary>
     /// Computes 2^value.
