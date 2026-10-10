@@ -13,14 +13,15 @@ ILGPU's CUDA / ROCm backends. The same images plug straight into the
 
 | Dockerfile        | Runtime base                                       | Architectures        | Bundled compilers              |
 |-------------------|----------------------------------------------------|----------------------|--------------------------------|
-| `Dockerfile.cuda` | `nvidia/cuda:13.2.0-devel-ubuntu24.04`             | `linux/amd64`, `linux/arm64` (SBSA) | `nvcc`, `ptxas` at `/usr/local/cuda/bin/` |
+| `Dockerfile.cuda` | `ubuntu:24.04` + CUDA 13.2 toolkit from NVIDIA's apt repository (`cuda-minimal-build-13-2`) | `linux/amd64`, `linux/arm64` (SBSA) | `nvcc`, `ptxas` at `/usr/local/cuda/bin/` |
 | `Dockerfile.rocm` | `rocm/dev-ubuntu-24.04:7.1.1-complete`             | `linux/amd64` only   | `hipcc`, `amdclang++` at `/opt/rocm/bin/` |
+| `Dockerfile.opencl` | `ubuntu:24.04` + `intel-ocloc` from Intel's apt repository | `linux/amd64` only | `ocloc` |
 
-Both images:
+All three images:
 
 - Use a multi-stage build (`mcr.microsoft.com/dotnet/sdk:10.0-noble` for the
-  build stage, the GPU base for the runtime stage). The full **.NET 10 SDK**
-  is installed on the GPU base via `dotnet-install.sh` — not just the
+  build stage, the toolchain base for the runtime stage). The full **.NET 10
+  SDK** is installed on the toolchain base via `dotnet-install.sh` — not just the
   ASP.NET Core runtime. The SDK is a strict superset of the runtime, so the
   CompilerService still launches via the same `dotnet ILGPUC.CompilerService.dll`
   default command. The reason for the larger install (~700 MB extra) is that
@@ -42,6 +43,22 @@ Both images:
   so the published GHCR packages auto-link back to the source repo and show
   up under the repo's Packages tab.
 
+## Licenses
+
+Each image bundles a third-party compiler toolchain under its vendor's
+license:
+
+- **CUDA** (`Dockerfile.cuda`): the CUDA toolkit packages from NVIDIA's apt
+  repository, under the
+  [CUDA Toolkit EULA](https://docs.nvidia.com/cuda/eula/index.html).
+- **ROCm** (`Dockerfile.rocm`): AMD's ROCm components (MIT, Apache-2.0 with
+  LLVM exception, NCSA).
+- **OpenCL** (`Dockerfile.opencl`): Intel's `ocloc` and Graphics Compiler
+  (MIT), installed from Intel's apt repository.
+
+Each image lists the licenses of everything it contains at
+`/usr/share/doc/ilgpuc/NOTICES`.
+
 ## Building
 
 > **Build context is the repo root**, not `Src/`. The build needs `global.json`
@@ -58,6 +75,9 @@ docker build \
     -t ilgpuc-compiler-service-cuda:13.2.0 \
     .
 ```
+
+This builds natively for the Docker host's architecture (amd64, or arm64 on
+Apple Silicon / arm64 Linux) and works with the legacy builder too.
 
 ### CUDA (multi-arch, amd64 + arm64)
 
@@ -92,90 +112,123 @@ docker build \
 ```
 
 There is no ARM64 build for ROCm — AMD does not publish a multi-arch
-`rocm/dev-ubuntu-24.04` base.
+`rocm/dev-ubuntu-24.04` base. On an arm64 host add `--platform linux/amd64`,
+which needs BuildKit (see [Apple Silicon](#running-on-apple-silicon-m1m2m3m4-macs)).
 
-## Quick start: build and launch both side-by-side
-
-[`run.sh`](./run.sh) builds both Dockerfiles and launches the CUDA + ROCm
-containers on **different host ports** so they coexist:
+### OpenCL (amd64 only)
 
 ```bash
-Src/docker/run.sh                    # build both, run both
+docker build \
+    -f Src/docker/Dockerfile.opencl \
+    -t ilgpuc-compiler-service-opencl:latest \
+    .
+```
+
+Intel publishes no arm64 build of `ocloc`; the same `--platform linux/amd64`
+and BuildKit note as for ROCm applies on arm64 hosts.
+
+## Quick start: build and launch with `run.sh`
+
+[`run.sh`](./run.sh) builds the images and launches the containers on
+**different host ports** so they coexist:
+
+```bash
+Src/docker/run.sh                    # build all three, run all three
+Src/docker/run.sh --backend cuda     # only CUDA (fastest; native on arm64)
+Src/docker/run.sh --backend cuda,opencl
 Src/docker/run.sh --no-build         # skip rebuild, just (re)launch
 Src/docker/run.sh --stop             # stop and remove the containers
 ```
 
-Defaults: CUDA on host port `5001`, ROCm on host port `5002` (both still
-listen on `5000` *inside* the container — see [Running both
-simultaneously](#running-both-containers-simultaneously) below).
+Defaults: CUDA on host port `5001`, ROCm on `5002`, OpenCL on `5003` (all
+still listen on `5000` *inside* the container — see [Running containers
+simultaneously](#running-containers-simultaneously) below). Override with
+`CUDA_HOST_PORT=... ROCM_HOST_PORT=... OPENCL_HOST_PORT=...`.
 
-Override with `CUDA_HOST_PORT=... ROCM_HOST_PORT=... PLATFORM=...`.
+Platforms are chosen per backend: CUDA builds for the Docker host's own
+architecture, ROCm and OpenCL for `linux/amd64` (the only platform AMD and
+Intel publish packages for). `PLATFORM=...` forces one platform for every
+selected backend. Building an amd64 image on an arm64 host needs BuildKit
+(the `docker buildx` plugin, shipped with Docker Desktop); without it
+`run.sh` stops early and says so — `--backend cuda` still works.
 
-After it returns, both `/api/v1/status` endpoints have been polled and
-you'll see:
+`--pull` fetches the project's prebuilt images from GHCR instead of building.
+They are private (they serve this repository's CI), so this needs
+`docker login ghcr.io` with read access; otherwise build locally.
+
+After it returns, every selected `/api/v1/status` endpoint has been polled
+and you'll see, for example:
 
 ```
 ✓ CUDA healthy on http://localhost:5001
 ✓ ROCm healthy on http://localhost:5002
+✓ OpenCL healthy on http://localhost:5003
 ```
 
 ## Running
 
-### CUDA
+The service only *compiles* kernels, so a plain `docker run` is enough —
+no GPU, drivers or device access needed (this is also what `run.sh` does).
+The GPU flags below are only needed when something inside the container
+must *execute* kernels on real hardware (for example `dotnet test` of the
+execution tests).
 
-Requires the
-[NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html)
-on the host.
+### CUDA
 
 ```bash
 docker run --rm -d \
-    --gpus all \
     -p 5000:5000 \
     --name ilgpuc-cuda \
     ilgpuc-compiler-service-cuda:13.2.0
 ```
 
-### ROCm
+To execute kernels on an NVIDIA GPU from inside the container, install the
+[NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html)
+on the host and add `--gpus all`.
 
-Needs `/dev/kfd` and `/dev/dri` exposed, plus the host's `video` group:
+### ROCm
 
 ```bash
 docker run --rm -d \
-    --device=/dev/kfd \
-    --device=/dev/dri \
-    --group-add video \
     -p 5000:5000 \
     --name ilgpuc-rocm \
     ilgpuc-compiler-service-rocm:7.1.1
 ```
 
-On newer kernels you may also need `--group-add render`.
+To execute kernels on an AMD GPU from inside the container, expose
+`/dev/kfd` and `/dev/dri` and the host's `video` group
+(`--device=/dev/kfd --device=/dev/dri --group-add video`; on newer kernels
+also `--group-add render`).
 
-### Running both containers simultaneously
+### OpenCL
 
-Both images bind to **port 5000 inside the container**. To run them at the
+```bash
+docker run --rm -d \
+    -p 5000:5000 \
+    --name ilgpuc-opencl \
+    ilgpuc-compiler-service-opencl:latest
+```
+
+### Running containers simultaneously
+
+All images bind to **port 5000 inside the container**. To run them at the
 same time, map them to different *host* ports — that's what `-p HOST:5000`
 does:
 
 ```bash
-# CUDA on host port 5001
-docker run --rm -d --gpus all \
-    -p 5001:5000 --name ilgpuc-cuda \
-    ilgpuc-compiler-service-cuda:13.2.0
+docker run --rm -d -p 5001:5000 --name ilgpuc-cuda   ilgpuc-compiler-service-cuda:13.2.0
+docker run --rm -d -p 5002:5000 --name ilgpuc-rocm   ilgpuc-compiler-service-rocm:7.1.1
+docker run --rm -d -p 5003:5000 --name ilgpuc-opencl ilgpuc-compiler-service-opencl:latest
 
-# ROCm on host port 5002
-docker run --rm -d \
-    --device=/dev/kfd --device=/dev/dri --group-add video \
-    -p 5002:5000 --name ilgpuc-rocm \
-    ilgpuc-compiler-service-rocm:7.1.1
-
-# Each backend points at its own host port
+# Each backend points at its own host port (optional: these are the
+# defaults CompilerManagerFactory probes when no variable is set)
 ILGPU_CUDA_SERVICE_URL=http://localhost:5001 \
 ILGPU_ROCM_SERVICE_URL=http://localhost:5002 \
+ILGPU_OPENCL_SERVICE_URL=http://localhost:5003 \
     dotnet test ILGPUC.Tests/ILGPUC.Tests.csproj --blame-hang-timeout 360s
 ```
 
-Keeping the *internal* port fixed at 5000 across both images is the design
+Keeping the *internal* port fixed at 5000 across all images is the design
 choice that makes this work without rebuilding anything. `run.sh` does
 exactly this end-to-end.
 
@@ -184,13 +237,16 @@ exactly this end-to-end.
 Docker Desktop on Apple Silicon can run these images directly — no separate
 VM needed.
 
-- **CUDA image**: the `nvidia/cuda:13.2.0-devel-ubuntu24.04` base ships a
-  multi-arch manifest, so on Apple Silicon Docker pulls the native
-  `linux/arm64` (SBSA) layer. No emulation involved.
-- **ROCm image**: AMD only publishes `linux/amd64`, so you must run it
-  under emulation. Add `--platform linux/amd64` to `docker build` and
-  `docker run`. **Enable Rosetta** in *Docker Desktop → Settings → General
-  → "Use Rosetta for x86_64/amd64 emulation on Apple Silicon"* — it is
+- **CUDA image**: NVIDIA's apt repository ships `linux/arm64` (SBSA)
+  packages, so on Apple Silicon the image builds natively for `linux/arm64`.
+  No emulation involved.
+- **ROCm and OpenCL images**: AMD and Intel only publish `linux/amd64`,
+  so these run under emulation. Add `--platform linux/amd64` to
+  `docker build` and `docker run` (`run.sh` does this for you). Building
+  for a foreign platform needs **BuildKit** (`docker buildx`, included in
+  Docker Desktop); the legacy builder fails with "failed to get destination
+  image". **Enable Rosetta** in *Docker Desktop → Settings → General →
+  "Use Rosetta for x86_64/amd64 emulation on Apple Silicon"* — it is
   dramatically faster than the QEMU fallback.
 
 ### "But there's no NVIDIA/AMD GPU on a Mac, what's the point?"
@@ -247,8 +303,9 @@ test command.
 
 | Pin                                       | Why                                                                 |
 |-------------------------------------------|---------------------------------------------------------------------|
-| `nvidia/cuda:13.2.0-devel-ubuntu24.04`    | Latest CUDA SDK with multi-arch (`amd64` + `arm64/SBSA`) manifests. |
+| `ubuntu:24.04` + `cuda-minimal-build-13-2` | CUDA 13.2 compiler toolchain from NVIDIA's apt repository (`x86_64` and `sbsa` repos) — only the packages the compiler service needs. |
 | `rocm/dev-ubuntu-24.04:7.1.1-complete`    | Last release with a documented `-complete` tag bundling `hipcc`; ROCm 7.2+ deprecates `hipcc` in favour of `amdclang++`. |
+| `ubuntu:24.04` + `intel-ocloc`            | Intel's compute-runtime apt repository (`noble unified`); MIT-licensed. |
 | `mcr.microsoft.com/dotnet/sdk:10.0-noble` | .NET 10 GA, Ubuntu 24.04, multi-arch.                                |
 
 Bump these in the Dockerfiles when newer base images have been validated
