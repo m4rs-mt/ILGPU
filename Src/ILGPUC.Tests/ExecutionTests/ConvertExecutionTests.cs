@@ -106,6 +106,42 @@ public abstract class ConvertExecutionTests : ExecutionTestBase
             ["2", "2", "2", "2"]);
     }
 
+    /// <summary>
+    /// Bools computed at run time convert to 1.0 and 0.0, not to the bit
+    /// patterns 1 and 0.
+    /// </summary>
+    [SkippableFact]
+    public async Task BoolToFloat_ProducesCorrectOutput()
+    {
+        await VerifyProgramOutputAsync(
+            "TestPrograms/ConvertFloat/BoolToFloat.cs",
+            ["Kernels.BoolToFloatKernel"],
+            BoolToFloatOutput);
+    }
+
+    [SkippableFact]
+    public async Task BoolToDouble_ProducesCorrectOutput()
+    {
+        RequireCapability(Backend, BackendCapability.Float64);
+        await VerifyProgramOutputAsync(
+            "TestPrograms/ConvertFloat/BoolToDouble.cs",
+            ["Kernels.BoolToDoubleKernel"],
+            BoolToFloatOutput);
+    }
+
+    [SkippableFact]
+    public async Task BoolToHalf_ProducesCorrectOutput()
+    {
+        RequireCapability(Backend, BackendCapability.Float16);
+        await VerifyProgramOutputAsync(
+            "TestPrograms/ConvertFloat/BoolToHalf.cs",
+            ["Kernels.BoolToHalfKernel"],
+            BoolToFloatOutput);
+    }
+
+    private static readonly string[] BoolToFloatOutput =
+        ["0", "1", "0", "0", "1", "3.5", "1", "3.5"];
+
     [SkippableFact]
     public async Task ByteToInt_ProducesCorrectOutput()
     {
