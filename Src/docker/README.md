@@ -13,14 +13,14 @@ ILGPU's CUDA / ROCm backends. The same images plug straight into the
 
 | Dockerfile        | Runtime base                                       | Architectures        | Bundled compilers              |
 |-------------------|----------------------------------------------------|----------------------|--------------------------------|
-| `Dockerfile.cuda` | `nvidia/cuda:13.2.0-devel-ubuntu24.04`             | `linux/amd64`, `linux/arm64` (SBSA) | `nvcc`, `ptxas` at `/usr/local/cuda/bin/` |
+| `Dockerfile.cuda` | `ubuntu:24.04` + CUDA 13.2 toolkit from NVIDIA's apt repository (`cuda-minimal-build-13-2`) | `linux/amd64`, `linux/arm64` (SBSA) | `nvcc`, `ptxas` at `/usr/local/cuda/bin/` |
 | `Dockerfile.rocm` | `rocm/dev-ubuntu-24.04:7.1.1-complete`             | `linux/amd64` only   | `hipcc`, `amdclang++` at `/opt/rocm/bin/` |
 
 Both images:
 
 - Use a multi-stage build (`mcr.microsoft.com/dotnet/sdk:10.0-noble` for the
-  build stage, the GPU base for the runtime stage). The full **.NET 10 SDK**
-  is installed on the GPU base via `dotnet-install.sh` — not just the
+  build stage, the toolchain base for the runtime stage). The full **.NET 10
+  SDK** is installed on the toolchain base via `dotnet-install.sh` — not just the
   ASP.NET Core runtime. The SDK is a strict superset of the runtime, so the
   CompilerService still launches via the same `dotnet ILGPUC.CompilerService.dll`
   default command. The reason for the larger install (~700 MB extra) is that
@@ -41,6 +41,22 @@ Both images:
   `org.opencontainers.image.licenses`, `org.opencontainers.image.description`)
   so the published GHCR packages auto-link back to the source repo and show
   up under the repo's Packages tab.
+
+## Licenses
+
+Each image bundles a third-party compiler toolchain under its vendor's
+license:
+
+- **CUDA** (`Dockerfile.cuda`): the CUDA toolkit packages from NVIDIA's apt
+  repository, under the
+  [CUDA Toolkit EULA](https://docs.nvidia.com/cuda/eula/index.html).
+- **ROCm** (`Dockerfile.rocm`): AMD's ROCm components (MIT, Apache-2.0 with
+  LLVM exception, NCSA).
+- **OpenCL** (`Dockerfile.opencl`): Intel's `ocloc` and Graphics Compiler
+  (MIT), installed from Intel's apt repository.
+
+Each image lists the licenses of everything it contains at
+`/usr/share/doc/ilgpuc/NOTICES`.
 
 ## Building
 
@@ -184,9 +200,9 @@ exactly this end-to-end.
 Docker Desktop on Apple Silicon can run these images directly — no separate
 VM needed.
 
-- **CUDA image**: the `nvidia/cuda:13.2.0-devel-ubuntu24.04` base ships a
-  multi-arch manifest, so on Apple Silicon Docker pulls the native
-  `linux/arm64` (SBSA) layer. No emulation involved.
+- **CUDA image**: NVIDIA's apt repository ships `linux/arm64` (SBSA)
+  packages, so on Apple Silicon the image builds natively for `linux/arm64`.
+  No emulation involved.
 - **ROCm image**: AMD only publishes `linux/amd64`, so you must run it
   under emulation. Add `--platform linux/amd64` to `docker build` and
   `docker run`. **Enable Rosetta** in *Docker Desktop → Settings → General

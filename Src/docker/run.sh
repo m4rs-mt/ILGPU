@@ -15,9 +15,9 @@
 #   default      Build the three images locally from Src/docker/ and run.
 #                Iterating on the Dockerfiles? This mode.
 #   --pull       Pull pre-built images from ghcr.io and run. Skips ~50
-#                minutes of cold-build time. "I just want the service
-#                running locally" — this mode. Requires the GHCR packages
-#                to be public (see .github/workflows/docker-publish.yml).
+#                minutes of cold-build time. The published packages are
+#                private, so this only works with read access to them —
+#                otherwise build locally with the default mode.
 #   --no-build   Reuse whatever local images already exist and run. For
 #                iterating on downstream code that hits the running services.
 #
@@ -110,9 +110,10 @@ ${BOLD}Modes (mutually exclusive — pick at most one):${RESET}
                      verifying a local source change end-to-end.
   --pull             Pull pre-built images from ghcr.io instead of
                      building locally. Skips ~50 minutes of cold-build
-                     time. Best for "I just want the service running
-                     locally to test something" — see GHCR_OWNER env var
-                     to point at a fork.
+                     time. The published packages are private, so this
+                     needs read access to them (docker login ghcr.io);
+                     without it, use the default mode. See GHCR_OWNER env
+                     var to point at your own private namespace.
   --no-build         Skip docker build entirely; reuse whatever local
                      images already exist (useful when iterating only on
                      downstream code that hits the running services).
