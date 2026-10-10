@@ -13,6 +13,7 @@ using ILGPU;
 using ILGPUC.IR.ModuleValues;
 using ILGPUC.Util;
 using System.Diagnostics;
+using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Text;
 
@@ -222,9 +223,12 @@ readonly record struct PrimitiveValueBox(BasicValueType BasicValueType, long Raw
             BasicValueType.Int16 => Int16Value.ToString(),
             BasicValueType.Int32 => Int32Value.ToString(),
             BasicValueType.Int64 => Int64Value.ToString(),
-            BasicValueType.Float16 => Float16Value.ToString(),
-            BasicValueType.Float32 => Float32Value.ToString(),
-            BasicValueType.Float64 => Float64Value.ToString(),
+            BasicValueType.Float16 =>
+                ((float)Float16Value).ToString(CultureInfo.InvariantCulture),
+            BasicValueType.Float32 =>
+                Float32Value.ToString(CultureInfo.InvariantCulture),
+            BasicValueType.Float64 =>
+                Float64Value.ToString(CultureInfo.InvariantCulture),
             _ => $"Raw({RawValue})",
         };
         return $"{result} [{BasicValueType}]";

@@ -120,7 +120,7 @@ abstract class FixPointAnalysis<T, TDirection>(T defaultValue = default)
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     protected AnalysisValue<T> Merge(AnalysisValue<T> first, AnalysisValue<T> second)
     {
-        if (first.IsScalar)
+        if (first.IsScalar || first.NumFields != second.NumFields)
             return new AnalysisValue<T>(Merge(first.Data, second.Data));
 
         var fieldData = new T[first.NumFields];

@@ -23,6 +23,8 @@
   <Project Path="ProfilingMarkers/ProfilingMarkers.csproj" />
   <Project Path="SharedMemory/SharedMemory.csproj" />
   <Project Path="SimpleAlloc/SimpleAlloc.csproj" />
+  <Project Path="SimpleArrayView2D/SimpleArrayView2D.csproj" />
+  <Project Path="SimpleArrayView3D/SimpleArrayView3D.csproj" />
   <Project Path="SimpleAtomics/SimpleAtomics.csproj" />
   <Project Path="SimpleConstants/SimpleConstants.csproj" />
   <Project Path="SimpleDebugAssert/SimpleDebugAssert.csproj" />

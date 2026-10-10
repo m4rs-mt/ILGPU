@@ -39,20 +39,18 @@ public struct IntInline4
 }
 
 /// <summary>
-/// B.2 (open) holding-pen kernel — exercises the cross-type struct
-/// assignment shape that fails IR→native source emission on CUDA / ROCm /
-/// OpenCL today. Source emission passes; native compile fails with
-/// <c>error: no operator "=" matches these operands</c>.
-/// <see cref="KnownFailingOnAttribute"/> skips <c>NativeCompilation</c>
-/// on the affected backends with a tracking message; the fix-PR removes
-/// the attribute, which forces native compile to run and proves the fix.
+/// AoS-of-SoA write pattern with two <c>[InlineArray]</c>-backed channels.
+/// Pins the cross-type struct-assignment shape (formerly B.2 in
+/// <c>Src/plans/fix_samples.md</c>): the IR previously kept the un-flattened
+/// sub-struct type for a multi-field <c>GetField</c> while the marshaled
+/// parent had been flattened to primitive slots, producing
+/// <c>error: no operator "=" matches these operands</c> from nvcc / hipcc /
+/// clang on the generated source. Resolved by the multi-field <c>GetField</c>
+/// struct-literal emit in <c>ExpressionEmitter.EmitGetField</c>; the kernel
+/// stays here as a regression for that lowering path.
 /// </summary>
 static class InterleaveFieldsKernels
 {
-    [KnownFailingOn(
-        BackendType.Cuda, BackendType.ROCm, BackendType.OpenCL,
-        Reason =
-            "B.2 cross-type struct assignment — see Src/plans/fix_samples.md family B.2")]
     public static void InterleaveFieldsKernel(
         Index1D index,
         ArrayView1D<InterleavedPoint4, Stride1D.Dense> dataView)

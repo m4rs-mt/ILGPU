@@ -1,0 +1,22 @@
+<Project>
+
+  <Import Project="Sdk.props" Sdk="Microsoft.NET.Sdk" />
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>$(SamplesTargetFramework)</TargetFramework>
+    <RootNamespace>SimpleArrayView3D</RootNamespace>
+    <AssemblyName>SimpleArrayView3D</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Reference Include="ILGPU">
+      <HintPath>$(ILGPUBinDir)/ILGPU.dll</HintPath>
+      <Private>true</Private>
+    </Reference>
+  </ItemGroup>
+
+  <Import Project="Sdk.targets" Sdk="Microsoft.NET.Sdk" />
+  <Import Project="$(MSBuildThisFileDirectory)../../Src/ILGPUC/build/ILGPU.Kernels.targets" />
+
+</Project>

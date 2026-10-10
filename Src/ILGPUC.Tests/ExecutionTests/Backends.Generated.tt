@@ -58,6 +58,8 @@ var testClasses = new[]
     "AdvancedViewsExecutionTests",
     "GenericKernelExecutionTests",
     "AtomicsFloat64ExecutionTests",
+    "ArrayView2DExecutionTests",
+    "ArrayView3DExecutionTests",
 };
 
 var backends = new[] { "CPU", "Metal", "Cuda", "ROCm", "OpenCL" };

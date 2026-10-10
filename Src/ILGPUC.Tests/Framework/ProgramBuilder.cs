@@ -200,11 +200,17 @@ sealed class ProgramBuilder : DisposeBase
                     .ToArray();
 
                 // Extract user property names for struct params (CPU marshaling).
-                // ExtractFieldAccessors returns null for non-struct parameters; coalesce
-                // to an empty array so the jagged array type matches
-                // GenerateWrapper's non-nullable inner-element contract.
+                // Use LauncherStubGenerator.ExtractFieldAccessors so nested
+                // struct fields are flattened to leaf accessors — required for
+                // ArrayView2D/3D, whose Extent/Stride substructs the IR
+                // decomposes into multiple primitive slots. The production
+                // ilgpuc-build path uses the same helper from MainKernelProvider.
+                // Coalesce null (non-struct param) to an empty array so the
+                // jagged array type matches GenerateWrapper's non-nullable
+                // inner-element contract.
                 var fieldAccessors = kernel.Parameters
-                    .Select(p => ExtractFieldAccessors(p.Type) ?? [])
+                    .Select(p =>
+                        LauncherStubGenerator.ExtractFieldAccessors(p.Type) ?? [])
                     .ToArray();
 
                 var result = GenerateWrapper(
@@ -594,50 +600,6 @@ sealed class ProgramBuilder : DisposeBase
     {
         if (Interlocked.CompareExchange(ref s_intrinsicsInitialized, 1, 0) == 0)
             Intrinsics.Init();
-    }
-
-    /// <summary>
-    /// Extracts user-facing property names for a struct type, in CLR
-    /// metadata token order (matching the IR struct field order).
-    /// Returns null for non-struct types.
-    /// </summary>
-    private static string[]? ExtractFieldAccessors(
-        RoslynSymbols.ITypeSymbol type)
-    {
-        if (type.TypeKind != RoslynSymbols.TypeKind.Struct)
-            return null;
-
-        // Get instance backing fields (including auto-property backing fields)
-        // in declaration order. For auto-properties, the backing field's
-        // AssociatedSymbol gives us the property name for C# access.
-        // This matches TypeInformationManager.CreateCompoundTypeInfo which
-        // sorts fields by MetadataToken (= declaration order).
-        var accessors = type.GetMembers()
-            .OfType<RoslynSymbols.IFieldSymbol>()
-            .Where(f => !f.IsStatic && !f.IsConst)
-            .Select(f =>
-            {
-                // Auto-property backing fields → use property name
-                if (f.AssociatedSymbol is RoslynSymbols.IPropertySymbol prop)
-                    return prop.Name;
-                // For metadata-loaded types, AssociatedSymbol may be null.
-                // Parse the backing field naming convention:
-                // "<PropertyName>k__BackingField"
-                var name = f.Name;
-                if (name.StartsWith('<') && name.EndsWith("k__BackingField"))
-                {
-                    var endAngle = name.IndexOf('>');
-                    if (endAngle > 1)
-                        return name[1..endAngle];
-                }
-                // Regular fields → use field name directly
-                return f.IsImplicitlyDeclared ? null : name;
-            })
-            .Where(n => n is not null)
-            .Cast<string>()
-            .ToArray();
-
-        return accessors.Length > 0 ? accessors : null;
     }
 
     /// <summary>
