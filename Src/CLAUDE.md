@@ -217,6 +217,15 @@ On Apple Silicon, enable Rosetta in Docker Desktop (`Settings → General`) for 
 
 **After editing files, `touch` them before `dotnet build`** — the Edit tool doesn't update mtime, so MSBuild may skip recompilation.
 
+## Commit Messages
+
+- One-line summary of the main contribution, past tense (e.g. "Added GPU execution tests after the compile-only stage.", "Bumped requests from 2.32.0 to 2.33.0."). Match the style of existing commits in `git log`.
+- Commits with Claude involvement must be marked with a trailer:
+
+  ```
+  Co-Authored-By: Claude <noreply@anthropic.com>
+  ```
+
 ## Code Style
 
 - 4-space indentation, CRLF line endings
