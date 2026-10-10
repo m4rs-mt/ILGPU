@@ -1015,6 +1015,10 @@ sealed partial class CPUMethodEmitter(
                 expressionEmitter.EmitUnaryOp(unary);
                 break;
 
+            case TernaryArithmeticValue ternary when !analysis.IsScalar(ternary):
+                expressionEmitter.EmitTernaryOp(ternary);
+                break;
+
             case CompareValue compare:
                 expressionEmitter.EmitCompare(compare);
                 break;

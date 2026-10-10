@@ -114,6 +114,20 @@ readonly struct MethodDeclaration : IEquatable<MethodDeclaration>
             Flags = Method.ResolveMethodFlags(Source);
     }
 
+    /// <summary>
+    /// Constructs a new method declaration with exactly the given flags, which
+    /// are not resolved from the source method when they are empty.
+    /// </summary>
+    /// <param name="declaration">The declaration to copy.</param>
+    /// <param name="flags">The method flags.</param>
+    private MethodDeclaration(in MethodDeclaration declaration, MethodFlags flags)
+    {
+        Handle = declaration.Handle;
+        ReturnType = declaration.ReturnType;
+        Source = declaration.Source;
+        Flags = flags;
+    }
+
     #endregion
 
     #region Properties
@@ -180,7 +194,7 @@ readonly struct MethodDeclaration : IEquatable<MethodDeclaration>
     /// </summary>
     /// <param name="flags">The flags to remove.</param>
     public MethodDeclaration RemoveFlags(MethodFlags flags) =>
-        new(Handle, ReturnType, Source, Flags & ~flags);
+        new(this, Flags & ~flags);
 
     #endregion
 

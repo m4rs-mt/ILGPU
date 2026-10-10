@@ -809,7 +809,17 @@ sealed class ILFrontend
             MethodBase?[]? delegateTargets = null)
         {
             if (methodBuilder.Method.IsExternal)
-                return;
+            {
+                // InternalCall methods with an intrinsic remapping (for example
+                // MathF.Cbrt) are external by declaration, but they are
+                // implemented by the body of their remapping target
+                if (!Intrinsics.HasIntrinsicRemapping(method) ||
+                    GetDisassembledMethod(method) is null)
+                {
+                    return;
+                }
+                methodBuilder.Method.RemoveFlags(MethodFlags.External);
+            }
 
             // Intrinsics used as method groups already have a sealed body
             // synthesised from their generator (TrySynthesizeIntrinsicBody)

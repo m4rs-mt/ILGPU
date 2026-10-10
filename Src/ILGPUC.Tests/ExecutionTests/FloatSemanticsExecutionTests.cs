@@ -195,9 +195,10 @@ public abstract class FloatSemanticsExecutionTests : ExecutionTestBase
     }
 
     /// <summary>
-    /// MathF.Round rounds halfway cases in [1, 2) to even, XMath.Cbrt keeps the
-    /// sign of negative inputs, XMath.Exp2 folds to 2^x and float.IsInteger and
-    /// float.IsOddInteger are exact.
+    /// MathF.Round rounds halfway cases in [1, 2) to even, MathF.Cbrt keeps the
+    /// sign of negative inputs, XMath.Exp2 folds to 2^x, the remainders are
+    /// computed on every backend, multiply-add works on per-lane values and
+    /// float.IsInteger and float.IsOddInteger are exact.
     /// </summary>
     [SkippableFact]
     public async Task RoundingAndRoots_ProducesCorrectOutput()
@@ -206,14 +207,14 @@ public abstract class FloatSemanticsExecutionTests : ExecutionTestBase
             "TestPrograms/FloatSemantics/RoundingAndRoots.cs",
             ["Kernels.RoundingAndRootsKernel"],
             [
-                "2000", "-2000", "1500", "9500", "0", "0",
-                "-2000", "2000", "-1500", "6500", "0", "0",
-                "0", "0", "500", "8500", "0", "0",
-                "2000", "-2000", "2500", "10500", "0", "0",
-                "-2000", "2000", "-2000", "6000", "1000", "0",
-                "3000", "-3000", "3000", "11000", "1000", "1000",
-                "1000", "-1000", "1250", "9250", "0", "0",
-                "-1000", "1000", "-750", "7250", "0", "0"
+                "2000", "-2000", "1500", "9500", "250", "250", "750", "0", "0",
+                "-2000", "2000", "-1500", "6500", "-250", "-250", "3750", "0", "0",
+                "0", "0", "500", "8500", "500", "500", "-250", "0", "0",
+                "2000", "-2000", "2500", "10500", "0", "0", "3750", "0", "0",
+                "-2000", "2000", "-2000", "6000", "-750", "500", "6000", "1000", "0",
+                "3000", "-3000", "3000", "11000", "500", "500", "6000", "1000", "1000",
+                "1000", "-1000", "1250", "9250", "0", "0", "313", "0", "0",
+                "-1000", "1000", "-750", "7250", "-750", "500", "1313", "0", "0"
             ]);
     }
 }

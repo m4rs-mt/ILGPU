@@ -506,6 +506,18 @@ sealed class CPUExpressionEmitter(
             or BinaryArithmeticKind.Max;
 
     /// <summary>
+    /// Returns the name of the method that implements the given binary operation
+    /// on the .NET floating-point types and in CPUMathIntrinsics.
+    /// </summary>
+    private static string GetFloatMethodName(BinaryArithmeticKind kind) =>
+        kind switch
+        {
+            BinaryArithmeticKind.IEEERemainder => "Ieee754Remainder",
+            BinaryArithmeticKind.BinaryLog => "Log",
+            _ => kind.ToString(),
+        };
+
+    /// <summary>
     /// Emits a binary arithmetic operation using CPUMathIntrinsics or a plain
     /// C# operator when both operands are scalar. Values are stored in the
     /// C# types of their basic value types; sign-sensitive operations
@@ -551,6 +563,9 @@ sealed class CPUExpressionEmitter(
             BinaryArithmeticKind.Min => "Min",
             BinaryArithmeticKind.Pow => "Pow",
             BinaryArithmeticKind.CopySign => "CopySign",
+            BinaryArithmeticKind.Atan2
+                or BinaryArithmeticKind.IEEERemainder
+                or BinaryArithmeticKind.BinaryLog => GetFloatMethodName(binary.Kind),
             _ => throw new System.NotSupportedException(
                 $"Binary op {binary.Kind} not supported")
         };
@@ -694,12 +709,16 @@ sealed class CPUExpressionEmitter(
             expr = $"System.Math.{function}({l}, {r})";
         }
         else if (binary.Kind is BinaryArithmeticKind.Pow
-            or BinaryArithmeticKind.CopySign)
+            or BinaryArithmeticKind.CopySign
+            or BinaryArithmeticKind.Atan2
+            or BinaryArithmeticKind.IEEERemainder
+            or BinaryArithmeticKind.BinaryLog)
         {
-            // The floating-point types implement both as static methods with
-            // the semantics of Math.Pow and Math.CopySign
+            // The floating-point types implement these as static methods with
+            // the semantics of their System.Math counterparts
+            var function = GetFloatMethodName(binary.Kind);
             var r = CastScalar(right, storageType, opType);
-            expr = $"{opType}.{binary.Kind}({l}, {r})";
+            expr = $"{opType}.{function}({l}, {r})";
         }
         else
         {
@@ -875,6 +894,32 @@ sealed class CPUExpressionEmitter(
         var exprEmitter = new ExpressionEmitter(context, typeEmitter);
         var expr2 = exprEmitter.EmitDefinition(unary);
         context.WriteLine($"{result} = {expr2};");
+    }
+
+    /// <summary>
+    /// Emits a vectorized multiply-add lane by lane, as its operands may mix
+    /// uniform and per-lane values. Like the scalar emission, it computes
+    /// a * b + c.
+    /// </summary>
+    public void EmitTernaryOp(TernaryArithmeticValue ternary)
+    {
+        if (ternary.Kind != TernaryArithmeticKind.MultiplyAdd)
+        {
+            throw new System.NotSupportedException(
+                $"Ternary op {ternary.Kind} not supported");
+        }
+
+        string Lane(Value operand)
+        {
+            var name = ResolveOperand(operand);
+            return analysis.IsScalar(operand) ? name : $"{name}[_bi]";
+        }
+
+        var expr = $"{Lane(ternary.First)} * {Lane(ternary.Second)} + " +
+            Lane(ternary.Third);
+        context.WriteLine(
+            $"for (int _bi = 0; _bi < SIMDWidth; _bi++) " +
+            $"{context.GetValueName(ternary)}[_bi] = {expr};");
     }
 
     /// <summary>

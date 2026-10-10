@@ -11,9 +11,11 @@
 
 // disable: max_line_length
 // Test program: RoundingAndRoots
-// MathF.Round rounds halfway cases in [1, 2) to even, XMath.Cbrt keeps the
-// sign of negative inputs, XMath.Exp2 folds to 2^x, and float.IsInteger and
-// float.IsOddInteger are exact. Each lane prints the results times 1000.
+// MathF.Round rounds halfway cases in [1, 2) to even, MathF.Cbrt keeps the
+// sign of negative inputs, XMath.Exp2 folds to 2^x, XMath.Rem and
+// MathF.IEEERemainder compute their remainders, MathF.FusedMultiplyAdd
+// works on per-lane values, and float.IsInteger and float.IsOddInteger are
+// exact. Each lane prints the results times 1000.
 
 using System;
 using ILGPU;
@@ -21,7 +23,7 @@ using ILGPU.Runtime;
 
 static class Kernels
 {
-    internal const int NumResults = 6;
+    internal const int NumResults = 9;
 
     internal static long Scale(float value) =>
         (long)(value * 1000.0f + (value < 0.0f ? -0.5f : 0.5f));
@@ -30,9 +32,12 @@ static class Kernels
     {
         0 => MathF.Round(x),
         1 => MathF.Round(-x),
-        2 => XMath.Cbrt(x * x * x),
+        2 => MathF.Cbrt(x * x * x),
         3 => XMath.Exp2(3.0f) + x,
-        4 => float.IsInteger(x) ? 1.0f : 0.0f,
+        4 => XMath.Rem(x, 1.25f),
+        5 => MathF.IEEERemainder(x, 1.25f),
+        6 => MathF.FusedMultiplyAdd(x, x, -x),
+        7 => float.IsInteger(x) ? 1.0f : 0.0f,
         _ => float.IsOddInteger(x) ? 1.0f : 0.0f,
     };
 

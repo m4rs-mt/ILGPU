@@ -745,16 +745,22 @@ sealed class ExpressionEmitter(GenerationContext context, TypeEmitter typeEmitte
     /// Emits binary operations that are neither simple operators nor intrinsics
     /// (e.g., IEEERemainder, CopySign, BinaryLog).
     /// </summary>
-    private static Emitted EmitNonIntrinsicBinaryOp(
+    private Emitted EmitNonIntrinsicBinaryOp(
         BinaryArithmeticKind kind,
         Emitted left,
         Emitted right,
         ArithmeticBasicValueType basicType)
     {
-        // Direct function calls (remainder, copysign)
+        if (kind == BinaryArithmeticKind.IEEERemainder)
+        {
+            return new Emitted(
+                IntrinsicEmitter.EmitIEEERemainder(left.Text, right.Text, basicType),
+                Prec.Postfix);
+        }
+
+        // Direct function calls (copysign)
         var operation = kind switch
         {
-            BinaryArithmeticKind.IEEERemainder => "remainder",
             BinaryArithmeticKind.CopySign => "copysign",
             _ => null
         };
