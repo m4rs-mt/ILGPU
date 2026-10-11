@@ -10,7 +10,9 @@
 // ---------------------------------------------------------------------------------------
 
 using System;
+using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
 
 namespace ILGPU.Runtime.Metal;
 
@@ -31,9 +33,20 @@ public sealed class MetalStream : AcceleratorStream
     private readonly bool _responsibleForHandle;
 
     /// <summary>
-    /// The last committed command buffer, tracked for synchronization.
+    /// MTLCommandBufferStatusCompleted.
     /// </summary>
-    private IntPtr _lastCommandBuffer;
+    private const ulong StatusCompleted = 4;
+
+    /// <summary>
+    /// MTLCommandBufferStatusError.
+    /// </summary>
+    private const ulong StatusError = 5;
+
+    /// <summary>
+    /// The committed command buffers in commit order, tracked for synchronization
+    /// until they are known to have completed without an error.
+    /// </summary>
+    private readonly List<IntPtr> _commandBuffers = [];
 
     /// <summary>
     /// Lock for synchronization operations.
@@ -97,13 +110,20 @@ public sealed class MetalStream : AcceleratorStream
     {
         lock (_syncLock)
         {
-            // Release the previous tracked command buffer.
-            if (_lastCommandBuffer != IntPtr.Zero)
-                MetalAPI.Release(_lastCommandBuffer);
+            // Release the leading command buffers that completed successfully;
+            // failed ones stay tracked until a synchronization reports them.
+            int completed = 0;
+            while (completed < _commandBuffers.Count &&
+                MetalAPI.GetCommandBufferStatus(_commandBuffers[completed]) ==
+                    StatusCompleted)
+            {
+                MetalAPI.Release(_commandBuffers[completed++]);
+            }
+            _commandBuffers.RemoveRange(0, completed);
 
             // Retain and track the new one before committing.
             MetalAPI.Retain(commandBuffer);
-            _lastCommandBuffer = commandBuffer;
+            _commandBuffers.Add(commandBuffer);
         }
 
         MetalAPI.Commit(commandBuffer);
@@ -118,30 +138,62 @@ public sealed class MetalStream : AcceleratorStream
         MetalAPI.Commit(commandBuffer);
         MetalAPI.WaitUntilCompleted(commandBuffer);
 
-        lock (_syncLock)
-        {
-            // The last tracked buffer is no longer needed since we just
-            // synchronized past it.
-            if (_lastCommandBuffer != IntPtr.Zero)
-            {
-                MetalAPI.Release(_lastCommandBuffer);
-                _lastCommandBuffer = IntPtr.Zero;
-            }
-        }
+        string? error = WaitForCommandBuffers();
+        ThrowIfFailed(error ?? GetCommandBufferError(commandBuffer));
     }
 
     /// <inheritdoc/>
-    public override void Synchronize()
+    /// <exception cref="MetalException">
+    /// A command buffer committed since the last synchronization failed.
+    /// </exception>
+    public override void Synchronize() => ThrowIfFailed(WaitForCommandBuffers());
+
+    /// <summary>
+    /// Waits for all tracked command buffers to complete and releases them.
+    /// </summary>
+    /// <returns>
+    /// The error of the first command buffer that failed, or null.
+    /// </returns>
+    private string? WaitForCommandBuffers()
     {
         lock (_syncLock)
         {
-            if (_lastCommandBuffer != IntPtr.Zero)
+            string? error = null;
+            foreach (var commandBuffer in _commandBuffers)
             {
-                MetalAPI.WaitUntilCompleted(_lastCommandBuffer);
-                MetalAPI.Release(_lastCommandBuffer);
-                _lastCommandBuffer = IntPtr.Zero;
+                MetalAPI.WaitUntilCompleted(commandBuffer);
+                error ??= GetCommandBufferError(commandBuffer);
+                MetalAPI.Release(commandBuffer);
             }
+            _commandBuffers.Clear();
+            return error;
         }
+    }
+
+    /// <summary>
+    /// Returns the error of a completed command buffer that failed.
+    /// </summary>
+    /// <param name="commandBuffer">The completed command buffer.</param>
+    /// <returns>The error message, or null if the command buffer succeeded.</returns>
+    private static string? GetCommandBufferError(IntPtr commandBuffer)
+    {
+        if (MetalAPI.GetCommandBufferStatus(commandBuffer) != StatusError)
+            return null;
+        var nsError = MetalAPI.GetCommandBufferError(commandBuffer);
+        var code = MetalAPI.GetNSErrorCode(nsError).ToString(
+            CultureInfo.InvariantCulture);
+        var description = MetalAPI.GetNSErrorDescription(nsError) ?? "unknown error";
+        return $"Metal command buffer failed (error {code}): {description}";
+    }
+
+    /// <summary>
+    /// Throws a <see cref="MetalException"/> for a failed command buffer.
+    /// </summary>
+    /// <param name="error">The error message, or null if nothing failed.</param>
+    private static void ThrowIfFailed(string? error)
+    {
+        if (error is not null)
+            throw new MetalException(MetalError.CommandBufferFailed, error);
     }
 
     /// <inheritdoc/>
@@ -151,7 +203,8 @@ public sealed class MetalStream : AcceleratorStream
     /// <inheritdoc/>
     protected override void DisposeAcceleratorObject(bool disposing)
     {
-        Synchronize();
+        // Failed command buffers are reported by Synchronize, not when disposing
+        WaitForCommandBuffers();
 
         if (_responsibleForHandle && CommandQueue != IntPtr.Zero)
         {
