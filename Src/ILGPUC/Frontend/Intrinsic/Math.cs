@@ -12,6 +12,7 @@
 using ILGPU.Util;
 using ILGPUC.IR;
 using ILGPUC.IR.PureValues;
+using System;
 
 namespace ILGPUC.Frontend.Intrinsic;
 
@@ -40,6 +41,40 @@ partial class Intrinsics
             context.Pull(),
             kind,
             DetermineArithmeticFlags(ref context)).AsNotNull();
+
+    /// <summary>
+    /// Handles unary plus operations, which return their operand unchanged.
+    /// </summary>
+    /// <param name="context">The current invocation context.</param>
+    /// <returns>The operand.</returns>
+    public static Value? Math_Identity(ref InvocationContext context) =>
+        context.Pull();
+
+    /// <summary>
+    /// Handles <see cref="Half"/> increment operations.
+    /// </summary>
+    /// <param name="context">The current invocation context.</param>
+    /// <returns>The incremented value.</returns>
+    public static Value? Math_Increment(ref InvocationContext context) =>
+        context.Builder.CreateArithmetic(
+            context.Location,
+            context.Pull(),
+            context.Builder.CreatePrimitiveValue(context.Location, Half.One),
+            BinaryArithmeticKind.Add,
+            ArithmeticFlags.None).AsNotNull();
+
+    /// <summary>
+    /// Handles <see cref="Half"/> decrement operations.
+    /// </summary>
+    /// <param name="context">The current invocation context.</param>
+    /// <returns>The decremented value.</returns>
+    public static Value? Math_Decrement(ref InvocationContext context) =>
+        context.Builder.CreateArithmetic(
+            context.Location,
+            context.Pull(),
+            context.Builder.CreatePrimitiveValue(context.Location, Half.One),
+            BinaryArithmeticKind.Sub,
+            ArithmeticFlags.None).AsNotNull();
 
     /// <summary>
     /// Handles binary math operations.

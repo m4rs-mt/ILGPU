@@ -82,4 +82,14 @@ partial class XMath
 
         return x - (y * RoundToEven(x * Rcp(y)));
     }
+
+    /// <summary>
+    /// Computes remainder operation that complies with the IEEE 754 specification.
+    /// </summary>
+    /// <param name="x">The nominator.</param>
+    /// <param name="y">The denominator.</param>
+    /// <returns>x%y.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Half IEEERemainder(Half x, Half y) =>
+        (Half)IEEERemainder((float)x, (float)y);
 }

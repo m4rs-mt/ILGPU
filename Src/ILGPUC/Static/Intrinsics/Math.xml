@@ -376,15 +376,116 @@
     </Type>
     <Type Name="System.Half">
         <Remapping>
+            <!-- Constants -->
+            <Remap Name="Zero" Kind="Property" Target="ILGPU.Numerics.XHalf.Zero" />
+            <Remap Name="NegativeZero" Kind="Property" Target="ILGPU.Numerics.XHalf.NegativeZero" />
+            <Remap Name="One" Kind="Property" Target="ILGPU.Numerics.XHalf.One" />
+            <Remap Name="NegativeOne" Kind="Property" Target="ILGPU.Numerics.XHalf.NegativeOne" />
+            <Remap Name="Epsilon" Kind="Property" Target="ILGPU.Numerics.XHalf.Epsilon" />
+            <Remap Name="MaxValue" Kind="Property" Target="ILGPU.Numerics.XHalf.MaxValue" />
+            <Remap Name="MinValue" Kind="Property" Target="ILGPU.Numerics.XHalf.MinValue" />
+            <Remap Name="NaN" Kind="Property" Target="ILGPU.Numerics.XHalf.NaN" />
+            <Remap Name="PositiveInfinity" Kind="Property"
+                Target="ILGPU.Numerics.XHalf.PositiveInfinity" />
+            <Remap Name="NegativeInfinity" Kind="Property"
+                Target="ILGPU.Numerics.XHalf.NegativeInfinity" />
+            <Remap Name="E" Kind="Property" Target="ILGPU.Numerics.XHalf.E" />
+            <Remap Name="Pi" Kind="Property" Target="ILGPU.Numerics.XHalf.Pi" />
+            <Remap Name="Tau" Kind="Property" Target="ILGPU.Numerics.XHalf.Tau" />
+            <Remap Name="MultiplicativeIdentity" Kind="Property"
+                Target="ILGPU.Numerics.XHalf.One" />
+            <Remap Name="System.Numerics.IAdditiveIdentity&lt;System.Half,System.Half&gt;.AdditiveIdentity"
+                Kind="Property" Target="ILGPU.Numerics.XHalf.Zero" />
+            <Remap Name="System.Numerics.IBinaryNumber&lt;System.Half&gt;.AllBitsSet"
+                Kind="Property" Target="ILGPU.Numerics.XHalf.AllBitsSet" />
+            <Remap Name="System.Numerics.INumberBase&lt;System.Half&gt;.Radix"
+                Kind="Property" Target="ILGPU.Numerics.XHalf.Radix" />
+
             <!-- Unary -->
             <Remap Name="Abs" Target="XMath.Abs" ReflectParamType="1" />
+            <Remap Name="Acos" Target="XMath.Acos" ReflectParamType="1" />
+            <Remap Name="Acosh" Target="XMath.Acosh" ReflectParamType="1" />
+            <Remap Name="Asin" Target="XMath.Asin" ReflectParamType="1" />
+            <Remap Name="Asinh" Target="XMath.Asinh" ReflectParamType="1" />
+            <Remap Name="Atan" Target="XMath.Atan" ReflectParamType="1" />
+            <Remap Name="Atanh" Target="XMath.Atanh" ReflectParamType="1" />
+            <Remap Name="Cbrt" Target="XMath.Cbrt" ReflectParamType="1" />
+            <Remap Name="Ceiling" Target="XMath.Ceiling" ReflectParamType="1" />
+            <Remap Name="Cos" Target="XMath.Cos" ReflectParamType="1" />
+            <Remap Name="Cosh" Target="XMath.Cosh" ReflectParamType="1" />
+            <Remap Name="Exp" Target="XMath.Exp" ReflectParamType="1" />
+            <Remap Name="Exp2" Target="XMath.Exp2" ReflectParamType="1" />
+            <Remap Name="Exp10" Target="ILGPU.Numerics.XHalf.Exp10" ReflectParamType="1" />
+            <Remap Name="Floor" Target="XMath.Floor" ReflectParamType="1" />
             <Remap Name="IsFinite" Target="XMath.IsFinite" ReflectParamType="1" />
             <Remap Name="IsInfinity" Target="XMath.IsInfinity" ReflectParamType="1" />
             <Remap Name="IsNaN" Target="XMath.IsNaN" ReflectParamType="1" />
+            <Remap Name="Log" Target="XMath.Log" ReflectParamType="1" />
+            <Remap Name="Log2" Target="XMath.Log2" ReflectParamType="1" />
+            <Remap Name="Log10" Target="XMath.Log10" ReflectParamType="1" />
+            <Remap Name="DegreesToRadians" Target="XMath.DegToRad" ReflectParamType="1" />
+            <Remap Name="RadiansToDegrees" Target="XMath.RadToDeg" ReflectParamType="1" />
+            <Remap Name="ReciprocalEstimate" Target="XMath.Rcp" ReflectParamType="1" />
+            <Remap Name="ReciprocalSqrtEstimate" Target="XMath.Rsqrt" ReflectParamType="1" />
+            <Remap Name="Round" Target="XMath.Round" ReflectParamType="1" />
+            <Remap Name="Sign" Target="XMath.Sign" ReflectParamType="1" />
+            <Remap Name="Sin" Target="XMath.Sin" ReflectParamType="1" />
+            <Remap Name="SinCos" Target="XMath.SinCos" ReflectParamType="1" />
+            <Remap Name="Sinh" Target="XMath.Sinh" ReflectParamType="1" />
+            <Remap Name="Sqrt" Target="XMath.Sqrt" ReflectParamType="1" />
+            <Remap Name="Tan" Target="XMath.Tan" ReflectParamType="1" />
+            <Remap Name="Tanh" Target="XMath.Tanh" ReflectParamType="1" />
+            <Remap Name="Truncate" Target="XMath.Truncate" ReflectParamType="1" />
+            <Remap Name="ExpM1" Target="ILGPU.Numerics.XHalf.ExpM1" ReflectParamType="1" />
+            <Remap Name="Exp2M1" Target="ILGPU.Numerics.XHalf.Exp2M1" ReflectParamType="1" />
+            <Remap Name="Exp10M1" Target="ILGPU.Numerics.XHalf.Exp10M1" ReflectParamType="1" />
+            <Remap Name="LogP1" Target="ILGPU.Numerics.XHalf.LogP1" ReflectParamType="1" />
+            <Remap Name="Log2P1" Target="ILGPU.Numerics.XHalf.Log2P1" ReflectParamType="1" />
+            <Remap Name="Log10P1" Target="ILGPU.Numerics.XHalf.Log10P1" ReflectParamType="1" />
+            <Remap Name="RootN" Target="ILGPU.Numerics.XHalf.RootN">
+                <Specialization Type="System.Half,int" />
+            </Remap>
+            <Remap Name="Round" Target="XMath.Round">
+                <Specialization Type="System.Half,int" />
+                <Specialization Type="System.Half,MidpointRounding" />
+                <Specialization Type="System.Half,int,MidpointRounding" />
+            </Remap>
+
+            <!-- Binary -->
+            <Remap Name="Atan2" Target="XMath.Atan2" ReflectParamType="2" />
+            <Remap Name="CopySign" Target="XMath.CopySign" ReflectParamType="2" />
+            <Remap Name="Hypot" Target="ILGPU.Numerics.XHalf.Hypot" ReflectParamType="2" />
+            <Remap Name="Ieee754Remainder" Target="XMath.IEEERemainder" ReflectParamType="2" />
+            <Remap Name="Log" Target="XMath.Log" ReflectParamType="2" />
+            <Remap Name="Max" Target="ILGPU.Numerics.XHalf.Max" ReflectParamType="2" />
+            <Remap Name="MaxMagnitude"
+                Target="ILGPU.Numerics.XHalf.MaxMagnitude" ReflectParamType="2" />
+            <Remap Name="MaxMagnitudeNumber"
+                Target="ILGPU.Numerics.XHalf.MaxMagnitudeNumber" ReflectParamType="2" />
+            <Remap Name="MaxNative" Target="ILGPU.Numerics.XHalf.MaxNative" ReflectParamType="2" />
+            <Remap Name="MaxNumber" Target="ILGPU.Numerics.XHalf.MaxNumber" ReflectParamType="2" />
+            <Remap Name="Min" Target="ILGPU.Numerics.XHalf.Min" ReflectParamType="2" />
+            <Remap Name="MinMagnitude"
+                Target="ILGPU.Numerics.XHalf.MinMagnitude" ReflectParamType="2" />
+            <Remap Name="MinMagnitudeNumber"
+                Target="ILGPU.Numerics.XHalf.MinMagnitudeNumber" ReflectParamType="2" />
+            <Remap Name="MinNative" Target="ILGPU.Numerics.XHalf.MinNative" ReflectParamType="2" />
+            <Remap Name="MinNumber" Target="ILGPU.Numerics.XHalf.MinNumber" ReflectParamType="2" />
+            <Remap Name="Pow" Target="XMath.Pow" ReflectParamType="2" />
+
+            <!-- Ternary -->
+            <Remap Name="Clamp" Target="ILGPU.Numerics.XHalf.Clamp" ReflectParamType="3" />
+            <Remap Name="ClampNative" Target="ILGPU.Numerics.XHalf.ClampNative" ReflectParamType="3" />
+            <Remap Name="FusedMultiplyAdd" Target="XMath.FMA" ReflectParamType="3" />
+            <Remap Name="MultiplyAddEstimate" Target="XMath.FMA" ReflectParamType="3" />
+            <Remap Name="Lerp" Target="ILGPU.Numerics.XHalf.Lerp" ReflectParamType="3" />
         </Remapping>
         <Generators Target="Frontend.Intrinsic.Intrinsics">
+            <Generator Name="op_UnaryPlus" Target="Math_Identity" />
             <Generator Name="op_UnaryNegation" Target="Math_UnaryOperation"
                 Arguments="UnaryArithmeticKind.Neg" />
+            <Generator Name="op_Increment" Target="Math_Increment" />
+            <Generator Name="op_Decrement" Target="Math_Decrement" />
 
             <Generator Name="op_Addition" Target="Math_BinaryOperation"
                 Arguments="BinaryArithmeticKind.Add" />
@@ -394,6 +495,8 @@
                 Arguments="BinaryArithmeticKind.Mul" />
             <Generator Name="op_Division" Target="Math_BinaryOperation"
                 Arguments="BinaryArithmeticKind.Div" />
+            <Generator Name="op_Modulus" Target="Math_BinaryOperation"
+                Arguments="BinaryArithmeticKind.Rem" />
 
             <Generator Name="op_Equality" Target="Compare_Operation"
                 Arguments="CompareKind.Equal,CompareFlags.None" />

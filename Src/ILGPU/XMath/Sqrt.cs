@@ -88,4 +88,12 @@ partial class XMath
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static float Cbrt(float value) =>
         CopySign(Pow(Abs(value), 1.0f / 3.0f), value);
+
+    /// <summary>
+    /// Computes cbrt(value).
+    /// </summary>
+    /// <param name="value">The value.</param>
+    /// <returns>cbrt(value).</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Half Cbrt(Half value) => (Half)Cbrt((float)value);
 }

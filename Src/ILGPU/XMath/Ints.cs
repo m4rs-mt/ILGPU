@@ -9,6 +9,7 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
+using System;
 using System.Runtime.CompilerServices;
 
 namespace ILGPU;
@@ -95,6 +96,14 @@ partial class XMath
         IsFinite(value) & value == Truncate(value);
 
     /// <summary>
+    /// Tests if a floating point value is an integer
+    /// </summary>
+    /// <param name="value">The value to check</param>
+    /// <returns>True, if the value is an integer</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool IsInteger(Half value) => IsInteger((float)value);
+
+    /// <summary>
     /// Tests if a floating point value is an odd integer
     /// </summary>
     /// <param name="value">The value to check</param>
@@ -111,6 +120,14 @@ partial class XMath
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool IsOddInteger(float value) =>
         IsInteger(value) & Abs(Rem(value, 2.0f)) == 1.0f;
+
+    /// <summary>
+    /// Tests if a floating point value is an odd integer
+    /// </summary>
+    /// <param name="value">The value to check</param>
+    /// <returns>True, if the value is an odd integer</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool IsOddInteger(Half value) => IsOddInteger((float)value);
 
     /// <summary>
     /// Returns true if the given integer is a power of two.

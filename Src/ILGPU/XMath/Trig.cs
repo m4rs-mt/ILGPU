@@ -399,4 +399,12 @@ partial class XMath
     /// <returns>The sin/cos result of the given value.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static (float, float) SinCos(float value) => (Sin(value), Cos(value));
+
+    /// <summary>
+    /// Computes sin(value) and cos(value).
+    /// </summary>
+    /// <param name="value">The value in radians.</param>
+    /// <returns>The sin/cos result of the given value.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static (Half, Half) SinCos(Half value) => (Sin(value), Cos(value));
 }
