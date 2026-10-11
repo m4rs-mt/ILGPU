@@ -14,8 +14,8 @@
 // Test program: PointerField Fields
 // Kernels store pointers to locals, view elements and shared memory in structure
 // fields and read and write through them, also through pointers to the
-// structures and in helpers.
-// Expected output: 143 253 363 473, 20 41 62 83, 21 11 41 31, 27 47 67 87, 16 26 36 46, 32 42 52 62
+// structures, in helpers, in shared memory and in local arrays.
+// Expected output: 143 253 363 473, 20 41 62 83, 21 11 41 31, 27 47 67 87, 16 26 36 46, 21 10 43 32, 11 22 33 40, 32 42 52 62
 
 using System;
 using System.Runtime.CompilerServices;
@@ -79,6 +79,25 @@ static unsafe class Kernels
         data[index] = *h.P + h.N;
     }
 
+    /// <summary>
+    /// Holders of pointers to view elements in shared memory: every thread
+    /// reads the element of its neighbor through the neighbor's holder, in
+    /// groups of up to 1024 threads.
+    /// </summary>
+    public static void SharedHolderKernel(
+        Index1D index,
+        ArrayView1D<int, Stride1D.Dense> data)
+    {
+        var holders = Group.GetSharedMemory<Holder>(1024);
+        int g = Group.Index;
+        holders[g].P = (int*)Unsafe.AsPointer(ref data[index]);
+        holders[g].N = g;
+        Group.Barrier();
+        int value = *holders[g ^ 1].P + holders[g ^ 1].N;
+        Group.Barrier();
+        data[index] = value;
+    }
+
     private static int Read(Holder h) => h.P[0] + h.N;
 
     [MethodImpl(MethodImplOptions.NoInlining)]
@@ -118,6 +137,25 @@ static unsafe class Kernels
         h.N = 2;
         Add(h, 3);
         data[index] = x;
+    }
+
+    /// <summary>
+    /// A local array of holders of pointers to view elements.
+    /// </summary>
+    public static void ViewHolderArrayKernel(
+        Index1D index,
+        ArrayView1D<int, Stride1D.Dense> data)
+    {
+        if (index.X != 0)
+            return;
+        var holders = new Holder[4];
+        for (int k = 0; k < holders.Length; ++k)
+        {
+            holders[k].P = (int*)Unsafe.AsPointer(ref data[k]);
+            holders[k].N = k;
+        }
+        for (int k = 0; k < holders.Length; ++k)
+            *holders[k].P += holders[(k + 1) % holders.Length].N;
     }
 
     /// <summary>
@@ -182,6 +220,22 @@ static class Program
         {
             buffer.View.CopyFromCPU(stream, new int[] { 10, 20, 30, 40 });
             stream.Launch((Index1D)4, index => Kernels.LocalHelperFieldKernel(index, buffer.View));
+            stream.Synchronize();
+            foreach (var v in buffer.GetAsArray1D())
+                Console.WriteLine(v);
+        }
+        using (var buffer = stream.Allocate1D<int>(4))
+        {
+            buffer.View.CopyFromCPU(stream, new int[] { 10, 20, 30, 40 });
+            stream.Launch((Index1D)4, index => Kernels.SharedHolderKernel(index, buffer.View));
+            stream.Synchronize();
+            foreach (var v in buffer.GetAsArray1D())
+                Console.WriteLine(v);
+        }
+        using (var buffer = stream.Allocate1D<int>(4))
+        {
+            buffer.View.CopyFromCPU(stream, new int[] { 10, 20, 30, 40 });
+            stream.Launch((Index1D)4, index => Kernels.ViewHolderArrayKernel(index, buffer.View));
             stream.Synchronize();
             foreach (var v in buffer.GetAsArray1D())
                 Console.WriteLine(v);

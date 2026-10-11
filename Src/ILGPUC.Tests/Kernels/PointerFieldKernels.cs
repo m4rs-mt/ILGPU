@@ -75,6 +75,25 @@ static unsafe class PointerFieldKernels
         data[index] = *h.P + h.N;
     }
 
+    /// <summary>
+    /// Holders of pointers to view elements in shared memory: every thread
+    /// reads the element of its neighbor through the neighbor's holder, in
+    /// groups of up to 1024 threads.
+    /// </summary>
+    public static void SharedHolderKernel(
+        Index1D index,
+        ArrayView1D<int, Stride1D.Dense> data)
+    {
+        var holders = Group.GetSharedMemory<Holder>(1024);
+        int g = Group.Index;
+        holders[g].P = (int*)Unsafe.AsPointer(ref data[index]);
+        holders[g].N = g;
+        Group.Barrier();
+        int value = *holders[g ^ 1].P + holders[g ^ 1].N;
+        Group.Barrier();
+        data[index] = value;
+    }
+
     private static int Read(Holder h) => h.P[0] + h.N;
 
     [MethodImpl(MethodImplOptions.NoInlining)]
@@ -130,6 +149,25 @@ static unsafe class PointerFieldKernels
         ph->N = 2;
         *ph->P += ph->N;
         data[index] = x + 10 * h.N;
+    }
+
+    /// <summary>
+    /// A local array of holders of pointers to view elements.
+    /// </summary>
+    public static void ViewHolderArrayKernel(
+        Index1D index,
+        ArrayView1D<int, Stride1D.Dense> data)
+    {
+        if (index.X != 0)
+            return;
+        var holders = new Holder[4];
+        for (int k = 0; k < holders.Length; ++k)
+        {
+            holders[k].P = (int*)Unsafe.AsPointer(ref data[k]);
+            holders[k].N = k;
+        }
+        for (int k = 0; k < holders.Length; ++k)
+            *holders[k].P += holders[(k + 1) % holders.Length].N;
     }
 
     /// <summary>

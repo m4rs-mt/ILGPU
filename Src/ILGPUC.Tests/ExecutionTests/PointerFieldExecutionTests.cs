@@ -31,7 +31,8 @@ public abstract class PointerFieldExecutionTests : ExecutionTestBase
 
     // The generated CPU code did not compile: structures with pointer fields
     // were not unsafe, and per-lane pointers were not converted from and to
-    // pointer fields or passed to helpers
+    // pointer fields or passed to helpers. Metal and OpenCL qualified pointers
+    // stored in shared memory and in local arrays with two address spaces
     [SkippableTheory]
     [InlineData(RoslynOptimizationLevel.Release, OptimizationLevel.O0)]
     [InlineData(RoslynOptimizationLevel.Debug, OptimizationLevel.O0)]
@@ -49,6 +50,8 @@ public abstract class PointerFieldExecutionTests : ExecutionTestBase
                 "Kernels.SharedFieldKernel",
                 "Kernels.HelperFieldKernel",
                 "Kernels.LocalHelperFieldKernel",
+                "Kernels.SharedHolderKernel",
+                "Kernels.ViewHolderArrayKernel",
                 "Kernels.HolderPointerKernel",
             ],
             [
@@ -57,6 +60,8 @@ public abstract class PointerFieldExecutionTests : ExecutionTestBase
                 "21", "11", "41", "31",
                 "27", "47", "67", "87",
                 "16", "26", "36", "46",
+                "21", "10", "43", "32",
+                "11", "22", "33", "40",
                 "32", "42", "52", "62",
             ],
             new CompilationProperties { OptimizationLevel = level },
@@ -64,7 +69,8 @@ public abstract class PointerFieldExecutionTests : ExecutionTestBase
     }
 
     // The CPU stored the expression of a view element address instead of the
-    // address
+    // address, and Metal and OpenCL emitted pointers to pointers with two
+    // address spaces
     [SkippableTheory]
     [InlineData(RoslynOptimizationLevel.Release, OptimizationLevel.O0)]
     [InlineData(RoslynOptimizationLevel.Debug, OptimizationLevel.O0)]
