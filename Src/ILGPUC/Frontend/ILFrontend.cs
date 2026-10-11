@@ -498,7 +498,7 @@ sealed class ILFrontend
             intrinsicKind == IntrinsicImplementationKind.Implemented)
         {
             // Specialize method if necessary
-            if (impl is MethodInfo methodInfo && impl.IsGenericMethod)
+            if (impl is MethodInfo methodInfo && impl.IsGenericMethodDefinition)
             {
                 var genericArguments = method.GetGenericArguments();
                 impl = methodInfo.MakeGenericMethod(genericArguments);

@@ -156,6 +156,7 @@ static class TypeExtensions
         {
             TypeCode.Boolean or
             TypeCode.Byte or
+            TypeCode.Char or
             TypeCode.UInt16 or
             TypeCode.UInt32 or
             TypeCode.UInt64 => true,
@@ -188,6 +189,7 @@ static class TypeExtensions
                 return BasicValueType.Int8;
             case TypeCode.Int16:
             case TypeCode.UInt16:
+            case TypeCode.Char:
                 return BasicValueType.Int16;
             case TypeCode.Int32:
             case TypeCode.UInt32:
@@ -219,7 +221,7 @@ static class TypeExtensions
             TypeCode.SByte => ArithmeticBasicValueType.Int8,
             TypeCode.Byte => ArithmeticBasicValueType.UInt8,
             TypeCode.Int16 => ArithmeticBasicValueType.Int16,
-            TypeCode.UInt16 => ArithmeticBasicValueType.UInt16,
+            TypeCode.UInt16 or TypeCode.Char => ArithmeticBasicValueType.UInt16,
             TypeCode.Int32 => ArithmeticBasicValueType.Int32,
             TypeCode.UInt32 => ArithmeticBasicValueType.UInt32,
             TypeCode.Int64 => ArithmeticBasicValueType.Int64,
@@ -339,6 +341,7 @@ static class TypeExtensions
     public static bool IsUnsignedBasicType(this Type type) =>
         type == typeof(byte) ||
         type == typeof(ushort) ||
+        type == typeof(char) ||
         type == typeof(uint) ||
         type == typeof(ulong) ||
         type == typeof(nuint) ||

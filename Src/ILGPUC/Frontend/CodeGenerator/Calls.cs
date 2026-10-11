@@ -70,7 +70,10 @@ partial class CodeGenerator
         }
         else if (delegateArguments is null)
         {
-            result = Builder.CreateCall(Location, GetMethod(method), ref arguments);
+            // Targets of constrained calls are resolved only here, so the frontend
+            // has not mapped them to their remapping: call the remapping directly
+            var target = GetMethod(isConstrainedCall ? intrinsicContext.Method : method);
+            result = Builder.CreateCall(Location, target, ref arguments);
 
             // Setup result
             MakeCallReturnValue(method, result);
