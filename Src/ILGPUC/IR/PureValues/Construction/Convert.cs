@@ -15,7 +15,6 @@ using ILGPUC.IR.ModuleValues;
 using ILGPUC.Util;
 using System;
 using System.Diagnostics.CodeAnalysis;
-using Half = ILGPU.Half;
 
 namespace ILGPUC.IR.PureValues.Construction;
 
@@ -280,7 +279,7 @@ partial class PureValueBuilder
                             return CreatePrimitiveValue(
                                 location,
                                 targetBasicValueType,
-                                Half.IsZero(value.Float16Value) ? 0 : 1);
+                                value.Float16Value == Half.Zero ? 0 : 1);
                         case BasicValueType.Int8:
                         case BasicValueType.Int16:
                         case BasicValueType.Int32:

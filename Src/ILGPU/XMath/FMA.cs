@@ -10,6 +10,7 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.Intrinsic;
+using System;
 using System.Runtime.CompilerServices;
 
 namespace ILGPU;
@@ -50,5 +51,5 @@ partial class XMath
     [MathIntrinsic]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Half FMA(Half a, Half b, Half c) =>
-        a * b + c;
+        (Half)FMA((float)a, (float)b, (float)c);
 }

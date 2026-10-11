@@ -327,6 +327,7 @@ sealed class MetalIntrinsicEmitter : IntrinsicEmitter
         BasicValueType targetType) =>
         sourceType switch
         {
+            BasicValueType.Float16 => $"as_type<short>({arg})",
             BasicValueType.Float32 => $"as_type<int>({arg})",
             BasicValueType.Float64 => $"as_type<long>({arg})",
             _ => throw new NotSupportedException(
@@ -340,6 +341,7 @@ sealed class MetalIntrinsicEmitter : IntrinsicEmitter
         BasicValueType targetType) =>
         targetType switch
         {
+            BasicValueType.Float16 => $"as_type<half>({arg})",
             BasicValueType.Float32 => $"as_type<float>({arg})",
             BasicValueType.Float64 => $"as_type<double>({arg})",
             _ => throw new NotSupportedException(

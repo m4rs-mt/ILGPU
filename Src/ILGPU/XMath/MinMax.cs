@@ -48,7 +48,7 @@ partial class XMath
     [MathIntrinsic]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Half Min(Half first, Half second) =>
-        HalfExtensions.MinFP32(first, second);
+        (Half)Min((float)first, (float)second);
 
     /// <summary>
     /// Computes min(first, second).
@@ -169,7 +169,7 @@ partial class XMath
     [MathIntrinsic]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Half Max(Half first, Half second) =>
-        HalfExtensions.MaxFP32(first, second);
+        (Half)Max((float)first, (float)second);
 
     /// <summary>
     /// Computes max(first, second).
@@ -290,7 +290,7 @@ partial class XMath
     /// <returns>The clamped value in the interval [min, max].</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Half Clamp(Half value, Half min, Half max) =>
-        Max(Min(value, max), min);
+        (Half)Clamp((float)value, (float)min, (float)max);
 
     /// <summary>
     /// Computes clamp(value, min, max) = Max(Min(clamp, max), min).

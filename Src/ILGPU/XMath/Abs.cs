@@ -42,7 +42,7 @@ partial class XMath
     /// <returns>|value|.</returns>
     [MathIntrinsic]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Half Abs(Half value) => Half.Abs(value);
+    public static Half Abs(Half value) => (Half)Abs((float)value);
 
     /// <summary>
     /// Computes |value|.

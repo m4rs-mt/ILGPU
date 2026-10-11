@@ -38,6 +38,17 @@ partial class XMath
     public static float Log(float value, float newBase) => MathF.Log(value, newBase);
 
     /// <summary>
+    /// Computes log_newBase(value) to base newBase.
+    /// </summary>
+    /// <param name="value">The value.</param>
+    /// <param name="newBase">The desired base.</param>
+    /// <returns>log_newBase(value).</returns>
+    [MathIntrinsic]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Half Log(Half value, Half newBase) =>
+        (Half)Log((float)value, (float)newBase);
+
+    /// <summary>
     /// Computes log(value) to base e.
     /// </summary>
     /// <param name="value">The value.</param>
@@ -54,6 +65,15 @@ partial class XMath
     [MathIntrinsic]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static float Log(float value) => MathF.Log(value);
+
+    /// <summary>
+    /// Computes log(value) to base e.
+    /// </summary>
+    /// <param name="value">The value.</param>
+    /// <returns>log(value).</returns>
+    [MathIntrinsic]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Half Log(Half value) => (Half)Log((float)value);
 
     /// <summary>
     /// Computes log10(value) to base 10.
@@ -74,6 +94,15 @@ partial class XMath
     public static float Log10(float value) => MathF.Log10(value);
 
     /// <summary>
+    /// Computes log10(value) to base 10.
+    /// </summary>
+    /// <param name="value">The value.</param>
+    /// <returns>log10(value).</returns>
+    [MathIntrinsic]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Half Log10(Half value) => (Half)Log10((float)value);
+
+    /// <summary>
     /// Computes log2(value) to base 2.
     /// </summary>
     /// <param name="value">The value.</param>
@@ -90,4 +119,13 @@ partial class XMath
     [MathIntrinsic]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static float Log2(float value) => MathF.Log2(value);
+
+    /// <summary>
+    /// Computes log2(value) to base 2.
+    /// </summary>
+    /// <param name="value">The value.</param>
+    /// <returns>log2(value).</returns>
+    [MathIntrinsic]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Half Log2(Half value) => (Half)Log2((float)value);
 }

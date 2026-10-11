@@ -29,10 +29,10 @@ static class Kernels
         ArrayView1D<float, Stride1D.Dense> output)
     {
         int v = values[index];
-        ILGPU.Half positive = (ILGPU.Half)(v > 0 ? 1 : 0);
-        ILGPU.Half notMinusOne = (ILGPU.Half)(v != -1 ? 1 : 0);
+        Half positive = (Half)(v > 0 ? 1 : 0);
+        Half notMinusOne = (Half)(v != -1 ? 1 : 0);
         output[index * 2] = (float)positive;
-        output[index * 2 + 1] = (float)(positive * (ILGPU.Half)2.5f + notMinusOne);
+        output[index * 2 + 1] = (float)(positive * (Half)2.5f + notMinusOne);
     }
 }
 

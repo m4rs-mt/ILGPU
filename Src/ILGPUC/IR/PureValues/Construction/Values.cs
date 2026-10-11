@@ -15,7 +15,6 @@ using ILGPUC.Util;
 using System;
 using System.Runtime.CompilerServices;
 using System.Text;
-using Half = ILGPU.Half;
 
 namespace ILGPUC.IR.PureValues.Construction;
 
@@ -223,7 +222,10 @@ partial class PureValueBuilder
     /// <param name="value">The value.</param>
     /// <returns>The created primitive value.</returns>
     public PrimitiveValue CreatePrimitiveValue(Location location, Half value) =>
-        CreatePrimitiveValue(location, BasicValueType.Float16, value.RawValue);
+        CreatePrimitiveValue(
+            location,
+            BasicValueType.Float16,
+            BitConverter.HalfToUInt16Bits(value));
 
     /// <summary>
     /// Creates a primitive <see cref="float"/> value.

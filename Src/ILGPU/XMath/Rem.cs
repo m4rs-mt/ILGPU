@@ -10,6 +10,7 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.Intrinsic;
+using System;
 using System.Runtime.CompilerServices;
 
 namespace ILGPU;
@@ -35,6 +36,16 @@ partial class XMath
     [MathIntrinsic]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static float Rem(float x, float y) => x % y;
+
+    /// <summary>
+    /// Computes x%y.
+    /// </summary>
+    /// <param name="x">The nominator.</param>
+    /// <param name="y">The denominator.</param>
+    /// <returns>x%y.</returns>
+    [MathIntrinsic]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Half Rem(Half x, Half y) => (Half)Rem((float)x, (float)y);
 
     /// <summary>
     /// Computes remainder operation that complies with the IEEE 754 specification.

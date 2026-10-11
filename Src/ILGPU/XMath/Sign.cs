@@ -105,4 +105,14 @@ partial class XMath
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static float CopySign(float x, float y) =>
         MathF.CopySign(x, y);
+
+    /// <summary>
+    /// Returns a value with the magnitude of x and the sign of y.
+    /// </summary>
+    /// <param name="x">A number whose magnitude is used in the result.</param>
+    /// <param name="y">A number whose sign is the used in the result.</param>
+    /// <returns>A value with the magnitude of x and the sign of y.</returns>
+    [MathIntrinsic]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Half CopySign(Half x, Half y) => (Half)CopySign((float)x, (float)y);
 }

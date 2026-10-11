@@ -18,7 +18,6 @@ using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Runtime.CompilerServices;
-using Half = ILGPU.Half;
 
 namespace ILGPUC.Util;
 

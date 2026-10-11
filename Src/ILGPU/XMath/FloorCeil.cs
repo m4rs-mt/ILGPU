@@ -36,6 +36,15 @@ partial class XMath
     public static float Floor(float value) => MathF.Floor(value);
 
     /// <summary>
+    /// Computes floor(value).
+    /// </summary>
+    /// <param name="value">The value.</param>
+    /// <returns>floor(value).</returns>
+    [MathIntrinsic]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Half Floor(Half value) => (Half)Floor((float)value);
+
+    /// <summary>
     /// Computes ceiling(value).
     /// </summary>
     /// <param name="value">The value.</param>
@@ -52,4 +61,13 @@ partial class XMath
     [MathIntrinsic]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static float Ceiling(float value) => MathF.Ceiling(value);
+
+    /// <summary>
+    /// Computes ceiling(value).
+    /// </summary>
+    /// <param name="value">The value.</param>
+    /// <returns>ceiling(value).</returns>
+    [MathIntrinsic]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Half Ceiling(Half value) => (Half)Ceiling((float)value);
 }

@@ -17,9 +17,8 @@
 <#@ import namespace="System.Collections.Generic" #>
 <#@ output extension=".cs" #>
 <#
-// Please note that this code does not support FP16 at the moment because ILGPU.Half does
-// not support the INumberBase<T> and INumber<T> interfaces and will be considered
-// obsolete in the future anyway.
+// Please note that this code does not generate FP16 vector types at the moment, as the
+// generated operations rely on Math overloads that do not exist for System.Half.
 var fixedPrecisionTypes = FixedPrecisionIntTypes
     .SelectMany(t => t.ToBasicTypeInformation()).ToHashSet();
 var allTypes = IntTypes

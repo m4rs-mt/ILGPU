@@ -23,8 +23,8 @@ static class Kernels
 {
     static long Compute(int x)
     {
-        ILGPU.Half h = (ILGPU.Half)(x * 0.5f);
-        h = h * h + (ILGPU.Half)1.25f;
+        Half h = (Half)(x * 0.5f);
+        h = h * h + (Half)1.25f;
         return (long)((float)h * 100);
     }
 

@@ -10,6 +10,7 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.Intrinsic;
+using System;
 using System.Runtime.CompilerServices;
 
 namespace ILGPU;
@@ -33,4 +34,13 @@ partial class XMath
     [MathIntrinsic]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static float Rcp(float value) => 1.0f / value;
+
+    /// <summary>
+    /// Computes 1 / value.
+    /// </summary>
+    /// <param name="value">The value.</param>
+    /// <returns>1 / value.</returns>
+    [MathIntrinsic]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Half Rcp(Half value) => (Half)Rcp((float)value);
 }

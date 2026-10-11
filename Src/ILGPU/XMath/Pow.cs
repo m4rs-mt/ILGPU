@@ -38,6 +38,16 @@ partial class XMath
     public static float Pow(float @base, float exp) => MathF.Pow(@base, exp);
 
     /// <summary>
+    /// Computes basis^exp.
+    /// </summary>
+    /// <param name="base">The basis.</param>
+    /// <param name="exp">The exponent.</param>
+    /// <returns>pow(basis, exp).</returns>
+    [MathIntrinsic]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Half Pow(Half @base, Half exp) => (Half)Pow((float)@base, (float)exp);
+
+    /// <summary>
     /// Computes exp(value).
     /// </summary>
     /// <param name="value">The value.</param>
@@ -62,7 +72,7 @@ partial class XMath
     /// <returns>exp(value).</returns>
     [MathIntrinsic]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Half Exp(Half value) => (Half)MathF.Exp(value);
+    public static Half Exp(Half value) => (Half)Exp((float)value);
 
     /// <summary>
     /// Computes 2^value.
@@ -89,5 +99,5 @@ partial class XMath
     /// <returns>2^value.</returns>
     [MathIntrinsic]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Half Exp2(Half value) => (Half)MathF.Pow(value, 2.0f);
+    public static Half Exp2(Half value) => (Half)Exp2((float)value);
 }

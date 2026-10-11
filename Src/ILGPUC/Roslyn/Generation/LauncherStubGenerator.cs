@@ -214,9 +214,11 @@ static class LauncherStubGenerator
 
             // Check if this field should be recursively expanded.
             // Expand struct types that have instance fields and are NOT
-            // view/pointer types (those are handled by the view path).
+            // view/pointer types (those are handled by the view path) or
+            // System.Half, which is a primitive type in the IR.
             if (fieldType.TypeKind == TypeKind.Struct
-                && !IsViewOrPointerType(fieldType))
+                && !IsViewOrPointerType(fieldType)
+                && !IsHalf(fieldType))
             {
                 var subFields = fieldType.GetMembers()
                     .OfType<IFieldSymbol>()
@@ -236,6 +238,21 @@ static class LauncherStubGenerator
             result.Add(fullName);
         }
     }
+
+    /// <summary>
+    /// Returns true if the given type is <see cref="System.Half"/>, for which
+    /// Roslyn reports no special type.
+    /// </summary>
+    private static bool IsHalf(ITypeSymbol type) =>
+        type is
+        {
+            Name: "Half",
+            ContainingNamespace:
+            {
+                Name: "System",
+                ContainingNamespace.IsGlobalNamespace: true
+            }
+        };
 
     /// <summary>
     /// Returns the instance fields of a struct with the names the launcher

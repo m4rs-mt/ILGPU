@@ -10,6 +10,7 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.Intrinsic;
+using System;
 using System.Runtime.CompilerServices;
 
 namespace ILGPU;
@@ -41,7 +42,7 @@ partial class XMath
     /// <returns>True, iff the given value is NaN.</returns>
     [MathIntrinsic]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool IsNaN(Half value) => HalfExtensions.IsNaN(value);
+    public static bool IsNaN(Half value) => IsNaN((float)value);
 
     /// <summary>
     /// Returns true iff the given value is infinity.
@@ -68,7 +69,7 @@ partial class XMath
     /// <returns>True, iff the given value is infinity.</returns>
     [MathIntrinsic]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool IsInfinity(Half value) => HalfExtensions.IsInfinity(value);
+    public static bool IsInfinity(Half value) => IsInfinity((float)value);
 
     /// <summary>
     /// Returns true iff the given value is finite.
@@ -95,5 +96,5 @@ partial class XMath
     /// <returns>True, iff the given value is finite.</returns>
     [MathIntrinsic]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool IsFinite(Half value) => HalfExtensions.IsFinite(value);
+    public static bool IsFinite(Half value) => IsFinite((float)value);
 }

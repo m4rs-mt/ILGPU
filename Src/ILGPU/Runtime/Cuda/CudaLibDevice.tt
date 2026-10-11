@@ -25,6 +25,7 @@ var functions = LibDeviceFunctions.Load(rootPath, "../../Static/CudaLibDevice.xm
 #>
 using ILGPU.Intrinsic;
 using ILGPU.Runtime.Cuda.Libraries;
+using System;
 using System.Runtime.CompilerServices;
 
 #pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
@@ -108,7 +109,7 @@ void WriteLibDeviceInterop(LibDeviceFunction func)
         if (string.IsNullOrEmpty(param.Flags))
         {
             if (param.Type == "Half")
-                WriteLine($"var arg{i} = (uint){param.Name};");
+                WriteLine($"var arg{i} = (uint)Interop.FloatAsInt({param.Name});");
             else if (param.Type == "float" || param.Type == "double")
                 WriteLine($"var arg{i} = Interop.FloatAsInt({param.Name});");
             else
@@ -152,7 +153,7 @@ void WriteLibDeviceInterop(LibDeviceFunction func)
         if (!string.IsNullOrEmpty(param.Flags))
         {
             if (param.Type == "Half")
-                WriteLine($"{param.Name} = (Half)arg{i};");
+                WriteLine($"{param.Name} = Interop.IntAsFloat((ushort)arg{i});");
             else if (param.Type == "float" || param.Type == "double")
                 WriteLine($"{param.Name} = Interop.IntAsFloat(arg{i});");
             else
@@ -161,7 +162,7 @@ void WriteLibDeviceInterop(LibDeviceFunction func)
     }
 
     if (func.ReturnType == "Half")
-        WriteLine("return (Half)result;");
+        WriteLine("return Interop.IntAsFloat((ushort)result);");
     else if (func.ReturnType == "float" || func.ReturnType == "double")
         WriteLine("return Interop.IntAsFloat(result);");
     else if (func.ReturnType != "void")
