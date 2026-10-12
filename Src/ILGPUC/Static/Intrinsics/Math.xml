@@ -556,6 +556,25 @@
                 Target="ILGPU.Numerics.XHalf.GetSignificandByteCount">
                 <Specialization SourceType="" TargetType="System.Half*" />
             </Remap>
+
+            <!-- Conversions -->
+            <Remap Name="CreateChecked" Target="ILGPU.Numerics.XHalf.Create" />
+            <Remap Name="CreateSaturating" Target="ILGPU.Numerics.XHalf.Create" />
+            <Remap Name="CreateTruncating" Target="ILGPU.Numerics.XHalf.Create" />
+            <Remap Name="ConvertToInteger" Target="ILGPU.Numerics.XHalf.ConvertToInteger" />
+            <Remap Name="ConvertToIntegerNative" Target="ILGPU.Numerics.XHalf.ConvertToInteger" />
+            <Remap Name="System.Numerics.INumberBase&lt;System.Half&gt;.TryConvertFromChecked"
+                Target="ILGPU.Numerics.XHalf.TryConvertFromAny" />
+            <Remap Name="System.Numerics.INumberBase&lt;System.Half&gt;.TryConvertFromSaturating"
+                Target="ILGPU.Numerics.XHalf.TryConvertFromAny" />
+            <Remap Name="System.Numerics.INumberBase&lt;System.Half&gt;.TryConvertFromTruncating"
+                Target="ILGPU.Numerics.XHalf.TryConvertFromAny" />
+            <Remap Name="System.Numerics.INumberBase&lt;System.Half&gt;.TryConvertToChecked"
+                Target="ILGPU.Numerics.XHalf.TryConvertToAny" />
+            <Remap Name="System.Numerics.INumberBase&lt;System.Half&gt;.TryConvertToSaturating"
+                Target="ILGPU.Numerics.XHalf.TryConvertToAny" />
+            <Remap Name="System.Numerics.INumberBase&lt;System.Half&gt;.TryConvertToTruncating"
+                Target="ILGPU.Numerics.XHalf.TryConvertToAny" />
         </Remapping>
         <Generators Target="Frontend.Intrinsic.Intrinsics">
             <Generator Name="op_UnaryPlus" Target="Math_Identity" />
@@ -592,6 +611,9 @@
 
             <Generator Name="op_Implicit" Target="Convert_ImplicitOperation" />
             <Generator Name="op_Explicit" Target="Convert_ExplicitOperation" />
+            <!-- Kernels have no overflow checks: checked conversions compile like the
+                 conv.ovf instructions of other types, as the explicit conversions -->
+            <Generator Name="op_CheckedExplicit" Target="Convert_ExplicitOperation" />
         </Generators>
     </Type>
     <Type Name="XMath">

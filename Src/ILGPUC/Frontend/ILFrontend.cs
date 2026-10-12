@@ -510,7 +510,8 @@ sealed class ILFrontend
             // Process our intrinsic instead
             ProcessMethod(impl.AsNotNull(), queue, remapping);
         }
-        else if (intrinsicKind == IntrinsicImplementationKind.Generated)
+        else if (intrinsicKind == IntrinsicImplementationKind.Generated ||
+            Intrinsics.IsUnsupportedMethod(method))
         {
             // This method will be completely generated as does not need to be analyzed
             // in further detail. Moreover, we do not need to disassemble the method at
@@ -808,6 +809,17 @@ sealed class ILFrontend
             bool isEntryPoint,
             MethodBase?[]? delegateTargets = null)
         {
+            // Members without a kernel implementation are never compiled from
+            // their IL; calls that remain after optimization report this reason
+            if (Intrinsics.IsUnsupportedMethod(method))
+            {
+                methodBuilder.Method.AddFlags(MethodFlags.External);
+                _failedMethods[method] = new NotSupportedException(string.Format(
+                    ErrorMessages.NotSupportedRuntimeMethod,
+                    FrontendDisplay.Format(method)));
+                return;
+            }
+
             if (methodBuilder.Method.IsExternal)
             {
                 // InternalCall methods with an intrinsic remapping (for example

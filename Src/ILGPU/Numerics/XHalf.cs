@@ -11,6 +11,7 @@
 
 using ILGPU.Util;
 using System;
+using System.Numerics;
 using System.Runtime.CompilerServices;
 
 namespace ILGPU.Numerics;
@@ -1030,6 +1031,215 @@ internal static class XHalf
                 px));
         return (Half)Utilities.Select(ax > 0.25f, large, small);
     }
+
+    #endregion
+
+    #region Conversions
+
+    /// <summary>
+    /// Returns true if values of type <typeparamref name="T"/> convert to and from
+    /// half precision in kernels: the floating-point types, <see cref="char"/> and
+    /// the integer types up to 64 bits. Evaluated at compile time.
+    /// </summary>
+    /// <typeparam name="T">The type.</typeparam>
+    /// <returns>True, if the type is supported.</returns>
+    private static bool IsConvertible<T>() =>
+        typeof(T) == typeof(Half) || typeof(T) == typeof(float) ||
+        typeof(T) == typeof(double) || typeof(T) == typeof(sbyte) ||
+        typeof(T) == typeof(byte) || typeof(T) == typeof(short) ||
+        typeof(T) == typeof(ushort) || typeof(T) == typeof(char) ||
+        typeof(T) == typeof(int) || typeof(T) == typeof(uint) ||
+        typeof(T) == typeof(long) || typeof(T) == typeof(ulong);
+
+    /// <summary>
+    /// Converts a value of a primitive number type to half precision, like the
+    /// conversion operators: integers and wider floating-point values round to the
+    /// nearest half-precision value, and values beyond its range are infinite.
+    /// </summary>
+    /// <typeparam name="TOther">The type of the value.</typeparam>
+    /// <param name="value">The value.</param>
+    /// <param name="result">The converted value.</param>
+    /// <returns>
+    /// True, if <typeparamref name="TOther"/> is supported (see
+    /// <see cref="IsConvertible{T}"/>).
+    /// </returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static bool TryConvertFrom<TOther>(TOther value, out Half result)
+    {
+        if (typeof(TOther) == typeof(Half))
+            result = Unsafe.As<TOther, Half>(ref value);
+        else if (typeof(TOther) == typeof(float))
+            result = (Half)Unsafe.As<TOther, float>(ref value);
+        else if (typeof(TOther) == typeof(double))
+            result = (Half)Unsafe.As<TOther, double>(ref value);
+        else if (typeof(TOther) == typeof(sbyte))
+            result = (Half)Unsafe.As<TOther, sbyte>(ref value);
+        else if (typeof(TOther) == typeof(byte))
+            result = (Half)Unsafe.As<TOther, byte>(ref value);
+        else if (typeof(TOther) == typeof(short))
+            result = (Half)Unsafe.As<TOther, short>(ref value);
+        else if (typeof(TOther) == typeof(ushort))
+            result = (Half)Unsafe.As<TOther, ushort>(ref value);
+        else if (typeof(TOther) == typeof(char))
+            result = (Half)Unsafe.As<TOther, char>(ref value);
+        else if (typeof(TOther) == typeof(int))
+            result = (Half)Unsafe.As<TOther, int>(ref value);
+        else if (typeof(TOther) == typeof(uint))
+            result = (Half)Unsafe.As<TOther, uint>(ref value);
+        else if (typeof(TOther) == typeof(long))
+            result = (Half)Unsafe.As<TOther, long>(ref value);
+        else if (typeof(TOther) == typeof(ulong))
+            result = (Half)Unsafe.As<TOther, ulong>(ref value);
+        else
+        {
+            result = default;
+            return false;
+        }
+        return true;
+    }
+
+    /// <summary>
+    /// Converts a half-precision value to a primitive number type. Conversions to
+    /// integers truncate towards zero and saturate: NaN converts to 0, and values
+    /// beyond the range of the integer type to its bounds.
+    /// </summary>
+    /// <typeparam name="TOther">The target type.</typeparam>
+    /// <param name="value">The value.</param>
+    /// <param name="result">The converted value.</param>
+    /// <returns>
+    /// True, if <typeparamref name="TOther"/> is supported (see
+    /// <see cref="IsConvertible{T}"/>).
+    /// </returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static bool TryConvertTo<TOther>(Half value, out TOther result)
+    {
+        result = default!;
+        float f = (float)value;
+        if (typeof(TOther) == typeof(Half))
+            Unsafe.As<TOther, Half>(ref result) = value;
+        else if (typeof(TOther) == typeof(float))
+            Unsafe.As<TOther, float>(ref result) = f;
+        else if (typeof(TOther) == typeof(double))
+            Unsafe.As<TOther, double>(ref result) = (double)value;
+        else if (typeof(TOther) == typeof(sbyte))
+            Unsafe.As<TOther, sbyte>(ref result) =
+                (sbyte)ToInt64(f, sbyte.MinValue, sbyte.MaxValue);
+        else if (typeof(TOther) == typeof(byte))
+            Unsafe.As<TOther, byte>(ref result) = (byte)ToUInt64(f, byte.MaxValue);
+        else if (typeof(TOther) == typeof(short))
+            Unsafe.As<TOther, short>(ref result) =
+                (short)ToInt64(f, short.MinValue, short.MaxValue);
+        else if (typeof(TOther) == typeof(ushort))
+            Unsafe.As<TOther, ushort>(ref result) = (ushort)ToUInt64(f, ushort.MaxValue);
+        else if (typeof(TOther) == typeof(char))
+            Unsafe.As<TOther, char>(ref result) = (char)ToUInt64(f, char.MaxValue);
+        else if (typeof(TOther) == typeof(int))
+            Unsafe.As<TOther, int>(ref result) =
+                (int)ToInt64(f, int.MinValue, int.MaxValue);
+        else if (typeof(TOther) == typeof(uint))
+            Unsafe.As<TOther, uint>(ref result) = (uint)ToUInt64(f, uint.MaxValue);
+        else if (typeof(TOther) == typeof(long))
+            Unsafe.As<TOther, long>(ref result) =
+                ToInt64(f, long.MinValue, long.MaxValue);
+        else if (typeof(TOther) == typeof(ulong))
+            Unsafe.As<TOther, ulong>(ref result) = ToUInt64(f, ulong.MaxValue);
+        else
+            return false;
+        return true;
+    }
+
+    /// <summary>
+    /// Converts a single-precision value of a half-precision value to a signed
+    /// integer, truncating and saturating to the given bounds.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static long ToInt64(float value, long min, long max)
+    {
+        // Every finite half-precision value fits a long
+        float finite = XMath.Clamp(
+            Utilities.Select(XMath.IsNaN(value), 0.0f, value),
+            -65504.0f,
+            65504.0f);
+        long result = XMath.Clamp((long)finite, min, max);
+        result = Utilities.Select(value == float.PositiveInfinity, max, result);
+        return Utilities.Select(value == float.NegativeInfinity, min, result);
+    }
+
+    /// <summary>
+    /// Converts a single-precision value of a half-precision value to an unsigned
+    /// integer, truncating and saturating to the given upper bound.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static ulong ToUInt64(float value, ulong max)
+    {
+        float finite = XMath.Clamp(
+            Utilities.Select(XMath.IsNaN(value), 0.0f, value),
+            0.0f,
+            65504.0f);
+        ulong result = XMath.Min((ulong)finite, max);
+        return Utilities.Select(value == float.PositiveInfinity, max, result);
+    }
+
+    /// <summary>
+    /// Creates a half-precision value from a value of another number type.
+    /// </summary>
+    /// <typeparam name="TOther">The type of the value.</typeparam>
+    /// <param name="value">The value.</param>
+    /// <returns>The converted value.</returns>
+    /// <exception cref="NotSupportedException">
+    /// <typeparamref name="TOther"/> is not supported (see
+    /// <see cref="IsConvertible{T}"/>); in a kernel, this is a compile error.
+    /// </exception>
+    internal static Half Create<TOther>(TOther value)
+        where TOther : INumberBase<TOther>
+    {
+        if (!IsConvertible<TOther>())
+            throw new NotSupportedException();
+        TryConvertFrom(value, out var result);
+        return result;
+    }
+
+    /// <summary>
+    /// Converts a half-precision value to an integer type, saturating.
+    /// </summary>
+    /// <typeparam name="TInteger">The integer type.</typeparam>
+    /// <param name="value">The value.</param>
+    /// <returns>The converted value.</returns>
+    /// <exception cref="NotSupportedException">
+    /// <typeparamref name="TInteger"/> is not supported (see
+    /// <see cref="IsConvertible{T}"/>); in a kernel, this is a compile error.
+    /// </exception>
+    internal static TInteger ConvertToInteger<TInteger>(Half value)
+        where TInteger : IBinaryInteger<TInteger>
+    {
+        if (!IsConvertible<TInteger>())
+            throw new NotSupportedException();
+        TryConvertTo(value, out TInteger result);
+        return result;
+    }
+
+    /// <summary>
+    /// Tries to convert a value of another number type to half precision.
+    /// </summary>
+    /// <typeparam name="TOther">The type of the value.</typeparam>
+    /// <param name="value">The value.</param>
+    /// <param name="result">The converted value.</param>
+    /// <returns>True, if the type is supported.</returns>
+    internal static bool TryConvertFromAny<TOther>(TOther value, out Half result)
+        where TOther : INumberBase<TOther> =>
+        TryConvertFrom(value, out result);
+
+    /// <summary>
+    /// Tries to convert a half-precision value to another number type. The checked
+    /// conversions saturate like the others, as kernels have no overflow checks.
+    /// </summary>
+    /// <typeparam name="TOther">The target type.</typeparam>
+    /// <param name="value">The value.</param>
+    /// <param name="result">The converted value.</param>
+    /// <returns>True, if the type is supported.</returns>
+    internal static bool TryConvertToAny<TOther>(Half value, out TOther result)
+        where TOther : INumberBase<TOther> =>
+        TryConvertTo(value, out result);
 
     #endregion
 }

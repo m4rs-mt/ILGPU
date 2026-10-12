@@ -48,6 +48,18 @@ partial class CodeGenerator
         bool isConstrainedCall = _isConstrainedCall;
         _isConstrainedCall = false;
 
+        // Members without a kernel implementation become calls to an external
+        // method, which is a compile error if the call remains after optimization
+        if (Intrinsics.IsUnsupportedMethod(method))
+        {
+            var unsupported = Builder.CreateCall(
+                Location,
+                GetMethod(method),
+                ref arguments);
+            MakeCallReturnValue(method, unsupported);
+            return;
+        }
+
         // Try to implement the current intrinsic right now by generating IR code
         var intrinsicContext = new InvocationContext(
             this,
