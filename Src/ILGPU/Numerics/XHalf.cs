@@ -25,6 +25,9 @@ namespace ILGPU.Numerics;
 internal static class XHalf
 {
     private const ushort SignMask = 0x8000;
+    private const ushort ExponentMask = 0x7C00;
+    private const ushort MantissaMask = 0x03FF;
+    private const ushort MagnitudeMask = 0x7FFF;
 
     #region Constants
 
@@ -175,6 +178,352 @@ internal static class XHalf
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static bool IsNegative(Half value) =>
         (Interop.FloatAsInt(value) & SignMask) != 0;
+
+    /// <summary>
+    /// Returns true if the sign bit of the given value is clear.
+    /// </summary>
+    /// <param name="value">The value.</param>
+    /// <returns>True, if the value is positive, including +0 and positive NaNs.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static bool IsPositive(Half value) =>
+        (Interop.FloatAsInt(value) & SignMask) == 0;
+
+    /// <summary>
+    /// Returns true if the given value is positive infinity.
+    /// </summary>
+    /// <param name="value">The value.</param>
+    /// <returns>True, if the value is positive infinity.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static bool IsPositiveInfinity(Half value) =>
+        Interop.FloatAsInt(value) == 0x7C00;
+
+    /// <summary>
+    /// Returns true if the given value is negative infinity.
+    /// </summary>
+    /// <param name="value">The value.</param>
+    /// <returns>True, if the value is negative infinity.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static bool IsNegativeInfinity(Half value) =>
+        Interop.FloatAsInt(value) == 0xFC00;
+
+    /// <summary>
+    /// Returns true if the given value is a normal number.
+    /// </summary>
+    /// <param name="value">The value.</param>
+    /// <returns>
+    /// True, if the value is neither zero, subnormal, infinite nor NaN.
+    /// </returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static bool IsNormal(Half value)
+    {
+        int exponent = Interop.FloatAsInt(value) & ExponentMask;
+        return exponent != 0 & exponent != ExponentMask;
+    }
+
+    /// <summary>
+    /// Returns true if the given value is a subnormal number.
+    /// </summary>
+    /// <param name="value">The value.</param>
+    /// <returns>True, if the value is subnormal.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static bool IsSubnormal(Half value)
+    {
+        int bits = Interop.FloatAsInt(value);
+        return (bits & ExponentMask) == 0 & (bits & MantissaMask) != 0;
+    }
+
+    /// <summary>
+    /// Returns true if the given value is an even integer.
+    /// </summary>
+    /// <param name="value">The value.</param>
+    /// <returns>True, if the value is an even integer.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static bool IsEvenInteger(Half value) =>
+        XMath.IsInteger(value) & XMath.Rem((float)value, 2.0f) == 0.0f;
+
+    /// <summary>
+    /// Returns true if the given value is +0 or -0.
+    /// </summary>
+    /// <param name="value">The value.</param>
+    /// <returns>True, if the value is zero.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static bool IsZero(Half value) =>
+        (Interop.FloatAsInt(value) & MagnitudeMask) == 0;
+
+    /// <summary>
+    /// Returns true, as every half-precision value is canonical.
+    /// </summary>
+    /// <param name="value">The value.</param>
+    /// <returns>True.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static bool IsCanonical(Half value) => true;
+
+    /// <summary>
+    /// Returns false, as no half-precision value is a complex number.
+    /// </summary>
+    /// <param name="value">The value.</param>
+    /// <returns>False.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static bool IsComplexNumber(Half value) => false;
+
+    /// <summary>
+    /// Returns false, as no half-precision value is an imaginary number.
+    /// </summary>
+    /// <param name="value">The value.</param>
+    /// <returns>False.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static bool IsImaginaryNumber(Half value) => false;
+
+    /// <summary>
+    /// Returns true if the given value is a real number, which is every value but NaN.
+    /// </summary>
+    /// <param name="value">The value.</param>
+    /// <returns>True, if the value is not NaN.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static bool IsRealNumber(Half value) => !XMath.IsNaN(value);
+
+    /// <summary>
+    /// Returns true if the given value is a positive power of two.
+    /// </summary>
+    /// <param name="value">The value.</param>
+    /// <returns>
+    /// True, if the value is positive and either a normal value with an empty
+    /// mantissa or a subnormal value with a single mantissa bit.
+    /// </returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static bool IsPow2(Half value)
+    {
+        int bits = Interop.FloatAsInt(value);
+        int exponent = bits & ExponentMask;
+        int mantissa = bits & MantissaMask;
+        bool normal = exponent != 0 & exponent != ExponentMask & mantissa == 0;
+        bool subnormal = exponent == 0 & XMath.PopCount(mantissa) == 1;
+        return (bits & SignMask) == 0 & (normal | subnormal);
+    }
+
+    #endregion
+
+    #region Comparison
+
+    /// <summary>
+    /// Compares two values, ordering NaN below every other value.
+    /// </summary>
+    /// <param name="self">The first value.</param>
+    /// <param name="other">The second value.</param>
+    /// <returns>
+    /// -1, 0 or 1 if the first value is less than, equal to or greater than the
+    /// second value; NaN is less than every other value and equal to NaN.
+    /// </returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static int CompareTo(ref Half self, Half other)
+    {
+        float x = (float)self;
+        float y = (float)other;
+        bool xNaN = XMath.IsNaN(x);
+        bool yNaN = XMath.IsNaN(y);
+        int result = Utilities.Select(x < y, -1, Utilities.Select(x > y, 1, 0));
+        return Utilities.Select(
+            xNaN,
+            Utilities.Select(yNaN, 0, -1),
+            Utilities.Select(yNaN, 1, result));
+    }
+
+    /// <summary>
+    /// Returns true if two values are equal, treating NaN as equal to NaN.
+    /// </summary>
+    /// <param name="self">The first value.</param>
+    /// <param name="other">The second value.</param>
+    /// <returns>True, if the values are equal or both NaN.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static bool IsEqual(ref Half self, Half other)
+    {
+        float x = (float)self;
+        float y = (float)other;
+        return x == y | (XMath.IsNaN(x) & XMath.IsNaN(y));
+    }
+
+    /// <summary>
+    /// Returns the hash code of a value, which is equal for equal values.
+    /// </summary>
+    /// <param name="self">The value.</param>
+    /// <returns>
+    /// The bits of the value, 0 for both zeros and the exponent mask for every NaN.
+    /// </returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static int HashCode(ref Half self)
+    {
+        int bits = Interop.FloatAsInt(self);
+        bool nanOrZero = XMath.IsNaN(self) | (bits & MagnitudeMask) == 0;
+        return Utilities.Select(nanOrZero, bits & ExponentMask, bits);
+    }
+
+    /// <summary>
+    /// Returns the number of bytes of the exponent of a value, 1.
+    /// </summary>
+    /// <param name="self">The value.</param>
+    /// <returns>1.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static int GetExponentByteCount(ref Half self) => 1;
+
+    /// <summary>
+    /// Returns the number of bits of the shortest two's complement representation
+    /// of the exponent of a value.
+    /// </summary>
+    /// <param name="self">The value.</param>
+    /// <returns>The length of the exponent in bits.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static int GetExponentShortestBitLength(ref Half self)
+    {
+        int exponent = ((Interop.FloatAsInt(self) & ExponentMask) >> 10) - 15;
+        bool positive = exponent >= 0;
+        int bits = Utilities.Select(positive, exponent, ~exponent);
+        return Utilities.Select(positive, 32, 33) - XMath.LeadingZeroCount(bits);
+    }
+
+    /// <summary>
+    /// Returns the number of bits of the significand of a value, 11.
+    /// </summary>
+    /// <param name="self">The value.</param>
+    /// <returns>11.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static int GetSignificandBitLength(ref Half self) => 11;
+
+    /// <summary>
+    /// Returns the number of bytes of the significand of a value, 2.
+    /// </summary>
+    /// <param name="self">The value.</param>
+    /// <returns>2.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static int GetSignificandByteCount(ref Half self) => 2;
+
+    #endregion
+
+    #region Bits
+
+    /// <summary>
+    /// Computes the bitwise and of the bits of two values.
+    /// </summary>
+    /// <param name="left">The first value.</param>
+    /// <param name="right">The second value.</param>
+    /// <returns>The value with the bits of left &amp; right.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static Half BitwiseAnd(Half left, Half right) =>
+        Interop.IntAsFloat(
+            (ushort)(Interop.FloatAsInt(left) & Interop.FloatAsInt(right)));
+
+    /// <summary>
+    /// Computes the bitwise or of the bits of two values.
+    /// </summary>
+    /// <param name="left">The first value.</param>
+    /// <param name="right">The second value.</param>
+    /// <returns>The value with the bits of left | right.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static Half BitwiseOr(Half left, Half right) =>
+        Interop.IntAsFloat(
+            (ushort)(Interop.FloatAsInt(left) | Interop.FloatAsInt(right)));
+
+    /// <summary>
+    /// Computes the bitwise exclusive or of the bits of two values.
+    /// </summary>
+    /// <param name="left">The first value.</param>
+    /// <param name="right">The second value.</param>
+    /// <returns>The value with the bits of left ^ right.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static Half ExclusiveOr(Half left, Half right) =>
+        Interop.IntAsFloat(
+            (ushort)(Interop.FloatAsInt(left) ^ Interop.FloatAsInt(right)));
+
+    /// <summary>
+    /// Computes the bitwise complement of the bits of a value.
+    /// </summary>
+    /// <param name="value">The value.</param>
+    /// <returns>The value with the bits of ~value.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static Half OnesComplement(Half value) =>
+        Interop.IntAsFloat((ushort)~Interop.FloatAsInt(value));
+
+    /// <summary>
+    /// Returns the smallest value that compares greater than the given value.
+    /// </summary>
+    /// <param name="value">The value.</param>
+    /// <returns>
+    /// The next value towards positive infinity; NaN and positive infinity are
+    /// returned unchanged, and -0 gives the smallest positive subnormal value.
+    /// </returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static Half BitIncrement(Half value)
+    {
+        int bits = Interop.FloatAsInt(value);
+        int next = Utilities.Select((bits & SignMask) != 0, bits - 1, bits + 1);
+        next = Utilities.Select(bits == SignMask, 0x0001, next);
+        bool special = (bits & ExponentMask) == ExponentMask;
+        next = Utilities.Select(
+            special,
+            Utilities.Select(bits == 0xFC00, 0xFBFF, bits),
+            next);
+        return Interop.IntAsFloat((ushort)next);
+    }
+
+    /// <summary>
+    /// Returns the largest value that compares less than the given value.
+    /// </summary>
+    /// <param name="value">The value.</param>
+    /// <returns>
+    /// The next value towards negative infinity; NaN and negative infinity are
+    /// returned unchanged, and +0 gives the smallest negative subnormal value.
+    /// </returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static Half BitDecrement(Half value)
+    {
+        int bits = Interop.FloatAsInt(value);
+        int next = Utilities.Select((bits & SignMask) != 0, bits + 1, bits - 1);
+        next = Utilities.Select(bits == 0, 0x8001, next);
+        bool special = (bits & ExponentMask) == ExponentMask;
+        next = Utilities.Select(
+            special,
+            Utilities.Select(bits == ExponentMask, 0x7BFF, bits),
+            next);
+        return Interop.IntAsFloat((ushort)next);
+    }
+
+    /// <summary>
+    /// Returns the base-2 exponent of the given value.
+    /// </summary>
+    /// <param name="value">The value.</param>
+    /// <returns>
+    /// The unbiased exponent of the value, int.MinValue for zero and int.MaxValue
+    /// for infinity and NaN, as computed by <see cref="Half.ILogB(Half)"/>.
+    /// </returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static int ILogB(Half value)
+    {
+        int bits = Interop.FloatAsInt(value) & MagnitudeMask;
+        int exponent = bits >> 10;
+
+        // System.Half derives the exponent of a subnormal value from the leading
+        // zeros of its significand as a 32-bit integer, -9 - lzcnt(m)
+        int subnormal = -9 - XMath.LeadingZeroCount(bits);
+        int result = Utilities.Select(exponent == 0, subnormal, exponent - 15);
+        result = Utilities.Select(bits == 0, int.MinValue, result);
+        return Utilities.Select(exponent == 0x1F, int.MaxValue, result);
+    }
+
+    /// <summary>
+    /// Computes value * 2^n.
+    /// </summary>
+    /// <param name="value">The value.</param>
+    /// <param name="n">The power of two.</param>
+    /// <returns>value * 2^n, rounded once to half precision.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static Half ScaleB(Half value, int n)
+    {
+        // Scaling a nonzero finite value by more than 2^40 overflows, and by less
+        // than 2^-40 rounds to zero, so the product with the clamped power is exact
+        // in single precision and rounds once
+        int exponent = XMath.Clamp(n, -48, 48) + 127;
+        float scale = Interop.IntAsFloat((uint)exponent << 23);
+        return (Half)((float)value * scale);
+    }
 
     #endregion
 
@@ -476,6 +825,210 @@ internal static class XHalf
     {
         float t = (float)amount;
         return (Half)((float)value1 * (1.0f - t) + (float)value2 * t);
+    }
+
+    #endregion
+
+    #region Pi Functions
+
+    /// <summary>
+    /// Computes acos(value) / pi.
+    /// </summary>
+    /// <param name="value">The value.</param>
+    /// <returns>acos(value) / pi.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static Half AcosPi(Half value) =>
+        (Half)(XMath.Acos((float)value) / MathF.PI);
+
+    /// <summary>
+    /// Computes asin(value) / pi.
+    /// </summary>
+    /// <param name="value">The value.</param>
+    /// <returns>asin(value) / pi.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static Half AsinPi(Half value) =>
+        (Half)(XMath.Asin((float)value) / MathF.PI);
+
+    /// <summary>
+    /// Computes atan(value) / pi.
+    /// </summary>
+    /// <param name="value">The value.</param>
+    /// <returns>atan(value) / pi.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static Half AtanPi(Half value)
+    {
+        // atan is odd, which keeps the sign of zero
+        float x = (float)value;
+        return (Half)XMath.CopySign(XMath.Atan(x) / MathF.PI, x);
+    }
+
+    /// <summary>
+    /// Computes atan2(y, x) / pi.
+    /// </summary>
+    /// <param name="y">The y coordinate.</param>
+    /// <param name="x">The x coordinate.</param>
+    /// <returns>atan2(y, x) / pi.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static Half Atan2Pi(Half y, Half x) =>
+        (Half)(XMath.Atan2((float)y, (float)x) / MathF.PI);
+
+    /// <summary>
+    /// Splits |x| into its integral part and its fraction, and computes the angle
+    /// of the fraction relative to the nearest quarter period, which keeps the
+    /// argument of the trigonometric function small and exact.
+    /// </summary>
+    /// <param name="ax">The absolute value.</param>
+    /// <param name="odd">True, if the integral part is odd.</param>
+    /// <param name="fraction">The fractional part.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void SplitPi(float ax, out bool odd, out float fraction)
+    {
+        float integral = XMath.Truncate(ax);
+        odd = XMath.Rem(integral, 2.0f) == 1.0f;
+        fraction = ax - integral;
+    }
+
+    /// <summary>
+    /// Returns the reduced angle (in multiples of pi) of a fraction in [0, 1]: the
+    /// distance to the nearest of 0, 1/2 and 1.
+    /// </summary>
+    /// <param name="fraction">The fraction.</param>
+    /// <returns>The reduced angle in radians.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static float ReducePi(float fraction) =>
+        Utilities.Select(
+            fraction <= 0.25f,
+            fraction,
+            Utilities.Select(
+                fraction <= 0.75f,
+                XMath.Abs(fraction - 0.5f),
+                1.0f - fraction)) * MathF.PI;
+
+    /// <summary>
+    /// Computes sin(value * pi) exactly at the integers and half integers.
+    /// </summary>
+    /// <param name="value">The value.</param>
+    /// <returns>sin(value * pi).</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static Half SinPi(Half value) => (Half)SinPi((float)value);
+
+    /// <summary>
+    /// Computes sin(x * pi) for a half-precision value x.
+    /// </summary>
+    private static float SinPi(float x)
+    {
+        float ax = XMath.Abs(x);
+        SplitPi(ax, out bool odd, out float fraction);
+        float angle = ReducePi(fraction);
+        bool nearHalf = fraction > 0.25f & fraction <= 0.75f;
+        float sign = Utilities.Select(x > 0.0f, 1.0f, -1.0f) *
+            Utilities.Select(odd, -1.0f, 1.0f);
+        float large = sign * Utilities.Select(
+            nearHalf,
+            XMath.Cos(angle),
+            XMath.Sin(angle));
+        large = Utilities.Select(fraction == 0.0f, x * 0.0f, large);
+        large = Utilities.Select(fraction == 0.5f, sign, large);
+
+        // Small values
+        float px = x * MathF.PI;
+        float small = Utilities.Select(
+            ax >= 0.0078125f,
+            XMath.Sin(px),
+            Utilities.Select(
+                ax >= 0.00012207031f,
+                px - px * px * px * 0.16666667f,
+                px));
+        return Utilities.Select(ax > 0.25f, large, small);
+    }
+
+    /// <summary>
+    /// Computes cos(value * pi) exactly at the integers and half integers.
+    /// </summary>
+    /// <param name="value">The value.</param>
+    /// <returns>cos(value * pi).</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static Half CosPi(Half value) => (Half)CosPi((float)value);
+
+    /// <summary>
+    /// Computes cos(x * pi) for a half-precision value x.
+    /// </summary>
+    private static float CosPi(float x)
+    {
+        float ax = XMath.Abs(x);
+        SplitPi(ax, out bool odd, out float fraction);
+        float angle = ReducePi(fraction);
+        bool nearHalf = fraction > 0.25f & fraction <= 0.75f;
+        float sign = Utilities.Select(odd, -1.0f, 1.0f) *
+            Utilities.Select(fraction > 0.5f, -1.0f, 1.0f);
+        float large = sign * Utilities.Select(
+            nearHalf,
+            XMath.Sin(angle),
+            XMath.Cos(angle));
+        large = Utilities.Select(fraction == 0.5f, 0.0f, large);
+
+        // Small values
+        float px = x * MathF.PI;
+        float small = Utilities.Select(
+            ax >= 0.0078125f,
+            XMath.Cos(px),
+            Utilities.Select(
+                ax >= 0.00012207031f,
+                1.0f - px * px * 0.5f,
+                1.0f));
+        float result = Utilities.Select(ax > 0.25f, large, small);
+        return Utilities.Select(XMath.IsFinite(x), result, float.NaN);
+    }
+
+    /// <summary>
+    /// Computes sin(value * pi) and cos(value * pi).
+    /// </summary>
+    /// <param name="value">The value.</param>
+    /// <returns>The sine and the cosine of value * pi.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static (Half SinPi, Half CosPi) SinCosPi(Half value) =>
+        ((Half)SinPi((float)value), (Half)CosPi((float)value));
+
+    /// <summary>
+    /// Computes tan(value * pi) exactly at the integers and half integers.
+    /// </summary>
+    /// <param name="value">The value.</param>
+    /// <returns>tan(value * pi).</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static Half TanPi(Half value)
+    {
+        float x = (float)value;
+        float ax = XMath.Abs(x);
+        SplitPi(ax, out bool odd, out float fraction);
+        float angle = ReducePi(fraction);
+        bool nearHalf = fraction > 0.25f & fraction <= 0.75f;
+        float sign = Utilities.Select(x > 0.0f, 1.0f, -1.0f) *
+            Utilities.Select(fraction > 0.5f, -1.0f, 1.0f);
+        float tan = XMath.Tan(angle);
+        float large = sign * Utilities.Select(nearHalf, 1.0f / tan, tan);
+        float sign0 = Utilities.Select(x > 0.0f, 1.0f, -1.0f);
+        large = Utilities.Select(
+            fraction == 0.0f,
+            sign0 * Utilities.Select(odd, -0.0f, 0.0f),
+            large);
+        large = Utilities.Select(
+            fraction == 0.5f,
+            sign0 * Utilities.Select(
+                odd,
+                float.NegativeInfinity,
+                float.PositiveInfinity),
+            large);
+
+        // Small values
+        float px = x * MathF.PI;
+        float small = Utilities.Select(
+            ax >= 0.0078125f,
+            XMath.Tan(px),
+            Utilities.Select(
+                ax >= 0.00012207031f,
+                px + px * px * px * 0.33333334f,
+                px));
+        return (Half)Utilities.Select(ax > 0.25f, large, small);
     }
 
     #endregion

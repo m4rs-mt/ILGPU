@@ -420,6 +420,21 @@
             <Remap Name="IsFinite" Target="XMath.IsFinite" ReflectParamType="1" />
             <Remap Name="IsInfinity" Target="XMath.IsInfinity" ReflectParamType="1" />
             <Remap Name="IsNaN" Target="XMath.IsNaN" ReflectParamType="1" />
+            <Remap Name="IsEvenInteger"
+                Target="ILGPU.Numerics.XHalf.IsEvenInteger" ReflectParamType="1" />
+            <Remap Name="IsInteger" Target="XMath.IsInteger" ReflectParamType="1" />
+            <Remap Name="IsNegative"
+                Target="ILGPU.Numerics.XHalf.IsNegative" ReflectParamType="1" />
+            <Remap Name="IsNegativeInfinity"
+                Target="ILGPU.Numerics.XHalf.IsNegativeInfinity" ReflectParamType="1" />
+            <Remap Name="IsOddInteger" Target="XMath.IsOddInteger" ReflectParamType="1" />
+            <Remap Name="IsNormal" Target="ILGPU.Numerics.XHalf.IsNormal" ReflectParamType="1" />
+            <Remap Name="IsPositive"
+                Target="ILGPU.Numerics.XHalf.IsPositive" ReflectParamType="1" />
+            <Remap Name="IsPositiveInfinity"
+                Target="ILGPU.Numerics.XHalf.IsPositiveInfinity" ReflectParamType="1" />
+            <Remap Name="IsSubnormal"
+                Target="ILGPU.Numerics.XHalf.IsSubnormal" ReflectParamType="1" />
             <Remap Name="Log" Target="XMath.Log" ReflectParamType="1" />
             <Remap Name="Log2" Target="XMath.Log2" ReflectParamType="1" />
             <Remap Name="Log10" Target="XMath.Log10" ReflectParamType="1" />
@@ -436,12 +451,40 @@
             <Remap Name="Tan" Target="XMath.Tan" ReflectParamType="1" />
             <Remap Name="Tanh" Target="XMath.Tanh" ReflectParamType="1" />
             <Remap Name="Truncate" Target="XMath.Truncate" ReflectParamType="1" />
+            <Remap Name="AcosPi" Target="ILGPU.Numerics.XHalf.AcosPi" ReflectParamType="1" />
+            <Remap Name="AsinPi" Target="ILGPU.Numerics.XHalf.AsinPi" ReflectParamType="1" />
+            <Remap Name="AtanPi" Target="ILGPU.Numerics.XHalf.AtanPi" ReflectParamType="1" />
+            <Remap Name="CosPi" Target="ILGPU.Numerics.XHalf.CosPi" ReflectParamType="1" />
+            <Remap Name="SinPi" Target="ILGPU.Numerics.XHalf.SinPi" ReflectParamType="1" />
+            <Remap Name="SinCosPi" Target="ILGPU.Numerics.XHalf.SinCosPi" ReflectParamType="1" />
+            <Remap Name="TanPi" Target="ILGPU.Numerics.XHalf.TanPi" ReflectParamType="1" />
             <Remap Name="ExpM1" Target="ILGPU.Numerics.XHalf.ExpM1" ReflectParamType="1" />
             <Remap Name="Exp2M1" Target="ILGPU.Numerics.XHalf.Exp2M1" ReflectParamType="1" />
             <Remap Name="Exp10M1" Target="ILGPU.Numerics.XHalf.Exp10M1" ReflectParamType="1" />
             <Remap Name="LogP1" Target="ILGPU.Numerics.XHalf.LogP1" ReflectParamType="1" />
             <Remap Name="Log2P1" Target="ILGPU.Numerics.XHalf.Log2P1" ReflectParamType="1" />
             <Remap Name="Log10P1" Target="ILGPU.Numerics.XHalf.Log10P1" ReflectParamType="1" />
+            <Remap Name="BitIncrement"
+                Target="ILGPU.Numerics.XHalf.BitIncrement" ReflectParamType="1" />
+            <Remap Name="BitDecrement"
+                Target="ILGPU.Numerics.XHalf.BitDecrement" ReflectParamType="1" />
+            <Remap Name="ILogB" Target="ILGPU.Numerics.XHalf.ILogB" ReflectParamType="1" />
+            <Remap Name="IsPow2" Target="ILGPU.Numerics.XHalf.IsPow2" ReflectParamType="1" />
+            <Remap Name="IsRealNumber"
+                Target="ILGPU.Numerics.XHalf.IsRealNumber" ReflectParamType="1" />
+            <Remap Name="System.Numerics.INumberBase&lt;System.Half&gt;.IsZero"
+                Target="ILGPU.Numerics.XHalf.IsZero" ReflectParamType="1" />
+            <Remap Name="System.Numerics.INumberBase&lt;System.Half&gt;.IsCanonical"
+                Target="ILGPU.Numerics.XHalf.IsCanonical" ReflectParamType="1" />
+            <Remap Name="System.Numerics.INumberBase&lt;System.Half&gt;.IsComplexNumber"
+                Target="ILGPU.Numerics.XHalf.IsComplexNumber" ReflectParamType="1" />
+            <Remap Name="System.Numerics.INumberBase&lt;System.Half&gt;.IsImaginaryNumber"
+                Target="ILGPU.Numerics.XHalf.IsImaginaryNumber" ReflectParamType="1" />
+            <Remap Name="System.Numerics.IBitwiseOperators&lt;System.Half,System.Half,System.Half&gt;.op_OnesComplement"
+                Target="ILGPU.Numerics.XHalf.OnesComplement" ReflectParamType="1" />
+            <Remap Name="ScaleB" Target="ILGPU.Numerics.XHalf.ScaleB">
+                <Specialization Type="System.Half,int" />
+            </Remap>
             <Remap Name="RootN" Target="ILGPU.Numerics.XHalf.RootN">
                 <Specialization Type="System.Half,int" />
             </Remap>
@@ -472,6 +515,13 @@
             <Remap Name="MinNative" Target="ILGPU.Numerics.XHalf.MinNative" ReflectParamType="2" />
             <Remap Name="MinNumber" Target="ILGPU.Numerics.XHalf.MinNumber" ReflectParamType="2" />
             <Remap Name="Pow" Target="XMath.Pow" ReflectParamType="2" />
+            <Remap Name="Atan2Pi" Target="ILGPU.Numerics.XHalf.Atan2Pi" ReflectParamType="2" />
+            <Remap Name="System.Numerics.IBitwiseOperators&lt;System.Half,System.Half,System.Half&gt;.op_BitwiseAnd"
+                Target="ILGPU.Numerics.XHalf.BitwiseAnd" ReflectParamType="2" />
+            <Remap Name="System.Numerics.IBitwiseOperators&lt;System.Half,System.Half,System.Half&gt;.op_BitwiseOr"
+                Target="ILGPU.Numerics.XHalf.BitwiseOr" ReflectParamType="2" />
+            <Remap Name="System.Numerics.IBitwiseOperators&lt;System.Half,System.Half,System.Half&gt;.op_ExclusiveOr"
+                Target="ILGPU.Numerics.XHalf.ExclusiveOr" ReflectParamType="2" />
 
             <!-- Ternary -->
             <Remap Name="Clamp" Target="ILGPU.Numerics.XHalf.Clamp" ReflectParamType="3" />
@@ -479,6 +529,33 @@
             <Remap Name="FusedMultiplyAdd" Target="XMath.FMA" ReflectParamType="3" />
             <Remap Name="MultiplyAddEstimate" Target="XMath.FMA" ReflectParamType="3" />
             <Remap Name="Lerp" Target="ILGPU.Numerics.XHalf.Lerp" ReflectParamType="3" />
+
+            <!-- Instance members -->
+            <Remap Name="CompareTo" Target="ILGPU.Numerics.XHalf.CompareTo">
+                <Specialization SourceType="System.Half" TargetType="System.Half*,System.Half" />
+            </Remap>
+            <Remap Name="Equals" Target="ILGPU.Numerics.XHalf.IsEqual">
+                <Specialization SourceType="System.Half" TargetType="System.Half*,System.Half" />
+            </Remap>
+            <Remap Name="GetHashCode" Target="ILGPU.Numerics.XHalf.HashCode">
+                <Specialization SourceType="" TargetType="System.Half*" />
+            </Remap>
+            <Remap Name="System.Numerics.IFloatingPoint&lt;System.Half&gt;.GetExponentByteCount"
+                Target="ILGPU.Numerics.XHalf.GetExponentByteCount">
+                <Specialization SourceType="" TargetType="System.Half*" />
+            </Remap>
+            <Remap Name="System.Numerics.IFloatingPoint&lt;System.Half&gt;.GetExponentShortestBitLength"
+                Target="ILGPU.Numerics.XHalf.GetExponentShortestBitLength">
+                <Specialization SourceType="" TargetType="System.Half*" />
+            </Remap>
+            <Remap Name="System.Numerics.IFloatingPoint&lt;System.Half&gt;.GetSignificandBitLength"
+                Target="ILGPU.Numerics.XHalf.GetSignificandBitLength">
+                <Specialization SourceType="" TargetType="System.Half*" />
+            </Remap>
+            <Remap Name="System.Numerics.IFloatingPoint&lt;System.Half&gt;.GetSignificandByteCount"
+                Target="ILGPU.Numerics.XHalf.GetSignificandByteCount">
+                <Specialization SourceType="" TargetType="System.Half*" />
+            </Remap>
         </Remapping>
         <Generators Target="Frontend.Intrinsic.Intrinsics">
             <Generator Name="op_UnaryPlus" Target="Math_Identity" />
