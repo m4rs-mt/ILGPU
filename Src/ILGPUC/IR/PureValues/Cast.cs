@@ -189,11 +189,36 @@ sealed partial class PointerCast : BaseAddressSpaceCast
     public TypeValue TargetElementType => Type.ElementType;
 
     /// <inheritdoc cref="PureValue.Rewrite{TRewriter}(in TRewriter)"/>
-    public override Value? Rewrite<TRewriter>(in TRewriter rewriter) =>
-        rewriter.Builder.CreatePointerCast(
+    /// <remarks>
+    /// A cast of a pointer to a pointer into a pointer to another pointer in
+    /// the same address space (such as <c>int**</c> to <c>void**</c>) keeps the
+    /// address space of the source elements if they change their address
+    /// space, such as pointer locals whose element type has been specialized:
+    /// the elements in memory keep their address space.
+    /// </remarks>
+    public override Value? Rewrite<TRewriter>(in TRewriter rewriter)
+    {
+        var source = rewriter.Rewrite(Source);
+        var targetElementType = rewriter.RewriteAs<TypeValue>(TargetElementType);
+        if (SourceElementType is AddressSpaceType sourceElement &&
+            targetElementType is AddressSpaceType targetElement &&
+            sourceElement.AddressSpace == targetElement.AddressSpace &&
+            source?.Type is PointerType
+            {
+                ElementType: AddressSpaceType newSourceElement
+            } &&
+            newSourceElement.AddressSpace != targetElement.AddressSpace)
+        {
+            targetElementType = rewriter.Builder.ModuleBuilder
+                .SpecializeAddressSpaceType(
+                    targetElement,
+                    newSourceElement.AddressSpace);
+        }
+        return rewriter.Builder.CreatePointerCast(
             Location,
-            rewriter.Rewrite(Source),
-            rewriter.RewriteAs<TypeValue>(TargetElementType));
+            source,
+            targetElementType);
+    }
 
     /// <inheritdoc cref="Value.ToPrefixString"/>
     protected override string ToPrefixString() => "ptrcast";

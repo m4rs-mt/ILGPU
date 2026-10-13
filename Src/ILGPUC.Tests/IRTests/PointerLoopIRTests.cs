@@ -106,6 +106,25 @@ public sealed class PointerLoopIRTests(ITestOutputHelper output)
         Assert.DoesNotMatch(@"\*\(volatile device ", source);
     }
 
+    // Pointers to two pointer locals compared with each other point to local
+    // memory and so do the pointer locals
+    [Theory]
+    [InlineData(BackendType.Metal, OptimizationLevel.O0)]
+    [InlineData(BackendType.OpenCL, OptimizationLevel.O1)]
+    public void PointerToPointerCompare_ComparesPointersToLocalMemory(
+        BackendType backend,
+        OptimizationLevel opt)
+    {
+        var ir = DumpLoopKernel(
+            nameof(PointerLoopKernels.PointerToPointerCompareKernel),
+            backend,
+            opt);
+        Assert.Matches(
+            @"icmp eq ptr<ptr<i32> addrspace\(local\)> addrspace\(local\) %\d+, %\d+",
+            ir);
+        Assert.DoesNotMatch(@"alloca ptr<i32>, ", ir);
+    }
+
     // With generic pointers, the address of a local is compared with the address
     // of a view element as a generic pointer
     [Theory]

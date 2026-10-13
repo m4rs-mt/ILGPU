@@ -16,7 +16,7 @@
 // fields and read and write through them, also through pointers to the
 // structures, in helpers, in shared memory and in local arrays, and test a
 // holder field for null.
-// Expected output: 143 253 363 473, 20 41 62 83, 21 11 41 31, 27 47 67 87, 16 26 36 46, 11 8 31 8, 21 10 43 32, 11 22 33 40, 32 42 52 62, 1516 2526 3536 4546, 9 21 29 41
+// Expected output: 143 253 363 473, 20 41 62 83, 21 11 41 31, 27 47 67 87, 16 26 36 46, 11 8 31 8, 21 10 43 32, 11 22 33 40, 32 42 52 62, 15 25 35 45, 1516 2526 3536 4546, 9 21 29 41
 
 using System;
 using System.Runtime.CompilerServices;
@@ -201,6 +201,22 @@ static unsafe class Kernels
         data[index] = x + 10 * h.N;
     }
 
+    /// <summary>
+    /// A holder whose count is read through a byte pointer to it, which keeps it
+    /// in memory.
+    /// </summary>
+    public static void HolderBytesKernel(
+        Index1D index,
+        ArrayView1D<int, Stride1D.Dense> data)
+    {
+        int x = data[index];
+        Holder h;
+        h.P = &x;
+        h.N = 5;
+        *h.P += *(int*)((byte*)&h + sizeof(int*));
+        data[index] = x;
+    }
+
     [MethodImpl(MethodImplOptions.NoInlining)]
     private static int ReadThrough(Holder h, int* p)
     {
@@ -333,6 +349,14 @@ static class Program
         {
             buffer.View.CopyFromCPU(stream, new int[] { 10, 20, 30, 40 });
             stream.Launch((Index1D)4, index => Kernels.HolderPointerKernel(index, buffer.View));
+            stream.Synchronize();
+            foreach (var v in buffer.GetAsArray1D())
+                Console.WriteLine(v);
+        }
+        using (var buffer = stream.Allocate1D<int>(4))
+        {
+            buffer.View.CopyFromCPU(stream, new int[] { 10, 20, 30, 40 });
+            stream.Launch((Index1D)4, index => Kernels.HolderBytesKernel(index, buffer.View));
             stream.Synchronize();
             foreach (var v in buffer.GetAsArray1D())
                 Console.WriteLine(v);

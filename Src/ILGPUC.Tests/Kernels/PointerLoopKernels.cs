@@ -193,6 +193,24 @@ static unsafe class PointerLoopKernels
         data[index] = p == end ? -1 : (int)(p - first);
     }
 
+    /// <summary>
+    /// Pointers to two pointer locals compared with each other (a == b,
+    /// a != b).
+    /// </summary>
+    public static void PointerToPointerCompareKernel(
+        Index1D index,
+        ArrayView1D<int, Stride1D.Dense> data)
+    {
+        int x = data[index];
+        int y = 2;
+        int* q = &x;
+        int* r = &y;
+        int** a = &q;
+        int** b = &r;
+        **a += 1;
+        data[index] = (a == b ? 1000 : 0) + (a != b ? 100 : 0) + x + 10 * **b;
+    }
+
     private static int SumRange(int* first, int* end)
     {
         int sum = 0;

@@ -135,6 +135,17 @@ partial class PureValueBuilder
                     CompareKind.GreaterEqual);
         }
 
+        // Pointers compare addresses only: pointers to pointers into different
+        // address spaces, such as the addresses of two pointer locals holding
+        // the address of a local and the address of a view element, are
+        // compared as pointers to the same element type
+        if (left.Type is PointerType leftElements &&
+            right.Type is PointerType rightElements &&
+            !leftElements.ElementType.Equals(rightElements.ElementType))
+        {
+            right = CreatePointerCast(location, right, leftElements.ElementType);
+        }
+
         // A null pointer is null in every address space: compared with a
         // pointer into a specific address space, such as &x == null, it takes
         // the type of that pointer. Pointers into different address spaces

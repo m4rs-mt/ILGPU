@@ -57,6 +57,7 @@ public abstract class PointerFieldExecutionTests : ExecutionTestBase
                 "Kernels.SharedHolderKernel",
                 "Kernels.ViewHolderArrayKernel",
                 "Kernels.HolderPointerKernel",
+                "Kernels.HolderBytesKernel",
                 "Kernels.RetargetKernel",
                 "Kernels.FieldNullCheckKernel",
             ],
@@ -70,6 +71,7 @@ public abstract class PointerFieldExecutionTests : ExecutionTestBase
                 "21", "10", "43", "32",
                 "11", "22", "33", "40",
                 "32", "42", "52", "62",
+                "15", "25", "35", "45",
                 "1516", "2526", "3536", "4546",
                 "9", "21", "29", "41",
             ],
@@ -98,7 +100,9 @@ public abstract class PointerFieldExecutionTests : ExecutionTestBase
 
     // The CPU stored the expression of a view element address instead of the
     // address, and Metal and OpenCL emitted pointers to pointers with two
-    // address spaces
+    // address spaces and kept pointer locals whose address is taken generic.
+    // Metal rejected comparing pointers to pointer locals holding pointers
+    // into different address spaces as comparing distinct pointer types
     [SkippableTheory]
     [InlineData(RoslynOptimizationLevel.Release, OptimizationLevel.O0)]
     [InlineData(RoslynOptimizationLevel.Debug, OptimizationLevel.O0)]
@@ -111,10 +115,16 @@ public abstract class PointerFieldExecutionTests : ExecutionTestBase
         await VerifyProgramOutputAsync(
             "TestPrograms/PointerField/PointerToPointer.cs",
             [
+                "Kernels.PointerToPointerKernel",
+                "Kernels.SharedPointerToPointerKernel",
                 "Kernels.ViewPointerToPointerKernel",
+                "Kernels.MixedPointerToPointerCompareKernel",
             ],
             [
+                "1181", "900", "3201", "920",
+                "10", "11", "12", "13",
                 "121", "231", "341", "451",
+                "131", "151", "171", "191",
             ],
             new CompilationProperties { OptimizationLevel = level },
             programOptimization);

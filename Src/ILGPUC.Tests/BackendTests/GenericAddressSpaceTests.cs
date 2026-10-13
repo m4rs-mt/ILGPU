@@ -64,15 +64,11 @@ public sealed class GenericAddressSpaceTests
 
     /// <summary>
     /// Addresses of local variables and of shared memory stored to memory: in a
-    /// local pointer whose address is taken, in a view of nint and in a view of
-    /// structs holding a pointer. Loaded back, they would point into global
-    /// memory, so the store is reported at its location.
+    /// view of nint and in a view of structs holding a pointer. Loaded back,
+    /// they would point into global memory, so the store is reported at its
+    /// location.
     /// </summary>
     [Theory]
-    [InlineData(
-        BackendType.Metal,
-        nameof(AddressSpaceKernels.LocalAddressInLocalPointerKernel),
-        "local")]
     [InlineData(
         BackendType.Metal,
         nameof(AddressSpaceKernels.LocalAddressInViewKernel),
@@ -81,10 +77,6 @@ public sealed class GenericAddressSpaceTests
         BackendType.Metal,
         nameof(AddressSpaceKernels.SharedAddressInViewKernel),
         "shared")]
-    [InlineData(
-        BackendType.OpenCL,
-        nameof(AddressSpaceKernels.LocalAddressInLocalPointerKernel),
-        "local")]
     [InlineData(
         BackendType.OpenCL,
         nameof(AddressSpaceKernels.LocalAddressInViewKernel),
@@ -133,7 +125,8 @@ public sealed class GenericAddressSpaceTests
     /// <summary>
     /// Pointers that provably point into a single address space compile at
     /// every optimization level, including generic pointers left in the method
-    /// body when nothing is inlined.
+    /// body when nothing is inlined and pointers to locals held in a pointer
+    /// local whose address is taken.
     /// </summary>
     [Theory]
     [InlineData(BackendType.Metal, OptimizationLevel.O0)]
@@ -154,6 +147,8 @@ public sealed class GenericAddressSpaceTests
                 nameof(SharedMemoryKernels.SharedMemory2DKernel))!,
             typeof(AddressSpaceKernels).GetMethod(
                 nameof(AddressSpaceKernels.SharedRefSelectKernel))!,
+            typeof(AddressSpaceKernels).GetMethod(
+                nameof(AddressSpaceKernels.LocalAddressInLocalPointerKernel))!,
         };
         var properties = new CompilationProperties(OptimizationLevel: level);
         foreach (var kernel in kernels)

@@ -31,6 +31,12 @@ public sealed class PointerFieldIRTests(ITestOutputHelper output)
         VerifyAfterGlobalOpt(GetKernel(
             typeof(PointerFieldKernels), nameof(PointerFieldKernels.ConditionalFieldKernel)), opt, mode);
 
+    [Theory]
+    [MemberData(nameof(TestTypes.OptLevelsAndModes), MemberType = typeof(TestTypes))]
+    public void PointerToPointer_AfterGlobalOpt(OptimizationLevel opt, CompilationMode mode) =>
+        VerifyAfterGlobalOpt(GetKernel(
+            typeof(PointerFieldKernels), nameof(PointerFieldKernels.PointerToPointerKernel)), opt, mode);
+
     // --- Address spaces ---
 
     // A holder whose pointer to a local is changed under a condition is selected
@@ -52,6 +58,24 @@ public sealed class PointerFieldIRTests(ITestOutputHelper output)
         Assert.Matches(@"%struct\.\d+ = type \{ ptr<i32> addrspace\(local\), i32 \}", ir);
         Assert.Matches(@"select i1 %\d+, %struct\.\d+ %\d+, %struct\.\d+ %\d+", ir);
         Assert.DoesNotMatch(@"type \{ ptr<i32>, i32 \}", ir);
+    }
+
+    // A pointer local whose address is taken and through which pointers to
+    // locals are stored holds pointers to local memory
+    [Theory]
+    [InlineData(BackendType.Metal, OptimizationLevel.O0)]
+    [InlineData(BackendType.Metal, OptimizationLevel.O1)]
+    [InlineData(BackendType.OpenCL, OptimizationLevel.O2)]
+    public void PointerToPointer_PointerLocalPointsToLocalMemory(
+        BackendType backend,
+        OptimizationLevel opt)
+    {
+        var ir = DumpFieldKernel(
+            nameof(PointerFieldKernels.PointerToPointerKernel),
+            backend,
+            opt);
+        Assert.Contains("alloca ptr<i32> addrspace(local), i32 1", ir);
+        Assert.DoesNotContain("alloca ptr<i32>, i32 1", ir);
     }
 
     private string DumpFieldKernel(

@@ -161,6 +161,22 @@ static unsafe class PointerFieldKernels
         data[index] = x + 10 * h.N;
     }
 
+    /// <summary>
+    /// A holder whose count is read through a byte pointer to it, which keeps it
+    /// in memory.
+    /// </summary>
+    public static void HolderBytesKernel(
+        Index1D index,
+        ArrayView1D<int, Stride1D.Dense> data)
+    {
+        int x = data[index];
+        Holder h;
+        h.P = &x;
+        h.N = 5;
+        *h.P += *(int*)((byte*)&h + sizeof(int*));
+        data[index] = x;
+    }
+
     [MethodImpl(MethodImplOptions.NoInlining)]
     private static int ReadThrough(Holder h, int* p)
     {
@@ -276,6 +292,42 @@ static unsafe class PointerFieldKernels
     }
 
     /// <summary>
+    /// An address-taken pointer local written and read through a pointer to
+    /// it.
+    /// </summary>
+    public static void PointerToPointerKernel(
+        Index1D index,
+        ArrayView1D<int, Stride1D.Dense> data)
+    {
+        int x = data[index];
+        int y = 7;
+        int* q = &x;
+        int** pp = &q;
+        if ((index.X & 1) != 0)
+            *pp = &y;
+        **pp += 1;
+        data[index] = x + 10 * y + 100 * *q;
+    }
+
+    /// <summary>
+    /// An address-taken pointer local holding the address of shared memory, in
+    /// groups of up to 1024 threads.
+    /// </summary>
+    public static void SharedPointerToPointerKernel(
+        Index1D index,
+        ArrayView1D<int, Stride1D.Dense> data)
+    {
+        var shared = Group.GetSharedMemory<int>(1024);
+        int g = Group.Index;
+        shared[g] = data[index];
+        Group.Barrier();
+        int* q = null;
+        int** pp = &q;
+        *pp = (int*)Unsafe.AsPointer(ref shared[0]);
+        data[index] = **pp + g;
+    }
+
+    /// <summary>
     /// An address-taken pointer local holding the address of a view element.
     /// </summary>
     public static void ViewPointerToPointerKernel(
@@ -286,5 +338,23 @@ static unsafe class PointerFieldKernels
         int** pp = &q;
         **pp += 1;
         data[index] += 10 * **pp;
+    }
+
+    /// <summary>
+    /// Pointers to two pointer locals compared with each other, where one holds
+    /// the address of a local and the other the address of a view element.
+    /// </summary>
+    public static void MixedPointerToPointerCompareKernel(
+        Index1D index,
+        ArrayView1D<int, Stride1D.Dense> data)
+    {
+        int x = data[index];
+        int* q = &x;
+        int* r = (int*)Unsafe.AsPointer(ref data[index]);
+        int** a = &q;
+        int** b = &r;
+        **a += 1;
+        **b += 10;
+        data[index] = (a == b ? 1000 : 0) + (a != b ? 100 : 0) + x + **b;
     }
 }

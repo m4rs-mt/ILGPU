@@ -19,6 +19,7 @@ using ILGPUC.IR.ModuleValues;
 using ILGPUC.IR.PureValues;
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 
 namespace ILGPUC.IR.Analyses;
@@ -346,6 +347,146 @@ sealed class PointerAddressSpaces(PointerAddressSpaces.AnalysisFlags flags) :
     }
 
     /// <summary>
+    /// Returns the number of (flattened) fields of the given type.
+    /// </summary>
+    public static int GetNumFields(TypeValue type) =>
+        type is StructureType structureType ? structureType.NumFields : 1;
+
+    /// <summary>
+    /// Collects all loads and stores through addresses derived from the given
+    /// allocation, such as field addresses or the address of a pointer local
+    /// taken by <c>int** pp = &amp;q</c>, with the first (flattened) field of
+    /// the allocated type they access.
+    /// </summary>
+    /// <returns>
+    /// False if the address escapes or is reinterpreted before writes, so that
+    /// anything could be stored into the allocation.
+    /// </returns>
+    public static bool TryCollectAccesses(
+        Alloca alloca,
+        List<(Store Store, int Field)> stores,
+        List<(Load Load, int Field)>? loads = null) =>
+        TryCollectFieldAccesses(
+            alloca,
+            alloca.AllocType,
+            0,
+            GetNumFields(alloca.AllocType),
+            stores,
+            loads);
+
+    /// <summary>
+    /// Collects all loads and stores through the given address, which points to
+    /// the given field of the allocated type.
+    /// </summary>
+    private static bool TryCollectFieldAccesses(
+        Value address,
+        TypeValue allocType,
+        int field,
+        int numFields,
+        List<(Store Store, int Field)> stores,
+        List<(Load Load, int Field)>? loads)
+    {
+        foreach (var use in address.Uses)
+        {
+            switch (use.Target)
+            {
+                case Store store when use.Index == 0:
+                    if (field + GetNumFields(store.Value.Type) > numFields)
+                        return false;
+                    stores.Add((store, field));
+                    break;
+                case Load load:
+                    if (field + GetNumFields(load.Type) > numFields)
+                        return false;
+                    loads?.Add((load, field));
+                    break;
+                case CompareValue:
+                    // Comparisons only read the address itself
+                    break;
+                case LoadFieldAddress fieldAddress when use.Index == 0:
+                    if (!TryCollectFieldAccesses(
+                        fieldAddress,
+                        allocType,
+                        field + fieldAddress.FieldSpan.Index,
+                        numFields,
+                        stores,
+                        loads))
+                    {
+                        return false;
+                    }
+                    break;
+                case PointerCast cast when use.Index == 0 && !IsPointeeCast(cast):
+                    // Reinterpreted addresses may only be read
+                    if (!IsReadOnly(cast))
+                        return false;
+                    break;
+                case LoadElementAddress elementAddress when use.Index == 0 &&
+                    numFields > 1 &&
+                    (field != 0 ||
+                    elementAddress.Type is not PointerType { ElementType: var type } ||
+                    !type.Equals(allocType)):
+                    // Element addresses relative to a field can reach any field
+                    return false;
+                case AddressSpaceCast or
+                    PointerCast or
+                    LoadElementAddress when use.Index == 0:
+                    if (!TryCollectFieldAccesses(
+                        use.Target,
+                        allocType,
+                        field,
+                        numFields,
+                        stores,
+                        loads))
+                    {
+                        return false;
+                    }
+                    break;
+                default:
+                    return false;
+            }
+        }
+        return true;
+    }
+
+    /// <summary>
+    /// Returns true if the given pointer cast keeps its element type or casts a
+    /// pointer to a pointer into a pointer to another pointer in the same
+    /// address space (such as <c>int**</c> to <c>void**</c>), whose elements
+    /// keep the address space of the source (see <see cref="PointerCast"/>).
+    /// </summary>
+    private static bool IsPointeeCast(PointerCast cast) =>
+        cast.SourceElementType.Equals(cast.TargetElementType) ||
+        cast.SourceElementType is AddressSpaceType sourceElement &&
+        cast.TargetElementType is AddressSpaceType targetElement &&
+        sourceElement.AddressSpace == targetElement.AddressSpace;
+
+    /// <summary>
+    /// Returns true if the given address is only read (loaded from), possibly
+    /// through derived addresses.
+    /// </summary>
+    public static bool IsReadOnly(Value value)
+    {
+        foreach (var use in value.Uses)
+        {
+            switch (use.Target)
+            {
+                case Load:
+                    break;
+                case AddressSpaceCast or
+                    PointerCast or
+                    LoadElementAddress or
+                    LoadFieldAddress when use.Index == 0:
+                    if (!IsReadOnly(use.Target))
+                        return false;
+                    break;
+                default:
+                    return false;
+            }
+        }
+        return true;
+    }
+
+    /// <summary>
     /// Returns true if the analysis has the given flags.
     /// </summary>
     /// <param name="otherFlags">The flags.</param>
@@ -394,9 +535,10 @@ sealed class PointerAddressSpaces(PointerAddressSpaces.AnalysisFlags flags) :
         : CreateInitialValue(operand.Type);
 
     /// <summary>
-    /// Returns the information of the given field of a structure value.
+    /// Returns the information of the given field of a structure value, or the
+    /// information of a scalar value for all of its fields.
     /// </summary>
-    private static AddressSpaceInfo GetField(
+    public static AddressSpaceInfo GetField(
         in AnalysisValue<AddressSpaceInfo> value,
         int index) =>
         value.IsStructure && index < value.NumFields
