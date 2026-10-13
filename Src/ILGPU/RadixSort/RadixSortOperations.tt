@@ -81,14 +81,19 @@ public readonly struct Ascending<#=type.Name #> :
 <# } else if (type.IsSignedInt) { #>
         var bits = value ^ (1 << (NumBits - 1));
 <# } else if (type.IsFloat && type.Name == "Half") { #>
+        uint rawBits = Interop.FloatAsInt(value);
         var signMask = 1U << (NumBits - 1);
         var onesComplementMask =
-            (uint)~Interop.FloatAsInt(value) >> (NumBits - 1);
-        var bits = Interop.FloatAsInt(value) ^ (signMask | onesComplementMask);
+            (uint)((short)rawBits >> (NumBits - 1)) & 0xFFFFU;
+        var bits = rawBits ^ (signMask | onesComplementMask);
 <# } else if (type.IsFloat) { #>
+<#      var unsignedName = type.Name == "Double" ? "ulong" : "uint"; #>
+<#      var signedName = type.Name == "Double" ? "long" : "int"; #>
+        var rawBits = Interop.FloatAsInt(value);
         var signMask = 1<#= type.Name == "Double" ? "UL" : "U" #> << (NumBits - 1);
-        var onesComplementMask = (~(Interop.FloatAsInt(value)) >> (NumBits - 1));
-        var bits = Interop.FloatAsInt(value) ^ (signMask | onesComplementMask);
+        var onesComplementMask =
+            (<#= unsignedName #>)((<#= signedName #>)rawBits >> (NumBits - 1));
+        var bits = rawBits ^ (signMask | onesComplementMask);
 <# } else { #>
         var bits = value;
 <# } #>
