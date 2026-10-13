@@ -11,6 +11,7 @@
 
 using ILGPU;
 using ILGPU.Runtime;
+using ILGPUC.Tests.Framework;
 using System.Runtime.CompilerServices;
 
 namespace ILGPUC.Tests.Kernels;
@@ -27,6 +28,15 @@ static unsafe class PointerFieldKernels
     {
         public int* P;
         public int N;
+    }
+
+    /// <summary>
+    /// A pointer that may be null and a fallback value.
+    /// </summary>
+    public struct NullableHolder
+    {
+        public int* P;
+        public int Fallback;
     }
 
     /// <summary>
@@ -151,6 +161,67 @@ static unsafe class PointerFieldKernels
         data[index] = x + 10 * h.N;
     }
 
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static int ReadThrough(Holder h, int* p)
+    {
+        h.P = p;
+        Add(h, 1);
+        return *h.P + h.N;
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static int ReadThroughLocal(Holder h, int* p)
+    {
+        h.P = p;
+        Add(h, 1);
+        return *h.P + h.N;
+    }
+
+    /// <summary>
+    /// Holders of the null pointer and of a pointer to a local whose pointers
+    /// are replaced by pointers to a local in helpers that are not inlined and
+    /// pass them to another helper.
+    /// </summary>
+    public static void RetargetKernel(
+        Index1D index,
+        ArrayView1D<int, Stride1D.Dense> data)
+    {
+        int x = data[index];
+        int y = 7;
+        Holder h;
+        h.P = null;
+        h.N = 3;
+        Holder g;
+        g.P = &y;
+        g.N = 1;
+        int first = ReadThrough(h, &x);
+        data[index] = first + 100 * ReadThroughLocal(g, &x);
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static int ReadHolder(Holder h) => *h.P + h.N;
+
+    /// <summary>
+    /// A holder of a pointer to a local or of a pointer to a view element,
+    /// selected by a condition and passed to a helper that is not inlined (CPU,
+    /// CUDA and ROCm only: Metal and OpenCL reject pointers that can point to
+    /// global and local memory).
+    /// </summary>
+    [RequiresCapability(BackendCapability.GenericAddressSpace)]
+    public static void SelectHolderKernel(
+        Index1D index,
+        ArrayView1D<int, Stride1D.Dense> data)
+    {
+        int x = data[index];
+        Holder a;
+        a.P = &x;
+        a.N = 1;
+        Holder b;
+        b.P = (int*)Unsafe.AsPointer(ref data[index]);
+        b.N = 2;
+        data[index] = 10 * ReadHolder((index.X & 1) == 0 ? a : b);
+    }
+
     /// <summary>
     /// A local array of holders of pointers to view elements.
     /// </summary>
@@ -168,6 +239,40 @@ static unsafe class PointerFieldKernels
         }
         for (int k = 0; k < holders.Length; ++k)
             *holders[k].P += holders[(k + 1) % holders.Length].N;
+    }
+
+    /// <summary>
+    /// A holder whose pointer is changed under a condition.
+    /// </summary>
+    public static void ConditionalFieldKernel(
+        Index1D index,
+        ArrayView1D<int, Stride1D.Dense> data)
+    {
+        int x = data[index];
+        int y = 7;
+        Holder h;
+        h.P = &x;
+        h.N = 1;
+        if ((index.X & 1) != 0)
+            h.P = &y;
+        data[index] = *h.P + h.N;
+    }
+
+    /// <summary>
+    /// A holder of a pointer to a local that is replaced by a pointer to a local
+    /// or by the null pointer under a condition and tested for null.
+    /// </summary>
+    public static void FieldNullCheckKernel(
+        Index1D index,
+        ArrayView1D<int, Stride1D.Dense> data)
+    {
+        int value = data[index];
+        NullableHolder holder;
+        holder.P = null;
+        holder.Fallback = value - 1;
+        if ((index.X & 1) == 1)
+            holder.P = &value;
+        data[index] = holder.P != null ? *holder.P + 1 : holder.Fallback;
     }
 
     /// <summary>

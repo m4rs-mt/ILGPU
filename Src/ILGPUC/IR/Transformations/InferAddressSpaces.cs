@@ -153,8 +153,8 @@ sealed class InferAddressSpaces(TransformationArgs args) : Transformation(args)
     /// of field insertions whose structure and inserted value do not match any
     /// more. Comparisons with the null pointer give the null pointer the type of
     /// the other operand, and comparisons of two pointers whose types differ
-    /// compare them as generic pointers. All other users (e.g. structure
-    /// values) require the original type.
+    /// compare them as generic pointers. Structure values take the types of
+    /// their fields. All other users require the original type.
     /// </remarks>
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     private bool CanRetype(Value value)
@@ -190,6 +190,9 @@ sealed class InferAddressSpaces(TransformationArgs args) : Transformation(args)
         BasicBlock block => block.TerminationKind == BlockTerminationKind.Return,
         Predicate => use.Index > 0 && CanRetype(use.Target),
         CompareValue => true,
+
+        // Structures whose fields follow the types of their values
+        StructureValue => CanRetype(use.Target),
 
         // Users whose results follow the type of their source
         Load or

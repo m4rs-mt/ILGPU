@@ -32,7 +32,10 @@ public abstract class PointerFieldExecutionTests : ExecutionTestBase
     // The generated CPU code did not compile: structures with pointer fields
     // were not unsafe, and per-lane pointers were not converted from and to
     // pointer fields or passed to helpers. Metal and OpenCL qualified pointers
-    // stored in shared memory and in local arrays with two address spaces
+    // stored in shared memory and in local arrays with two address spaces and
+    // kept the fields of structures selected at O1 and O2 or tested for null
+    // generic, and setting the pointer field of a holder parameter in a helper
+    // failed with an internal error on every backend
     [SkippableTheory]
     [InlineData(RoslynOptimizationLevel.Release, OptimizationLevel.O0)]
     [InlineData(RoslynOptimizationLevel.Debug, OptimizationLevel.O0)]
@@ -50,9 +53,12 @@ public abstract class PointerFieldExecutionTests : ExecutionTestBase
                 "Kernels.SharedFieldKernel",
                 "Kernels.HelperFieldKernel",
                 "Kernels.LocalHelperFieldKernel",
+                "Kernels.ConditionalFieldKernel",
                 "Kernels.SharedHolderKernel",
                 "Kernels.ViewHolderArrayKernel",
                 "Kernels.HolderPointerKernel",
+                "Kernels.RetargetKernel",
+                "Kernels.FieldNullCheckKernel",
             ],
             [
                 "143", "253", "363", "473",
@@ -60,10 +66,32 @@ public abstract class PointerFieldExecutionTests : ExecutionTestBase
                 "21", "11", "41", "31",
                 "27", "47", "67", "87",
                 "16", "26", "36", "46",
+                "11", "8", "31", "8",
                 "21", "10", "43", "32",
                 "11", "22", "33", "40",
                 "32", "42", "52", "62",
+                "1516", "2526", "3536", "4546",
+                "9", "21", "29", "41",
             ],
+            new CompilationProperties { OptimizationLevel = level },
+            programOptimization);
+    }
+
+    // Structures holding pointers into different address spaces are selected
+    // as structures holding generic pointers, which Metal and OpenCL reject as
+    // pointers that can point to global and local memory
+    [SkippableTheory]
+    [InlineData(RoslynOptimizationLevel.Release, OptimizationLevel.O0)]
+    [InlineData(RoslynOptimizationLevel.Debug, OptimizationLevel.O1)]
+    public async Task GenericFields_ProduceCorrectOutput(
+        RoslynOptimizationLevel programOptimization,
+        OptimizationLevel level)
+    {
+        RequireCapability(Backend, BackendCapability.GenericAddressSpace);
+        await VerifyProgramOutputAsync(
+            "TestPrograms/PointerField/GenericFields.cs",
+            ["Kernels.SelectHolderKernel"],
+            ["110", "220", "310", "420"],
             new CompilationProperties { OptimizationLevel = level },
             programOptimization);
     }

@@ -337,15 +337,42 @@ sealed partial class StructureValue : PureValue
     }
 
     /// <inheritdoc/>
+    /// <remarks>
+    /// Fields whose pointers or views have changed their address spaces (see
+    /// <see cref="Transformations.InferAddressSpaces"/>) take the types of
+    /// their new values.
+    /// </remarks>
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     public override Value? Rewrite<TRewriter>(in TRewriter rewriter)
     {
         var rewrittenType = rewriter.RewriteAs<StructureType>(StructureType);
+        var operands = new Value?[Values.Length];
+        bool retyped = false;
+        for (int i = 0; i < operands.Length; ++i)
+        {
+            operands[i] = rewriter.Rewrite(Values[i]);
+            retyped |= operands[i]?.Type is AddressSpaceType operandType &&
+                !operandType.Equals(rewrittenType[i]);
+        }
+        if (retyped)
+        {
+            var typeBuilder = rewriter.Builder.ModuleBuilder.CreateStructureType(
+                rewrittenType.NumFields);
+            for (int i = 0; i < rewrittenType.NumFields; ++i)
+            {
+                typeBuilder.Add(
+                    i < operands.Length && operands[i]?.Type is AddressSpaceType type
+                        ? type
+                        : rewrittenType[i]);
+            }
+            rewrittenType = typeBuilder.Seal().As<StructureType>();
+        }
+
         var instance = rewriter.Builder.CreateStructure(
             Location,
             rewrittenType);
-        foreach (var operand in Values)
-            instance.Add(rewriter.Rewrite(operand));
+        foreach (var operand in operands)
+            instance.Add(operand);
         return instance.Seal();
     }
 

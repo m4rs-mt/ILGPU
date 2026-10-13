@@ -14,8 +14,9 @@
 // Test program: PointerField Fields
 // Kernels store pointers to locals, view elements and shared memory in structure
 // fields and read and write through them, also through pointers to the
-// structures, in helpers, in shared memory and in local arrays.
-// Expected output: 143 253 363 473, 20 41 62 83, 21 11 41 31, 27 47 67 87, 16 26 36 46, 21 10 43 32, 11 22 33 40, 32 42 52 62
+// structures, in helpers, in shared memory and in local arrays, and test a
+// holder field for null.
+// Expected output: 143 253 363 473, 20 41 62 83, 21 11 41 31, 27 47 67 87, 16 26 36 46, 11 8 31 8, 21 10 43 32, 11 22 33 40, 32 42 52 62, 1516 2526 3536 4546, 9 21 29 41
 
 using System;
 using System.Runtime.CompilerServices;
@@ -29,6 +30,15 @@ public unsafe struct Holder
 {
     public int* P;
     public int N;
+}
+
+/// <summary>
+/// A pointer that may be null and a fallback value.
+/// </summary>
+public unsafe struct NullableHolder
+{
+    public int* P;
+    public int Fallback;
 }
 
 static unsafe class Kernels
@@ -159,6 +169,23 @@ static unsafe class Kernels
     }
 
     /// <summary>
+    /// A holder whose pointer is changed under a condition.
+    /// </summary>
+    public static void ConditionalFieldKernel(
+        Index1D index,
+        ArrayView1D<int, Stride1D.Dense> data)
+    {
+        int x = data[index];
+        int y = 7;
+        Holder h;
+        h.P = &x;
+        h.N = 1;
+        if ((index.X & 1) != 0)
+            h.P = &y;
+        data[index] = *h.P + h.N;
+    }
+
+    /// <summary>
     /// A holder whose fields are written and read through a pointer to it.
     /// </summary>
     public static void HolderPointerKernel(
@@ -172,6 +199,60 @@ static unsafe class Kernels
         ph->N = 2;
         *ph->P += ph->N;
         data[index] = x + 10 * h.N;
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static int ReadThrough(Holder h, int* p)
+    {
+        h.P = p;
+        Add(h, 1);
+        return *h.P + h.N;
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static int ReadThroughLocal(Holder h, int* p)
+    {
+        h.P = p;
+        Add(h, 1);
+        return *h.P + h.N;
+    }
+
+    /// <summary>
+    /// Holders of the null pointer and of a pointer to a local whose pointers
+    /// are replaced by pointers to a local in helpers that are not inlined and
+    /// pass them to another helper.
+    /// </summary>
+    public static void RetargetKernel(
+        Index1D index,
+        ArrayView1D<int, Stride1D.Dense> data)
+    {
+        int x = data[index];
+        int y = 7;
+        Holder h;
+        h.P = null;
+        h.N = 3;
+        Holder g;
+        g.P = &y;
+        g.N = 1;
+        int first = ReadThrough(h, &x);
+        data[index] = first + 100 * ReadThroughLocal(g, &x);
+    }
+
+    /// <summary>
+    /// A holder of a pointer to a local that is replaced by a pointer to a local
+    /// or by the null pointer under a condition and tested for null.
+    /// </summary>
+    public static void FieldNullCheckKernel(
+        Index1D index,
+        ArrayView1D<int, Stride1D.Dense> data)
+    {
+        int value = data[index];
+        NullableHolder holder;
+        holder.P = null;
+        holder.Fallback = value - 1;
+        if ((index.X & 1) == 1)
+            holder.P = &value;
+        data[index] = holder.P != null ? *holder.P + 1 : holder.Fallback;
     }
 }
 
@@ -227,6 +308,14 @@ static class Program
         using (var buffer = stream.Allocate1D<int>(4))
         {
             buffer.View.CopyFromCPU(stream, new int[] { 10, 20, 30, 40 });
+            stream.Launch((Index1D)4, index => Kernels.ConditionalFieldKernel(index, buffer.View));
+            stream.Synchronize();
+            foreach (var v in buffer.GetAsArray1D())
+                Console.WriteLine(v);
+        }
+        using (var buffer = stream.Allocate1D<int>(4))
+        {
+            buffer.View.CopyFromCPU(stream, new int[] { 10, 20, 30, 40 });
             stream.Launch((Index1D)4, index => Kernels.SharedHolderKernel(index, buffer.View));
             stream.Synchronize();
             foreach (var v in buffer.GetAsArray1D())
@@ -244,6 +333,22 @@ static class Program
         {
             buffer.View.CopyFromCPU(stream, new int[] { 10, 20, 30, 40 });
             stream.Launch((Index1D)4, index => Kernels.HolderPointerKernel(index, buffer.View));
+            stream.Synchronize();
+            foreach (var v in buffer.GetAsArray1D())
+                Console.WriteLine(v);
+        }
+        using (var buffer = stream.Allocate1D<int>(4))
+        {
+            buffer.View.CopyFromCPU(stream, new int[] { 10, 20, 30, 40 });
+            stream.Launch((Index1D)4, index => Kernels.RetargetKernel(index, buffer.View));
+            stream.Synchronize();
+            foreach (var v in buffer.GetAsArray1D())
+                Console.WriteLine(v);
+        }
+        using (var buffer = stream.Allocate1D<int>(4))
+        {
+            buffer.View.CopyFromCPU(stream, new int[] { 10, 20, 30, 40 });
+            stream.Launch((Index1D)4, index => Kernels.FieldNullCheckKernel(index, buffer.View));
             stream.Synchronize();
             foreach (var v in buffer.GetAsArray1D())
                 Console.WriteLine(v);
