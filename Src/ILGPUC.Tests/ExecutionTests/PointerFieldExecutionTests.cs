@@ -108,9 +108,10 @@ public abstract class PointerFieldExecutionTests : ExecutionTestBase
             programOptimization);
     }
 
-    // Structures holding pointers into different address spaces are selected
-    // as structures holding generic pointers, which Metal and OpenCL reject as
-    // pointers that can point to global and local memory
+    // Metal and OpenCL reject pointers that can point to global and local
+    // memory and, at O0, pointers to local memory in a structure local given a
+    // pointer to global memory after holding pointers to local memory in a
+    // loop
     [SkippableTheory]
     [InlineData(RoslynOptimizationLevel.Release, OptimizationLevel.O0)]
     [InlineData(RoslynOptimizationLevel.Debug, OptimizationLevel.O1)]
@@ -121,8 +122,14 @@ public abstract class PointerFieldExecutionTests : ExecutionTestBase
         RequireCapability(Backend, BackendCapability.GenericAddressSpace);
         await VerifyProgramOutputAsync(
             "TestPrograms/PointerField/GenericFields.cs",
-            ["Kernels.SelectHolderKernel"],
-            ["110", "220", "310", "420"],
+            [
+                "Kernels.SelectHolderKernel",
+                "Kernels.LaterGlobalCounterKernel",
+            ],
+            [
+                "110", "220", "310", "420",
+                "322", "342", "362", "382",
+            ],
             new CompilationProperties { OptimizationLevel = level },
             programOptimization);
     }

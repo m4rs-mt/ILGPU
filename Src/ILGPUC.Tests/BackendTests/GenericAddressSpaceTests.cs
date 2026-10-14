@@ -105,11 +105,15 @@ public sealed class GenericAddressSpaceTests
             exception.Message);
     }
 
+    private const string StoredLocal =
+        "points to local memory but is stored to memory as a generic pointer";
+
     /// <summary>
-    /// Pointers to locals in structure fields that point to global memory on
-    /// other loop iterations or that are selected or swapped with structures
-    /// holding pointers to global memory. The error is located in the kernel
-    /// instead of failing the native build.
+    /// Pointers to locals in structure fields and in pointer locals that cannot
+    /// stay in local memory: they point to global memory on other loop
+    /// iterations or, at O0, after a loop, or they are selected with pointers
+    /// loaded from global memory. The error is located in the kernel instead of
+    /// failing the native build.
     /// </summary>
     [Theory]
     [InlineData(
@@ -140,6 +144,18 @@ public sealed class GenericAddressSpaceTests
         "generic pointers")]
     [InlineData(
         BackendType.Metal,
+        OptimizationLevel.O1,
+        typeof(PointerFieldKernels),
+        nameof(PointerFieldKernels.LoadedPointerKernel),
+        "can point to global and local memory")]
+    [InlineData(
+        BackendType.OpenCL,
+        OptimizationLevel.O0,
+        typeof(PointerFieldKernels),
+        nameof(PointerFieldKernels.LoadedPointerKernel),
+        "can point to global and local memory")]
+    [InlineData(
+        BackendType.Metal,
         OptimizationLevel.O0,
         typeof(PointerFieldKernels),
         nameof(PointerFieldKernels.SwapHoldersKernel),
@@ -152,6 +168,18 @@ public sealed class GenericAddressSpaceTests
         nameof(PointerFieldKernels.SwapHoldersKernel),
         "points to local memory but is held in a structure field that holds " +
         "generic pointers")]
+    [InlineData(
+        BackendType.Metal,
+        OptimizationLevel.O0,
+        typeof(PointerFieldKernels),
+        nameof(PointerFieldKernels.LaterGlobalCounterKernel),
+        StoredLocal)]
+    [InlineData(
+        BackendType.OpenCL,
+        OptimizationLevel.O0,
+        typeof(PointerFieldKernels),
+        nameof(PointerFieldKernels.LaterGlobalCounterKernel),
+        StoredLocal)]
     public void GenericLocalPointer_ReportsLocatedError(
         BackendType backend,
         OptimizationLevel opt,

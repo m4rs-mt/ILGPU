@@ -407,6 +407,24 @@ static unsafe class PointerFieldKernels
     }
 
     /// <summary>
+    /// A pointer to a local replaced by a pointer loaded from a view of holders
+    /// under a condition (CPU, CUDA and ROCm only: Metal and OpenCL reject
+    /// pointers that can point to global and local memory).
+    /// </summary>
+    [RequiresCapability(BackendCapability.GenericAddressSpace)]
+    public static void LoadedPointerKernel(
+        Index1D index,
+        ArrayView1D<Holder, Stride1D.Dense> holders,
+        ArrayView1D<int, Stride1D.Dense> data)
+    {
+        int x = data[index];
+        int* p = &x;
+        if ((index.X & 1) == 0)
+            p = holders[index].P;
+        data[index] = *p;
+    }
+
+    /// <summary>
     /// Holders of a pointer to a local and of a pointer to a view element
     /// swapped in a loop (CPU, CUDA and ROCm only: Metal and OpenCL reject
     /// pointers to local memory held in structure fields that hold generic
@@ -432,6 +450,36 @@ static unsafe class PointerFieldKernels
             b = t;
         }
         data[index] += 100 * x;
+    }
+
+    /// <summary>
+    /// Structures holding a single pointer to a local, one of which is selected
+    /// in a loop, incremented through an instance method and assigned to the
+    /// first, which is given a pointer to a view element after the loop (CPU,
+    /// CUDA and ROCm only: at O0, Metal and OpenCL reject pointers to local
+    /// memory stored in memory that holds generic pointers).
+    /// </summary>
+    [RequiresCapability(BackendCapability.GenericAddressSpace)]
+    public static void LaterGlobalCounterKernel(
+        Index1D index,
+        ArrayView1D<int, Stride1D.Dense> data)
+    {
+        int x = data[index];
+        int y = 0;
+        Counter a;
+        a.P = &x;
+        Counter b;
+        b.P = &y;
+        for (int k = 0; k < 4; ++k)
+        {
+            Counter c = (k & 1) == 0 ? a : b;
+            c.Increment();
+            a = c;
+        }
+        int sum = x + 100 * y;
+        a.P = (int*)Unsafe.AsPointer(ref data[index]);
+        a.Increment();
+        data[index] += sum;
     }
 
     /// <summary>

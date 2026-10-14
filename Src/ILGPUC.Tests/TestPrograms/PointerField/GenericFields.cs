@@ -12,8 +12,10 @@
 
 // disable: max_line_length
 // Test program: PointerField GenericFields
-// Kernel selects structures holding pointers into different address spaces.
-// Expected output: 110 220 310 420
+// Kernels select structures holding pointers into different address spaces
+// and give a structure local holding pointers to locals a pointer to a view
+// element after a loop.
+// Expected output: 110 220 310 420, 322 342 362 382
 
 using System;
 using System.Runtime.CompilerServices;
@@ -27,6 +29,16 @@ public unsafe struct Holder
 {
     public int* P;
     public int N;
+}
+
+/// <summary>
+/// A pointer incremented by an instance method.
+/// </summary>
+public unsafe struct Counter
+{
+    public int* P;
+
+    public void Increment() => *P += 1;
 }
 
 static unsafe class Kernels
@@ -53,6 +65,35 @@ static unsafe class Kernels
         b.N = 2;
         data[index] = 10 * ReadHolder((index.X & 1) == 0 ? a : b);
     }
+
+    /// <summary>
+    /// Structures holding a single pointer to a local, one of which is selected
+    /// in a loop, incremented through an instance method and assigned to the
+    /// first, which is given a pointer to a view element after the loop (CPU,
+    /// CUDA and ROCm only: at O0, Metal and OpenCL reject pointers to local
+    /// memory stored in memory that holds generic pointers).
+    /// </summary>
+    public static void LaterGlobalCounterKernel(
+        Index1D index,
+        ArrayView1D<int, Stride1D.Dense> data)
+    {
+        int x = data[index];
+        int y = 0;
+        Counter a;
+        a.P = &x;
+        Counter b;
+        b.P = &y;
+        for (int k = 0; k < 4; ++k)
+        {
+            Counter c = (k & 1) == 0 ? a : b;
+            c.Increment();
+            a = c;
+        }
+        int sum = x + 100 * y;
+        a.P = (int*)Unsafe.AsPointer(ref data[index]);
+        a.Increment();
+        data[index] += sum;
+    }
 }
 
 static class Program
@@ -68,6 +109,14 @@ static class Program
         {
             buffer.View.CopyFromCPU(stream, new int[] { 10, 20, 30, 40 });
             stream.Launch((Index1D)4, index => Kernels.SelectHolderKernel(index, buffer.View));
+            stream.Synchronize();
+            foreach (var v in buffer.GetAsArray1D())
+                Console.WriteLine(v);
+        }
+        using (var buffer = stream.Allocate1D<int>(4))
+        {
+            buffer.View.CopyFromCPU(stream, new int[] { 10, 20, 30, 40 });
+            stream.Launch((Index1D)4, index => Kernels.LaterGlobalCounterKernel(index, buffer.View));
             stream.Synchronize();
             foreach (var v in buffer.GetAsArray1D())
                 Console.WriteLine(v);
