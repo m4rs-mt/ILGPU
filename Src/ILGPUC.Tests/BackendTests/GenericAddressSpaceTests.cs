@@ -106,6 +106,49 @@ public sealed class GenericAddressSpaceTests
     }
 
     /// <summary>
+    /// Pointers to locals in structure fields that point to global memory on
+    /// other loop iterations. The error is located in the kernel instead of
+    /// failing the native build.
+    /// </summary>
+    [Theory]
+    [InlineData(
+        BackendType.Metal,
+        OptimizationLevel.O0,
+        typeof(PointerLoopKernels),
+        nameof(PointerLoopKernels.MixedFieldLoopKernel),
+        "can point to global and local memory")]
+    [InlineData(
+        BackendType.OpenCL,
+        OptimizationLevel.O1,
+        typeof(PointerLoopKernels),
+        nameof(PointerLoopKernels.MixedFieldLoopKernel),
+        "can point to global and local memory")]
+    public void GenericLocalPointer_ReportsLocatedError(
+        BackendType backend,
+        OptimizationLevel opt,
+        Type kernels,
+        string kernelName,
+        string reason)
+    {
+        var kernel = kernels.GetMethod(kernelName)!;
+        using var helper = new CompilationHelper(backend);
+
+        var exception = Assert.Throws<NotSupportedException>(
+            () => helper.GenerateBackendCode(
+                kernel,
+                backend,
+                new CompilationProperties { OptimizationLevel = opt }));
+        Assert.Contains(
+            $"Kernel '{kernels.Name}.{kernelName}': a pointer or reference " +
+            reason,
+            exception.Message);
+        Assert.Contains($"{kernels.Name}.cs', line ", exception.Message);
+        Assert.Contains(
+            $"{backend} does not support generic pointers",
+            exception.Message);
+    }
+
+    /// <summary>
     /// A reference selected from two elements of the same address space keeps
     /// that address space.
     /// </summary>

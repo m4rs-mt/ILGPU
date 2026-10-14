@@ -316,13 +316,20 @@ sealed class PointerAddressSpaces(PointerAddressSpaces.AnalysisFlags flags) :
     /// </summary>
     /// <param name="rootMethod">The root (entry) method.</param>
     /// <param name="flags">The analysis flags.</param>
+    /// <param name="canTrack">
+    /// Returns true if the loads from the given allocation may read the values
+    /// stored into it (see <see cref="TryCollectAccesses"/>). If not provided,
+    /// the loads from all allocations whose address does not escape do.
+    /// </param>
     /// <returns>Address space analysis results for all methods in the module.</returns>
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     public static AddressSpaceResults AnalyzeModule(
         Method rootMethod,
-        AnalysisFlags flags = AnalysisFlags.None)
+        AnalysisFlags flags = AnalysisFlags.None,
+        Func<Alloca, bool>? canTrack = null)
     {
         var analysis = Create(flags);
+        analysis.TrackAllocations(rootMethod.Module, canTrack);
 
         // Globals live in the address space of their type (shared, local or
         // constant memory)
@@ -345,6 +352,13 @@ sealed class PointerAddressSpaces(PointerAddressSpaces.AnalysisFlags flags) :
         var result = analysis.AnalyzeModule(rootMethod, globalMap);
         return new AddressSpaceResults(result);
     }
+
+    /// <summary>
+    /// Maps all loads from tracked allocations to the stores into their
+    /// allocation and to the first field of the allocated type they read.
+    /// </summary>
+    private readonly Dictionary<Load, (List<(Store Store, int Field)> Stores, int Field)>
+        _trackedLoads = [];
 
     /// <summary>
     /// Returns the number of (flattened) fields of the given type.
@@ -487,6 +501,70 @@ sealed class PointerAddressSpaces(PointerAddressSpaces.AnalysisFlags flags) :
     }
 
     /// <summary>
+    /// Tracks the loads from all allocations holding addresses that are stored
+    /// into at least once, whose address does not escape and that the given
+    /// predicate accepts: these loads read the values stored into the
+    /// allocation, including values derived from earlier loads (such as a
+    /// pointer field incremented in a loop), instead of addresses of unknown
+    /// origin.
+    /// </summary>
+    private void TrackAllocations(Module module, Func<Alloca, bool>? canTrack)
+    {
+        var loads = new List<(Load Load, int Field)>();
+        foreach (var method in module.Methods)
+        {
+            if (!method.HasImplementation)
+                continue;
+            method.ForEachValue<Alloca>(alloca =>
+            {
+                if (!alloca.AllocType.HasFlags(TypeFlags.AddressSpaceDependent))
+                    return;
+                var stores = new List<(Store Store, int Field)>();
+                loads.Clear();
+                if (!TryCollectAccesses(alloca, stores, loads) ||
+                    stores.Count < 1 ||
+                    canTrack?.Invoke(alloca) == false)
+                {
+                    return;
+                }
+                foreach (var (load, field) in loads)
+                    _trackedLoads[load] = (stores, field);
+            });
+        }
+    }
+
+    /// <summary>
+    /// Analyzes a load from a tracked allocation: it reads the fields of all
+    /// values stored into the allocation that overlap the loaded fields.
+    /// </summary>
+    private AnalysisValue<AddressSpaceInfo> AnalyzeLoad(
+        Load load,
+        List<(Store Store, int Field)> stores,
+        int field,
+        GlobalValueMap<AnalysisValue<AddressSpaceInfo>> data)
+    {
+        var fields = new AddressSpaceInfo[GetNumFields(load.Type)];
+        foreach (var (store, storeField) in stores)
+        {
+            var value = GetOperand(store.Value, data);
+            int numFields = GetNumFields(store.Value.Type);
+            for (int i = 0; i < numFields; ++i)
+            {
+                int index = storeField + i - field;
+                if (index >= 0 && index < fields.Length)
+                {
+                    fields[index] = AddressSpaceInfo.Merge(
+                        fields[index],
+                        GetField(value, i));
+                }
+            }
+        }
+        return load.Type is StructureType
+            ? CreateStructure(fields)
+            : AnalysisValue.Create(fields[0], load.Type);
+    }
+
+    /// <summary>
     /// Returns true if the analysis has the given flags.
     /// </summary>
     /// <param name="otherFlags">The flags.</param>
@@ -619,9 +697,11 @@ sealed class PointerAddressSpaces(PointerAddressSpaces.AnalysisFlags flags) :
     /// </summary>
     /// <remarks>
     /// Values that derive an address from another one point into the address
-    /// spaces of their source. All other values point into the address spaces
-    /// of their types, including the generic one: a pointer loaded from memory
-    /// or returned from a call may point anywhere.
+    /// spaces of their source, and loads from tracked allocations into the
+    /// address spaces of the values stored into them. All other values point
+    /// into the address spaces of their types, including the generic one: a
+    /// pointer loaded from other memory or returned from a call may point
+    /// anywhere.
     /// </remarks>
     protected override AnalysisValue<AddressSpaceInfo> Analyze(
         Value value,
@@ -664,6 +744,10 @@ sealed class PointerAddressSpaces(PointerAddressSpaces.AnalysisFlags flags) :
                 return AnalyzeGetField(getField, data);
             case SetField setField:
                 return AnalyzeSetField(setField, data);
+
+            // A load from a tracked allocation reads the values stored into it
+            case Load load when _trackedLoads.TryGetValue(load, out var source):
+                return AnalyzeLoad(load, source.Stores, source.Field, data);
 
             // A null pointer is compatible with every address space
             case NullValue:

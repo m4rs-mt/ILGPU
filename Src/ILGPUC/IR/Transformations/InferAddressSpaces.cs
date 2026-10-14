@@ -34,22 +34,39 @@ namespace ILGPUC.IR.Transformations;
 /// arguments, call arguments, stored values and returned values). Otherwise,
 /// the value keeps its type.
 /// </remarks>
-/// <param name="args">The transformation args.</param>
-sealed class InferAddressSpaces(TransformationArgs args) : Transformation(args)
+sealed class InferAddressSpaces : Transformation
 {
-    private readonly AddressSpaceResults _results = PointerAddressSpaces.AnalyzeModule(
-        args.Module.EntryPoint,
-        PointerAddressSpaces.AnalysisFlags.IgnoreGenericAddressSpace);
+    /// <summary>
+    /// The address spaces of all values of the input module.
+    /// </summary>
+    private readonly AddressSpaceResults _results;
 
     /// <summary>
     /// The generation of the input module.
     /// </summary>
-    private readonly Generation _generation = args.Module.Generation;
+    private readonly Generation _generation;
 
     /// <summary>
     /// Caches whether a value of the input module may change its type.
     /// </summary>
     private readonly Dictionary<ValueId, bool> _canRetype = [];
+
+    /// <summary>
+    /// Analyzes the address spaces of the given module. Loads from allocations
+    /// that may change their type read the values stored into them: such an
+    /// allocation takes the address spaces of these values (see
+    /// <see cref="RewriteAlloca"/>), and so do its loads.
+    /// </summary>
+    /// <param name="args">The transformation args.</param>
+    public InferAddressSpaces(TransformationArgs args)
+        : base(args)
+    {
+        _generation = args.Module.Generation;
+        _results = PointerAddressSpaces.AnalyzeModule(
+            args.Module.EntryPoint,
+            PointerAddressSpaces.AnalysisFlags.IgnoreGenericAddressSpace,
+            CanRetype);
+    }
 
     /// <summary>
     /// Caches the specialized types of all method parameters (null if a
@@ -366,7 +383,10 @@ sealed class InferAddressSpaces(TransformationArgs args) : Transformation(args)
     /// the alloca, including stores through addresses derived from it (such as
     /// field addresses or the address of a pointer local taken by
     /// <c>int** pp = &amp;q</c>), and merges their analysis results field by
-    /// field to determine the best element type.
+    /// field to determine the best element type. Values derived from loads of
+    /// the alloca itself (such as <c>h.P++</c> or <c>a = cond ? a : b</c> in a
+    /// loop) point into the address spaces of the values stored into it, since
+    /// the analysis tracks the loads of allocas that may change their type.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     private Alloca RewriteAlloca(BasicBlockTransform transform, Alloca alloca)
