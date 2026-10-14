@@ -12,6 +12,7 @@
 
 // disable: max_line_length
 using ILGPUC.Backends;
+using ILGPUC.IR;
 using ILGPUC.Tests.Framework;
 using ILGPUC.Tests.Kernels;
 using Xunit;
@@ -178,4 +179,28 @@ public sealed class ShortCircuitIRTests : CompilationTestBase
         VerifyAfterBackendTransforms(GetKernel(
             typeof(ShortCircuitKernels), nameof(ShortCircuitKernels.AndChainKernel)),
             backend, opt, mode);
+
+    // --- Predicate growth ---
+
+    /// <summary>
+    /// The if-converted predicates of eight chained short-circuit helpers share
+    /// their operations: negations of shared predicates are created once and
+    /// the predicates of rejoining branches fold, so the IR grows linearly with
+    /// the chain length instead of exponentially (millions of comparisons).
+    /// </summary>
+    [Theory]
+    [InlineData(OptimizationLevel.O1)]
+    [InlineData(OptimizationLevel.O2)]
+    public void PredicateChain_AfterGlobalOpt_GrowsLinearly(OptimizationLevel opt)
+    {
+        var ir = DumpIRString(
+            GetKernel(
+                typeof(ShortCircuitKernels),
+                nameof(ShortCircuitKernels.PredicateChainKernel)),
+            IRDumpPoint.AfterGlobalOpt,
+            new CompilationProperties(OptimizationLevel: opt));
+
+        int numCompares = ir.Split(" icmp ").Length - 1;
+        Assert.InRange(numCompares, 1, 120);
+    }
 }

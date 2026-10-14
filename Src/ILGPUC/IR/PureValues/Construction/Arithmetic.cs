@@ -11,6 +11,8 @@
 
 using ILGPUC.IR.Values;
 using System;
+using System.Collections.Concurrent;
+using System.Threading;
 
 namespace ILGPUC.IR.PureValues.Construction;
 
@@ -67,26 +69,51 @@ partial class PureValueBuilder
     }
 
     /// <summary>
-    /// Inverts a binary arithmetic value.
+    /// The inversions of the logical operations and comparisons created by this
+    /// builder.
+    /// </summary>
+    private ConcurrentDictionary<Value, Value>? _inversions;
+
+    /// <summary>
+    /// Inverts a binary arithmetic value by pushing the negation into its
+    /// operands (De Morgan). Every logical operation and comparison is inverted
+    /// at most once per builder: predicates that share operations (for example
+    /// the block predicates of if-converted short-circuit chains, which are
+    /// negated by several select networks) form a DAG, which repeated or
+    /// recursive expansions would turn into exponentially large trees.
     /// </summary>
     /// <param name="location">The current location.</param>
     /// <param name="binary">The binary operation to invert.</param>
     /// <returns>The inverted binary operation.</returns>
     private Value? InvertBinaryArithmetic(
         Location location,
-        BinaryArithmeticValue binary) =>
-        CreateArithmetic(
-            binary.Location,
-            CreateArithmetic(
-                location,
-                binary.Left,
-                UnaryArithmeticKind.Not),
-            CreateArithmetic(
-                location,
-                binary.Right,
-                UnaryArithmeticKind.Not),
-            BinaryArithmeticValue.InvertLogical(binary.Kind),
-            binary.Flags);
+        BinaryArithmeticValue binary)
+    {
+        var inversions = LazyInitializer.EnsureInitialized(ref _inversions);
+
+        Value? Invert(Value value)
+        {
+            if (value is not BinaryArithmeticValue nested ||
+                !BinaryArithmeticValue.TryInvertLogical(nested.Kind, out var kind))
+            {
+                return CreateArithmetic(location, value, UnaryArithmeticKind.Not);
+            }
+            if (inversions.TryGetValue(nested, out var cached))
+                return cached;
+
+            var result = CreateArithmetic(
+                nested.Location,
+                Invert(nested.Left),
+                Invert(nested.Right),
+                kind,
+                nested.Flags);
+            if (result is not null)
+                inversions.TryAdd(nested, result);
+            return result;
+        }
+
+        return Invert(binary);
+    }
 
     /// <summary>
     /// Inverts a compare value.
@@ -100,6 +127,10 @@ partial class PureValueBuilder
     {
         if (compareValue is null) return null;
 
+        var inversions = LazyInitializer.EnsureInitialized(ref _inversions);
+        if (inversions.TryGetValue(compareValue, out var cached))
+            return cached;
+
         // Invert the operation kind and adjust the flags
         var flags = compareValue.Flags;
         var kind = CompareValue.Invert(
@@ -109,12 +140,15 @@ partial class PureValueBuilder
             ref flags);
 
         // Create a new compare value using the updated kind and flags
-        return CreateCompare(
+        var result = CreateCompare(
             location,
             compareValue.Left,
             compareValue.Right,
             kind,
             flags);
+        if (result is not null)
+            inversions.TryAdd(compareValue, result);
+        return result;
     }
 
     /// <summary>
@@ -272,6 +306,19 @@ partial class PureValueBuilder
         AreSameOperand(firstCompare.Right, secondCompare.Right);
 
     /// <summary>
+    /// Returns true if the given boolean values are known to be complements of
+    /// each other: they are complementary (<see cref="AreComplementary"/>), or one
+    /// is the inversion of the other created by this builder.
+    /// </summary>
+    private bool AreKnownComplements(Value first, Value second) =>
+        AreComplementary(first, second) ||
+        _inversions is { } inversions &&
+        (inversions.TryGetValue(first, out var firstInverse) &&
+            firstInverse == second ||
+        inversions.TryGetValue(second, out var secondInverse) &&
+            secondInverse == first);
+
+    /// <summary>
     /// Returns true if the given boolean values are known to be complements
     /// of each other: one is the negation of the other, or both compare the
     /// same operands with inverse conditions (including unordered floats).
@@ -340,11 +387,50 @@ partial class PureValueBuilder
 
         if (AreEquivalent(left, right))
             return left;
-        if (AreComplementary(left, right))
+        if (AreKnownComplements(left, right))
             return CreatePrimitiveValue(location, kind == BinaryArithmeticKind.Or);
 
-        return LogicalSimplifyNested(location, left, right, kind, flags)
+        return LogicalSimplifyFactor(left, right, kind)
+            ?? LogicalSimplifyNested(location, left, right, kind, flags)
             ?? LogicalSimplifyNested(location, right, left, kind, flags);
+    }
+
+    /// <summary>
+    /// Simplifies a logical operation of two dual logical operations that share
+    /// an operand and differ in complementary operands, where op is the given
+    /// kind and op' its dual: (x op' y) op (x op' !y) → x. If-conversion
+    /// produces this shape for the predicate of a block that both arms of a
+    /// branch join again.
+    /// </summary>
+    /// <param name="left">The left operand.</param>
+    /// <param name="right">The right operand.</param>
+    /// <param name="kind">The operation kind.</param>
+    /// <returns>The simplified value (if any).</returns>
+    private Value? LogicalSimplifyFactor(
+        Value left,
+        Value right,
+        BinaryArithmeticKind kind)
+    {
+        var dual = BinaryArithmeticValue.InvertLogical(kind);
+        if (left is not BinaryArithmeticValue leftBinary || leftBinary.Kind != dual ||
+            right is not BinaryArithmeticValue rightBinary || rightBinary.Kind != dual)
+        {
+            return null;
+        }
+
+        var (a, b) = (leftBinary.Left, leftBinary.Right);
+        var (c, d) = (rightBinary.Left, rightBinary.Right);
+        if (AreEquivalent(a, c) && AreKnownComplements(b, d) ||
+            AreEquivalent(a, d) && AreKnownComplements(b, c))
+        {
+            return a;
+        }
+        if (AreEquivalent(b, c) && AreKnownComplements(a, d) ||
+            AreEquivalent(b, d) && AreKnownComplements(a, c))
+        {
+            return b;
+        }
+        return null;
     }
 
     /// <summary>
@@ -377,7 +463,7 @@ partial class PureValueBuilder
         var (x, y) = (binary.Left, binary.Right);
         if (binary.Kind == kind)
         {
-            if (AreComplementary(x, other) || AreComplementary(y, other))
+            if (AreKnownComplements(x, other) || AreKnownComplements(y, other))
                 return CreatePrimitiveValue(location, kind == BinaryArithmeticKind.Or);
             if (AreEquivalent(x, other) || AreEquivalent(y, other))
                 return nested;
@@ -389,9 +475,9 @@ partial class PureValueBuilder
             return other;
 
         // The complement of the other operand cannot change the result
-        if (AreComplementary(x, other))
+        if (AreKnownComplements(x, other))
             return CreateArithmetic(location, y, other, kind, flags);
-        if (AreComplementary(y, other))
+        if (AreKnownComplements(y, other))
             return CreateArithmetic(location, x, other, kind, flags);
         return null;
     }

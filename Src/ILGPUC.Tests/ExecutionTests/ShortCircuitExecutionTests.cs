@@ -173,4 +173,20 @@ public abstract class ShortCircuitExecutionTests : ExecutionTestBase
             ["Kernels.GuardedAtomicKernel"],
             ["0", "0", "1", "1", "2"]);
     }
+
+    /// <summary>
+    /// Eight chained short-circuit predicates whose if-converted conditions
+    /// share their operations.
+    /// </summary>
+    [SkippableFact]
+    public async Task PredicateChain_ProducesCorrectOutput()
+    {
+        await VerifyProgramOutputAsync(
+            "TestPrograms/ShortCircuit/PredicateChain.cs",
+            ["Kernels.PredicateChainKernel"],
+            [
+                "170", "87", "81", "92", "170", "113", "29",
+                "197", "170", "21", "213", "85", "170", "85", "85", "85"
+            ]);
+    }
 }
