@@ -332,6 +332,29 @@ static unsafe class PointerLoopKernels
         data[index] = sum + c.N;
     }
 
+    /// <summary>
+    /// A pointer local written through a pointer to it that points to a local
+    /// on the first iteration and to a view element or the local on the next
+    /// ones (CPU, CUDA and ROCm only: Metal and OpenCL reject pointers to local
+    /// memory stored in memory that holds generic pointers).
+    /// </summary>
+    [RequiresCapability(BackendCapability.GenericAddressSpace)]
+    public static void MixedPointerLoopKernel(
+        Index1D index,
+        ArrayView1D<int, Stride1D.Dense> data)
+    {
+        int x = data[index];
+        int* p = &x;
+        int** pp = &p;
+        int sum = 0;
+        for (int k = 0; k < 3; ++k)
+        {
+            sum += **pp;
+            *pp = (k & 1) == 0 ? (int*)Unsafe.AsPointer(ref data[index]) : &x;
+        }
+        data[index] = sum;
+    }
+
     private static int SumRange(int* first, int* end)
     {
         int sum = 0;

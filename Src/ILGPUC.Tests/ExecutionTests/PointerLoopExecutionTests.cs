@@ -114,8 +114,8 @@ public abstract class PointerLoopExecutionTests : ExecutionTestBase
             programOptimization);
     }
 
-    // Metal and OpenCL reject structure fields that point to local memory on
-    // one iteration and to global memory on another
+    // Metal and OpenCL reject structure fields and pointer locals that point
+    // to local memory on one iteration and to global memory on another
     [SkippableTheory]
     [InlineData(RoslynOptimizationLevel.Release, OptimizationLevel.O0)]
     [InlineData(RoslynOptimizationLevel.Debug, OptimizationLevel.O1)]
@@ -126,8 +126,11 @@ public abstract class PointerLoopExecutionTests : ExecutionTestBase
         RequireCapability(Backend, BackendCapability.GenericAddressSpace);
         await VerifyProgramOutputAsync(
             "TestPrograms/PointerLoop/MixedStoredLoops.cs",
-            ["Kernels.MixedFieldLoopKernel"],
-            ["33", "63", "93", "123"],
+            ["Kernels.MixedFieldLoopKernel", "Kernels.MixedPointerLoopKernel"],
+            [
+                "33", "63", "93", "123",
+                "30", "60", "90", "120",
+            ],
             new CompilationProperties { OptimizationLevel = level },
             programOptimization);
     }

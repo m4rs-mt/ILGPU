@@ -105,15 +105,50 @@ public sealed class GenericAddressSpaceTests
             exception.Message);
     }
 
+    /// <summary>
+    /// Pointers to locals stored in the elements of a local array, which holds
+    /// generic pointers.
+    /// </summary>
+    [Theory]
+    [InlineData(BackendType.Metal, OptimizationLevel.O0)]
+    [InlineData(BackendType.Metal, OptimizationLevel.O1)]
+    [InlineData(BackendType.OpenCL, OptimizationLevel.O2)]
+    public void StoredLocalPointer_ReportsError(
+        BackendType backend,
+        OptimizationLevel opt)
+    {
+        var kernel = typeof(PointerFieldKernels).GetMethod(
+            nameof(PointerFieldKernels.HolderArrayKernel))!;
+        using var helper = new CompilationHelper(backend);
+
+        var exception = Assert.Throws<NotSupportedException>(
+            () => helper.GenerateBackendCode(
+                kernel,
+                backend,
+                new CompilationProperties { OptimizationLevel = opt }));
+        Assert.Contains(
+            "Kernel 'PointerFieldKernels.HolderArrayKernel': a pointer or " +
+            "reference points to local memory but is stored to memory as a " +
+            "generic pointer",
+            exception.Message);
+        Assert.Contains(
+            $"{backend} does not support generic pointers",
+            exception.Message);
+    }
+
     private const string StoredLocal =
         "points to local memory but is stored to memory as a generic pointer";
 
     /// <summary>
     /// Pointers to locals in structure fields and in pointer locals that cannot
-    /// stay in local memory: they point to global memory on other loop
-    /// iterations or, at O0, after a loop, or they are selected with pointers
-    /// loaded from global memory. The error is located in the kernel instead of
-    /// failing the native build.
+    /// stay in local memory: the address of the holder or pointer local escapes
+    /// to a helper, they point to global memory on other loop iterations or, at
+    /// O0, after a loop, they are selected with pointers loaded from global
+    /// memory, or they are stored through an element address relative to
+    /// another field. The error is located in the kernel instead of failing the
+    /// native build, and it is reported instead of comparisons of the pointers
+    /// loaded from memory whose address escapes, which do not point to global
+    /// memory (ILGPU1216).
     /// </summary>
     [Theory]
     [InlineData(
@@ -128,6 +163,42 @@ public sealed class GenericAddressSpaceTests
         typeof(PointerLoopKernels),
         nameof(PointerLoopKernels.MixedFieldLoopKernel),
         "can point to global and local memory")]
+    [InlineData(
+        BackendType.Metal,
+        OptimizationLevel.O0,
+        typeof(PointerFieldKernels),
+        nameof(PointerFieldKernels.HolderByRefKernel),
+        StoredLocal)]
+    [InlineData(
+        BackendType.OpenCL,
+        OptimizationLevel.O2,
+        typeof(PointerFieldKernels),
+        nameof(PointerFieldKernels.HolderByRefKernel),
+        StoredLocal)]
+    [InlineData(
+        BackendType.Metal,
+        OptimizationLevel.O1,
+        typeof(PointerFieldKernels),
+        nameof(PointerFieldKernels.PointerToPointerHelperKernel),
+        StoredLocal)]
+    [InlineData(
+        BackendType.OpenCL,
+        OptimizationLevel.O0,
+        typeof(PointerFieldKernels),
+        nameof(PointerFieldKernels.PointerToPointerHelperKernel),
+        StoredLocal)]
+    [InlineData(
+        BackendType.Metal,
+        OptimizationLevel.O2,
+        typeof(PointerLoopKernels),
+        nameof(PointerLoopKernels.MixedPointerLoopKernel),
+        StoredLocal)]
+    [InlineData(
+        BackendType.OpenCL,
+        OptimizationLevel.O0,
+        typeof(PointerLoopKernels),
+        nameof(PointerLoopKernels.MixedPointerLoopKernel),
+        StoredLocal)]
     [InlineData(
         BackendType.Metal,
         OptimizationLevel.O0,
@@ -154,6 +225,18 @@ public sealed class GenericAddressSpaceTests
         typeof(PointerFieldKernels),
         nameof(PointerFieldKernels.LoadedPointerKernel),
         "can point to global and local memory")]
+    [InlineData(
+        BackendType.Metal,
+        OptimizationLevel.O0,
+        typeof(PointerFieldKernels),
+        nameof(PointerFieldKernels.FieldOffsetKernel),
+        StoredLocal)]
+    [InlineData(
+        BackendType.OpenCL,
+        OptimizationLevel.O1,
+        typeof(PointerFieldKernels),
+        nameof(PointerFieldKernels.FieldOffsetKernel),
+        StoredLocal)]
     [InlineData(
         BackendType.Metal,
         OptimizationLevel.O0,

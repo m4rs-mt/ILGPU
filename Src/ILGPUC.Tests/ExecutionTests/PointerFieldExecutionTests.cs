@@ -108,10 +108,37 @@ public abstract class PointerFieldExecutionTests : ExecutionTestBase
             programOptimization);
     }
 
+    // Metal and OpenCL reject pointers to local memory stored in memory whose
+    // address escapes to a helper or that a store through an element address
+    // relative to another field writes
+    [SkippableTheory]
+    [InlineData(RoslynOptimizationLevel.Release, OptimizationLevel.O0)]
+    [InlineData(RoslynOptimizationLevel.Debug, OptimizationLevel.O1)]
+    public async Task Escapes_ProduceCorrectOutput(
+        RoslynOptimizationLevel programOptimization,
+        OptimizationLevel level)
+    {
+        RequireCapability(Backend, BackendCapability.GenericAddressSpace);
+        await VerifyProgramOutputAsync(
+            "TestPrograms/PointerField/Escapes.cs",
+            [
+                "Kernels.HolderByRefKernel",
+                "Kernels.PointerToPointerHelperKernel",
+                "Kernels.FieldOffsetKernel",
+            ],
+            [
+                "13", "23", "33", "43",
+                "11", "21", "31", "41",
+                "33", "53", "73", "93",
+            ],
+            new CompilationProperties { OptimizationLevel = level },
+            programOptimization);
+    }
+
     // Metal and OpenCL reject pointers that can point to global and local
-    // memory and, at O0, pointers to local memory in a structure local given a
-    // pointer to global memory after holding pointers to local memory in a
-    // loop
+    // memory and pointers to local memory stored in memory that holds generic
+    // pointers, also at O0 in a structure local given a pointer to global
+    // memory after holding pointers to local memory in a loop
     [SkippableTheory]
     [InlineData(RoslynOptimizationLevel.Release, OptimizationLevel.O0)]
     [InlineData(RoslynOptimizationLevel.Debug, OptimizationLevel.O1)]
@@ -124,10 +151,12 @@ public abstract class PointerFieldExecutionTests : ExecutionTestBase
             "TestPrograms/PointerField/GenericFields.cs",
             [
                 "Kernels.SelectHolderKernel",
+                "Kernels.HolderArrayKernel",
                 "Kernels.LaterGlobalCounterKernel",
             ],
             [
                 "110", "220", "310", "420",
+                "115023", "125033", "135043", "145053",
                 "322", "342", "362", "382",
             ],
             new CompilationProperties { OptimizationLevel = level },

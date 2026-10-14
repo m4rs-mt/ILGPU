@@ -12,10 +12,10 @@
 
 // disable: max_line_length
 // Test program: PointerField GenericFields
-// Kernels select structures holding pointers into different address spaces
-// and give a structure local holding pointers to locals a pointer to a view
-// element after a loop.
-// Expected output: 110 220 310 420, 322 342 362 382
+// Kernels select structures holding pointers into different address spaces,
+// store pointers to locals in a local array of structures and give a structure
+// local holding pointers to locals a pointer to a view element after a loop.
+// Expected output: 110 220 310 420, 115023 125033 135043 145053, 322 342 362 382
 
 using System;
 using System.Runtime.CompilerServices;
@@ -41,6 +41,16 @@ public unsafe struct Counter
     public void Increment() => *P += 1;
 }
 
+/// <summary>
+/// Three adjacent integers.
+/// </summary>
+public struct Triple
+{
+    public int A;
+    public int B;
+    public int C;
+}
+
 static unsafe class Kernels
 {
     [MethodImpl(MethodImplOptions.NoInlining)]
@@ -64,6 +74,33 @@ static unsafe class Kernels
         b.P = (int*)Unsafe.AsPointer(ref data[index]);
         b.N = 2;
         data[index] = 10 * ReadHolder((index.X & 1) == 0 ? a : b);
+    }
+
+    /// <summary>
+    /// A local array of holders of pointers to the fields of a local structure
+    /// (CPU, CUDA and ROCm only: Metal and OpenCL reject pointers to local
+    /// memory stored in memory that holds generic pointers).
+    /// </summary>
+    public static void HolderArrayKernel(
+        Index1D index,
+        ArrayView1D<int, Stride1D.Dense> data)
+    {
+        Triple t;
+        t.A = data[index];
+        t.B = 2;
+        t.C = 3;
+        var holders = new Holder[3];
+        holders[0].P = &t.A;
+        holders[1].P = &t.B;
+        holders[2].P = &t.C;
+        int sum = 0;
+        for (int k = 0; k < holders.Length; ++k)
+        {
+            holders[k].N = k + 1;
+            sum += *holders[k].P * holders[k].N;
+        }
+        *holders[index.X % 3].P += 100;
+        data[index] = sum + 1000 * (t.A + t.B + t.C);
     }
 
     /// <summary>
@@ -109,6 +146,14 @@ static class Program
         {
             buffer.View.CopyFromCPU(stream, new int[] { 10, 20, 30, 40 });
             stream.Launch((Index1D)4, index => Kernels.SelectHolderKernel(index, buffer.View));
+            stream.Synchronize();
+            foreach (var v in buffer.GetAsArray1D())
+                Console.WriteLine(v);
+        }
+        using (var buffer = stream.Allocate1D<int>(4))
+        {
+            buffer.View.CopyFromCPU(stream, new int[] { 10, 20, 30, 40 });
+            stream.Launch((Index1D)4, index => Kernels.HolderArrayKernel(index, buffer.View));
             stream.Synchronize();
             foreach (var v in buffer.GetAsArray1D())
                 Console.WriteLine(v);

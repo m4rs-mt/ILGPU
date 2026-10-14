@@ -40,6 +40,15 @@ static unsafe class PointerFieldKernels
     }
 
     /// <summary>
+    /// Two pointers.
+    /// </summary>
+    public struct PointerPair
+    {
+        public int* A;
+        public int* B;
+    }
+
+    /// <summary>
     /// A pointer that may be null and a fallback value.
     /// </summary>
     public struct NullableHolder
@@ -56,6 +65,16 @@ static unsafe class PointerFieldKernels
         public int* P;
 
         public void Increment() => *P += 1;
+    }
+
+    /// <summary>
+    /// Three adjacent integers.
+    /// </summary>
+    public struct Triple
+    {
+        public int A;
+        public int B;
+        public int C;
     }
 
     /// <summary>
@@ -277,6 +296,34 @@ static unsafe class PointerFieldKernels
     }
 
     /// <summary>
+    /// A local array of holders of pointers to the fields of a local structure
+    /// (CPU, CUDA and ROCm only: Metal and OpenCL reject pointers to local
+    /// memory stored in memory that holds generic pointers).
+    /// </summary>
+    [RequiresCapability(BackendCapability.GenericAddressSpace)]
+    public static void HolderArrayKernel(
+        Index1D index,
+        ArrayView1D<int, Stride1D.Dense> data)
+    {
+        Triple t;
+        t.A = data[index];
+        t.B = 2;
+        t.C = 3;
+        var holders = new Holder[3];
+        holders[0].P = &t.A;
+        holders[1].P = &t.B;
+        holders[2].P = &t.C;
+        int sum = 0;
+        for (int k = 0; k < holders.Length; ++k)
+        {
+            holders[k].N = k + 1;
+            sum += *holders[k].P * holders[k].N;
+        }
+        *holders[index.X % 3].P += 100;
+        data[index] = sum + 1000 * (t.A + t.B + t.C);
+    }
+
+    /// <summary>
     /// A holder whose pointer is changed under a condition.
     /// </summary>
     public static void ConditionalFieldKernel(
@@ -387,6 +434,48 @@ static unsafe class PointerFieldKernels
         data[index] = x + 100 * y;
     }
 
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static void AddByRef(ref Holder h) => *h.P += h.N;
+
+    /// <summary>
+    /// A holder of a pointer to a local passed by reference to a helper that is
+    /// not inlined, whose pointer is compared with the address of the local
+    /// afterwards (CPU, CUDA and ROCm only: Metal and OpenCL reject pointers to
+    /// local memory stored in memory whose address escapes to a helper).
+    /// </summary>
+    [RequiresCapability(BackendCapability.GenericAddressSpace)]
+    public static void HolderByRefKernel(
+        Index1D index,
+        ArrayView1D<int, Stride1D.Dense> data)
+    {
+        int x = data[index];
+        Holder h;
+        h.P = &x;
+        h.N = 3;
+        AddByRef(ref h);
+        data[index] = h.P == &x ? x : -1;
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static void Increment(int** pp) => **pp += 1;
+
+    /// <summary>
+    /// The address of a pointer local holding the address of a local passed to
+    /// a helper that is not inlined, compared with the address of the local
+    /// afterwards (CPU, CUDA and ROCm only: Metal and OpenCL reject pointers to
+    /// local memory stored in memory whose address escapes to a helper).
+    /// </summary>
+    [RequiresCapability(BackendCapability.GenericAddressSpace)]
+    public static void PointerToPointerHelperKernel(
+        Index1D index,
+        ArrayView1D<int, Stride1D.Dense> data)
+    {
+        int x = data[index];
+        int* q = &x;
+        Increment(&q);
+        data[index] = q == &x ? x : -1;
+    }
+
     /// <summary>
     /// A holder loaded from a view of holders or a holder of a pointer to a
     /// local, selected by a condition (CPU, CUDA and ROCm only: Metal and OpenCL
@@ -422,6 +511,28 @@ static unsafe class PointerFieldKernels
         if ((index.X & 1) == 0)
             p = holders[index].P;
         data[index] = *p;
+    }
+
+    /// <summary>
+    /// Pointers to a view element and to a local in a local structure, where the
+    /// second is replaced by a pointer to the view element through an element
+    /// address relative to the first field (CPU, CUDA and ROCm only: Metal and
+    /// OpenCL reject pointers to local memory stored in memory that holds
+    /// generic pointers).
+    /// </summary>
+    [RequiresCapability(BackendCapability.GenericAddressSpace)]
+    public static void FieldOffsetKernel(
+        Index1D index,
+        ArrayView1D<int, Stride1D.Dense> data)
+    {
+        int y = 3;
+        PointerPair pair;
+        pair.A = (int*)Unsafe.AsPointer(ref data[index]);
+        pair.B = &y;
+        int** fields = &pair.A;
+        fields[1] = (int*)Unsafe.AsPointer(ref data[index]);
+        *pair.B += 5;
+        data[index] = *pair.A * 2 + y;
     }
 
     /// <summary>
