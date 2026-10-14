@@ -79,6 +79,35 @@ public abstract class PointerFieldExecutionTests : ExecutionTestBase
             programOptimization);
     }
 
+    // At O0, Metal and OpenCL kept a holder generic that was assigned holders
+    // selected from its own value, also a structure holding a single pointer
+    // incremented through an instance method, so that its pointer to a local
+    // was emitted as a pointer to global memory and failed to compile natively
+    [SkippableTheory]
+    [InlineData(RoslynOptimizationLevel.Release, OptimizationLevel.O0)]
+    [InlineData(RoslynOptimizationLevel.Debug, OptimizationLevel.O0)]
+    [InlineData(RoslynOptimizationLevel.Release, OptimizationLevel.O1)]
+    [InlineData(RoslynOptimizationLevel.Debug, OptimizationLevel.O2)]
+    public async Task SelfUpdating_ProduceCorrectOutput(
+        RoslynOptimizationLevel programOptimization,
+        OptimizationLevel level)
+    {
+        await VerifyProgramOutputAsync(
+            "TestPrograms/PointerField/SelfUpdating.cs",
+            [
+                "Kernels.SelfUpdatingHolderKernel",
+                "Kernels.SelfUpdatingCountedKernel",
+                "Kernels.SelfUpdatingCounterKernel",
+            ],
+            [
+                "30", "30", "50", "30",
+                "30", "30", "50", "30",
+                "311", "321", "331", "341",
+            ],
+            new CompilationProperties { OptimizationLevel = level },
+            programOptimization);
+    }
+
     // Structures holding pointers into different address spaces are selected
     // as structures holding generic pointers, which Metal and OpenCL reject as
     // pointers that can point to global and local memory

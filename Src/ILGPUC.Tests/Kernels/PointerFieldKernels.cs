@@ -31,12 +31,31 @@ static unsafe class PointerFieldKernels
     }
 
     /// <summary>
+    /// A count and a pointer that is not the first field.
+    /// </summary>
+    public struct CountedHolder
+    {
+        public int N;
+        public int* P;
+    }
+
+    /// <summary>
     /// A pointer that may be null and a fallback value.
     /// </summary>
     public struct NullableHolder
     {
         public int* P;
         public int Fallback;
+    }
+
+    /// <summary>
+    /// A pointer incremented by an instance method.
+    /// </summary>
+    public struct Counter
+    {
+        public int* P;
+
+        public void Increment() => *P += 1;
     }
 
     /// <summary>
@@ -289,6 +308,83 @@ static unsafe class PointerFieldKernels
         if ((index.X & 1) == 1)
             holder.P = &value;
         data[index] = holder.P != null ? *holder.P + 1 : holder.Fallback;
+    }
+
+    /// <summary>
+    /// Holders of pointers to two locals, one of which is selected in a loop
+    /// and assigned to the first: the first holder is updated with values
+    /// derived from its own value.
+    /// </summary>
+    public static void SelfUpdatingHolderKernel(
+        Index1D index,
+        ArrayView1D<int, Stride1D.Dense> data)
+    {
+        int x = data[index];
+        int y = 5;
+        Holder a;
+        a.P = &x;
+        a.N = 1;
+        Holder b;
+        b.P = &y;
+        b.N = 2;
+        int sum = 0;
+        for (int k = 0; k < 3; ++k)
+        {
+            Holder c = ((k + index.X) & 1) == 0 ? a : b;
+            sum += *c.P * c.N;
+            a = c;
+        }
+        data[index] = sum;
+    }
+
+    /// <summary>
+    /// Holders with a pointer to a local in their second field, one of which
+    /// is selected in a loop and assigned to the first.
+    /// </summary>
+    public static void SelfUpdatingCountedKernel(
+        Index1D index,
+        ArrayView1D<int, Stride1D.Dense> data)
+    {
+        int x = data[index];
+        int y = 5;
+        CountedHolder a;
+        a.N = 1;
+        a.P = &x;
+        CountedHolder b;
+        b.N = 2;
+        b.P = &y;
+        int sum = 0;
+        for (int k = 0; k < 3; ++k)
+        {
+            CountedHolder c = ((k + index.X) & 1) == 0 ? a : b;
+            sum += *c.P * c.N;
+            a = c;
+        }
+        data[index] = sum;
+    }
+
+    /// <summary>
+    /// Structures holding a single pointer to a local, one of which is selected
+    /// in a loop, incremented through an instance method and assigned to the
+    /// first.
+    /// </summary>
+    public static void SelfUpdatingCounterKernel(
+        Index1D index,
+        ArrayView1D<int, Stride1D.Dense> data)
+    {
+        int x = data[index];
+        int y = 0;
+        Counter a;
+        a.P = &x;
+        Counter b;
+        b.P = &y;
+        for (int k = 0; k < 4; ++k)
+        {
+            Counter c = (k & 1) == 0 ? a : b;
+            c.Increment();
+            a = c;
+        }
+        data[index] = x + 100 * y;
     }
 
     /// <summary>

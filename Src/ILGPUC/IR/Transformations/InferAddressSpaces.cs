@@ -236,7 +236,8 @@ sealed class InferAddressSpaces : Transformation
     /// <summary>
     /// Returns true if the given value may change its type and if this is
     /// worth it: values that are only stored or returned would be converted
-    /// back right away.
+    /// back right away, except phis stored into allocations that may change
+    /// their type.
     /// </summary>
     private bool ShouldRetype(Value value)
     {
@@ -247,7 +248,8 @@ sealed class InferAddressSpaces : Transformation
             switch (use.Target)
             {
                 case Method:
-                case Store when use.Index == 1:
+                case Store store when use.Index == 1 &&
+                    (value is not PhiValue || !StoresIntoAllocation(store)):
                 case BasicBlock:
                     break;
                 default:
@@ -255,6 +257,32 @@ sealed class InferAddressSpaces : Transformation
             }
         }
         return false;
+    }
+
+    /// <summary>
+    /// Returns true if the given store writes into an allocation that may change
+    /// its type, possibly through a field or element address.
+    /// </summary>
+    private bool StoresIntoAllocation(Store store)
+    {
+        var target = store.Target;
+        while (true)
+        {
+            switch (target)
+            {
+                case LoadFieldAddress fieldAddress:
+                    target = fieldAddress.Source;
+                    break;
+                case LoadElementAddress elementAddress:
+                    target = elementAddress.Source;
+                    break;
+                case BaseAddressSpaceCast cast:
+                    target = cast.Source;
+                    break;
+                default:
+                    return target is Alloca alloca && CanRetype(alloca);
+            }
+        }
     }
 
     /// <summary>
