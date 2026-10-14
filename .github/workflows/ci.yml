@@ -1586,7 +1586,7 @@ jobs:
 
       - name: Create release
         # if tag contains "-" treat it as pre-release (e.g. 1.0.0-beta1)
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           name: Release v${{ needs.check-version.outputs.version }}
           draft: true
