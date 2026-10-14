@@ -107,8 +107,9 @@ public sealed class GenericAddressSpaceTests
 
     /// <summary>
     /// Pointers to locals in structure fields that point to global memory on
-    /// other loop iterations. The error is located in the kernel instead of
-    /// failing the native build.
+    /// other loop iterations or that are selected or swapped with structures
+    /// holding pointers to global memory. The error is located in the kernel
+    /// instead of failing the native build.
     /// </summary>
     [Theory]
     [InlineData(
@@ -123,6 +124,34 @@ public sealed class GenericAddressSpaceTests
         typeof(PointerLoopKernels),
         nameof(PointerLoopKernels.MixedFieldLoopKernel),
         "can point to global and local memory")]
+    [InlineData(
+        BackendType.Metal,
+        OptimizationLevel.O0,
+        typeof(PointerFieldKernels),
+        nameof(PointerFieldKernels.LoadedHolderKernel),
+        "points to local memory but is held in a structure field that holds " +
+        "generic pointers")]
+    [InlineData(
+        BackendType.OpenCL,
+        OptimizationLevel.O2,
+        typeof(PointerFieldKernels),
+        nameof(PointerFieldKernels.LoadedHolderKernel),
+        "points to local memory but is held in a structure field that holds " +
+        "generic pointers")]
+    [InlineData(
+        BackendType.Metal,
+        OptimizationLevel.O0,
+        typeof(PointerFieldKernels),
+        nameof(PointerFieldKernels.SwapHoldersKernel),
+        "points to local memory but is held in a structure field that holds " +
+        "generic pointers")]
+    [InlineData(
+        BackendType.OpenCL,
+        OptimizationLevel.O2,
+        typeof(PointerFieldKernels),
+        nameof(PointerFieldKernels.SwapHoldersKernel),
+        "points to local memory but is held in a structure field that holds " +
+        "generic pointers")]
     public void GenericLocalPointer_ReportsLocatedError(
         BackendType backend,
         OptimizationLevel opt,

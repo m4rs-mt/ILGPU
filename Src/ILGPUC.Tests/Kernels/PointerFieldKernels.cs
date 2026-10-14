@@ -388,6 +388,53 @@ static unsafe class PointerFieldKernels
     }
 
     /// <summary>
+    /// A holder loaded from a view of holders or a holder of a pointer to a
+    /// local, selected by a condition (CPU, CUDA and ROCm only: Metal and OpenCL
+    /// reject structure fields that hold generic pointers to local memory).
+    /// </summary>
+    [RequiresCapability(BackendCapability.GenericAddressSpace)]
+    public static void LoadedHolderKernel(
+        Index1D index,
+        ArrayView1D<Holder, Stride1D.Dense> holders,
+        ArrayView1D<int, Stride1D.Dense> data)
+    {
+        int x = data[index];
+        Holder local;
+        local.P = &x;
+        local.N = 1;
+        Holder h = (index.X & 1) == 0 ? holders[index] : local;
+        data[index] = *h.P + h.N;
+    }
+
+    /// <summary>
+    /// Holders of a pointer to a local and of a pointer to a view element
+    /// swapped in a loop (CPU, CUDA and ROCm only: Metal and OpenCL reject
+    /// pointers to local memory held in structure fields that hold generic
+    /// pointers).
+    /// </summary>
+    [RequiresCapability(BackendCapability.GenericAddressSpace)]
+    public static void SwapHoldersKernel(
+        Index1D index,
+        ArrayView1D<int, Stride1D.Dense> data)
+    {
+        int x = 1;
+        Holder a;
+        a.P = &x;
+        a.N = 1;
+        Holder b;
+        b.P = (int*)Unsafe.AsPointer(ref data[index]);
+        b.N = 2;
+        for (int k = 0; k < 3; ++k)
+        {
+            *a.P += a.N;
+            Holder t = a;
+            a = b;
+            b = t;
+        }
+        data[index] += 100 * x;
+    }
+
+    /// <summary>
     /// An address-taken pointer local written and read through a pointer to
     /// it.
     /// </summary>

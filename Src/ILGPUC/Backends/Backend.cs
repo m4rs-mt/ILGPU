@@ -324,7 +324,9 @@ abstract class Backend(
     /// memory in a way the target cannot express: it can point to several
     /// address spaces, or it crosses a method boundary as a parameter or call
     /// result. A generic value that provably points into a single address space
-    /// inside a method is emitted in that address space.
+    /// inside a method is emitted in that address space. Generic fields of
+    /// structure values are emitted as pointers to global memory and must not
+    /// point to shared or local memory.
     /// </summary>
     private void VerifyNotGeneric(
         Module module,
@@ -332,6 +334,11 @@ abstract class Backend(
         Method method,
         Value value)
     {
+        if (value.Type is StructureType structureType)
+        {
+            VerifyGenericFields(module, results, method, value, structureType);
+            return;
+        }
         if (value.Type is not AddressSpaceType
             {
                 AddressSpace: MemoryAddressSpace.Generic
@@ -359,7 +366,11 @@ abstract class Backend(
             ? $"can point to {FormatSpaces(flags)} memory"
             : $"points to {FormatSpaces(flags)} memory but is passed to or " +
                 "returned from a helper method as a generic pointer";
-        throw GetGenericPointerException(module, method, value.Location, reason);
+        throw GetGenericPointerException(
+            module,
+            method,
+            GetSourceLocation(value),
+            reason);
     }
 
     /// <summary>
@@ -408,6 +419,84 @@ abstract class Backend(
             store.Location,
             $"points to {FormatSpaces(flags)} memory but is stored to memory " +
             "as a generic pointer");
+    }
+
+    /// <summary>
+    /// Throws if the given structure value holds a pointer or reference into
+    /// shared or local memory in a generic field, which the backend emits as a
+    /// pointer into its default (global) address space.
+    /// </summary>
+    private void VerifyGenericFields(
+        Module module,
+        AddressSpaceResults results,
+        Method method,
+        Value value,
+        StructureType structureType)
+    {
+        var flags = GetGenericFieldSpaces(results, value, structureType);
+        if (flags == AddressSpaceFlags.None)
+            return;
+        throw GetGenericPointerException(
+            module,
+            method,
+            GetSourceLocation(value),
+            $"points to {FormatSpaces(flags)} memory but is held in a structure " +
+            "field that holds generic pointers");
+    }
+
+    /// <summary>
+    /// The address spaces that generic pointers cannot point into on this
+    /// backend.
+    /// </summary>
+    private const AddressSpaceFlags SharedOrLocal =
+        AddressSpaceFlags.Shared | AddressSpaceFlags.Local;
+
+    /// <summary>
+    /// Returns the shared and local address spaces that the generic pointer and
+    /// view fields of the given structure value can point into.
+    /// </summary>
+    private static AddressSpaceFlags GetGenericFieldSpaces(
+        AddressSpaceResults results,
+        Value value,
+        StructureType structureType)
+    {
+        var analysis = results.GetAnalysisValue(value);
+        var flags = AddressSpaceFlags.None;
+        for (int i = 0; i < structureType.NumFields; ++i)
+        {
+            if (structureType[i] is AddressSpaceType
+                {
+                    AddressSpace: MemoryAddressSpace.Generic
+                })
+            {
+                flags |= analysis.IsStructure && i < analysis.NumFields
+                    ? analysis[i].Flags
+                    : analysis.Data.Flags;
+            }
+        }
+        return flags & SharedOrLocal;
+    }
+
+    /// <summary>
+    /// Returns the source location of the given value or, for values without
+    /// one, such as phis, the source location of the first of its users or
+    /// operands that has one.
+    /// </summary>
+    private static Location GetSourceLocation(Value value)
+    {
+        if (value.Location is FileLocation)
+            return value.Location;
+        foreach (var use in value.Uses)
+        {
+            if (use.Target.Location is FileLocation location)
+                return location;
+        }
+        foreach (var operand in value.Values)
+        {
+            if (operand.Location is FileLocation location)
+                return location;
+        }
+        return value.Location;
     }
 
     /// <summary>
