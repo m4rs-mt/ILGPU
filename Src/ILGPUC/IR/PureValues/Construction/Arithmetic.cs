@@ -217,8 +217,11 @@ partial class PureValueBuilder
                 return simplified;
             }
 
+            // Combining nested constants reassociates the operation, which
+            // changes the rounding of floating-point values
             if (left is BinaryArithmeticValue leftBinary &&
                 leftBinary.Kind == kind &&
+                (!leftBinary.IsFloatOperation || IsFastMath) &&
                 leftBinary.Right is PrimitiveValue nestedRightValue &&
                 (simplified = BinaryArithmeticSimplify_RHS(
                     location,
@@ -258,6 +261,7 @@ partial class PureValueBuilder
 
             if (right is BinaryArithmeticValue rightBinary &&
                 rightBinary.Kind == kind &&
+                (!rightBinary.IsFloatOperation || IsFastMath) &&
                 rightBinary.Left is PrimitiveValue nestedLeftValue &&
                 (simplified = BinaryArithmeticSimplify_LHS(
                     location,

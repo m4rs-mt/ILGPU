@@ -4,8 +4,12 @@
         <Summary>The + operation.</Summary>
         <Flags>IntsAndFloatsAndPointers</Flags>
         <Op>{Value0} + {Value1}</Op>
+        <!-- x + -0.0 is x, but x + 0.0 is +0.0 for x = -0.0 -->
         <Rewriter>
-            <Source>{Value1}.IsZero</Source>
+            <Source>
+                {Value1}.HasIntValue(0) || {Value1}.IsNegativeZero ||
+                IsFastMath &amp;&amp; {Value1}.IsZero
+            </Source>
             <Target>{Value0}</Target>
         </Rewriter>
         <Rewriter Mode="CombineNestedRightConstant">
@@ -17,8 +21,12 @@
         <Summary>The - operation.</Summary>
         <Flags>IntsAndFloats</Flags>
         <Op>{Value0} - {Value1}</Op>
+        <!-- -0.0 - x is -x, but 0.0 - x is +0.0 for x = 0.0 -->
         <Rewriter>
-            <Source>{Value0}.IsZero</Source>
+            <Source>
+                {Value0}.HasIntValue(0) || {Value0}.IsNegativeZero ||
+                IsFastMath &amp;&amp; {Value0}.IsZero
+            </Source>
             <Target>
                 CreateArithmetic(
                 {Location},
@@ -27,8 +35,11 @@
                 {Flags})
             </Target>
         </Rewriter>
+        <!-- x - 0.0 is x, but x - -0.0 is +0.0 for x = -0.0 -->
         <Rewriter>
-            <Source>{Value1}.IsZero</Source>
+            <Source>
+                {Value1}.IsZero &amp;&amp; (!{Value1}.IsNegativeZero || IsFastMath)
+            </Source>
             <Target>{Value0}</Target>
         </Rewriter>
         <Rewriter Mode="CombineNestedLeftConstant">
@@ -127,7 +138,6 @@
     <Operation Name="IEEERemainder">
         <Summary>The IEEERemainder operation.</Summary>
         <Flags>Floats</Flags>
-        <Op>{Value0} % {Value1}</Op>
         <Call>XMath.IEEERemainder</Call>
         <Implementation>{Value0} % {Value1}</Implementation>
         <Velocity>

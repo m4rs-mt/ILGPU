@@ -162,6 +162,22 @@ readonly record struct PrimitiveValueBox(BasicValueType BasicValueType, long Raw
     public bool IsZero => HasValue(0, 0.0f, 0.0);
 
     /// <summary>
+    /// Returns true if this value represents the floating-point constant -0.0,
+    /// the identity of floating-point additions.
+    /// </summary>
+    public bool IsNegativeZero =>
+        BasicValueType switch
+        {
+            BasicValueType.Float16 =>
+                Float16Value == Half.Zero && Half.IsNegative(Float16Value),
+            BasicValueType.Float32 =>
+                Float32Value == 0.0f && float.IsNegative(Float32Value),
+            BasicValueType.Float64 =>
+                Float64Value == 0.0 && double.IsNegative(Float64Value),
+            _ => false
+        };
+
+    /// <summary>
     /// Returns true if the given value is a primitive value with the specified raw
     /// value.
     /// </summary>
@@ -341,6 +357,12 @@ sealed partial class PrimitiveValue : ConstantNode
     /// Returns true if this value represents the constant 0.
     /// </summary>
     public bool IsZero => Box.IsZero;
+
+    /// <summary>
+    /// Returns true if this value represents the floating-point constant -0.0,
+    /// the identity of floating-point additions.
+    /// </summary>
+    public bool IsNegativeZero => Box.IsNegativeZero;
 
     /// <summary>
     /// Returns true if the given value is a primitive value with the specified raw
