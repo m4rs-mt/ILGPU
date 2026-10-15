@@ -2,11 +2,15 @@
 #
 # ILGPUC.CompilerService — CUDA image
 #
-# Base: nvidia/cuda:13.2.0-devel-ubuntu24.04 (ships nvcc + ptxas at the
-#       default path /usr/local/cuda/bin/, which is what
-#       ILGPUC.Compilers/CompilerOptions.cs expects).
+# Base: ubuntu:24.04 + the CUDA 13.2 toolkit from NVIDIA's apt repository
+#       (cuda-minimal-build-13-2: nvcc, ptxas, the CUDA headers and the host
+#       compiler nvcc preprocesses through). nvcc + ptxas land at the default
+#       path /usr/local/cuda/bin/, which is what
+#       ILGPUC.Compilers/CompilerOptions.cs expects. Only the toolchain
+#       packages the compiler service needs are installed, the same way the
+#       OpenCL image installs Intel's packages from Intel's repository.
 #
-# Architectures supported by the base: linux/amd64, linux/arm64 (SBSA).
+# Architectures: linux/amd64 (x86_64 repo), linux/arm64 (sbsa repo).
 #
 # Build context: REPO ROOT (the parent of Src/), so the build can pick up
 #   - global.json
@@ -63,38 +67,62 @@ RUN dotnet publish Src/ILGPUC.CompilerService/ILGPUC.CompilerService.csproj \
         /p:UseAppHost=false
 
 ############################
-# Stage 2: runtime (CUDA devel)
+# Stage 2: runtime (Ubuntu + CUDA toolkit)
 ############################
-FROM nvidia/cuda:13.2.0-devel-ubuntu24.04 AS runtime
+FROM ubuntu:24.04 AS runtime
 
-# OCI labels — auto-link the published GHCR package back to the source repo
-# (so it appears under the repo's Packages tab) and tag it with the compound
-# license set that actually applies: ILGPU code is NCSA; the bundled
-# nvidia/cuda layers are governed by the NVIDIA Deep Learning Container
-# License (referenced via SPDX LicenseRef-* for non-SPDX-identifier licenses).
+# Set by BuildKit for the platform being built (amd64 / arm64). The legacy
+# `docker build` builder leaves it empty, so the install step below falls
+# back to the container's own architecture.
+ARG TARGETARCH
+
+# Keep apt non-interactive for the toolkit install below (tzdata et al.);
+# the ENV of the same name further down only covers later layers.
+ARG DEBIAN_FRONTEND=noninteractive
+
+# OCI labels — auto-link the GHCR package back to the source repo (so it
+# appears under the repo's Packages tab) and tag it with the compound license
+# set that actually applies: ILGPU code is NCSA; the CUDA toolkit is governed
+# by the CUDA Toolkit EULA (referenced via SPDX LicenseRef-* for
+# non-SPDX-identifier licenses).
 LABEL org.opencontainers.image.source="https://github.com/m4rs-mt/ILGPU"
-LABEL org.opencontainers.image.licenses="NCSA AND LicenseRef-NVIDIA-DL-Container-License"
+LABEL org.opencontainers.image.licenses="NCSA AND LicenseRef-NVIDIA-CUDA-Toolkit-EULA"
 LABEL org.opencontainers.image.description="ILGPUC CompilerService bundled with the CUDA toolchain (nvcc + ptxas). Used as a remote compile-only service AND as a CI test runner: `docker run image dotnet test ...` overrides the default CMD to run tests inside the container with the .NET 10 SDK preinstalled."
 
+# Install the CUDA 13.2 compiler toolchain from NVIDIA's apt repository.
+# cuda-minimal-build-13-2 pulls in nvcc, ptxas, the CUDA runtime headers,
+# CCCL and build-essential (nvcc preprocesses through the host compiler,
+# even for -ptx / -cubin output). The keyring package registers the signed
+# repository for the target architecture.
+RUN arch="${TARGETARCH:-$(dpkg --print-architecture)}" \
+ && case "${arch}" in \
+        amd64) cuda_repo=x86_64 ;; \
+        arm64) cuda_repo=sbsa ;; \
+        *) echo "unsupported architecture: ${arch}" >&2; exit 1 ;; \
+    esac \
+ && apt-get update \
+ && apt-get install -y --no-install-recommends ca-certificates curl \
+ && curl -fsSL "https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/${cuda_repo}/cuda-keyring_1.1-1_all.deb" \
+        -o /tmp/cuda-keyring.deb \
+ && dpkg -i /tmp/cuda-keyring.deb \
+ && rm /tmp/cuda-keyring.deb \
+ && apt-get update \
+ && apt-get install -y --no-install-recommends cuda-minimal-build-13-2 \
+ && ln -sfn /usr/local/cuda-13.2 /usr/local/cuda \
+ && rm -rf /var/lib/apt/lists/*
+
 # Bundle ILGPU's own license texts. Third-party licenses are already present
-# in the image: the nvidia/cuda base ships the NVIDIA Deep Learning Container
-# License at /NGC-DL-CONTAINER-LICENSE, and every apt-packaged component's
-# copyright/license text sits at /usr/share/doc/<package>/copyright per
-# Debian convention — no further bundling needed for those.
+# in the image: every apt-packaged component's copyright/license text sits at
+# /usr/share/doc/<package>/copyright per Debian convention.
 COPY LICENSE.txt LICENSE-3RD-PARTY.txt /usr/share/doc/ilgpuc/
 
-# NVIDIA Deep Learning Container License §2.b attribution + an index pointing
-# at every license text already present in the image filesystem, so a
-# consumer inspecting the image has a single starting point.
+# An index pointing at every license text present in the image filesystem,
+# so a consumer inspecting the image has a single starting point.
 RUN printf '%s\n' \
-    'This software contains source code provided by NVIDIA Corporation.' \
-    '' \
-    'This image is a derivative of nvidia/cuda:13.2.0-devel-ubuntu24.04.' \
-    'The NVIDIA Deep Learning Container License governs the bundled NVIDIA' \
-    'CUDA components; its full text is present in the image at' \
-    '  /NGC-DL-CONTAINER-LICENSE' \
-    'See also the upstream copy:' \
-    '  https://developer.download.nvidia.com/licenses/NVIDIA_Deep_Learning_Container_License.pdf' \
+    'The CUDA toolkit components in this image (nvcc, ptxas, headers and' \
+    'libraries) were installed from NVIDIA'"'"'s apt repository and are governed' \
+    'by the NVIDIA CUDA Toolkit End User License Agreement:' \
+    '  https://docs.nvidia.com/cuda/eula/index.html' \
     '' \
     'ILGPU source code is licensed under the University of Illinois/NCSA' \
     'Open Source License. The full text is present in the image at:' \
@@ -102,7 +130,7 @@ RUN printf '%s\n' \
     'Attributions for bundled third-party ILGPU dependencies are at:' \
     '  /usr/share/doc/ilgpuc/LICENSE-3RD-PARTY.txt' \
     '' \
-    'Licenses for other apt-installed components (CUDA toolkit libraries,' \
+    'Licenses for other apt-installed components (CUDA toolkit packages,' \
     'Ubuntu base packages, .NET runtime dependencies, etc.) are at their' \
     'Debian-convention paths:' \
     '  /usr/share/doc/<package>/copyright' \
@@ -115,7 +143,7 @@ ENV DEBIAN_FRONTEND=noninteractive \
     DOTNET_PRINT_TELEMETRY_MESSAGE=false \
     ASPNETCORE_URLS=http://+:5000 \
     ASPNETCORE_ENVIRONMENT=Production \
-    PATH=/usr/share/dotnet:$PATH
+    PATH=/usr/share/dotnet:/usr/local/cuda/bin:$PATH
 
 # Install the full .NET 10 SDK via dotnet-install.sh. The SDK is a superset
 # of the ASP.NET Core runtime (the CompilerService still starts via the same
