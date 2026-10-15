@@ -2265,6 +2265,75 @@ public sealed class KernelDiagnosticTests
             backend: backend);
 
     /// <summary>
+    /// Arrays escape through out parameters, through structures and views, and
+    /// through helpers that return them, and helpers count the calls of the
+    /// helpers calling them: here, two calls of Wrap call MakeArray twice.
+    /// </summary>
+    [Theory]
+    [InlineData(
+        """
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        static void Make(out int[] a) =>
+            a = new int[2]; // error
+        static int[] Get() { Make(out var a); return a; }
+        """,
+        "Make")]
+    [InlineData(
+        """
+        struct Holder { public int[] Values; }
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        static Holder MakeHolder() =>
+            new Holder { Values = new int[2] }; // error
+        static int[] Get() => MakeHolder().Values;
+        """,
+        "MakeHolder")]
+    [InlineData(
+        """
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        static int[] Same(int[] a) => a;
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        static int[] Get() =>
+            Same(new int[2]); // error
+        """,
+        "Get")]
+    [InlineData(
+        """
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        static int[] MakeArray() =>
+            new int[2]; // error
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        static int[] Get() => MakeArray();
+        """,
+        "MakeArray")]
+    [InlineData(
+        """
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        static int[] Get() =>
+            new int[0]; // error
+        """,
+        "Get")]
+    public Task ArrayEscapingHelperCalledTwice_FailsBuild(
+        string helpers,
+        string methodName) =>
+        AssertBuildErrorAsync(
+            $$"""
+            using System.Runtime.CompilerServices;
+            static class K
+            {
+            {{helpers}}
+                public static void Kern(Index1D i, ArrayView1D<int, Stride1D.Dense> d)
+                {
+                    var a = Get();
+                    var b = Get();
+                    d[i] = a == b ? 1 : 0;
+                }
+            }
+            """,
+            "ILGPU1200",
+            $"Method 'K.{methodName}' returns or stores an array that it " +
+            "allocates");
+
+    /// <summary>
     /// A method calling itself shares its array with the calls it makes: the
     /// inner calls cleared the element that the outer call reads after them.
     /// </summary>
@@ -2291,6 +2360,68 @@ public sealed class KernelDiagnosticTests
             "ILGPU1200",
             "Method 'K.Sum' calls itself, directly or through other methods, and " +
             "accesses an array that it allocates after such a call",
+            optimizationLevel);
+
+    /// <summary>
+    /// Arrays that only live during a call are not rejected, and neither are the
+    /// arrays of helpers called once per thread, also in a loop, arrays passed to
+    /// a helper, Array.Empty and the arrays of a method calling itself that it
+    /// only accesses before the calls.
+    /// </summary>
+    [Theory]
+    [InlineData(RoslynOptimizationLevel.Debug)]
+    [InlineData(RoslynOptimizationLevel.Release)]
+    public Task ArraysNotSharedBetweenCalls_Build(
+        RoslynOptimizationLevel optimizationLevel) =>
+        AssertBuildSucceedsAsync(
+            """
+            using System.Runtime.CompilerServices;
+            static class K
+            {
+                [MethodImpl(MethodImplOptions.NoInlining)]
+                static int Sum(int x)
+                {
+                    var a = new int[2];
+                    a[x & 1] = x;
+                    return a[0] + a[1];
+                }
+                [MethodImpl(MethodImplOptions.NoInlining)]
+                static int Read(int[] a, int k) => a[k % a.Length];
+                [MethodImpl(MethodImplOptions.NoInlining)]
+                static int SumThroughRead(int x)
+                {
+                    var a = new int[3];
+                    a[x % 3] = x;
+                    return Read(a, x);
+                }
+                [MethodImpl(MethodImplOptions.NoInlining)]
+                static int[] Once(int x) { var a = new int[2]; a[0] = x; return a; }
+                [MethodImpl(MethodImplOptions.NoInlining)]
+                static int[] InLoop() => new int[1];
+                [MethodImpl(MethodImplOptions.NoInlining)]
+                static int[] Same(int[] a) => a;
+                [MethodImpl(MethodImplOptions.NoInlining)]
+                static int[] Empty() => Array.Empty<int>();
+                static int Before(int n, int x)
+                {
+                    var a = new int[4];
+                    a[x & 3] = x;
+                    int s = a[n & 3] + a[(n + 1) & 3];
+                    return n > 0 ? s + Before(n - 1, x + 1) : s;
+                }
+                public static void Kern(Index1D i, ArrayView1D<int, Stride1D.Dense> d)
+                {
+                    var a = new int[2];
+                    var b = new int[2];
+                    int s = Sum(i) + Sum(i + 1) + SumThroughRead(i) + SumThroughRead(2);
+                    for (int k = 0; k < i; ++k)
+                        s += InLoop()[0]++;
+                    s += Once(i)[0] + Before(i, 3);
+                    s += (Same(a) == Same(b) ? 1 : 0) + (Empty() == Empty() ? 2 : 0);
+                    d[i] = s;
+                }
+            }
+            """,
             optimizationLevel);
 
     #endregion
