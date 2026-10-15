@@ -110,4 +110,35 @@ public abstract class ArrayExecutionTests : ExecutionTestBase
             new CompilationProperties { OptimizationLevel = level },
             programOptimization);
     }
+
+    /// <summary>
+    /// Every call of a helper that allocates an array returns a new array, also
+    /// when the helper is inlined twice into the kernel, and two new empty arrays
+    /// are different, while Array.Empty returns the same array. Helpers that are
+    /// not inlined keep arrays they only use inside, return from a single call or
+    /// pass on, and Array.Empty, as well.
+    /// </summary>
+    [SkippableTheory]
+    [InlineData(RoslynOptimizationLevel.Release, OptimizationLevel.O0)]
+    [InlineData(RoslynOptimizationLevel.Release, OptimizationLevel.O1)]
+    [InlineData(RoslynOptimizationLevel.Release, OptimizationLevel.O2)]
+    [InlineData(RoslynOptimizationLevel.Debug, OptimizationLevel.O0)]
+    [InlineData(RoslynOptimizationLevel.Debug, OptimizationLevel.O1)]
+    [InlineData(RoslynOptimizationLevel.Debug, OptimizationLevel.O2)]
+    public async Task ArrayHelperCalls_ProducesCorrectOutput(
+        RoslynOptimizationLevel programOptimization,
+        OptimizationLevel level)
+    {
+        await VerifyProgramOutputAsync(
+            "TestPrograms/Array/ArrayHelperCalls.cs",
+            ["Kernels.ArrayHelperCallKernel"],
+            [
+                "12", "0", "1", "1", "1", "1", "5", "101",
+                "12", "0", "1", "3", "3", "4", "5", "101",
+                "12", "0", "1", "5", "5", "7", "5", "101",
+                "12", "0", "1", "7", "7", "10", "5", "101",
+            ],
+            new CompilationProperties { OptimizationLevel = level },
+            programOptimization);
+    }
 }

@@ -276,10 +276,17 @@ sealed class ModuleTransform : ModuleBuilder, IModuleRewriter, ITransform, IType
         // Register value and return. A module value means the same thing in every
         // method, so its rebuild belongs to the module scope (see ModuleMapping): a
         // global rebuilt again for a second method would give that method storage
-        // of its own. A pass that replaces a module value in one method only does
-        // so with Replace, which writes to the current scope and outranks this
-        // entry.
-        ModuleMapping.Add(oldValue, newValue);
+        // of its own, which would split shared memory. A pass that replaces a
+        // module value in one method only does so with Replace, which writes to
+        // the current scope and outranks this entry. A global allocated per copy,
+        // such as the back buffer of an array, is an allocation of the method or
+        // inlined copy referring to it instead: its rebuild belongs to the current
+        // scope, so that every inlined copy of a helper allocating an array
+        // allocates a buffer of its own.
+        var mapping = oldValue is Global { IsAllocatedPerCopy: true }
+            ? PeekMapping()
+            : ModuleMapping;
+        mapping.Add(oldValue, newValue);
         return newValue;
     }
 

@@ -32,7 +32,11 @@ Loops like `while (true)` that are left through a `return` or `break` are suppor
 Arrays created in kernels, such as `new int[4]`, can be `null` (e.g. `c ? new int[4] : null` or `a ?? b`) and can be
 tested for `null` like in .NET.
 Arrays are compared by their buffers, and every allocation site has a single buffer per thread: two arrays allocated by
-the same `new` expression, such as in a loop or in a helper method called twice, are equal.
+the same `new` expression in a loop are equal.
+Every inlined copy of a helper method has buffers of its own, so a helper method that is inlined returns a new array
+from every call.
+A helper method that is not inlined, such as one marked with `[MethodImpl(MethodImplOptions.NoInlining)]`, uses the same
+buffers in every call.
 `Array.Empty<T>()` returns the same array for the same `T` and different arrays for different types, also for `int` and
 `uint`, as in .NET.
 Unlike in .NET, the `Length` of a `null` array is 0, and accessing an element of a `null` array is undefined behavior on
