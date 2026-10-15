@@ -97,7 +97,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       # QEMU for arm64 emulation. Only the CUDA matrix entry needs it; the
       # others are amd64-only and the action is a near no-op for them.

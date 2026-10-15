@@ -26,7 +26,7 @@ jobs:
 
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
 
     - name: Setup the latest .NET 10 SDK
       uses: actions/setup-dotnet@v4.3.1
