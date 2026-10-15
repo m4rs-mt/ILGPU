@@ -10,7 +10,7 @@
   <ItemGroup>
     <PackageReference Include="AngleSharp" Version="1.8.4" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.13" />
-    <PackageReference Include="Microsoft.Extensions.Http" Version="8.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Http" Version="10.0.13" />
   </ItemGroup>
 
 </Project>
