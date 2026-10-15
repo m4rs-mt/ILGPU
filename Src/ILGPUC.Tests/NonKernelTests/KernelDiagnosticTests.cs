@@ -2224,6 +2224,77 @@ public sealed class KernelDiagnosticTests
 
     #endregion
 
+    #region Arrays Shared Between Calls (ILGPU1200)
+
+    /// <summary>
+    /// A helper that is not inlined returns the same buffer from every call, so
+    /// that the two arrays the kernel receives were the same array and the kernel
+    /// computed 22 instead of 12. The helper is rejected at the allocation of the
+    /// array, also on Metal, which supports no recursion.
+    /// </summary>
+    [Theory]
+    [InlineData(BackendType.CPU, RoslynOptimizationLevel.Debug)]
+    [InlineData(BackendType.CPU, RoslynOptimizationLevel.Release)]
+    [InlineData(BackendType.Metal, RoslynOptimizationLevel.Debug)]
+    [InlineData(BackendType.Metal, RoslynOptimizationLevel.Release)]
+    public Task ArrayReturnedFromHelperCalledTwice_FailsBuild(
+        BackendType backend,
+        RoslynOptimizationLevel optimizationLevel) =>
+        AssertBuildErrorAsync(
+            """
+            using System.Runtime.CompilerServices;
+            static class K
+            {
+                [MethodImpl(MethodImplOptions.NoInlining)]
+                static int[] MakeArray() =>
+                    new int[1]; // error
+                public static void Kern(Index1D i, ArrayView1D<int, Stride1D.Dense> d)
+                {
+                    var a = MakeArray();
+                    var b = MakeArray();
+                    a[0] = 1;
+                    b[0] = 2;
+                    d[i] = a[0] * 10 + b[0];
+                }
+            }
+            """,
+            "ILGPU1200",
+            "Method 'K.MakeArray' returns or stores an array that it allocates " +
+            "and is called more than once per thread without being inlined",
+            optimizationLevel,
+            backend: backend);
+
+    /// <summary>
+    /// A method calling itself shares its array with the calls it makes: the
+    /// inner calls cleared the element that the outer call reads after them.
+    /// </summary>
+    [Theory]
+    [InlineData(RoslynOptimizationLevel.Debug)]
+    [InlineData(RoslynOptimizationLevel.Release)]
+    public Task ArrayAccessedAfterRecursiveCall_FailsBuild(
+        RoslynOptimizationLevel optimizationLevel) =>
+        AssertBuildErrorAsync(
+            """
+            static class K
+            {
+                static int Sum(int n, int x)
+                {
+                    var a = new int[4]; // error
+                    a[n & 3] = x;
+                    int r = n > 0 ? Sum(n - 1, x + 1) : 0;
+                    return a[n & 3] + r;
+                }
+                public static void Kern(Index1D i, ArrayView1D<int, Stride1D.Dense> d) =>
+                    d[i] = Sum(i, 10);
+            }
+            """,
+            "ILGPU1200",
+            "Method 'K.Sum' calls itself, directly or through other methods, and " +
+            "accesses an array that it allocates after such a call",
+            optimizationLevel);
+
+    #endregion
+
     #region Unsupported IL Instructions (ILGPU1200)
 
     /// <summary>

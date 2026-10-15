@@ -1321,6 +1321,24 @@ namespace ILGPU.Resources {
         }
 
         /// <summary>
+        ///   Looks up a localized string similar to Method &apos;{0}&apos; returns or stores an array that it allocates and is called more than once per thread without being inlined: all calls share the buffer of the array, so the arrays of different calls would be the same array. Let the method be inlined, for example by removing [MethodImpl(MethodImplOptions.NoInlining)], or allocate the array in the caller and pass it to the method..
+        /// </summary>
+        internal static string KernelDiagnosticArrayReturnedFromCalls {
+            get {
+                return ResourceManager.GetString("KernelDiagnosticArrayReturnedFromCalls", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Method &apos;{0}&apos; calls itself, directly or through other methods, and accesses an array that it allocates after such a call: all calls share the buffer of the array, so the call would overwrite the array of its caller. Allocate the array outside of the recursion and pass it to the method, or use local variables instead..
+        /// </summary>
+        internal static string KernelDiagnosticArrayInRecursion {
+            get {
+                return ResourceManager.GetString("KernelDiagnosticArrayInRecursion", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to Delegates bound with KernelDelegates.Bind can only be used in kernels compiled by ILGPUC.
         /// </summary>
         internal static string NotSupportedKernelDelegateBind {
