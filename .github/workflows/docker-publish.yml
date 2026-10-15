@@ -103,7 +103,7 @@ jobs:
       # others are amd64-only and the action is a near no-op for them.
       - name: Set up QEMU
         if: contains(matrix.platforms, 'arm64')
-        uses: docker/setup-qemu-action@v3
+        uses: docker/setup-qemu-action@v4
         with:
           platforms: arm64
 
