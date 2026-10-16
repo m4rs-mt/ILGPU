@@ -653,6 +653,10 @@
     <value>Method '{0}' calls itself, directly or through other methods, and accesses an array that it allocates after such a call: all calls share the buffer of the array, so the call would overwrite the array of its caller. Allocate the array outside of the recursion and pass it to the method, or use local variables instead.</value>
     <comment/>
   </data>
+  <data name="KernelDiagnosticArrayReusedInLoop" xml:space="preserve">
+    <value>Method '{0}' allocates an array in a loop, directly or through a method it calls, and uses the array of an iteration after the allocation runs again: every iteration reuses the buffer of the array, so the arrays of different iterations would be the same array. Allocate the array before the loop, or copy its elements to an array allocated before the loop.</value>
+    <comment/>
+  </data>
   <data name="NotSupportedKernelDelegateBind" xml:space="preserve">
     <value>Delegates bound with KernelDelegates.Bind can only be used in kernels compiled by ILGPUC.</value>
     <comment/>

@@ -1339,6 +1339,15 @@ namespace ILGPU.Resources {
         }
 
         /// <summary>
+        ///   Looks up a localized string similar to Method &apos;{0}&apos; allocates an array in a loop, directly or through a method it calls, and uses the array of an iteration after the allocation runs again: every iteration reuses the buffer of the array, so the arrays of different iterations would be the same array. Allocate the array before the loop, or copy its elements to an array allocated before the loop..
+        /// </summary>
+        internal static string KernelDiagnosticArrayReusedInLoop {
+            get {
+                return ResourceManager.GetString("KernelDiagnosticArrayReusedInLoop", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to Delegates bound with KernelDelegates.Bind can only be used in kernels compiled by ILGPUC.
         /// </summary>
         internal static string NotSupportedKernelDelegateBind {

@@ -356,6 +356,22 @@ public sealed class KernelDiagnosticTests
             data[index] = value;
         }
 
+        // An array of the previous iteration used after the next allocation
+        public static void ArrayReusedInLoopKernel(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data)
+        {
+            int[]? prev = null;
+            for (int k = 0; k < 2; ++k)
+            {
+                var a = new int[1]; // ArrayReusedInLoop
+                a[0] = k;
+                if (prev != null)
+                    data[index] = prev[0];
+                prev = a;
+            }
+        }
+
         // One of two integers holding local addresses
         public static unsafe void LocalAddressSelectKernel(
             Index1D index,
@@ -2423,6 +2439,185 @@ public sealed class KernelDiagnosticTests
             }
             """,
             optimizationLevel);
+
+    /// <summary>
+    /// Kernels using the array of an iteration after its allocation has run
+    /// again: kept in a variable, a structure or an outer array, compared with
+    /// the next array, in a do loop, after the loop, two iterations later, or in
+    /// a helper calling itself in tail position, which becomes a loop.
+    /// </summary>
+    private static readonly Dictionary<string, string> ArraysReusedInLoops = new()
+    {
+        ["Phi"] = """
+            int[] prev = null;
+            for (int k = 0; k < 2; ++k)
+            {
+                var a = new int[1]; // error
+                a[0] = k;
+                if (prev != null)
+                    d[i] = prev[0];
+                prev = a;
+            }
+            """,
+        ["Structure"] = """
+            Holder h = default;
+            for (int k = 0; k < 2; ++k)
+            {
+                var a = new int[1]; // error
+                a[0] = k + 1;
+                if (h.Values != null)
+                    d[i] = h.Values[0];
+                h.Values = a;
+            }
+            """,
+        ["OuterArray"] = """
+            var outer = new Holder[2];
+            for (int k = 0; k < 2; ++k)
+            {
+                var a = new int[1]; // error
+                a[0] = k + 1;
+                outer[k].Values = a;
+            }
+            d[i] = outer[0].Values[0];
+            """,
+        ["Compare"] = """
+            int[] prev = null;
+            for (int k = 0; k < 2; ++k)
+            {
+                var a = new int[1]; // error
+                d[i] += a == prev ? 1 : 0;
+                prev = a;
+            }
+            """,
+        ["DoWhile"] = """
+            var prev = new int[1];
+            int k = 0, s = 0;
+            do
+            {
+                var a = new int[1]; // error
+                a[0] = k;
+                s += prev[0];
+                prev = a;
+            }
+            while (++k < 3);
+            d[i] = s;
+            """,
+        ["AfterLoop"] = """
+            int[] prev = null;
+            int[] last = null;
+            int k = 0;
+            do
+            {
+                prev = last;
+                last = new int[1]; // error
+                last[0] = k;
+            }
+            while (++k < 3);
+            d[i] = prev[0];
+            """,
+        ["SecondLast"] = """
+            int[] prev = null, second = null;
+            for (int k = 0; k < 3; ++k)
+            {
+                if (second != null)
+                    d[i] += second[0];
+                var a = new int[1]; // error
+                a[0] = k + 1;
+                second = prev;
+                prev = a;
+            }
+            """,
+        ["TailCall"] = """
+            d[i] = Sum(0, 0, default);
+            """,
+    };
+
+    /// <summary>
+    /// The kernels of <see cref="ArraysReusedInLoops"/> on the CPU and Metal.
+    /// </summary>
+    public static TheoryData<string, BackendType, RoslynOptimizationLevel>
+        ArraysReusedInLoopsData
+    {
+        get
+        {
+            var data = new TheoryData<string, BackendType, RoslynOptimizationLevel>();
+            foreach (var name in ArraysReusedInLoops.Keys)
+            {
+                foreach (var backend in new[] { BackendType.CPU, BackendType.Metal })
+                {
+                    data.Add(name, backend, RoslynOptimizationLevel.Debug);
+                    data.Add(name, backend, RoslynOptimizationLevel.Release);
+                }
+            }
+            return data;
+        }
+    }
+
+    /// <summary>
+    /// Every iteration of a loop reuses the buffer of an array allocated in it:
+    /// the first kernel read 1 instead of 0. Using the
+    /// array of an iteration after the allocation of a later one is rejected at
+    /// the allocation.
+    /// </summary>
+    [Theory]
+    [MemberData(nameof(ArraysReusedInLoopsData))]
+    public Task ArrayReusedInLoop_FailsBuild(
+        string name,
+        BackendType backend,
+        RoslynOptimizationLevel optimizationLevel) =>
+        AssertBuildErrorAsync(
+            $$"""
+            using System.Runtime.CompilerServices;
+            struct Holder { public int[] Values; }
+            static class K
+            {
+                static int[] MakeArray(int k)
+                {
+                    var a = new int[1];{{(name == "TailCall" ? " // error" : "")}}
+                    a[0] = k;
+                    return a;
+                }
+                [MethodImpl(MethodImplOptions.NoInlining)]
+                static int Sum(int k, int s, Holder prev)
+                {
+                    if (k == 2)
+                        return s;
+                    var a = MakeArray(k + 1);
+                    if (prev.Values != null)
+                        s += prev.Values[0];
+                    return Sum(k + 1, s, new Holder { Values = a });
+                }
+                public static void Kern(Index1D i, ArrayView1D<int, Stride1D.Dense> d)
+                {
+            {{ArraysReusedInLoops[name]}}
+                }
+            }
+            """,
+            "ILGPU1200",
+            $"Method 'K.{(name == "TailCall" ? "Sum" : "Kern")}' allocates an array " +
+            "in a loop, directly or through a method it calls, and uses the array of " +
+            "an iteration after the allocation runs again",
+            optimizationLevel,
+            backend: backend);
+
+    /// <summary>
+    /// Loops reuse the buffers of their arrays at every optimization level.
+    /// </summary>
+    [Theory]
+    [InlineData(BackendType.CPU, OptimizationLevel.O0)]
+    [InlineData(BackendType.CPU, OptimizationLevel.O1)]
+    [InlineData(BackendType.CPU, OptimizationLevel.O2)]
+    [InlineData(BackendType.Metal, OptimizationLevel.O0)]
+    [InlineData(BackendType.Metal, OptimizationLevel.O1)]
+    [InlineData(BackendType.Metal, OptimizationLevel.O2)]
+    public void ArrayReusedInLoop_Reports1200(
+        BackendType backend,
+        OptimizationLevel level) =>
+        AssertDiagnostic(
+            Generate(nameof(Kernels.ArrayReusedInLoopKernel), backend, level),
+            "ILGPU1200",
+            "Method 'Kernels.ArrayReusedInLoopKernel' allocates an array in a loop",
+            "ArrayReusedInLoop");
 
     #endregion
 

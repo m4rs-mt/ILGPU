@@ -41,7 +41,7 @@ namespace ILGPUC.Backends;
 /// module, after optimization has inlined what it can and has promoted the
 /// buffers that it can to registers.
 /// </remarks>
-static class ArrayBufferVerifier
+static partial class ArrayBufferVerifier
 {
     /// <summary>
     /// The number of calls of a method per thread that count as several calls.
@@ -121,6 +121,12 @@ static class ArrayBufferVerifier
                 if (value is Global { IsAllocatedPerCopy: true } global)
                     VerifyBuffer(context, method, global, recursive);
             }
+        }
+
+        foreach (var method in module.Methods)
+        {
+            if (method.HasImplementation)
+                VerifyLoops(context, method);
         }
     }
 
