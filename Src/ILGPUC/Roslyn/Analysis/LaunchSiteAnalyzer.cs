@@ -24,7 +24,10 @@ namespace ILGPUC.Roslyn.Analysis;
 /// marked with [ReplaceWithLauncher].
 /// </summary>
 /// <param name="compilation">The parent compilation.</param>
-sealed class LaunchSiteAnalyzer(CSharpCompilation compilation)
+/// <param name="models">Shared semantic models, if any.</param>
+sealed class LaunchSiteAnalyzer(
+    CSharpCompilation compilation,
+    SemanticModelCache? models = null)
 {
     /// <summary>
     /// Returns all diagnostics reported for launches that cannot be rewritten.
@@ -44,7 +47,7 @@ sealed class LaunchSiteAnalyzer(CSharpCompilation compilation)
         var results = new List<KernelLaunchInfo>();
         foreach (var tree in compilation.SyntaxTrees)
         {
-            var model = compilation.GetSemanticModel(tree);
+            var model = models?[tree] ?? compilation.GetSemanticModel(tree);
             var walker = new LaunchSiteWalker(model, results, Diagnostics);
             walker.Visit(tree.GetRoot());
         }

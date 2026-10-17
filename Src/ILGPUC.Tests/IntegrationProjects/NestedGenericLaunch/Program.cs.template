@@ -1,0 +1,106 @@
+// NestedGenericLaunch: generic kernels launched through generic wrappers, from a
+// generic class and with a generic struct declared in this project's namespace.
+// Library.Run<T> launches a kernel but is never called with closed type
+// arguments, so the build reports warning ILGPU1001 for it.
+// Expected output: 2 4 6 8 | 30 60 90 120 | 2 1 4 3
+
+using System;
+using System.Numerics;
+using ILGPU;
+using ILGPU.Runtime;
+
+namespace NestedGenericLaunch;
+
+public struct Pair<T> where T : unmanaged
+{
+    public T A;
+    public T B;
+}
+
+static class Kernels
+{
+    public static void Scale<T>(
+        Index1D index,
+        ArrayView1D<T, Stride1D.Dense> data,
+        T factor)
+        where T : unmanaged, INumber<T>
+    {
+        data[index] = data[index] * factor;
+    }
+
+    public static void SwapPair<T>(
+        Index1D index,
+        ArrayView1D<Pair<T>, Stride1D.Dense> data)
+        where T : unmanaged
+    {
+        var pair = data[index];
+        data[index] = new Pair<T> { A = pair.B, B = pair.A };
+    }
+}
+
+sealed class Runner<T> where T : unmanaged, INumber<T>
+{
+    public void Run(AcceleratorStream stream, T[] values, T factor)
+    {
+        using var buffer = stream.Allocate1D(values);
+        var view = buffer.View;
+        stream.Launch((Index1D)values.Length, i => Kernels.Scale(i, view, factor));
+        stream.Synchronize();
+        foreach (var value in buffer.GetAsArray1D())
+            Console.WriteLine(value);
+    }
+}
+
+public static class Library
+{
+    public static void Run<T>(AcceleratorStream stream) where T : unmanaged
+    {
+        using var buffer = stream.Allocate1D<Pair<T>>(4);
+        var view = buffer.View;
+        stream.Launch((Index1D)4, i => Kernels.SwapPair(i, view));
+    }
+}
+
+static class Program
+{
+    static void Main()
+    {
+        using var context = Context.Create(b => b.Default());
+        using var accelerator = context.GetPreferredDevice(preferCPU: $(PREFER_CPU))
+            .CreateAccelerator(context);
+        var stream = accelerator.DefaultStream;
+
+        Outer(stream, new int[] { 1, 2, 3, 4 }, 2);
+        new Runner<long>().Run(stream, new long[] { 10, 20, 30, 40 }, 3L);
+        // The build passes the project's preprocessor symbols to ILGPUC, so the
+        // instantiation in the active branch is the one that gets compiled
+#if DEBUG
+        PairRun<short>(stream);
+#else
+        PairRun<ushort>(stream);
+#endif
+    }
+
+    static void Outer<T>(AcceleratorStream stream, T[] values, T factor)
+        where T : unmanaged, INumber<T> =>
+        new Runner<T>().Run(stream, values, factor);
+
+    static void PairRun<T>(AcceleratorStream stream) where T : unmanaged, INumber<T>
+    {
+        var two = T.One + T.One;
+        var pairs = new Pair<T>[]
+        {
+            new() { A = T.One, B = two },
+            new() { A = two + T.One, B = two + two },
+        };
+        using var buffer = stream.Allocate1D(pairs);
+        var view = buffer.View;
+        stream.Launch((Index1D)pairs.Length, i => Kernels.SwapPair(i, view));
+        stream.Synchronize();
+        foreach (var pair in buffer.GetAsArray1D())
+        {
+            Console.WriteLine(pair.A);
+            Console.WriteLine(pair.B);
+        }
+    }
+}

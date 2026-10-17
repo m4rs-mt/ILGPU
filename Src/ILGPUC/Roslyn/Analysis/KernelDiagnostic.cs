@@ -38,8 +38,10 @@ record KernelDiagnostic(string Id, string Message, Location Location)
     public const string UnsupportedCaptureId = "ILGPU1103";
 
     /// <summary>
-    /// An inline kernel, or a lambda passed for a delegate it captures, is
-    /// declared in a generic method or type.
+    /// A lambda or method passed for a delegate parameter captured by an inline
+    /// kernel is declared in or depends on a generic context, or an inline
+    /// kernel capturing a delegate parameter is declared in a generic method
+    /// or type.
     /// </summary>
     public const string GenericContextId = "ILGPU1104";
 

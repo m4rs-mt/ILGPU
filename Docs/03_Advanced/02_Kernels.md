@@ -104,6 +104,10 @@ Arguments that cannot be traced to a lambda or a static method, such as delegate
 delegates combined with `+` or `Delegate.Combine`, instance methods or a launching method used as a delegate itself,
 are reported at build time (`ILGPU1108`), as well as a
 captured delegate parameter of a launching method that no call passes a lambda or a static method to (`ILGPU1109`).
+Lambdas declared in generic methods or types, and method groups that depend on type parameters, cannot be bound to a
+kernel and are reported at build time (`ILGPU1104`).
+The same holds for a launch lambda in a generic method or type that captures a delegate parameter: launch lambdas in
+generic code are compiled for each instantiation, but the delegates passed to them are not traced per instantiation.
 Launching methods, and methods forwarding a delegate parameter to them, must be called directly: methods that are
 virtual, abstract or overrides, or that implement an interface member, can be called through a base type or an
 interface, where the passed delegates cannot be traced, and are reported at build time (`ILGPU1110`).

@@ -28,8 +28,8 @@ record DelegateRegistration(ITypeSymbol DelegateType, List<string> Keys);
 
 /// <summary>
 /// Discovers the targets of delegate parameters of launching methods that are
-/// captured by inline kernels. Like <see cref="SpecializationDiscoverer"/> for
-/// type arguments, it traces the callers of the launching method for the
+/// captured by inline kernels. Like <see cref="GenericInstantiationClosure"/>
+/// for type arguments, it traces the callers of the launching method for the
 /// lambda expressions, anonymous methods and static methods they pass, also
 /// through delegate parameters of calling methods that forward them. Each
 /// distinct target gets a key, the call sites register their delegates under
@@ -37,11 +37,18 @@ record DelegateRegistration(ITypeSymbol DelegateType, List<string> Keys);
 /// compiled.
 /// </summary>
 /// <param name="compilation">The Roslyn compilation.</param>
+/// <param name="generatedTrees">
+/// The syntax trees produced by source generators, whose calls cannot be
+/// rewritten to register the delegates they pass, or null.
+/// </param>
 /// <param name="isLibrary">
 /// True if the compilation builds a library, whose methods other assemblies can
 /// call; false for an executable.
 /// </param>
-sealed class DelegateTargetDiscoverer(Compilation compilation, bool isLibrary = true)
+sealed class DelegateTargetDiscoverer(
+    Compilation compilation,
+    IReadOnlySet<SyntaxTree>? generatedTrees = null,
+    bool isLibrary = true)
 {
     /// <summary>
     /// The keys of the targets of each traced parameter (null if the targets
@@ -183,6 +190,21 @@ sealed class DelegateTargetDiscoverer(Compilation compilation, bool isLibrary = 
         bool isValid = true;
         foreach (var name in FindReferences(method))
         {
+            // Source generators produce their code again when csc compiles
+            // the rewritten project, so calls in it cannot register delegates
+            if (generatedTrees?.Contains(name.SyntaxTree) == true)
+            {
+                Diagnostics.Add(new KernelDiagnostic(
+                    KernelDiagnostic.UntraceableDelegateArgumentId,
+                    $"This call of '{GetDisplayName(method)}' is in " +
+                    $"source-generated code, which ILGPU cannot rewrite, so the " +
+                    $"delegate it passes for '{parameter.Name}' cannot be bound " +
+                    $"to a kernel. Call it from hand-written code instead.",
+                    name.GetLocation()));
+                isValid = false;
+                continue;
+            }
+
             var model = compilation.GetSemanticModel(name.SyntaxTree);
             if (GetInvocation(name) is not { } invocation
                 || model.GetOperation(invocation) is not IInvocationOperation call)
@@ -699,7 +721,8 @@ sealed class DelegateTargetDiscoverer(Compilation compilation, bool isLibrary = 
     /// Returns the innermost generic method or type containing the given symbol
     /// (including the symbol itself), or null if there is none.
     /// </summary>
-    private static ISymbol? FindGenericContainer(ISymbol? symbol)
+    /// <param name="symbol">The symbol.</param>
+    public static ISymbol? FindGenericContainer(ISymbol? symbol)
     {
         for (; symbol is not null and not INamespaceSymbol;
             symbol = symbol.ContainingSymbol)

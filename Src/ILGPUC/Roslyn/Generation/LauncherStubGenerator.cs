@@ -12,6 +12,7 @@
 using ILGPUC.Roslyn.Analysis;
 using Microsoft.CodeAnalysis;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
@@ -46,10 +47,12 @@ static class LauncherStubGenerator
         // Build generic type parameter list for generic kernel methods.
         // Only when type arguments are still unresolved type parameters
         // (e.g. <T, TOp> from a generic caller), not concrete types
-        // (e.g. <LambdaClosure, long>).
+        // (e.g. <LambdaClosure, long>). Specializations of local functions
+        // keep their generic definition but have closed parameter types.
         var genericSuffix = "";
         var whereClause = "";
         if (kernel.KernelMethod is { IsGenericMethod: true } gm
+            && kernel.ConcreteTypeArgs is null
             && gm.TypeArguments.Any(t => t is ITypeParameterSymbol))
         {
             var typeParams = gm.TypeArguments
@@ -134,15 +137,37 @@ static class LauncherStubGenerator
     }
 
     /// <summary>
-    /// Formats a Roslyn type symbol as a C# type name string suitable for
-    /// use in generated source code. Generic types are expanded recursively;
-    /// well-known primitive types use their C# keyword aliases.
-    /// </summary>
-    /// <summary>
     /// Public entry point for formatting type names from external callers.
     /// </summary>
     public static string FormatTypeNamePublic(ITypeSymbol type) =>
         FormatTypeName(type);
+
+    /// <summary>
+    /// Formats a type name for generated source in which type parameters may be
+    /// renamed.
+    /// </summary>
+    /// <param name="type">The type to format.</param>
+    /// <param name="typeParameterNames">
+    /// Returns the name to use for a type parameter, or <see langword="null"/> to
+    /// keep its own name.
+    /// </param>
+    public static string FormatTypeNamePublic(
+        ITypeSymbol type,
+        Func<ITypeParameterSymbol, string?> typeParameterNames) =>
+        FormatTypeName(type, typeParameterNames);
+
+    /// <summary>
+    /// The namespaces every generated kernel file imports. Generic types from
+    /// these namespaces are written without their namespace.
+    /// </summary>
+    private static readonly HashSet<string> ImportedNamespaces =
+    [
+        "System",
+        "System.Runtime.CompilerServices",
+        "System.Runtime.InteropServices",
+        "ILGPU",
+        "ILGPU.Runtime",
+    ];
 
     /// <summary>
     /// Extracts user-facing property/field accessor names for a struct type,
@@ -183,35 +208,9 @@ static class LauncherStubGenerator
         string prefix,
         System.Collections.Generic.List<string> result)
     {
-        var fields = type.GetMembers()
-            .OfType<IFieldSymbol>()
-            .Where(f => !f.IsStatic && !f.IsConst)
-            .ToArray();
-
-        foreach (var f in fields)
+        foreach (var (name, fieldType) in GetAccessorFields(type))
         {
-            // Resolve the public-facing name
-            string? name;
-            if (f.AssociatedSymbol is IPropertySymbol prop)
-                name = prop.Name;
-            else
-            {
-                name = f.Name;
-                if (name.StartsWith('<')
-                    && name.EndsWith("k__BackingField", StringComparison.Ordinal))
-                {
-                    var endAngle = name.IndexOf('>', StringComparison.Ordinal);
-                    if (endAngle > 1)
-                        name = name[1..endAngle];
-                }
-                if (f.IsImplicitlyDeclared)
-                    name = null;
-            }
-
-            if (name is null) continue;
-
             var fullName = prefix.Length > 0 ? $"{prefix}.{name}" : name;
-            var fieldType = f.Type;
 
             // Check if this field should be recursively expanded.
             // Expand struct types that have instance fields and are NOT
@@ -239,6 +238,50 @@ static class LauncherStubGenerator
     }
 
     /// <summary>
+    /// Returns the instance fields of a struct with the names the launcher
+    /// accesses them by.
+    /// </summary>
+    private static System.Collections.Generic.IEnumerable<(string, ITypeSymbol)>
+        GetAccessorFields(ITypeSymbol type)
+    {
+        // Element names of tuples are not members of the value tuple the
+        // launcher receives, so access its ItemN fields instead
+        if (type is INamedTypeSymbol { IsTupleType: true } tuple)
+        {
+            for (int i = 0; i < tuple.TupleElements.Length; ++i)
+                yield return ($"Item{i + 1}", tuple.TupleElements[i].Type);
+            yield break;
+        }
+
+        var fields = type.GetMembers()
+            .OfType<IFieldSymbol>()
+            .Where(f => !f.IsStatic && !f.IsConst);
+        foreach (var f in fields)
+        {
+            // Resolve the public-facing name
+            string? name;
+            if (f.AssociatedSymbol is IPropertySymbol prop)
+                name = prop.Name;
+            else
+            {
+                name = f.Name;
+                if (name.StartsWith('<')
+                    && name.EndsWith("k__BackingField", StringComparison.Ordinal))
+                {
+                    var endAngle = name.IndexOf('>', StringComparison.Ordinal);
+                    if (endAngle > 1)
+                        name = name[1..endAngle];
+                }
+                if (f.IsImplicitlyDeclared)
+                    name = null;
+            }
+
+            if (name is not null)
+                yield return (name, f.Type);
+        }
+    }
+
+    /// <summary>
     /// Returns true if the type looks like a view or pointer-containing type
     /// that the IR treats as a single view field (not decomposed).
     /// </summary>
@@ -257,14 +300,44 @@ static class LauncherStubGenerator
                 f.Type.Name is "IntPtr" or "UIntPtr" or "ViewHandle"));
     }
 
-    private static string FormatTypeName(ITypeSymbol type)
+    /// <summary>
+    /// Formats a Roslyn type symbol as a C# type name string suitable for
+    /// use in generated source code. Generic types are expanded recursively;
+    /// well-known primitive types use their C# keyword aliases.
+    /// </summary>
+    private static string FormatTypeName(
+        ITypeSymbol type,
+        Func<ITypeParameterSymbol, string?>? typeParameterNames = null)
     {
-        if (type is INamedTypeSymbol named && named.IsGenericType)
+        if (type is ITypeParameterSymbol typeParameter)
+            return typeParameterNames?.Invoke(typeParameter) ?? typeParameter.Name;
+
+        if (typeParameterNames is not null
+            && GenericContext.ContainsTypeParameter(type))
         {
-            var baseName = named.Name;
+            switch (type)
+            {
+                case IArrayTypeSymbol array:
+                    return $"{FormatTypeName(array.ElementType, typeParameterNames)}" +
+                        $"[{new string(',', array.Rank - 1)}]";
+                case IPointerTypeSymbol pointer:
+                    return FormatTypeName(pointer.PointedAtType, typeParameterNames) +
+                        "*";
+                case INamedTypeSymbol { Arity: 0 } nonGeneric
+                    when nonGeneric.ContainingType is { } container:
+                    return $"{FormatTypeName(container, typeParameterNames)}." +
+                        nonGeneric.Name;
+            }
+        }
+
+        // IsGenericType is also true for a non-generic type nested in a generic
+        // one; only types with their own type arguments get an argument list
+        if (type is INamedTypeSymbol { Arity: > 0 } named)
+        {
             var typeArgs = string.Join(", ",
-                named.TypeArguments.Select(FormatTypeName));
-            return $"{baseName}<{typeArgs}>";
+                named.TypeArguments.Select(t => FormatTypeName(t, typeParameterNames)));
+            return $"{GetGenericTypePrefix(named, typeParameterNames)}" +
+                $"{named.Name}<{typeArgs}>";
         }
 
         return type.SpecialType switch
@@ -288,6 +361,24 @@ static class LauncherStubGenerator
     }
 
     /// <summary>
+    /// Returns the qualifier written before the name of a generic type: its
+    /// containing type, or its namespace unless every generated file imports it.
+    /// </summary>
+    private static string GetGenericTypePrefix(
+        INamedTypeSymbol named,
+        Func<ITypeParameterSymbol, string?>? typeParameterNames)
+    {
+        if (named.ContainingType is { } container)
+            return $"{FormatTypeName(container, typeParameterNames)}.";
+
+        var ns = named.ContainingNamespace;
+        if (ns is null || ns.IsGlobalNamespace)
+            return "";
+        var nsName = ns.ToDisplayString();
+        return ImportedNamespaces.Contains(nsName) ? "" : $"{nsName}.";
+    }
+
+    /// <summary>
     /// Formats a type symbol using fully qualified names — including the
     /// namespace for generic types. Used for <c>where</c> constraint types
     /// which must be fully qualified in the generated stub source.
@@ -307,7 +398,7 @@ static class LauncherStubGenerator
             if (angleIdx >= 0)
                 baseName = baseName[..angleIdx];
             var typeArgs = string.Join(", ",
-                named.TypeArguments.Select(FormatTypeName));
+                named.TypeArguments.Select(t => FormatTypeName(t)));
             return $"{baseName}<{typeArgs}>";
         }
 

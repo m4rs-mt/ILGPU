@@ -13,6 +13,7 @@ using ILGPU.Runtime;
 using ILGPUC.Backends;
 using ILGPUC.Compilers;
 using ILGPUC.IR;
+using ILGPUC.Roslyn.Analysis;
 using ILGPUC.Roslyn.Generation;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -22,7 +23,6 @@ using System.Collections.Generic;
 using System.CommandLine;
 using System.IO;
 using System.Linq;
-using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -176,6 +176,108 @@ sealed partial class Program
         };
 
         /// <summary>
+        /// Preprocessor symbols of the project, so that the analyzed code matches
+        /// the code the real build compiles.
+        /// </summary>
+        readonly Option<string?> _defineConstantsOption = new("--define-constants")
+        {
+            Description =
+                "Preprocessor symbols of the project, separated by ';' or ','",
+        };
+
+        /// <summary>
+        /// The C# language version of the project.
+        /// </summary>
+        readonly Option<string?> _langVersionOption = new("--lang-version")
+        {
+            Description = "C# language version of the project (default: latest)",
+        };
+
+        /// <summary>
+        /// Analyzer assemblies of the project, whose source generators run before
+        /// the analysis.
+        /// </summary>
+        readonly Option<string[]> _analyzersOption = new("--analyzers")
+        {
+            Description = "Analyzer assemblies whose source generators run first",
+            AllowMultipleArgumentsPerToken = true,
+        };
+
+        /// <summary>Additional files of the project, for source generators.</summary>
+        readonly Option<string[]> _additionalFilesOption = new("--additional-files")
+        {
+            Description = "Additional files passed to source generators",
+            AllowMultipleArgumentsPerToken = true,
+        };
+
+        /// <summary>
+        /// The .editorconfig and .globalconfig files of the project, for source
+        /// generators.
+        /// </summary>
+        readonly Option<string[]> _analyzerConfigFilesOption =
+            new("--analyzer-config-files")
+            {
+                Description = "Analyzer config files passed to source generators",
+                AllowMultipleArgumentsPerToken = true,
+            };
+
+        /// <summary>
+        /// Warns for externally visible methods whose type arguments reach a kernel
+        /// launch.
+        /// </summary>
+        readonly Option<bool> _warnOpenPublicEntryPointsOption =
+            new("--warn-open-public-entry-points")
+            {
+                Description =
+                    "Warn for externally visible methods whose type arguments reach " +
+                    "a kernel launch, since other assemblies may launch kernels " +
+                    "with type arguments that are not compiled",
+            };
+
+        /// <summary>
+        /// The maximum nesting depth of a type argument when finding the
+        /// instantiations of kernels launched from generic code.
+        /// </summary>
+        readonly Option<int> _maxGenericTypeDepthOption =
+            new("--max-generic-type-depth")
+            {
+                Description =
+                    "Maximum nesting depth of a type argument when finding the " +
+                    "instantiations of kernels launched from generic code",
+                DefaultValueFactory = static _ =>
+                    GenericInstantiationLimits.DefaultMaxTypeDepth,
+            };
+
+        /// <summary>
+        /// The maximum number of instantiations of one generic definition when
+        /// finding the instantiations of kernels launched from generic code.
+        /// </summary>
+        readonly Option<int> _maxGenericInstantiationsPerDefinitionOption =
+            new("--max-generic-instantiations-per-definition")
+            {
+                Description =
+                    "Maximum number of instantiations of one generic method or type " +
+                    "when finding the instantiations of kernels launched from " +
+                    "generic code",
+                DefaultValueFactory = static _ =>
+                    GenericInstantiationLimits.DefaultMaxInstantiationsPerDefinition,
+            };
+
+        /// <summary>
+        /// The maximum number of generic instantiations in total when finding the
+        /// instantiations of kernels launched from generic code.
+        /// </summary>
+        readonly Option<int> _maxGenericInstantiationsOption =
+            new("--max-generic-instantiations")
+            {
+                Description =
+                    "Maximum number of generic instantiations in total when finding " +
+                    "the instantiations of kernels launched from generic code",
+                DefaultValueFactory = static _ =>
+                    GenericInstantiationLimits.DefaultMaxInstantiations,
+            };
+
+        /// <summary>
         /// Shared compilation-properties options registered on this command.
         /// </summary>
         readonly CompilationPropertiesOptions _compilationPropertiesOptions;
@@ -213,6 +315,15 @@ sealed partial class Program
                 _dumpIRDirOption,
                 _printIROption,
                 _irFormatOption,
+                _defineConstantsOption,
+                _langVersionOption,
+                _maxGenericTypeDepthOption,
+                _maxGenericInstantiationsPerDefinitionOption,
+                _maxGenericInstantiationsOption,
+                _analyzersOption,
+                _additionalFilesOption,
+                _analyzerConfigFilesOption,
+                _warnOpenPublicEntryPointsOption,
             };
 
             _compilationPropertiesOptions = new(command);
@@ -250,7 +361,20 @@ sealed partial class Program
                 return 0;
             }
 
-            // Parse source files
+            // Parse source files with the project's preprocessor symbols and
+            // language version, so that #if blocks select the same code
+            var languageVersion = LanguageVersion.Latest;
+            if (parseResult.GetValue(_langVersionOption) is { Length: > 0 } version &&
+                LanguageVersionFacts.TryParse(version, out var parsedVersion))
+            {
+                languageVersion = parsedVersion;
+            }
+            var preprocessorSymbols = (parseResult.GetValue(_defineConstantsOption) ?? "")
+                .Split([';', ','], StringSplitOptions.RemoveEmptyEntries |
+                    StringSplitOptions.TrimEntries);
+            var parseOptions = CSharpParseOptions.Default
+                .WithLanguageVersion(languageVersion)
+                .WithPreprocessorSymbols(preprocessorSymbols);
             var syntaxTrees = new List<SyntaxTree>();
             foreach (var source in compileItems)
             {
@@ -266,8 +390,7 @@ sealed partial class Program
                     System.Text.Encoding.UTF8);
                 var tree = CSharpSyntaxTree.ParseText(
                     text,
-                    CSharpParseOptions.Default
-                        .WithLanguageVersion(LanguageVersion.Latest),
+                    parseOptions,
                     path: Path.GetFullPath(source),
                     cancellationToken: ct);
                 syntaxTrees.Add(tree);
@@ -312,6 +435,19 @@ sealed partial class Program
                         OutputKind.DynamicallyLinkedLibrary,
                         allowUnsafe: true));
 
+            // Run the project's source generators, so that generated types
+            // resolve and calls through generated code are followed
+            var generatorResult = SourceGeneratorRunner.Run(
+                compilation,
+                parseOptions,
+                parseResult.GetValue(_analyzersOption) ?? [],
+                parseResult.GetValue(_additionalFilesOption) ?? [],
+                parseResult.GetValue(_analyzerConfigFilesOption) ?? [],
+                ct);
+            compilation = generatorResult.Compilation;
+            foreach (var diagnostic in generatorResult.Diagnostics)
+                await Console.Out.WriteLineAsync(diagnostic.ToString());
+
             // Resolve compilation properties and backends
             var properties =
                 _compilationPropertiesOptions.GetProperties(parseResult);
@@ -343,18 +479,24 @@ sealed partial class Program
 
             // Analyze the compilation
             var compiler = new KernelCompiler(properties);
+            var limits = new GenericInstantiationLimits(
+                parseResult.GetValue(_maxGenericTypeDepthOption),
+                parseResult.GetValue(_maxGenericInstantiationsPerDefinitionOption),
+                parseResult.GetValue(_maxGenericInstantiationsOption));
             var analysis = CompilationRewriter.Analyze(
                 compilation,
-                IsLibrary(parseResult.GetValue(_outputTypeOption)));
+                new AnalysisOptions(
+                    limits,
+                    parseResult.GetValue(_warnOpenPublicEntryPointsOption),
+                    generatorResult.GeneratedTrees,
+                    IsLibrary(parseResult.GetValue(_outputTypeOption))));
 
-            // Report invalid launch sites in the canonical error format that
-            // MSBuild surfaces as build errors, and fail without compiling
-            if (analysis.Diagnostics.Count > 0)
-            {
-                foreach (var diagnostic in analysis.Diagnostics)
-                    await Console.Error.WriteLineAsync(diagnostic.ToString());
+            // Report diagnostics in the canonical format, which MSBuild's Exec
+            // task turns into build warnings and errors
+            foreach (var diagnostic in analysis.Diagnostics)
+                await Console.Out.WriteLineAsync(diagnostic.ToString());
+            if (analysis.HasErrors)
                 return 1;
-            }
 
             if (analysis.AllKernels.Count == 0)
             {
@@ -371,6 +513,13 @@ sealed partial class Program
             Console.WriteLine(
                 $"ILGPU build: Found {analysis.UniqueKernels.Count} " +
                 $"unique kernel(s), compiling for {backends.Length} backend(s)...");
+            foreach (var stub in analysis.DispatchStubs)
+            {
+                Console.WriteLine(
+                    $"ILGPU build: Kernel '{stub.KernelName}' is " +
+                    $"launched from generic code with " +
+                    $"{stub.Specializations.Length} instantiation(s).");
+            }
 
             // Resolve IR dump settings
             IRDumpPoint dumpPoints = IRDumpPoint.None;
@@ -401,46 +550,41 @@ sealed partial class Program
                             ct)
                         .ConfigureAwait(false);
             }
+            catch (StubCompilationException e)
+            {
+                foreach (var diagnostic in e.ToBuildDiagnostics())
+                    await Console.Out.WriteLineAsync(diagnostic.ToString());
+                return 1;
+            }
             catch (KernelDiagnosticException exception)
             {
                 // Errors in kernel code are reported like invalid launch sites
-                await Console.Error.WriteLineAsync(exception.Diagnostic.ToString());
+                await Console.Out.WriteLineAsync(exception.Diagnostic.ToString());
                 return 1;
             }
+            foreach (var diagnostic in provider.Diagnostics)
+                await Console.Out.WriteLineAsync(diagnostic.ToString());
 
             // Rewrite to disk with real compiled kernel sources
             var realRewriter = new CompilationRewriter(provider);
             int rewrittenCount =
-                realRewriter.RewriteToDisk(compilation, outputDir, projectDir);
+                realRewriter.RewriteToDisk(
+                    compilation,
+                    analysis,
+                    outputDir,
+                    projectDir);
 
             // Also write ILGPUC registrar files into generated/
             var generatedDir = Path.Combine(outputDir, "generated");
             Directory.CreateDirectory(generatedDir);
 
-            // Compile all methods to get registrar info
-            var methods = new List<MethodInfo>();
-            foreach (var kernel in analysis.UniqueKernels)
-            {
-                if (kernel.KernelMethod is not null)
-                {
-                    // We need to resolve from the temp assembly again — but
-                    // the provider already compiled them. For registrars, we
-                    // can generate from the batch results.
-                }
-            }
-
             // Generate registrars from the compiled kernel class names.
-            // Skip dispatch stubs — they are pure static classes, not
-            // CompiledKernel subclasses.
-            var dispatchNames = new HashSet<string>(
-                analysis.DispatchKernels.Select(d => d.KernelName));
+            // Dispatch stubs are not part of UniqueKernels: they are pure
+            // static classes, not CompiledKernel subclasses.
             var kernelsByAccelType =
                 new Dictionary<AcceleratorType, List<string>>();
             foreach (var kernel in analysis.UniqueKernels)
             {
-                if (dispatchNames.Contains(kernel.KernelName))
-                    continue;
-
                 foreach (var backend in backends)
                 {
                     if (!kernelsByAccelType.TryGetValue(

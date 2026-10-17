@@ -1,0 +1,64 @@
+// SourceGenerated: the kernel's input comes from code that source generators
+// produce (System.Text.Json and Regex). ILGPUC runs the project's generators, so
+// the project compiles for it as it does for csc, and the generic launch is
+// found through the generic wrapper.
+// Expected output: 2 4 6 8
+
+using System;
+using System.Numerics;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using System.Text.RegularExpressions;
+using ILGPU;
+using ILGPU.Runtime;
+
+namespace SourceGenerated;
+
+[JsonSerializable(typeof(int[]))]
+partial class AppJson : JsonSerializerContext
+{
+}
+
+static partial class Patterns
+{
+    [GeneratedRegex("[0-9]")]
+    public static partial Regex Digit();
+}
+
+static class Kernels
+{
+    public static void Scale<T>(
+        Index1D index,
+        ArrayView1D<T, Stride1D.Dense> data,
+        T factor)
+        where T : unmanaged, INumber<T>
+    {
+        data[index] = data[index] * factor;
+    }
+}
+
+static class Program
+{
+    static void Main()
+    {
+        using var context = Context.Create(b => b.Default());
+        using var accelerator = context.GetPreferredDevice(preferCPU: $(PREFER_CPU))
+            .CreateAccelerator(context);
+        var stream = accelerator.DefaultStream;
+
+        var values = JsonSerializer.Deserialize("[1,2,3,4]", AppJson.Default.Int32Array)!;
+        int factor = Patterns.Digit().Matches("a1b2").Count;
+        Run(stream, values, factor);
+    }
+
+    static void Run<T>(AcceleratorStream stream, T[] values, T factor)
+        where T : unmanaged, INumber<T>
+    {
+        using var buffer = stream.Allocate1D(values);
+        var view = buffer.View;
+        stream.Launch((Index1D)values.Length, i => Kernels.Scale(i, view, factor));
+        stream.Synchronize();
+        foreach (var value in buffer.GetAsArray1D())
+            Console.WriteLine(value);
+    }
+}

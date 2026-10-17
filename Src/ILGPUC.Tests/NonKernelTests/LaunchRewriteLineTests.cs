@@ -49,7 +49,10 @@ public sealed class LaunchRewriteLineTests : IDisposable
     private SyntaxTree RewriteAndCompile(string program)
     {
         var compilation = RoslynCompiler.CreateCompilation([program], "LineTest");
-        int count = new CompilationRewriter().RewriteToDisk(compilation, _outputDir);
+        int count = new CompilationRewriter().RewriteToDisk(
+            compilation,
+            CompilationRewriter.Analyze(compilation),
+            _outputDir);
         Assert.Equal(1, count);
 
         var parseOptions = CSharpParseOptions.Default

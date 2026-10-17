@@ -22,6 +22,7 @@ using ILGPUC.Roslyn.Analysis;
 using ILGPUC.Roslyn.Generation;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using RoslynSymbols = Microsoft.CodeAnalysis;
 using System;
 using System.Collections.Generic;
@@ -124,12 +125,13 @@ sealed class ProgramBuilder : DisposeBase
         _output?.WriteLine(
             $"Found {analysis.AllKernels.Count} launch site(s), " +
             $"{analysis.UniqueKernels.Count} unique kernel(s)");
-
-        if (analysis.Diagnostics.Count > 0)
+        foreach (var diagnostic in analysis.Diagnostics)
+            _output?.WriteLine(diagnostic.ToString());
+        if (analysis.HasErrors)
         {
             throw new InvalidOperationException(
-                "Kernel launch sites have errors:\n" +
-                string.Join("\n", analysis.Diagnostics));
+                "Kernel analysis failed:\n" +
+                string.Join("\n", analysis.Diagnostics.Where(d => d.IsError)));
         }
 
         if (analysis.UniqueKernels.Count == 0)
@@ -315,88 +317,15 @@ sealed class ProgramBuilder : DisposeBase
     }
 
     /// <summary>
-    /// Resolves a kernel method from a KernelDescriptor.
-    /// The descriptor has the kernel method's IMethodSymbol — we match by
-    /// type name + method name in the loaded assembly.
+    /// Resolves a kernel method from a KernelDescriptor through its Roslyn
+    /// symbol, which handles generic containing types, constructed type
+    /// arguments and overloads the same way as the <c>build</c> command.
     /// </summary>
     private static MethodInfo? ResolveKernelMethod(
-        Assembly assembly, KernelDescriptor kernel)
-    {
-        if (kernel.KernelMethod is null)
-            return null;
-
-        var containingType = kernel.KernelMethod.ContainingType;
-        var typeName = containingType.Name;
-        var methodName = kernel.KernelMethod.Name;
-
-        var type = assembly.GetTypes()
-            .FirstOrDefault(t => t.Name == typeName || t.FullName == typeName);
-        if (type is null)
-            return null;
-
-        var method = type.GetMethod(
-            methodName,
-            BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static);
-        if (method is null)
-            return null;
-
-        // For generic methods, create the concrete instantiation using
-        // the type arguments from the Roslyn symbol (e.g., AddKernel<T>
-        // → AddKernel<int> based on call-site inference).
-        if (method.IsGenericMethodDefinition
-            && kernel.KernelMethod is IMethodSymbol { IsGenericMethod: true } sym)
-        {
-            var typeArgs = sym.TypeArguments
-                .Select(ta => ResolveTypeFromSymbol(ta, assembly))
-                .ToArray();
-            method = method.MakeGenericMethod(typeArgs);
-        }
-
-        return method;
-    }
-
-    /// <summary>
-    /// Resolves a CLR <see cref="Type"/> from a Roslyn type symbol,
-    /// handling C# keyword aliases (int, long, float, etc.) and falling back
-    /// to a name lookup against the test program's loaded assembly for
-    /// user-defined struct/closure types.
-    /// </summary>
-    private static Type ResolveTypeFromSymbol(
-        RoslynSymbols.ITypeSymbol typeSymbol,
-        Assembly assembly)
-    {
-        // Handle special types (C# keywords) directly
-        if (typeSymbol.SpecialType != RoslynSymbols.SpecialType.None)
-        {
-            return typeSymbol.SpecialType switch
-            {
-                RoslynSymbols.SpecialType.System_Boolean => typeof(bool),
-                RoslynSymbols.SpecialType.System_Byte => typeof(byte),
-                RoslynSymbols.SpecialType.System_SByte => typeof(sbyte),
-                RoslynSymbols.SpecialType.System_Int16 => typeof(short),
-                RoslynSymbols.SpecialType.System_UInt16 => typeof(ushort),
-                RoslynSymbols.SpecialType.System_Int32 => typeof(int),
-                RoslynSymbols.SpecialType.System_UInt32 => typeof(uint),
-                RoslynSymbols.SpecialType.System_Int64 => typeof(long),
-                RoslynSymbols.SpecialType.System_UInt64 => typeof(ulong),
-                RoslynSymbols.SpecialType.System_Single => typeof(float),
-                RoslynSymbols.SpecialType.System_Double => typeof(double),
-                _ => typeof(int),
-            };
-        }
-
-        var clrName = typeSymbol.ToDisplayString(
-            SymbolDisplayFormat.FullyQualifiedFormat)
-            .Replace("global::", "");
-
-        // Try the test program's assembly first (custom struct closures
-        // like AddOffsetClosure), then any loaded assembly via Type.GetType.
-        var simpleName = typeSymbol.Name;
-        return assembly.GetTypes()
-                .FirstOrDefault(t => t.FullName == clrName || t.Name == simpleName)
-            ?? Type.GetType(clrName)
-            ?? typeof(int);
-    }
+        Assembly assembly, KernelDescriptor kernel) =>
+        kernel.KernelMethod is { } method
+            ? RuntimeSymbolResolver.ResolveMethod(assembly, method)
+            : null;
 
     private CompiledKernelGenerationResult GenerateWrapper(
         MethodInfo method,
