@@ -31,6 +31,22 @@ public abstract class ArrayExecutionTests : ExecutionTestBase
             ["3", "5", "7", "9"]);
     }
 
+    /// <summary>
+    /// Local multidimensional arrays created with new T[,] and new T[,,], and
+    /// their lengths.
+    /// </summary>
+    [SkippableFact]
+    public async Task MultiDimArrays_ProducesCorrectOutput()
+    {
+        await VerifyProgramOutputAsync(
+            "TestPrograms/Array/MultiDimArrays.cs",
+            ["Kernels.GridKernel", "Kernels.CubeKernel"],
+            [
+                "1209", "1309", "1409", "1509",
+                "7", "8", "9", "10",
+            ]);
+    }
+
     [SkippableFact]
     public async Task ArrayBounds_ProducesCorrectOutput()
     {

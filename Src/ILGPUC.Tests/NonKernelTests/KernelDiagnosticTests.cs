@@ -242,6 +242,16 @@ public sealed class KernelDiagnosticTests
             data[index] = array[0](data[index]);
         }
 
+        // A multidimensional array of delegates
+        public static void MultiDimDelegateArrayKernel(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data)
+        {
+            var array = new Func<int, int>[1, 1]; // MultiDimDelegateArray
+            array[0, 0] = x => x + 1;
+            data[index] = array[0, 0](data[index]);
+        }
+
         // k36_nestedlambda: a capturing lambda creating another lambda
         public static void NestedLambdaKernel(
             Index1D index,
@@ -829,6 +839,14 @@ public sealed class KernelDiagnosticTests
             "ILGPU1205",
             "uses a delegate stored in an array of 'Func<Int32, Int32>'.",
             "DelegateArray");
+
+    [Fact]
+    public void MultiDimDelegateArray_Reports1205() =>
+        AssertDiagnostic(
+            Compile(nameof(Kernels.MultiDimDelegateArrayKernel)),
+            "ILGPU1205",
+            "uses a delegate stored in an array of 'Func<Int32, Int32>'.",
+            "MultiDimDelegateArray");
 
     [Fact]
     public void NestedLambda_Reports1205() =>
