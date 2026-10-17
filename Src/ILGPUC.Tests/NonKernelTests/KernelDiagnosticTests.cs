@@ -2443,8 +2443,9 @@ public sealed class KernelDiagnosticTests
     /// <summary>
     /// Kernels using the array of an iteration after its allocation has run
     /// again: kept in a variable, a structure or an outer array, compared with
-    /// the next array, in a do loop, after the loop, two iterations later, or in
-    /// a helper calling itself in tail position, which becomes a loop.
+    /// the next array, also an empty one, in a do loop, after the loop, two
+    /// iterations later, from a helper that is not inlined, or in a helper
+    /// calling itself in tail position, which becomes a loop.
     /// </summary>
     private static readonly Dictionary<string, string> ArraysReusedInLoops = new()
     {
@@ -2489,6 +2490,15 @@ public sealed class KernelDiagnosticTests
                 prev = a;
             }
             """,
+        ["EmptyCompare"] = """
+            int[] prev = null;
+            for (int k = 0; k < 2; ++k)
+            {
+                var a = new int[0]; // error
+                d[i] += a == prev ? 1 : 0;
+                prev = a;
+            }
+            """,
         ["DoWhile"] = """
             var prev = new int[1];
             int k = 0, s = 0;
@@ -2527,6 +2537,16 @@ public sealed class KernelDiagnosticTests
                 prev = a;
             }
             """,
+        ["Helper"] = """
+            int[] prev = null;
+            for (int k = 0; k < 2; ++k)
+            {
+                var a = MakeShared(k);
+                if (prev != null)
+                    d[i] = prev[0];
+                prev = a;
+            }
+            """,
         ["TailCall"] = """
             d[i] = Sum(0, 0, default);
             """,
@@ -2554,8 +2574,8 @@ public sealed class KernelDiagnosticTests
     }
 
     /// <summary>
-    /// Every iteration of a loop reuses the buffer of an array allocated in it:
-    /// the first kernel read 1 instead of 0. Using the
+    /// Every iteration of a loop reuses the buffer of an array allocated in it,
+    /// also through a helper: the first kernel read 1 instead of 0. Using the
     /// array of an iteration after the allocation of a later one is rejected at
     /// the allocation.
     /// </summary>
@@ -2571,6 +2591,13 @@ public sealed class KernelDiagnosticTests
             struct Holder { public int[] Values; }
             static class K
             {
+                [MethodImpl(MethodImplOptions.NoInlining)]
+                static int[] MakeShared(int k)
+                {
+                    var a = new int[1];{{(name == "Helper" ? " // error" : "")}}
+                    a[0] = k;
+                    return a;
+                }
                 static int[] MakeArray(int k)
                 {
                     var a = new int[1];{{(name == "TailCall" ? " // error" : "")}}
@@ -2618,6 +2645,67 @@ public sealed class KernelDiagnosticTests
             "ILGPU1200",
             "Method 'Kernels.ArrayReusedInLoopKernel' allocates an array in a loop",
             "ArrayReusedInLoop");
+
+    /// <summary>
+    /// Arrays allocated in a loop and used in their iteration, the array of the
+    /// last iteration used after the loop, the array of the previous iteration
+    /// used before the allocation, arrays allocated before a loop and swapped in
+    /// it, the arrays of a helper used in their iteration and Array.Empty build.
+    /// </summary>
+    [Theory]
+    [InlineData(RoslynOptimizationLevel.Debug)]
+    [InlineData(RoslynOptimizationLevel.Release)]
+    public Task ArraysOfLoopIterations_Build(
+        RoslynOptimizationLevel optimizationLevel) =>
+        AssertBuildSucceedsAsync(
+            """
+            using System.Runtime.CompilerServices;
+            static class K
+            {
+                [MethodImpl(MethodImplOptions.NoInlining)]
+                static int[] MakeArray(int k) { var a = new int[2]; a[0] = k; return a; }
+                public static void Kern(Index1D i, ArrayView1D<int, Stride1D.Dense> d)
+                {
+                    int s = 0;
+                    for (int k = 0; k < i; ++k)
+                    {
+                        var a = new int[2];
+                        a[k & 1] = k;
+                        s += a[0] + a[1];
+                    }
+                    int[] last = null;
+                    for (int k = 0; k < i + 2; ++k)
+                    {
+                        var a = new int[2];
+                        a[1] = k;
+                        last = a;
+                    }
+                    int[] prev = null;
+                    for (int k = 0; k < i; ++k)
+                    {
+                        if (prev != null)
+                            s += prev[0];
+                        var a = new int[1];
+                        a[0] = k;
+                        prev = a;
+                    }
+                    var x = new int[1];
+                    var y = new int[1];
+                    for (int k = 0; k < i; ++k)
+                    {
+                        x[0] = y[0] + k;
+                        (x, y) = (y, x);
+                    }
+                    for (int k = 0; k < i; ++k)
+                    {
+                        var a = MakeArray(k);
+                        s += a[0] + (Array.Empty<int>() == Array.Empty<int>() ? 1 : 0);
+                    }
+                    d[i] = s + last[1] + x[0] + y[0];
+                }
+            }
+            """,
+            optimizationLevel);
 
     #endregion
 

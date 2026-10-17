@@ -85,6 +85,11 @@ static partial class ArrayBufferVerifier
         /// The values of every method, including pure values.
         /// </summary>
         public Dictionary<Method, List<Value>> Values { get; } = [];
+
+        /// <summary>
+        /// How the arrays that methods allocate during a call escape them.
+        /// </summary>
+        public Dictionary<Method, Allocation> Allocations { get; } = [];
     }
 
     /// <summary>
@@ -163,8 +168,8 @@ static partial class ArrayBufferVerifier
     /// Returns the number of calls of the given method per thread, at most
     /// <see cref="Several"/>: a kernel is called once, a method of a call cycle
     /// several times, and other methods as often as all their calls together.
-    /// A method called in a loop counts once, like an array allocated in a
-    /// loop, which is the same array in every iteration.
+    /// A method called in a loop counts once: the arrays of its calls that
+    /// survive an iteration are rejected like the arrays allocated in a loop.
     /// </summary>
     private static int GetNumCalls(Context context, Module module, Method method)
     {

@@ -141,4 +141,36 @@ public abstract class ArrayExecutionTests : ExecutionTestBase
             new CompilationProperties { OptimizationLevel = level },
             programOptimization);
     }
+
+    /// <summary>
+    /// Every iteration of a loop reuses the buffer of an array allocated in it,
+    /// which the build accepts where no iteration uses an array of an earlier
+    /// iteration after allocating its own: arrays used in their iteration, the
+    /// array of the last iteration after the loop, the array of the previous
+    /// iteration before the allocation, arrays swapped in a loop, the arrays of a
+    /// helper that is not inlined and Array.Empty.
+    /// </summary>
+    [SkippableTheory]
+    [InlineData(RoslynOptimizationLevel.Release, OptimizationLevel.O0)]
+    [InlineData(RoslynOptimizationLevel.Release, OptimizationLevel.O1)]
+    [InlineData(RoslynOptimizationLevel.Release, OptimizationLevel.O2)]
+    [InlineData(RoslynOptimizationLevel.Debug, OptimizationLevel.O0)]
+    [InlineData(RoslynOptimizationLevel.Debug, OptimizationLevel.O1)]
+    [InlineData(RoslynOptimizationLevel.Debug, OptimizationLevel.O2)]
+    public async Task ArrayLoopAllocations_ProducesCorrectOutput(
+        RoslynOptimizationLevel programOptimization,
+        OptimizationLevel level)
+    {
+        await VerifyProgramOutputAsync(
+            "TestPrograms/Array/ArrayLoopAllocations.cs",
+            ["Kernels.ArrayLoopAllocationKernel"],
+            [
+                "1", "201", "3", "3", "1", "1", "1",
+                "21", "402", "6", "4", "103", "3", "2",
+                "24", "603", "10", "5", "306", "6", "3",
+                "64", "804", "15", "6", "610", "10", "4",
+            ],
+            new CompilationProperties { OptimizationLevel = level },
+            programOptimization);
+    }
 }

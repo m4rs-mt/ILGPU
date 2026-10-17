@@ -23,14 +23,16 @@ using System.Globalization;
 namespace ILGPUC.Backends;
 
 /// <remarks>
-/// An array allocated in a loop uses the same buffer in every iteration. The
-/// array of an iteration becomes stale when its allocation runs again, and every
-/// use of a value that can refer to a stale array is rejected. Arrays reach
-/// later iterations through phis, and pure values refer to the arrays of their
-/// operands. An array stored to memory before its allocation can run again is
-/// rejected, as a later iteration could load it. An allocation runs where the
-/// frontend clears the elements of an array, which it does in loops and in all
-/// methods but kernels.
+/// An array allocated in a loop, directly or by a method called in it, uses the
+/// same buffer in every iteration. The array of an iteration becomes stale when
+/// its allocation runs again, and every use of a value that can refer to a stale
+/// array is rejected. Arrays reach later iterations through phis, and pure
+/// values refer to the arrays of their operands. An array stored to memory
+/// before its allocation can run again is rejected, as a later iteration could
+/// load it. An allocation runs where the frontend clears the elements of an
+/// array, which it does in loops and in all methods but kernels, or where a
+/// method returning or storing its arrays is called. Otherwise, it can run
+/// anywhere in the blocks dominating the uses of the array.
 /// </remarks>
 static partial class ArrayBufferVerifier
 {
@@ -41,11 +43,19 @@ static partial class ArrayBufferVerifier
     private readonly record struct Position(BasicBlock Block, int Index);
 
     /// <summary>
-    /// The arrays of a buffer in a method.
+    /// How the arrays that a method allocates during a call, directly or through
+    /// the methods it calls, escape it, and the buffer of an escaping array.
     /// </summary>
-    private sealed class Arrays(Global global)
+    private readonly record struct Allocation(Escape Escape, Global? Global);
+
+    /// <summary>
+    /// The arrays of a buffer in a method, or of the calls of a method returning
+    /// or storing the arrays it allocates.
+    /// </summary>
+    private sealed class Arrays(Global global, Method? callee)
     {
         public Global Global { get; } = global;
+        public Method? Callee { get; } = callee;
 
         /// <summary>
         /// The positions at which the allocation can run, per block.
@@ -79,6 +89,43 @@ static partial class ArrayBufferVerifier
         public bool Allocates(BasicBlock block, int start, int end) =>
             Allocations.TryGetValue(block, out var indices) &&
             indices.Exists(index => index >= start && index <= end);
+    }
+
+    /// <summary>
+    /// Returns how the arrays that the given method allocates during a call
+    /// escape it. A method whose analysis is in progress, as in a call cycle, has
+    /// no escaping arrays: a method of a cycle is rejected if its arrays escape.
+    /// </summary>
+    private static Allocation GetAllocation(Context context, Method method)
+    {
+        if (context.Allocations.TryGetValue(method, out var allocation))
+            return allocation;
+        context.Allocations.Add(method, default);
+
+        Escape escape = default;
+        Global? global = null;
+        void Add(Escape other, Global? source)
+        {
+            escape = new(escape.Stored | other.Stored, escape.Returned | other.Returned);
+            if (other.Stored || other.Returned)
+                global ??= source;
+        }
+        foreach (var value in GetValues(context, method))
+        {
+            if (value is Global { IsAllocatedPerCopy: true } buffer)
+            {
+                Add(Trace(context, method, [buffer]), buffer);
+            }
+            else if (value is MethodCall { Target.HasImplementation: true } call)
+            {
+                var inner = GetAllocation(context, call.Target);
+                Add(new(inner.Escape.Stored, false), inner.Global);
+                if (inner.Escape.Returned && HoldsAddress(call.Type))
+                    Add(Trace(context, method, [call]), inner.Global);
+            }
+        }
+        context.Allocations[method] = allocation = new(escape, global);
+        return allocation;
     }
 
     /// <summary>
@@ -142,12 +189,31 @@ static partial class ArrayBufferVerifier
         public List<Arrays> GetArrays()
         {
             var result = new List<Arrays>();
+            var callees = new Dictionary<Method, Arrays>();
+            foreach (var block in _method.Blocks)
+            {
+                foreach (var (value, _) in block)
+                {
+                    if (value is not MethodCall { Target.HasImplementation: true } call ||
+                        GetAllocation(_context, call.Target).Global is not { } global)
+                    {
+                        continue;
+                    }
+                    if (!callees.TryGetValue(call.Target, out var arrays))
+                    {
+                        callees.Add(call.Target, arrays = new(global, call.Target));
+                        result.Add(arrays);
+                    }
+                    arrays.Allocate(_positions[call]);
+                }
+            }
             foreach (var value in GetValues(_context, _method))
             {
                 if (value is not Global { IsAllocatedPerCopy: true } global)
                     continue;
-                var arrays = new Arrays(global);
-                AllocateAtClearings(arrays);
+                var arrays = new Arrays(global, null);
+                if (!TryAllocateAtClearings(arrays))
+                    AllocateInDominators(arrays);
                 result.Add(arrays);
             }
             return result;
@@ -158,15 +224,17 @@ static partial class ArrayBufferVerifier
         /// clear all its elements, which the frontend emits for arrays of up to a
         /// fixed number of elements where it allocates them.
         /// </summary>
-        private void AllocateAtClearings(Arrays arrays)
+        /// <returns>False if no block clears the buffer.</returns>
+        private bool TryAllocateAtClearings(Arrays arrays)
         {
             var global = arrays.Global;
             if (global.ArrayLength is not { Int32Value: >= 1 and var length } ||
                 length > Frontend.CodeGenerator.MaxNumArrayElementsToReinitialize)
             {
-                return;
+                return false;
             }
 
+            bool found = false;
             foreach (var block in _method.Blocks)
             {
                 var elements = new HashSet<int>();
@@ -182,8 +250,12 @@ static partial class ArrayBufferVerifier
                     }
                 }
                 if (elements.Count >= length)
+                {
+                    found = true;
                     stores.ForEach(arrays.Allocate);
+                }
             }
+            return found;
         }
 
         /// <summary>
@@ -217,6 +289,58 @@ static partial class ArrayBufferVerifier
                     default:
                         return false;
                 }
+            }
+        }
+
+        /// <summary>
+        /// Lets the allocation of a buffer run anywhere in the blocks dominating
+        /// all its uses, up to its first use in the nearest of them.
+        /// </summary>
+        private void AllocateInDominators(Arrays arrays)
+        {
+            var uses = new Dictionary<BasicBlock, int>();
+            void Use(Value value, Position position)
+            {
+                if (GetLeaves(value).Contains(arrays.Global) &&
+                    (!uses.TryGetValue(position.Block, out int index) ||
+                    position.Index < index))
+                {
+                    uses[position.Block] = position.Index;
+                }
+            }
+            foreach (var block in _method.Blocks)
+            {
+                foreach (var (value, _) in block)
+                {
+                    if (value is PhiValue phi)
+                    {
+                        for (int i = 0; i < phi.NumArguments; ++i)
+                            Use(phi.Arguments[i], End(phi.Sources[i]));
+                        continue;
+                    }
+                    foreach (var operand in value.Values)
+                        Use(operand, _positions[value]);
+                }
+                if (block.TerminationValue is { } terminationValue)
+                    Use(terminationValue, End(block));
+            }
+            if (uses.Count < 1)
+                return;
+
+            var dominators = _method.Blocks.CreateDominators();
+            var dominator = dominators.GetImmediateCommonDominator([.. uses.Keys]);
+            int end = uses.TryGetValue(dominator, out int first)
+                ? first
+                : _ends[dominator];
+            while (true)
+            {
+                for (int i = 0; i <= end; ++i)
+                    arrays.Allocate(new(dominator, i));
+                var next = dominators.GetImmediateDominator(dominator);
+                if (next == dominator)
+                    break;
+                dominator = next;
+                end = _ends[dominator];
             }
         }
 
@@ -264,7 +388,7 @@ static partial class ArrayBufferVerifier
         {
             foreach (var leaf in GetLeaves(value))
             {
-                if (leaf == arrays.Global ||
+                if (leaf == arrays.Global && arrays.Callee is null ||
                     arrays.Bases.ContainsKey(leaf))
                 {
                     return true;
@@ -410,11 +534,11 @@ static partial class ArrayBufferVerifier
         /// <summary>
         /// Returns whether the given value of a block can refer to an array, also
         /// to a stale array where it is defined, and whether it can store an array.
-        /// A phi refers to the arrays of its arguments. A call refers to arrays
-        /// passed to parameters that its target returns, and stores arrays passed
-        /// to parameters that its target stores. Other values holding addresses
-        /// refer to the arrays of their operands, and other values can store the
-        /// addresses passed to them.
+        /// A phi refers to the arrays of its arguments. A call allocates the
+        /// arrays of its target, refers to arrays passed to parameters that its
+        /// target returns, and stores arrays passed to parameters that its target
+        /// stores. Other values holding addresses refer to the arrays of their
+        /// operands, and other values can store the addresses passed to them.
         /// </summary>
         private (bool Refers, bool Stale, bool Stores) Trace(Arrays arrays, Value value)
         {
@@ -443,6 +567,12 @@ static partial class ArrayBufferVerifier
                 case Load or Alloca:
                     break;
                 case MethodCall { Target.HasImplementation: true } call:
+                    if (call.Target == arrays.Callee)
+                    {
+                        var escape = GetAllocation(_context, call.Target).Escape;
+                        refers = escape.Returned;
+                        stores = escape.Stored;
+                    }
                     for (int i = 0; i < call.Arguments.Length; ++i)
                     {
                         Pass(call.Arguments[i], position,

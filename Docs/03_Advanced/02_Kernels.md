@@ -35,7 +35,7 @@ Arrays are compared by their buffers, and every allocation site has a single buf
 a loop reuses.
 A loop that uses the array of an iteration after its allocation has run again, such as an array kept in a variable, a
 structure or memory for the next iteration, or compared with the array of a later iteration, is rejected with error
-`ILGPU1200` at the allocation.
+`ILGPU1200` at the allocation, also for the arrays that a helper method called in the loop returns or stores.
 Arrays used in their iteration and the array of the last iteration used after the loop are supported.
 Every inlined copy of a helper method has buffers of its own, so a helper method that is inlined returns a new array
 from every call.
