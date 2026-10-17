@@ -22,7 +22,6 @@ using ILGPUC.Roslyn.Analysis;
 using ILGPUC.Roslyn.Generation;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
 using RoslynSymbols = Microsoft.CodeAnalysis;
 using System;
 using System.Collections.Generic;
@@ -30,7 +29,6 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.Loader;
-using System.Text;
 using System.Threading;
 using Xunit.Abstractions;
 
@@ -127,6 +125,13 @@ sealed class ProgramBuilder : DisposeBase
             $"Found {analysis.AllKernels.Count} launch site(s), " +
             $"{analysis.UniqueKernels.Count} unique kernel(s)");
 
+        if (analysis.Diagnostics.Count > 0)
+        {
+            throw new InvalidOperationException(
+                "Kernel launch sites have errors:\n" +
+                string.Join("\n", analysis.Diagnostics));
+        }
+
         if (analysis.UniqueKernels.Count == 0)
         {
             // Fallback: no stream.Launch() calls found — use legacy path
@@ -134,40 +139,15 @@ sealed class ProgramBuilder : DisposeBase
         }
 
         // Step 3: Compile each unique kernel via ILGPUC pipeline
-        // For inline lambda kernels, synthesize a static method so we can
-        // resolve them via reflection just like named kernels.
-        var inlineSources = new List<string>();
-        foreach (var kernel in analysis.UniqueKernels)
-        {
-            if (kernel.KernelMethod is null && kernel.KernelBody is not null)
-            {
-                var synth = SynthesizeInlineKernel(kernel);
-                inlineSources.Add(synth);
-                _output?.WriteLine(
-                    $"Synthesized inline kernel: {kernel.KernelName}");
-            }
-        }
-
         // Emit a stub compilation so we can load the assembly and resolve
-        // kernel MethodInfos. Include synthesized inline kernel sources so
-        // they can be resolved via reflection.
+        // kernel MethodInfos. Inline lambda kernels are lifted into static
+        // local functions exactly as in the production ilgpuc-build path.
         var stubRewriter = new CompilationRewriter();  // uses stubs
-        var stubResult = stubRewriter.Rewrite(compilation, analysis);
-
-        // Add synthesized inline kernel sources to the stub compilation
-        var stubCompilation = stubResult.Compilation;
-        if (inlineSources.Count > 0)
-        {
-            var parseOptions = CSharpParseOptions.Default
-                .WithLanguageVersion(LanguageVersion.CSharp13);
-            var inlineTrees = inlineSources.Select((src, i) =>
-                CSharpSyntaxTree.ParseText(
-                    src, parseOptions, $"inline{i}.cs")).ToArray();
-            stubCompilation = stubCompilation.AddSyntaxTrees(inlineTrees);
-        }
+        var stubResult = stubRewriter.Rewrite(
+            compilation, analysis, liftInlineKernels: true);
 
         var stubDll = Path.Combine(_tempDir, "stub.dll");
-        RoslynCompiler.Emit(stubCompilation, stubDll);
+        RoslynCompiler.Emit(stubResult.Compilation, stubDll);
 
         var alc = new AssemblyLoadContext(
             $"ProgramBuilder_{Guid.NewGuid():N}", isCollectible: true);
@@ -188,12 +168,10 @@ sealed class ProgramBuilder : DisposeBase
 
             foreach (var kernel in analysis.UniqueKernels)
             {
-                var method = ResolveKernelMethod(assembly, kernel);
-                if (method is null)
-                {
-                    // For inline kernels, try the synthesized holder class
-                    method = ResolveInlineKernelMethod(assembly, kernel);
-                }
+                // Inline lambdas and local functions resolve through the
+                // production resolver of the ilgpuc-build path
+                var method = ResolveKernelMethod(assembly, kernel)
+                    ?? MainKernelProvider.ResolveKernelMethod(assembly, kernel);
                 if (method is null)
                 {
                     _output?.WriteLine(
@@ -611,106 +589,6 @@ sealed class ProgramBuilder : DisposeBase
     {
         if (Interlocked.CompareExchange(ref s_intrinsicsInitialized, 1, 0) == 0)
             Intrinsics.Init();
-    }
-
-    /// <summary>
-    /// Synthesizes a C# source file containing a static method from an inline
-    /// lambda kernel body. The method receives the index parameter first,
-    /// followed by all captured variables as explicit parameters.
-    /// </summary>
-    private static string SynthesizeInlineKernel(KernelDescriptor kernel)
-    {
-        // Extract index parameter name from the lambda syntax
-        var indexParamName = kernel.LaunchInfo.KernelArgument switch
-        {
-            SimpleLambdaExpressionSyntax simple =>
-                simple.Parameter.Identifier.Text,
-            ParenthesizedLambdaExpressionSyntax paren =>
-                paren.ParameterList.Parameters[0].Identifier.Text,
-            _ => "index",
-        };
-
-        // Determine the index type from the launch variant
-        var indexType = kernel.Variant switch
-        {
-            LaunchVariant.Auto1D => "Index1D",
-            LaunchVariant.AutoLong1D => "LongIndex1D",
-            LaunchVariant.Grouped => "KernelIndex",
-            LaunchVariant.Auto2D or LaunchVariant.Auto2DStride => "Index2D",
-            LaunchVariant.AutoLong2D or LaunchVariant.AutoLong2DStride
-                => "LongIndex2D",
-            LaunchVariant.Auto3D or LaunchVariant.Auto3DStride => "Index3D",
-            LaunchVariant.AutoLong3D or LaunchVariant.AutoLong3DStride
-                => "LongIndex3D",
-            _ => "Index1D",
-        };
-
-        var sb = new StringBuilder();
-        sb.AppendLine("using System;");
-        sb.AppendLine("using ILGPU;");
-        sb.AppendLine("using ILGPU.Runtime;");
-        sb.AppendLine();
-        sb.AppendLine(
-            $"static class {kernel.KernelName}_Holder");
-        sb.AppendLine("{");
-
-        // Method signature: index param + captured params
-        sb.Append(
-            $"    public static void {kernel.KernelName}(");
-        sb.Append($"{indexType} {indexParamName}");
-
-        foreach (var param in kernel.Parameters)
-        {
-            var typeName =
-                LauncherStubGenerator.FormatTypeNamePublic(param.Type);
-            sb.Append($", {typeName} {param.Name}");
-        }
-        sb.AppendLine(")");
-
-        // Rewrite body: for buffer-to-view captures, strip ".View" from
-        // member access since the parameter is already the view type.
-        var bodyText = kernel.KernelBody!.ToFullString();
-        foreach (var param in kernel.Parameters)
-        {
-            var sourceText = param.SourceExpression.ToString();
-            if (sourceText != param.Name)
-            {
-                // e.g., "buffer.View" → "buffer"
-                bodyText = bodyText.Replace(sourceText, param.Name);
-            }
-        }
-
-        if (kernel.KernelBody is BlockSyntax)
-        {
-            sb.AppendLine($"    {bodyText}");
-        }
-        else
-        {
-            // Expression body — wrap in a statement block
-            sb.AppendLine("    {");
-            sb.AppendLine($"        {bodyText};");
-            sb.AppendLine("    }");
-        }
-
-        sb.AppendLine("}");
-        return sb.ToString();
-    }
-
-    /// <summary>
-    /// Resolves a synthesized inline kernel method from its holder class.
-    /// </summary>
-    private static MethodInfo? ResolveInlineKernelMethod(
-        Assembly assembly, KernelDescriptor kernel)
-    {
-        var holderTypeName = $"{kernel.KernelName}_Holder";
-        var type = assembly.GetTypes()
-            .FirstOrDefault(t => t.Name == holderTypeName);
-        if (type is null)
-            return null;
-
-        return type.GetMethod(
-            kernel.KernelName,
-            BindingFlags.Public | BindingFlags.Static);
     }
 
     protected override void Dispose(bool disposing)

@@ -16,6 +16,7 @@ using ILGPUC.Backends;
 using ILGPUC.Backends.CPU;
 using ILGPUC.Compilers;
 using ILGPUC.Frontend;
+using ILGPUC.Frontend.DebugInformation;
 using ILGPUC.Frontend.Intrinsic;
 using ILGPUC.IR;
 using ILGPUC.IR.ModuleValues.Construction;
@@ -117,6 +118,24 @@ sealed class KernelCompiler
         if (Interlocked.CompareExchange(ref _intrinsicsInitialized, 1, 0) == 0)
             Intrinsics.Init();
     }
+
+    /// <summary>
+    /// Registers the portable PDB of an assembly that was loaded from memory,
+    /// which has no PDB file next to it, so that the frontend can attach source
+    /// locations to the code of its kernels.
+    /// </summary>
+    /// <param name="assembly">The assembly loaded from memory.</param>
+    /// <param name="pdbBytes">The contents of its portable PDB.</param>
+    internal void RegisterDebugInformation(Assembly assembly, byte[] pdbBytes) =>
+        _frontendCache.Pdb.TryAdd(
+            assembly,
+            new Lazy<AssemblyDebugInformation?>(
+                () =>
+                {
+                    using var stream = new MemoryStream(pdbBytes, writable: false);
+                    return AssemblyDebugInformation.Load(assembly, stream);
+                },
+                LazyThreadSafetyMode.ExecutionAndPublication));
 
     /// <summary>
     /// Compiles a single kernel method for a single backend.

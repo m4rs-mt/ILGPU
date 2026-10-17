@@ -13,6 +13,7 @@ using ILGPU.Util;
 using ILGPUC.Backends;
 using System;
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 using Xunit;
 using Xunit.Abstractions;
@@ -65,8 +66,18 @@ public abstract class ExecutionTestBase : DisposeBase
     /// <summary>
     /// Build and run a test program, returning the process result.
     /// </summary>
-    protected async Task<ProcessResult> RunProgramAsync(
+    protected Task<ProcessResult> RunProgramAsync(
         string programSourceFile,
+        string[] kernelMethodNames,
+        CompilationProperties? props = null) =>
+        RunProgramAsync([programSourceFile], kernelMethodNames, props);
+
+    /// <summary>
+    /// Build and run a test program consisting of several source files,
+    /// returning the process result.
+    /// </summary>
+    protected async Task<ProcessResult> RunProgramAsync(
+        string[] programSourceFiles,
         string[] kernelMethodNames,
         CompilationProperties? props = null)
     {
@@ -94,9 +105,9 @@ public abstract class ExecutionTestBase : DisposeBase
             props = props with { EnableAssertions = false };
         }
 
-        var sourcePath = GetTestProgramPath(programSourceFile);
+        var sourcePaths = programSourceFiles.Select(GetTestProgramPath).ToArray();
         var exePath = AssertionRecorder.Run(() => _builder.BuildExecutable(
-            [sourcePath],
+            sourcePaths,
             kernelMethodNames,
             props));
 
@@ -122,14 +133,26 @@ public abstract class ExecutionTestBase : DisposeBase
     /// <summary>
     /// Build, run, and verify a test program's stdout output.
     /// </summary>
-    protected async Task VerifyProgramOutputAsync(
+    protected Task VerifyProgramOutputAsync(
         string programSourceFile,
+        string[] kernelMethodNames,
+        string[] expectedOutput,
+        CompilationProperties? props = null) =>
+        VerifyProgramOutputAsync(
+            [programSourceFile], kernelMethodNames, expectedOutput, props);
+
+    /// <summary>
+    /// Build, run, and verify the stdout output of a test program consisting
+    /// of several source files.
+    /// </summary>
+    protected async Task VerifyProgramOutputAsync(
+        string[] programSourceFiles,
         string[] kernelMethodNames,
         string[] expectedOutput,
         CompilationProperties? props = null)
     {
         var result = await RunProgramAsync(
-            programSourceFile, kernelMethodNames, props);
+            programSourceFiles, kernelMethodNames, props);
 
         Assert.False(result.TimedOut, "Test program timed out");
         Assert.Equal(0, result.ExitCode);

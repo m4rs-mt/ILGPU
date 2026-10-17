@@ -873,15 +873,17 @@ sealed class CompiledKernelGenerator : DisposeBase
                         // no constructor that takes ArrayView<UserStruct>,
                         // so build the (pointer, length) pair via Unsafe —
                         // mirrors EmitStructMarshalingCode's view branch.
-                        // Use .BaseView to land on the basic ArrayView<T>
-                        // form so LoadEffectiveAddress<T> can infer T;
+                        // Use the basic ArrayView<T> form (the BaseView of
+                        // ArrayView1D views) so LoadEffectiveAddress<T> can
+                        // infer T;
                         // guard against IsValid==false to avoid taking the
                         // address of a default-initialized view.
+                        var baseView = param.BaseViewExpression;
                         WriteLine(
-                            $"args.{param.Name} = {param.Name}.BaseView.IsValid" +
+                            $"args.{param.Name} = {baseView}.IsValid" +
                             $" ? new ViewImplementation<byte>(" +
-                            $"Unsafe.AsPointer(ref {param.Name}.BaseView" +
-                            $".LoadEffectiveAddress()), {param.Name}.BaseView.Length)" +
+                            $"Unsafe.AsPointer(ref {baseView}" +
+                            $".LoadEffectiveAddress()), {baseView}.Length)" +
                             $" : default(ViewImplementation<byte>);");
                     }
                     else

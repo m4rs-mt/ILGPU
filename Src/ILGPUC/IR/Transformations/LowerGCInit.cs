@@ -14,7 +14,8 @@ using ILGPUC.IR.Analyses;
 using ILGPUC.IR.BasicBlockValues;
 using ILGPUC.IR.MethodValues;
 using ILGPUC.IR.ModuleValues;
-using System;
+using ILGPUC.Roslyn.Analysis;
+using ILGPUC.Util;
 
 namespace ILGPUC.IR.Transformations;
 
@@ -31,7 +32,8 @@ namespace ILGPUC.IR.Transformations;
 /// <b>Validate</b> — every <see cref="GCInit"/> must not be inside a loop.
 /// An in-loop GCInit would imply per-iteration managed-object allocations in
 /// Local (per-thread) memory, which the GPU execution model cannot support.
-/// A <see cref="NotSupportedException"/> is thrown if any violation is found.
+/// A <see cref="KernelCompilationException"/> (ILGPU1208) is thrown at the
+/// location of the first violation.
 /// </description>
 /// </item>
 /// <item>
@@ -69,10 +71,13 @@ sealed class LowerGCInit(TransformationArgs args) :
             var loops = GetIntermediate(bbTransform);
             if (loops.TryGetLoop(gcInit.BasicBlock, out _))
             {
-                throw new NotSupportedException(
+                var method = gcInit.BasicBlock.Method;
+                throw new KernelCompilationException(
+                    KernelDiagnostic.ClosureInLoopId,
                     string.Format(
-                        ErrorMessages.NotSupportedClosureAllocationInLoop,
-                        gcInit.Global.Type));
+                        ErrorMessages.KernelDiagnosticClosureInLoop,
+                        method.Source?.GetDisplayName() ?? method.Name),
+                    gcInit.Location);
             }
 
             // Lower: replace the GCInit node with its backing Global

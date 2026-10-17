@@ -375,11 +375,12 @@ sealed class CPUExpressionEmitter(
 
     /// <summary>
     /// Returns the per-lane addresses (<c>nint[]</c>) of a pointer value. A
-    /// uniform pointer is broadcast into a scratch buffer of the consumer.
+    /// uniform pointer is broadcast into a scratch buffer of the consumer, as
+    /// are the addresses of the per-lane copies of a local global.
     /// </summary>
     public string ResolvePointers(Value pointer, Value consumer)
     {
-        if (!analysis.IsScalar(pointer))
+        if (!analysis.IsScalar(pointer) && GetLocalGlobal(pointer) is null)
             return ResolveOperand(pointer);
         var addresses = $"_ptrs_{consumer.Id}";
         context.WriteLine($"var {addresses} = new nint[SIMDWidth];");
@@ -398,12 +399,32 @@ sealed class CPUExpressionEmitter(
             context.WriteLine(
                 $"CPUVectorIntrinsics.Broadcast<nint>({target}, (nint)({address}));");
         }
+        else if (GetLocalGlobal(pointer) is { } global)
+        {
+            // Every lane addresses its own copy of a local global
+            context.WriteLine(
+                $"CPUVectorIntrinsics.LanePointers({target}, " +
+                $"{ResolveOperand(global)});");
+        }
         else
         {
             context.WriteLine(
                 $"CPUVectorIntrinsics.CopyPointers({target}, " +
                 $"{ResolveOperand(pointer)});");
         }
+    }
+
+    /// <summary>
+    /// Returns the local global a pointer refers to (looking through casts),
+    /// or null if it refers to other memory.
+    /// </summary>
+    private static Global? GetLocalGlobal(Value pointer)
+    {
+        while (pointer is BaseAddressSpaceCast cast)
+            pointer = cast.Source;
+        return pointer as Global is { AddressSpace: MemoryAddressSpace.Local } global
+            ? global
+            : null;
     }
 
     /// <summary>

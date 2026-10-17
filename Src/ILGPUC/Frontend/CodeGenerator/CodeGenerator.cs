@@ -52,15 +52,6 @@ sealed partial class CodeGenerator
     /// </summary>
     private MethodBase? _pendingLdFunctionMethod;
 
-
-    /// <summary>
-    /// Most recent delegate method from <see cref="MakeNewDelegate"/>. Used as
-    /// a fallback when <c>stloc</c> stores a phi-merged delegate value that
-    /// doesn't match the direct <see cref="_delegateTable"/> (static lambda
-    /// caching pattern).
-    /// </summary>
-    private MethodBase? _pendingDelegateForLocal;
-
     /// <summary>
     /// Maps a delegate handle Value to the underlying lambda MethodBase.
     /// Used for same-block resolution.
@@ -68,10 +59,43 @@ sealed partial class CodeGenerator
     private readonly Dictionary<Value, MethodBase> _delegateTable = [];
 
     /// <summary>
-    /// Maps a local variable VariableRef to the lambda MethodBase when a delegate
-    /// value was stored to a local. Used for cross-block resolution.
+    /// The location of the first instruction taking the address of each
+    /// address-taken variable.
     /// </summary>
-    private readonly Dictionary<VariableRef, MethodBase> _delegateLocalTable = [];
+    private readonly Dictionary<VariableRef, Location> _addressLocations = [];
+
+    /// <summary>
+    /// Maps converted values stored to variables to the delegate handles they
+    /// were converted from, so that handles selecting between different
+    /// delegates can be traced back to their sources.
+    /// </summary>
+    private readonly Dictionary<Value, Value> _delegateAliases = [];
+
+    /// <summary>
+    /// The values loaded from the static delegate caches that the C# compiler
+    /// generates for lambdas and method groups (<c>&lt;&gt;9__*</c> and
+    /// <c>&lt;&gt;O</c> fields). Kernels always take the path creating the
+    /// delegate, as these caches are empty in kernel code.
+    /// </summary>
+    private readonly HashSet<Value> _delegateCacheLoads = [];
+
+    /// <summary>
+    /// Describes where delegate handles that cannot be traced to their targets
+    /// come from, such as calls returning delegates, for diagnostics.
+    /// </summary>
+    private readonly Dictionary<Value, string> _delegateOrigins = [];
+
+    /// <summary>
+    /// The specializations of called methods for statically known delegate
+    /// arguments (null if calls cannot be specialized).
+    /// </summary>
+    private readonly DelegateSpecializations? _specializations;
+
+    /// <summary>
+    /// The methods bound to the delegate parameters of the current method if it
+    /// is a specialization (null otherwise).
+    /// </summary>
+    private readonly MethodBase?[]? _delegateTargets;
 
     /// <summary>
     /// Constructs a new code generator.
@@ -87,18 +111,30 @@ sealed partial class CodeGenerator
     /// <param name="isEntryPoint">
     /// True if the method is a kernel entry point, which is never inlined.
     /// </param>
+    /// <param name="specializations">
+    /// The specializations of called methods for statically known delegate
+    /// arguments (null if calls cannot be specialized).
+    /// </param>
+    /// <param name="delegateTargets">
+    /// The methods bound to the delegate parameters of the method if it is a
+    /// specialization, indexed by parameter position.
+    /// </param>
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     public CodeGenerator(
         MethodBuilder methodBuilder,
         DisassembledMethod disassembledMethod,
         Backends.BackendType backendType = default,
-        bool isEntryPoint = false)
+        bool isEntryPoint = false,
+        DelegateSpecializations? specializations = null,
+        MethodBase?[]? delegateTargets = null)
     {
         ModuleBuilder = methodBuilder.ModuleBuilder;
         MethodBuilder = methodBuilder;
         DisassembledMethod = disassembledMethod;
         BackendType = backendType;
         IsEntryPoint = isEntryPoint;
+        _specializations = specializations;
+        _delegateTargets = delegateTargets;
 
         _cfgBuilder = new Block.CFGBuilder(this, methodBuilder);
         EntryBlock = _cfgBuilder.EntryBlock;
@@ -106,8 +142,22 @@ sealed partial class CodeGenerator
 
         SSABuilder = SSABuilder<VariableRef>.Create(methodBuilder, _cfgBuilder.Blocks);
 
-        // Setup variables and inlining attributes
-        SetupVariables();
+        // Setup variables and inlining attributes. Variables of unsupported
+        // types are reported at the start of the method.
+        try
+        {
+            SetupVariables();
+        }
+        catch (DelegateFieldException exception)
+        {
+            throw GetDelegateStorageException(exception);
+        }
+        catch (Exception exception) when (
+            exception is not InternalCompilerException and
+                not KernelCompilationException)
+        {
+            throw Location.GetException(exception);
+        }
         Inliner.SetupInliningAttributes(
             Properties,
             methodBuilder.Method,
@@ -133,14 +183,18 @@ sealed partial class CodeGenerator
             switch (instruction.InstructionType)
             {
                 case ILInstructionType.Ldarga:
-                    _variables.Add(new VariableRef(
+                    var argumentRef = new VariableRef(
                         instruction.GetArgumentAs<int>() - LambdaArgumentOffset,
-                        VariableRefType.Argument));
+                        VariableRefType.Argument);
+                    _variables.Add(argumentRef);
+                    _addressLocations.TryAdd(argumentRef, instruction.Location);
                     break;
                 case ILInstructionType.Ldloca:
-                    _variables.Add(new VariableRef(
+                    var localRef = new VariableRef(
                         instruction.GetArgumentAs<int>(),
-                        VariableRefType.Local));
+                        VariableRefType.Local);
+                    _variables.Add(localRef);
+                    _addressLocations.TryAdd(localRef, instruction.Location);
                     break;
             }
         }
@@ -172,6 +226,12 @@ sealed partial class CodeGenerator
             var parameter = methodParameters[i];
             var paramType = ModuleBuilder.CreateType(parameter.ParameterType);
             Value ssaValue = MethodBuilder.CreateParameter(paramType, parameter.Name);
+
+            // Bind a specialized delegate parameter to its target method
+            var delegateTarget = _delegateTargets?[i];
+            if (delegateTarget is not null)
+                _delegateTable[ssaValue] = delegateTarget;
+
             var argRef = new VariableRef(
                 i + parameterOffset,
                 VariableRefType.Argument);
@@ -186,6 +246,10 @@ sealed partial class CodeGenerator
                     ssaValue);
                 ssaValue = alloca;
             }
+            else if (parameter.ParameterType.IsDelegate())
+            {
+                SetupDelegateTag(argRef, delegateTarget);
+            }
             EntryBlock.SetValue(argRef, ssaValue);
             _variableTypes[argRef] = (
                 paramType,
@@ -197,7 +261,17 @@ sealed partial class CodeGenerator
         for (int i = 0, e = localVariables.Count; i < e; ++i)
         {
             var variable = localVariables[i];
-            var variableType = ModuleBuilder.CreateType(variable.LocalType);
+            TypeValue variableType;
+            try
+            {
+                variableType = ModuleBuilder.CreateType(variable.LocalType);
+            }
+            catch (DelegateFieldException exception)
+            {
+                // Report variables of rejected types at their first use
+                Location = FindLocalVariableLocation(i) ?? Location;
+                throw GetDelegateStorageException(exception);
+            }
             var localRef = new VariableRef(i, VariableRefType.Local);
             Value initValue = builder.CreateNull(
                 Location,
@@ -213,12 +287,36 @@ sealed partial class CodeGenerator
                     initValue);
                 initValue = alloca;
             }
+            else if (variable.LocalType.IsDelegate())
+            {
+                SetupDelegateTag(localRef, target: null);
+            }
 
             EntryBlock.SetValue(localRef, initValue);
             _variableTypes[localRef] = (
                 variableType,
                 variable.LocalType.ToTargetUnsignedFlags());
         }
+    }
+
+    /// <summary>
+    /// Returns the location of the first instruction using the local variable
+    /// with the given index (if any).
+    /// </summary>
+    /// <param name="index">The index of the local variable.</param>
+    private Location? FindLocalVariableLocation(int index)
+    {
+        foreach (var instruction in DisassembledMethod.Instructions)
+        {
+            if (instruction.InstructionType is ILInstructionType.Ldloc or
+                    ILInstructionType.Ldloca or ILInstructionType.Stloc &&
+                instruction.GetArgumentAs<int>() == index &&
+                instruction.Location.IsKnown)
+            {
+                return instruction.Location;
+            }
+        }
+        return null;
     }
 
     #endregion
@@ -244,6 +342,18 @@ sealed partial class CodeGenerator
     /// methods can be inlined into a loop of their caller.
     /// </summary>
     public bool IsEntryPoint { get; }
+
+    /// <summary>
+    /// Gets or sets the resolver of the names of local variables (if any),
+    /// which diagnostics refer to.
+    /// </summary>
+    public Func<int, string?>? LocalVariableNames { get; set; }
+
+    /// <summary>
+    /// Gets or sets the collection of values captured by closures, which are
+    /// verified once all methods of the module have been generated (if any).
+    /// </summary>
+    public ClosureCaptures? ClosureCaptures { get; set; }
 
     /// <summary>
     /// Returns compilation properties.
@@ -300,6 +410,11 @@ sealed partial class CodeGenerator
     private int CurrentInstructionOffset { get; set; }
 
     /// <summary>
+    /// Gets or sets the index of the instruction being generated.
+    /// </summary>
+    private int CurrentInstructionIndex { get; set; }
+
+    /// <summary>
     /// Gets or sets the offset for load/store argument instructions in a lambda.
     /// This is used to shift arguments because of the unused 'this' argument.
     /// </summary>
@@ -350,6 +465,9 @@ sealed partial class CodeGenerator
         // incomplete phis, as AssertAllSealed is DEBUG-only.
         SSABuilder.SealRemainingBlocks();
         SSABuilder.AssertAllSealed();
+
+        // All delegate handles can be traced now that all loops are closed
+        ImplementPendingDispatchers();
 
         return MethodBuilder.Method;
     }
@@ -475,6 +593,7 @@ sealed partial class CodeGenerator
         {
             var instruction = DisassembledMethod[i];
             CurrentInstructionOffset = instruction.Offset;
+            CurrentInstructionIndex = i;
 
             // Setup debug information
             Location = instruction.Location;
@@ -485,9 +604,23 @@ sealed partial class CodeGenerator
             {
                 generated = TryGenerateCode(instruction);
             }
+            catch (InternalCompilerException exception) when (
+                exception.InnerException is DelegateFieldException fieldException)
+            {
+                throw GetDelegateStorageException(fieldException);
+            }
             catch (InternalCompilerException)
             {
                 // If we already have an internal compiler exception, re-throw it.
+                throw;
+            }
+            catch (DelegateFieldException exception)
+            {
+                throw GetDelegateStorageException(exception);
+            }
+            catch (KernelCompilationException)
+            {
+                // Diagnostics already carry their locations
                 throw;
             }
             catch (Exception e)

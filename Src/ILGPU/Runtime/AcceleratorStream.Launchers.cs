@@ -107,7 +107,7 @@ partial class AcceleratorStream
     [MethodImpl(MethodImplOptions.NoInlining)]
     [NotInsideKernel, DelayCodeGeneration, ReplaceWithLauncher]
     public void Launch(Index3D extent, Action<Index3D> kernel) =>
-        throw new NotSupportedException(ErrorMessages.NotSupportedPlatform);
+        throw new NotSupportedException(ErrorMessages.NotSupportedUncompiledKernelLaunch);
 
     #region Multidimensional
 
@@ -335,7 +335,7 @@ partial class AcceleratorStream
     [MethodImpl(MethodImplOptions.NoInlining)]
     [NotInsideKernel, IsLauncher(isGrouped: false)]
     private void LaunchAutoGroupedInternal(long extent, Action<long, long> kernel) =>
-        throw new NotSupportedException(ErrorMessages.NotSupportedPlatform);
+        throw new NotSupportedException(ErrorMessages.NotSupportedUncompiledKernelLaunch);
 
     /// <summary>
     /// Triggers a kernel launch on the current accelerator stream. The lambda function
@@ -370,7 +370,7 @@ partial class AcceleratorStream
     private void LaunchGroupedInternal(
         KernelConfig kernelConfig,
         Action<long, KernelIndex> kernel) =>
-        throw new NotSupportedException(ErrorMessages.NotSupportedPlatform);
+        throw new NotSupportedException(ErrorMessages.NotSupportedUncompiledKernelLaunch);
 
     /// <summary>
     /// Prepares a kernel launch at runtime.

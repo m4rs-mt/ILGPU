@@ -715,6 +715,8 @@ sealed class ILFrontend
 
         var queue = new Queue<MethodBase>(capacity: 32);
         var processed = new HashSet<MethodBase>();
+        var specializations = new DelegateSpecializations(moduleBuilder);
+        var closureCaptures = new ClosureCaptures(moduleBuilder);
 
         // Generates code for the given method
         [MethodImpl(MethodImplOptions.AggressiveOptimization)]
@@ -726,6 +728,18 @@ sealed class ILFrontend
             // Get IR method and check for external declaration flags
             var declaration = moduleBuilder.CreateMethodDeclaration(method);
             var methodBuilder = moduleBuilder.GetOrCreateMethod(declaration);
+            GenerateCodeForBuilder(method, methodBuilder, isEntryPoint);
+        }
+
+        // Generates code for the given method into the given method builder,
+        // binding its delegate parameters to the given targets (if any)
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+        void GenerateCodeForBuilder(
+            MethodBase method,
+            MethodBuilder methodBuilder,
+            bool isEntryPoint,
+            MethodBase?[]? delegateTargets = null)
+        {
             if (methodBuilder.Method.IsExternal)
                 return;
 
@@ -799,17 +813,31 @@ sealed class ILFrontend
             try
             {
                 var codeGenerator = new CodeGenerator(
-                    methodBuilder, disassembled, BackendType, isEntryPoint);
+                    methodBuilder,
+                    disassembled,
+                    BackendType,
+                    isEntryPoint,
+                    specializations,
+                    delegateTargets);
                 codeGenerator.OnNewMethodCalled += (_, e) => queue.Enqueue(e);
+                codeGenerator.ClosureCaptures = closureCaptures;
+                codeGenerator.LocalVariableNames = index =>
+                    TryLoadDebugInformation(method, out var debugInformation) &&
+                    debugInformation.TryGetLocalVariableName(index, out var name)
+                    ? name
+                    : null;
 
                 codeGenerator.GenerateCode();
                 methodBuilder.Seal();
             }
-            catch (Exception) when (!isEntryPoint)
+            catch (Exception exception) when (
+                !isEntryPoint && exception is not KernelCompilationException)
             {
                 // Transitively called methods may use types unsupported in GPU IR
                 // or hit other compilation issues. Mark them as external and
-                // continue.
+                // continue. Rejected kernel constructs (such as unsupported uses
+                // of delegates) are reported instead, as an external declaration
+                // would only fail later without pointing at the cause.
                 methodBuilder.Method.AddFlags(MethodFlags.External);
             }
         }
@@ -818,9 +846,30 @@ sealed class ILFrontend
         foreach (var method in methods)
             GenerateCodeFor(method, isEntryPoint: true);
 
-        // Process all remaining methods
-        while (queue.TryDequeue(out var method))
-            GenerateCodeFor(method);
+        // Process all remaining methods and specializations
+        while (true)
+        {
+            if (queue.TryDequeue(out var method))
+            {
+                GenerateCodeFor(method);
+            }
+            else if (specializations.TryDequeue(out var specialization))
+            {
+                GenerateCodeForBuilder(
+                    specialization.Source,
+                    specialization.Builder,
+                    isEntryPoint: false,
+                    specialization.Targets);
+            }
+            else
+            {
+                break;
+            }
+        }
+
+        // Closures and recursion can be verified once all calls are known
+        closureCaptures.Verify();
+        specializations.VerifyNoRecursion();
 
         return processed.Count > 0;
     }

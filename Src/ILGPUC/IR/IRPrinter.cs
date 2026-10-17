@@ -361,6 +361,7 @@ internal sealed class IRPrinter
     private static string ElemTypeName(TypeValue t) => t switch
     {
         PrimitiveType p => Prim(p.BasicValueType),
+        DelegateHandleType d => Prim(d.RepresentationType),
         StructureType _ => "struct",
         PointerType _ => "ptr",
         ArrayType at =>
@@ -386,6 +387,7 @@ internal sealed class IRPrinter
     {
         VoidType _ => "void",
         PrimitiveType p => Prim(p.BasicValueType),
+        DelegateHandleType d => Prim(d.RepresentationType),
         PointerType pt => pt.AddressSpace == MemoryAddressSpace.Generic
             ? $"ptr<{T(pt.ElementType)}>"
             : $"ptr<{T(pt.ElementType)}>" +

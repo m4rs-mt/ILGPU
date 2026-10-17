@@ -1,6 +1,6 @@
 // CompileError: kernel that uses an unsupported pattern (closure inside a
 // loop body). ILGPUC's LowerGCInit pass detects the GCInit node inside a
-// loop and throws NotSupportedException. The build must fail with a
+// loop and reports ILGPU1208 at the loop. The build must fail with a
 // non-zero exit code.
 //
 // This is the same pattern validated in

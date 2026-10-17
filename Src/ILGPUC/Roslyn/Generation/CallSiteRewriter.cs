@@ -13,6 +13,7 @@ using ILGPUC.Roslyn.Analysis;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Microsoft.CodeAnalysis.Text;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -30,30 +31,65 @@ namespace ILGPUC.Roslyn.Generation;
 ///     a.View,
 ///     b.View,
 ///     c.View);
+///
+/// Inline lambda kernels are launched the same way with their captured
+/// values as arguments. When lifting is enabled, the launch is additionally
+/// wrapped in a block that declares the lambda body as a static local
+/// function, which makes the kernel resolvable from the emitted assembly,
+/// followed by the lifted kernels binding its captured delegates.
+///
+/// Delegates passed to delegate parameters captured by inline kernels are
+/// registered under the keys of their targets at their call sites:
+///   Host.UnaryOp(stream, view, v => -v);
+/// After:
+///   Host.UnaryOp(stream, view,
+///     global::ILGPU.Runtime.KernelDelegates.Register&lt;...&gt;(
+///       v => -v, "Program:Host.UnaryOp.op#0"));
 /// </summary>
 sealed class CallSiteRewriter : CSharpSyntaxRewriter
 {
     private readonly Dictionary<SyntaxNode, KernelDescriptor> _launchSiteMap = [];
+    private readonly Dictionary<SyntaxNode, List<KernelDescriptor>> _boundKernels =
+        [];
+    private readonly Dictionary<ArgumentSyntax, DelegateRegistration> _registrations;
     private readonly bool _emitLineDirectives;
+    private readonly bool _liftInlineKernels;
 
     /// <summary>
     /// Initializes a new <see cref="CallSiteRewriter"/> that rewrites all launch
     /// call sites for the supplied kernels.
     /// </summary>
-    /// <param name="kernels">
-    /// Kernel descriptors whose launch sites will be rewritten.
+    /// <param name="analysis">
+    /// The analysis results whose launch sites and delegate registrations will
+    /// be rewritten.
     /// </param>
     /// <param name="emitLineDirectives">
     /// When <see langword="true"/>, emits <c>#line</c> directives so the rewritten
     /// code maps back to the original source for debugging.
     /// </param>
+    /// <param name="liftInlineKernels">
+    /// When <see langword="true"/>, declares the lifted body of each inline
+    /// lambda kernel as a static local function next to its launch site.
+    /// </param>
     public CallSiteRewriter(
-        List<KernelDescriptor> kernels,
-        bool emitLineDirectives = false)
+        AnalysisResult analysis,
+        bool emitLineDirectives = false,
+        bool liftInlineKernels = false)
     {
         _emitLineDirectives = emitLineDirectives;
-        foreach (var kernel in kernels)
+        _liftInlineKernels = liftInlineKernels;
+        _registrations = analysis.DelegateRegistrations;
+        foreach (var kernel in analysis.AllKernels)
             _launchSiteMap[kernel.LaunchInfo.Invocation] = kernel;
+        foreach (var kernel in analysis.UniqueKernels)
+        {
+            if (kernel.DelegateKeys is null || kernel.LiftedKernel is null)
+                continue;
+            var invocation = kernel.LaunchInfo.Invocation;
+            if (!_boundKernels.TryGetValue(invocation, out var bound))
+                _boundKernels.Add(invocation, bound = []);
+            bound.Add(kernel);
+        }
     }
 
     /// <summary>
@@ -66,10 +102,59 @@ sealed class CallSiteRewriter : CSharpSyntaxRewriter
         if (node.Expression is InvocationExpressionSyntax invocation
             && _launchSiteMap.TryGetValue(invocation, out var kernel))
         {
-            return RewriteLaunchCall(node, invocation, kernel);
+            var launch = RewriteLaunchCall(node, invocation, kernel);
+            if (!_liftInlineKernels || kernel.LiftedKernel is null)
+                return launch;
+
+            // { static void InlineKernel_...(...) { ... } Launch(...); }
+            var statements = new List<StatementSyntax> { kernel.LiftedKernel };
+            if (_boundKernels.TryGetValue(invocation, out var bound))
+                statements.AddRange(bound.Select(k => k.LiftedKernel!));
+            statements.Add(launch.WithoutLeadingTrivia());
+            return SyntaxFactory.Block(statements)
+                .WithLeadingTrivia(launch.GetLeadingTrivia());
         }
 
         return base.VisitExpressionStatement(node);
+    }
+
+    /// <summary>
+    /// Visits an argument and registers the delegate it passes under the keys
+    /// of its target if it is passed to a delegate parameter captured by an
+    /// inline kernel.
+    /// </summary>
+    public override SyntaxNode? VisitArgument(ArgumentSyntax node)
+    {
+        var visited = (ArgumentSyntax)base.VisitArgument(node)!;
+        if (!_registrations.TryGetValue(node, out var registration))
+            return visited;
+
+        // KernelDelegates.Register<TDelegate>(..., "key") for each key
+        var delegateType = SyntaxFactory.ParseTypeName(
+            registration.DelegateType.ToDisplayString(
+                SymbolDisplayFormat.FullyQualifiedFormat));
+        var expression = visited.Expression.WithoutTrivia();
+        foreach (var key in registration.Keys)
+        {
+            expression = SyntaxFactory.InvocationExpression(
+                SyntaxFactory.MemberAccessExpression(
+                    SyntaxKind.SimpleMemberAccessExpression,
+                    SyntaxFactory.ParseExpression(
+                        "global::ILGPU.Runtime.KernelDelegates"),
+                    SyntaxFactory.GenericName(
+                        SyntaxFactory.Identifier("Register"),
+                        SyntaxFactory.TypeArgumentList(
+                            SyntaxFactory.SingletonSeparatedList(delegateType)))),
+                SyntaxFactory.ArgumentList(SyntaxFactory.SeparatedList(
+                [
+                    SyntaxFactory.Argument(expression),
+                    SyntaxFactory.Argument(SyntaxFactory.LiteralExpression(
+                        SyntaxKind.StringLiteralExpression,
+                        SyntaxFactory.Literal(key))),
+                ])));
+        }
+        return visited.WithExpression(
+            expression.WithTriviaFrom(visited.Expression));
     }
 
     /// <summary>
@@ -111,12 +196,15 @@ sealed class CallSiteRewriter : CSharpSyntaxRewriter
 
         var arguments = new List<ArgumentSyntax>();
 
-        // First arg: the stream expression
-        arguments.Add(SyntaxFactory.Argument(launchInfo.StreamExpression));
+        // First arg: the stream expression. As the first token of the launch
+        // statement it carries the statement's leading trivia (comments,
+        // directives), which must not be repeated inside the argument list.
+        var streamExpr = launchInfo.StreamExpression.WithoutTrivia();
+        arguments.Add(SyntaxFactory.Argument(streamExpr));
 
         // Second arg: kernel config
         var configExpr = BuildConfigExpression(
-            launchInfo.StreamExpression,
+            streamExpr,
             launchInfo.ExtentOrConfig,
             kernel.Variant);
         arguments.Add(SyntaxFactory.Argument(configExpr));
@@ -156,32 +244,58 @@ sealed class CallSiteRewriter : CSharpSyntaxRewriter
     }
 
     /// <summary>
-    /// Prepends a #line directive to map a rewritten statement back to its
-    /// original source location for debugging.
+    /// Surrounds a rewritten statement with #line directives that map it, and
+    /// the code following it, back to their original source locations. The
+    /// rewritten statement may span fewer lines than the original, so the
+    /// mapping is restored right after it. Directives must start a line of
+    /// their own, so line breaks are inserted where the statement shares its
+    /// lines with other code.
     /// </summary>
     private static ExpressionStatementSyntax PrependLineDirective(
         ExpressionStatementSyntax rewritten,
         ExpressionStatementSyntax originalStmt)
     {
-        var location = originalStmt.GetLocation();
-        var lineSpan = location.GetLineSpan();
-        if (!lineSpan.IsValid)
+        var tree = originalStmt.SyntaxTree;
+        var fullSpan = originalStmt.FullSpan;
+        var startSpan = tree.GetLineSpan(new TextSpan(fullSpan.Start, 0));
+        var endSpan = tree.GetLineSpan(originalStmt.Span);
+        if (!startSpan.IsValid || !endSpan.IsValid)
             return rewritten;
 
-        var originalLine = lineSpan.StartLinePosition.Line + 1; // 1-based
-        var originalFile = lineSpan.Path;
+        var originalFile = startSpan.Path;
         if (string.IsNullOrEmpty(originalFile))
             return rewritten;
 
-        var directive = BuildLineDirective(originalLine, originalFile);
-        var lineTrivia = SyntaxFactory.Trivia(directive);
+        // The leading trivia starts the line it is on (1-based) unless the
+        // previous token ends on the same line
         var eol = SyntaxFactory.EndOfLine("\n");
+        var previous = originalStmt.GetFirstToken().GetPreviousToken();
+        bool atLineStart = previous == default
+            || previous.TrailingTrivia.Any(SyntaxKind.EndOfLineTrivia);
+        var leading = SyntaxFactory.TriviaList(
+            SyntaxFactory.Trivia(BuildLineDirective(
+                startSpan.StartLinePosition.Line + 1,
+                originalFile)),
+            eol);
+        if (!atLineStart)
+            leading = leading.Insert(0, eol);
+        leading = leading.AddRange(rewritten.GetLeadingTrivia());
 
-        var existingTrivia = rewritten.GetLeadingTrivia();
-        var newTrivia = SyntaxFactory.TriviaList(lineTrivia, eol)
-            .AddRange(existingTrivia);
+        // The code after the statement continues on the line after the end of
+        // the statement, or on its last line if the statement does not end it
+        var trailing = rewritten.GetTrailingTrivia();
+        int endLine = endSpan.EndLinePosition.Line + 1;
+        if (trailing.Any(SyntaxKind.EndOfLineTrivia))
+            ++endLine;
+        else
+            trailing = trailing.Add(eol);
+        trailing = trailing
+            .Add(SyntaxFactory.Trivia(BuildLineDirective(endLine, originalFile)))
+            .Add(eol);
 
-        return rewritten.WithLeadingTrivia(newTrivia);
+        return rewritten
+            .WithLeadingTrivia(leading)
+            .WithTrailingTrivia(trailing);
     }
 
     /// <summary>

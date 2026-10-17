@@ -12,6 +12,9 @@
 using ILGPUC.Roslyn.Analysis;
 using ILGPUC.Roslyn.Generation;
 using ILGPUC.Tests.Framework;
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
+using System.IO;
 using System.Linq;
 using Xunit;
 
@@ -143,14 +146,72 @@ public sealed class InlineLambdaAnalysisTests
     }
 
     [Fact]
-    public void InlineLambda_KernelNameIncludesLine()
+    public void InlineLambda_KernelNameIncludesFileAndPosition()
     {
         var kernel = AnalyzeInlineLambda(
             "stream.Launch((Index1D)4, index => { view[index] = 42; });");
 
-        Assert.StartsWith("InlineKernel_L", kernel.KernelName);
+        // source0.cs, 1-based line and column of the lambda
+        Assert.Equal("InlineKernel_source0_L27_C35", kernel.KernelName);
         Assert.Null(kernel.KernelMethod);
         Assert.NotNull(kernel.KernelBody);
+    }
+
+    [Fact]
+    public void InlineLambdasOnOneLine_GetDistinctKernels()
+    {
+        var source = """
+            using ILGPU;
+            using ILGPU.Runtime;
+
+            static class Program
+            {
+                static void Run(AcceleratorStream s, ArrayView<int> v)
+                {
+                    s.Launch(4, i => v[i] = 1); s.Launch(4, i => v[i] = 2);
+                }
+            }
+            """;
+        var compilation = RoslynCompiler.CreateCompilation(
+            [source], "InlineLambdaTest", OutputKind.DynamicallyLinkedLibrary);
+        var analysis = CompilationRewriter.Analyze(compilation);
+
+        Assert.Equal(
+            ["InlineKernel_source0_L8_C21", "InlineKernel_source0_L8_C49"],
+            analysis.UniqueKernels.Select(k => k.KernelName));
+    }
+
+    [Fact]
+    public void InlineLambdasInEquallyNamedFiles_GetDistinctKernels()
+    {
+        var source = """
+            using ILGPU;
+            using ILGPU.Runtime;
+
+            static class Program
+            {
+                static void Run(AcceleratorStream stream, ArrayView<int> view)
+                {
+                    stream.Launch(4, i => view[i] = 1);
+                }
+            }
+            """;
+        var trees = new[] { "A", "B" }.Select(dir => CSharpSyntaxTree.ParseText(
+            source.Replace("Program", $"Program{dir}"),
+            path: Path.Combine(dir, "Program.cs")));
+        var compilation = CSharpCompilation.Create(
+            "InlineLambdaTest",
+            trees,
+            RoslynCompiler.GetDefaultReferences(),
+            new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
+        var analysis = CompilationRewriter.Analyze(compilation);
+
+        Assert.Equal(
+            ["InlineKernel_Program_L8_C26", "InlineKernel_Program_L8_C26_2"],
+            analysis.UniqueKernels.Select(k => k.KernelName));
+        Assert.Equal(
+            "InlineKernel_Program_L8_C26_2",
+            analysis.UniqueKernels[1].LiftedKernel!.Identifier.Text);
     }
 
     [Fact]

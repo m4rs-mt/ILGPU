@@ -35,6 +35,11 @@ enum VariableRefType
     /// Represents an abstract memory monad.
     /// </summary>
     Memory,
+
+    /// <summary>
+    /// Represents the tag of a delegate held by an argument or local variable.
+    /// </summary>
+    DelegateTag,
 }
 
 /// <summary>

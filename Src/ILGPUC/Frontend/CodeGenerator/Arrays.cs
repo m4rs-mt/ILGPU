@@ -27,6 +27,7 @@ partial class CodeGenerator
     /// <param name="managedElementType">The element type.</param>
     private void MakeNewArray(Type managedElementType)
     {
+        VerifyNoDelegateArray(managedElementType);
         // Create the array type to create
         var elementType = ModuleBuilder.CreateType(
             managedElementType,

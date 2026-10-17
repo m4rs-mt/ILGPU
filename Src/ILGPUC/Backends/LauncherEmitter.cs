@@ -104,6 +104,19 @@ sealed class ParameterInfo
     /// from user types to IR struct types. Null for non-struct params.
     /// </summary>
     public string[]? UserFieldAccessors { get; init; }
+
+    /// <summary>
+    /// Returns the expression of the basic <c>ArrayView&lt;T&gt;</c> of a view
+    /// parameter: the parameter itself if it is launched as an
+    /// <c>ArrayView&lt;T&gt;</c>, and its <c>BaseView</c> for the
+    /// <c>ArrayView1D</c> family of views.
+    /// </summary>
+    public string BaseViewExpression =>
+        (LaunchTypeName ?? CSharpTypeName).StartsWith(
+            "ArrayView<",
+            System.StringComparison.Ordinal)
+            ? Name
+            : $"{Name}.BaseView";
 }
 
 /// <summary>

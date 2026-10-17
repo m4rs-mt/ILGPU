@@ -20,6 +20,113 @@ by value as kernel arguments.
 Note that you must not pass pointers to non-accessible memory regions since these are also passed by value and cannot be
 marshalled automatically by ILGPU when launching kernels.
 
+## Lambdas and Delegates
+
+Kernel code can use delegates (e.g. `Func<int, int>`) whose target is known at compile time.
+This covers lambda expressions (capturing or not) and static methods that are invoked in kernel code, as well as
+lambdas and static method groups passed directly to a method called by the kernel.
+The compiler creates a copy of the called method for each distinct delegate target, also when that method passes the
+delegate on to further methods:
+
+```c#
+static int Apply(Func<int, int> f, int x) => f(x);
+
+static void MyKernel(Index1D index, ArrayView<int> data, int k)
+{
+    data[index] = Apply(x => x * 3, index) + Apply(x => x + k, index);
+}
+```
+
+Launch lambdas can pass lambdas to kernel methods taking a delegate in the same way, as in
+`stream.Launch(view.IntExtent, index => UnaryOpKernel(index, view, x => -x))`.
+
+The kernel passed to a launch must be a lambda expression or a method group.
+Anonymous methods (`delegate (Index1D i) { ... }`), delegate variables and conditional expressions selecting a kernel
+are reported at build time (`ILGPU1113`); write the kernel as a lambda expression, or launch each kernel in a branch
+of its own.
+Launches must be direct calls on a stream expression, such as `stream.Launch(...)`.
+Conditional access (`stream?.Launch(...)`) and launch methods used as delegates cannot be compiled and are reported
+at build time (`ILGPU1112`).
+Launches that are not compiled at all, for example when called through reflection, throw a `NotSupportedException`
+at runtime.
+
+Delegates selected at runtime, such as `flag ? f : g` or a delegate variable reassigned in a loop, dispatch on the
+selected target when they are invoked or passed to a method.
+Delegates that cannot be traced back to lambdas or static methods in kernel code, such as delegates returned from
+methods, are rejected by the compiler.
+
+The compiler rejects all other uses of delegates in kernel code at build time, with an error at the offending source
+line in the form `File.cs(line,column): error ILGPU12xx: message`:
+
+| Diagnostic | Rejected kernel code |
+|---|---|
+| `ILGPU1200` | Other constructs kernels do not support, such as `Expression<Func<...>>` or `object`, and `DynamicInvoke`, whose argument array is an `object[]` |
+| `ILGPU1201` | Null tests and comparisons of delegates (`f?.Invoke(x)`, `f != null`, `f == null`, `f == g`, `Equals`), casts and type tests to delegate types, and delegate members other than `Invoke`, such as `+=`/`Delegate.Combine`, `Method` or `Target` |
+| `ILGPU1202` | Invoking a delegate, or passing it to a method, that cannot be traced to a lambda or a static method in kernel code, such as a delegate returned from a method |
+| `ILGPU1203` | Delegate variables passed as `ref`, `out` or `in` arguments, or used through a reference |
+| `ILGPU1204` | Lambdas and local functions capturing views or pointers of shared or local memory, also when the view is a parameter of the capturing method |
+| `ILGPU1205` | Delegates stored in fields of closures (a lambda capturing a delegate, or a capturing lambda creating another lambda), structures or tuples, and arrays of delegates |
+| `ILGPU1206` | Delegates loaded from static fields, including `static readonly` fields |
+| `ILGPU1207` | Delegates created from instance methods of structs, such as `Func<int, int> f = value.Add` |
+| `ILGPU1208` | Lambdas and local functions whose closure is allocated inside a loop, such as a lambda capturing a variable declared in the loop body |
+| `ILGPU1209` | Methods taking delegates that call themselves, directly or through the delegates passed to them |
+
+Invoking a delegate variable that is still `null` on some path, without a null test, is undefined behavior in kernels.
+To call an optional operation, pass a separate flag instead of testing the delegate for null.
+
+A launch lambda can also capture a delegate parameter of the method that launches the kernel:
+
+```c#
+static class Host
+{
+    public static void UnaryOp(AcceleratorStream stream, ArrayView<int> view, Func<int, int> op)
+    {
+        stream.Launch(view.IntExtent, index => UnaryOpKernel(index, view, op));
+    }
+}
+
+Host.UnaryOp(stream, view, v => -v);
+Host.UnaryOp(stream, view, v => ~v);
+Host.UnaryOp(stream, view, MyOps.Square);
+```
+
+The compiler traces all calls of the launching method in the project and compiles one kernel for each lambda
+expression, anonymous method and static method passed to it, also when a calling method forwards a delegate parameter
+of its own.
+At runtime, the launch selects the kernel compiled for the target of the delegate it receives.
+The passed lambdas must not capture variables (`ILGPU1107`); pass the values as separate arguments of the launching
+method instead.
+Arguments that cannot be traced to a lambda or a static method, such as delegates returned from methods, multicast
+delegates combined with `+` or `Delegate.Combine`, instance methods or a launching method used as a delegate itself,
+are reported at build time (`ILGPU1108`), as well as a
+captured delegate parameter of a launching method that no call passes a lambda or a static method to (`ILGPU1109`).
+Launching methods, and methods forwarding a delegate parameter to them, must be called directly: methods that are
+virtual, abstract or overrides, or that implement an interface member, can be called through a base type or an
+interface, where the passed delegates cannot be traced, and are reported at build time (`ILGPU1110`).
+Delegates passed by callers the compiler cannot see cannot be traced either.
+In library projects, launching methods that other assemblies can call (public methods of public types, protected
+methods of public types that other assemblies can derive from, or any non-private method when the assembly declares
+`InternalsVisibleTo`), and methods forwarding delegates to them, are therefore reported at build time (`ILGPU1111`):
+make them internal or private.
+Other assemblies do not call executables (an `OutputType` of `Exe` or `WinExe`), so their launching methods can be
+public.
+Delegates passed through reflection throw a `NotSupportedException` at the launch.
+Other delegates captured by a launch lambda, such as delegate variables of the launching method or structs holding
+delegate fields (also in nested structs), cannot be passed from the CPU to a kernel and are reported at build time
+(`ILGPU1103`), as are such structs passed to a kernel method by a launch lambda.
+Use a generic struct implementing an interface instead:
+
+```c#
+interface IUnaryOp { int Apply(int x); }
+
+readonly struct Negate : IUnaryOp { public int Apply(int x) => -x; }
+
+static int Apply<TOp>(TOp op, int x) where TOp : struct, IUnaryOp => op.Apply(x);
+
+static void NegateKernel(Index1D index, ArrayView<int> data, Negate op) =>
+    data[index] = Apply(op, data[index]);
+```
+
 ## Implicitly Grouped Kernels
 
 Implicitly grouped kernels allow very convenient high-level kernel programming.

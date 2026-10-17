@@ -56,11 +56,12 @@ partial class CodeGenerator
         if (value.Type is AddressSpaceType)
         {
             var otherType = targetType.AsNotNullCast<AddressSpaceType>();
+            var source = value;
             value = Builder.CreateAddressSpaceCast(
                 Location,
                 value,
                 otherType.AddressSpace);
-            return otherType is ViewType
+            value = otherType is ViewType
                 ? Builder.CreateViewCast(
                     Location,
                     value,
@@ -69,6 +70,12 @@ partial class CodeGenerator
                     Location,
                     value,
                     otherType.ElementType);
+
+            // Delegate handles keep their targets when they are converted, such
+            // as when they are passed to a parameter of a delegate type
+            if (value != source && source.Type is PointerType)
+                _delegateAliases[value] = source;
+            return value;
         }
         else if (
             targetType is PointerType targetPointerType &&

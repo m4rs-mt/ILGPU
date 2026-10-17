@@ -477,16 +477,112 @@
     <value>The {0} view is larger than the {1} view.</value>
     <comment/>
   </data>
-  <data name="NotSupportedClosureAllocationInLoop" xml:space="preserve">
-    <value>Closure allocation of type '{0}' inside a loop is not supported. Move the closure allocation outside the loop.</value>
-    <comment/>
-  </data>
-  <data name="NotSupportedCannotDevirtualizeDelegate" xml:space="preserve">
-    <value>Cannot statically devirtualize delegate invocation '{0}'. Only direct (non-phi, non-passed-as-argument) delegate variables are supported.</value>
+  <data name="NotSupportedUnresolvedKernelDelegate" xml:space="preserve">
+    <value>Cannot resolve the delegate registered under the key '{0}' in assembly '{1}'.</value>
     <comment/>
   </data>
   <data name="NotSupportedRecursiveReferenceType" xml:space="preserve">
     <value>Recursive reference type '{0}' is not supported in GPU kernels.</value>
+    <comment/>
+  </data>
+  <data name="KernelDiagnosticUnsupportedConstruct" xml:space="preserve">
+    <value>Kernel code uses an unsupported construct: {0}</value>
+    <comment/>
+  </data>
+  <data name="KernelDiagnosticUnresolvedDelegateInvocation" xml:space="preserve">
+    <value>Cannot statically resolve the delegate invoked in method '{0}': it is {1}. Kernels can only invoke delegates created from a lambda expression or a static method in kernel code, also when they are passed to a called method.</value>
+    <comment/>
+  </data>
+  <data name="KernelDiagnosticUnresolvedDelegateArgument" xml:space="preserve">
+    <value>Cannot statically resolve the delegate passed to parameter '{0}' of method '{1}': it is {2}. Pass a lambda expression or a static method directly at the call, or use a generic struct implementing an interface instead of the delegate.</value>
+    <comment/>
+  </data>
+  <data name="KernelDiagnosticDelegateUnboundParameter" xml:space="preserve">
+    <value>the parameter '{0}' of method '{1}', which is not bound to a lambda expression or a static method</value>
+    <comment/>
+  </data>
+  <data name="KernelDiagnosticDelegateUnsupportedOperation" xml:space="preserve">
+    <value>produced by an unsupported operation</value>
+    <comment/>
+  </data>
+  <data name="KernelDiagnosticDelegateReturned" xml:space="preserve">
+    <value>returned from method '{0}'</value>
+    <comment/>
+  </data>
+  <data name="KernelDiagnosticDelegateLoadedFromField" xml:space="preserve">
+    <value>loaded from field '{0}'</value>
+    <comment/>
+  </data>
+  <data name="KernelDiagnosticDelegateLoadedThroughReference" xml:space="preserve">
+    <value>loaded through a reference</value>
+    <comment/>
+  </data>
+  <data name="KernelDiagnosticDelegateIdentity" xml:space="preserve">
+    <value>Kernel code cannot compare delegates or test them for null ('{0}' in method '{1}'). Delegates in kernels are bound to their targets at compile time and have no runtime identity. Remove the check, or pass a separate flag.</value>
+    <comment/>
+  </data>
+  <data name="KernelDiagnosticDelegateOperation" xml:space="preserve">
+    <value>Kernel code cannot use the delegate operation '{0}' in method '{1}'. Kernels can only invoke delegates and pass them to methods, as delegates are bound to their targets at compile time.</value>
+    <comment/>
+  </data>
+  <data name="KernelDiagnosticAddressTakenDelegate" xml:space="preserve">
+    <value>The delegate variable '{0}' in method '{1}' is passed by reference or used through a reference. Kernel code can only use delegate variables directly; pass the delegate by value instead.</value>
+    <comment/>
+  </data>
+  <data name="KernelDiagnosticGroupMemoryCapture" xml:space="preserve">
+    <value>A lambda or local function in method '{0}' captures '{1}', which points to shared or local memory. Closures can only capture values and views of global memory; pass the view as a parameter of a static local function instead.</value>
+    <comment/>
+  </data>
+  <data name="KernelDiagnosticDelegateFieldType" xml:space="preserve">
+    <value>Type '{0}' stores a delegate in its field '{1}', which kernels do not support</value>
+    <comment/>
+  </data>
+  <data name="KernelDiagnosticDelegateStorage" xml:space="preserve">
+    <value>Method '{0}' uses a delegate stored in {1}. Kernels can only pass delegates directly as arguments; use a generic struct implementing an interface to store an operation.</value>
+    <comment/>
+  </data>
+  <data name="KernelDiagnosticDelegateInField" xml:space="preserve">
+    <value>the field '{0}' of '{1}'</value>
+    <comment/>
+  </data>
+  <data name="KernelDiagnosticDelegateInTuple" xml:space="preserve">
+    <value>the tuple '{0}'</value>
+    <comment/>
+  </data>
+  <data name="KernelDiagnosticDelegateInArray" xml:space="preserve">
+    <value>an array of '{0}'</value>
+    <comment/>
+  </data>
+  <data name="KernelDiagnosticDelegateInClosure" xml:space="preserve">
+    <value>the closure of a lambda or local function capturing '{0}'</value>
+    <comment/>
+  </data>
+  <data name="KernelDiagnosticNestedLambda" xml:space="preserve">
+    <value>Method '{0}' creates a lambda inside a lambda or local function that captures variables, which is not supported. Declare the inner lambda outside of it, or pass the captured values to it as parameters.</value>
+    <comment/>
+  </data>
+  <data name="KernelDiagnosticDelegateStaticField" xml:space="preserve">
+    <value>Static field '{0}' holds a delegate, which kernels cannot load. Pass a lambda expression or a static method as an argument instead.</value>
+    <comment/>
+  </data>
+  <data name="KernelDiagnosticStructMethodGroup" xml:space="preserve">
+    <value>Delegate created from the instance method '{0}' of a struct value is not supported. Use a lambda expression that captures the value instead.</value>
+    <comment/>
+  </data>
+  <data name="KernelDiagnosticClosureInLoop" xml:space="preserve">
+    <value>A lambda or local function in method '{0}' allocates its closure inside a loop, which is not supported. Move the closure allocation outside the loop.</value>
+    <comment/>
+  </data>
+  <data name="KernelDiagnosticDelegateRecursion" xml:space="preserve">
+    <value>Method '{0}' calls itself while passing delegates, directly or through the delegates passed to it. Recursion is not supported in kernels.</value>
+    <comment/>
+  </data>
+  <data name="NotSupportedUncompiledKernelLaunch" xml:space="preserve">
+    <value>This kernel launch was not compiled by ILGPUC. Kernel launches are compiled at build time and must be direct calls on a stream expression, such as 'stream.Launch(...)'. Launches through reflection, delegates or conditional access ('stream?.Launch(...)') are not compiled.</value>
+    <comment/>
+  </data>
+  <data name="NotSupportedKernelDelegateBind" xml:space="preserve">
+    <value>Delegates bound with KernelDelegates.Bind can only be used in kernels compiled by ILGPUC.</value>
     <comment/>
   </data>
 </root>

@@ -138,7 +138,7 @@ abstract class PerArgumentLauncherEmitter : LauncherEmitter
             case ParameterKind.View:
             {
                 var viewImpl = $"viewImpl_{argIndex}";
-                var baseView = $"{param.Name}.BaseView";
+                var baseView = param.BaseViewExpression;
                 ctx.WriteLine(
                     $"var {viewImpl} = {baseView}.IsValid" +
                     $" ? new ViewImplementation<byte>(" +

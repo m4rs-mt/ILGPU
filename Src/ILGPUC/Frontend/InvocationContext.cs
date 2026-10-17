@@ -161,25 +161,22 @@ ref struct InvocationContext
     /// Pulls a delegate argument and resolves it to the underlying IR Method
     /// via static delegate devirtualization.
     /// </summary>
-    public IR.ModuleValues.Method? PullDelegateMethod()
-    {
-        var handle = Pull();
-        if (CodeGenerator.TryResolveDelegateMethod(handle, out var methodBase))
-            return CodeGenerator.GetMethod(methodBase);
-        return null;
-    }
+    public IR.ModuleValues.Method PullDelegateMethod() =>
+        CodeGenerator.GetMethod(PullDelegateMethodBase());
 
     /// <summary>
     /// Pulls a delegate argument and resolves it to the underlying .NET
     /// <see cref="System.Reflection.MethodBase"/> for IL inspection.
-    /// Use this when the IR Method body may not be compiled yet.
+    /// Use this when the IR Method body may not be compiled yet. Delegates
+    /// that cannot be resolved statically are reported as errors.
     /// </summary>
-    public MethodBase? PullDelegateMethodBase()
+    public MethodBase PullDelegateMethodBase()
     {
-        var handle = Pull();
-        if (CodeGenerator.TryResolveDelegateMethod(handle, out var methodBase))
-            return methodBase;
-        return null;
+        int argumentIndex = _argumentIndex;
+        return CodeGenerator.ResolveIntrinsicDelegate(
+            Pull(),
+            Method,
+            argumentIndex);
     }
 
     /// <summary>

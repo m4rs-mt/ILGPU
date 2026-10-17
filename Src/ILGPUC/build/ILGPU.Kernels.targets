@@ -119,6 +119,8 @@
       <_ILGPURspLines Include="$(ILGPUOutputDir)" />
       <_ILGPURspLines Include="--project-dir" />
       <_ILGPURspLines Include="$(MSBuildProjectDirectory)" />
+      <_ILGPURspLines Include="--output-type" Condition="'$(OutputType)' != ''" />
+      <_ILGPURspLines Include="$(OutputType)" Condition="'$(OutputType)' != ''" />
       <_ILGPURspLines Include="-b" />
       <_ILGPURspLines Include="@(_ILGPUBackendItem)" />
       <_ILGPURspLines Include="--compile" Condition="'$(ILGPUCompile)' == 'true'" />

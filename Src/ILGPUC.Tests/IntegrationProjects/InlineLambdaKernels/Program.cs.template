@@ -1,0 +1,135 @@
+// InlineLambdaKernels: kernels written inline as lambdas at the launch site.
+// The lambdas capture views, buffers, scalars, structs and method parameters,
+// call helpers of their enclosing type and local functions, declare nested
+// local functions, and are launched with 1D, 2D and grouped configurations,
+// also from a method launching a kernel method with the delegate it receives.
+// Each line of the output is produced by a different launch.
+
+using System;
+using ILGPU;
+using ILGPU.Runtime;
+
+namespace InlineLambdaKernels;
+
+struct Affine
+{
+    public int Scale;
+    public int Offset;
+}
+
+static class Program
+{
+    const int Length = 4;
+
+    static int Square(int value) => value * value;
+
+    static void Fill(
+        AcceleratorStream stream,
+        ArrayView1D<int, Stride1D.Dense> target,
+        int value)
+    {
+        stream.Launch(target.IntExtent, index => target[index] = value + index);
+    }
+
+    static void Print(string label, int[] values) =>
+        Console.WriteLine($"{label}: {string.Join(" ", values)}");
+
+    static void Main()
+    {
+        using var context = Context.Create(b => b.Default());
+        using var accelerator = context.GetPreferredDevice(preferCPU: $(PREFER_CPU))
+            .CreateAccelerator(context);
+        var stream = accelerator.DefaultStream;
+
+        using var buffer = stream.Allocate1D<int>(Length);
+        var view = buffer.View;
+
+        // No captures at all.
+        stream.Launch(Length, index => { });
+        stream.Synchronize();
+        Console.WriteLine("A: done");
+
+        // A single captured view.
+        stream.Launch(Length, index => view[index] = index * 3);
+        stream.Synchronize();
+        Print("B", buffer.GetAsArray1D());
+
+        // A captured view and a captured scalar.
+        int offset = 10;
+        stream.Launch(Length, index =>
+        {
+            view[index] = index + offset;
+        });
+        stream.Synchronize();
+        Print("C", buffer.GetAsArray1D());
+
+        // A captured buffer and a helper of the enclosing type.
+        stream.Launch(Length, index => buffer.View[index] = Square(index));
+        stream.Synchronize();
+        Print("D", buffer.GetAsArray1D());
+
+        // Captured method parameters.
+        Fill(stream, view, 5);
+        stream.Synchronize();
+        Print("E", buffer.GetAsArray1D());
+
+        // A captured struct.
+        var affine = new Affine { Scale = 2, Offset = 1 };
+        stream.Launch(Length, index =>
+            view[index] = index * affine.Scale + affine.Offset);
+        stream.Synchronize();
+        Print("F", buffer.GetAsArray1D());
+
+        // A nested local function that uses a captured value.
+        stream.Launch(Length, index =>
+        {
+            int Shift(int x) => x * 100 + offset;
+            view[index] = Shift(index);
+        });
+        stream.Synchronize();
+        Print("G", buffer.GetAsArray1D());
+
+        // A lambda that forwards to a local function.
+        static void LocalKernel(Index1D index, ArrayView1D<int, Stride1D.Dense> data) =>
+            data[index] = 7 * index;
+        stream.Launch(Length, index => LocalKernel(index, view));
+        stream.Synchronize();
+        Print("H", buffer.GetAsArray1D());
+
+        // A 2D launch.
+        using var buffer2D = stream.Allocate2DDenseX<int>(new Index2D(2, 2));
+        var view2D = buffer2D.View;
+        stream.Launch(view2D.IntExtent, index => view2D[index] = index.X * 10 + index.Y);
+        stream.Synchronize();
+        var values2D = buffer2D.GetAsArray2D();
+        Print("I", [values2D[0, 0], values2D[0, 1], values2D[1, 0], values2D[1, 1]]);
+
+        // A grouped launch.
+        stream.Launch(new KernelConfig(1, Length), index =>
+        {
+            view[index.GroupIndex] = (int)index.GridIndex + index.GroupIndex * 2 + offset;
+        });
+        stream.Synchronize();
+        Print("J", buffer.GetAsArray1D());
+
+        // A lambda inside an instance method of another type.
+        new Worker(stream).Run(view, 3);
+        stream.Synchronize();
+        Print("K", buffer.GetAsArray1D());
+
+        // A lambda calling a local function that is not static.
+        int Cube(int x) => x * x * x;
+        stream.Launch(Length, index => view[index] = Cube(index));
+        stream.Synchronize();
+        Print("L", buffer.GetAsArray1D());
+
+        // A delegate parameter passed to a kernel method, bound to the lambda
+        // passed here and to the static method passed by the worker.
+        DelegateOps.UnaryOp(stream, view, v => v - 20);
+        stream.Synchronize();
+        Print("M", buffer.GetAsArray1D());
+        new Worker(stream).Square(view);
+        stream.Synchronize();
+        Print("N", buffer.GetAsArray1D());
+    }
+}

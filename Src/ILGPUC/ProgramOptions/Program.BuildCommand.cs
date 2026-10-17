@@ -62,6 +62,18 @@ sealed partial class Program
             Description = "Project root for relative path computation",
         };
 
+        /// <summary>
+        /// The output type of the project (for example Library, Exe or WinExe).
+        /// Executables are not referenced by other assemblies, so their public
+        /// methods are treated like internal ones.
+        /// </summary>
+        readonly Option<string?> _outputTypeOption = new("--output-type")
+        {
+            Description =
+                "Output type of the project: Exe and WinExe are executables, " +
+                "anything else is a library (default: Library)",
+        };
+
         /// <summary>Target backend type(s) (Cuda, ROCm, OpenCL, Metal, or CPU).</summary>
         readonly Option<BackendType[]> _backendTypeOption = new("-b", "--backend")
         {
@@ -192,6 +204,7 @@ sealed partial class Program
                 _referencesOption,
                 _outputDirOption,
                 _projectDirOption,
+                _outputTypeOption,
                 _backendTypeOption,
                 _compileOption,
                 _compilerServiceOption,
@@ -220,7 +233,10 @@ sealed partial class Program
         /// </summary>
         /// <param name="parseResult">The command-line parse result.</param>
         /// <param name="ct">Cancellation token.</param>
-        async Task Execute(ParseResult parseResult, CancellationToken ct)
+        /// <returns>
+        /// The process exit code: non-zero if a launch site has errors.
+        /// </returns>
+        async Task<int> Execute(ParseResult parseResult, CancellationToken ct)
         {
             var compileItems = parseResult.GetValue(_compileItemsOption) ?? [];
             var references = parseResult.GetValue(_referencesOption) ?? [];
@@ -231,7 +247,7 @@ sealed partial class Program
             {
                 await Console.Error.WriteLineAsync(
                     "Error: --compile-items requires at least one source file.");
-                return;
+                return 0;
             }
 
             // Parse source files
@@ -261,7 +277,7 @@ sealed partial class Program
             {
                 await Console.Error.WriteLineAsync(
                     "Error: No valid source files found.");
-                return;
+                return 0;
             }
 
             // Collect references
@@ -327,7 +343,18 @@ sealed partial class Program
 
             // Analyze the compilation
             var compiler = new KernelCompiler(properties);
-            var analysis = CompilationRewriter.Analyze(compilation);
+            var analysis = CompilationRewriter.Analyze(
+                compilation,
+                IsLibrary(parseResult.GetValue(_outputTypeOption)));
+
+            // Report invalid launch sites in the canonical error format that
+            // MSBuild surfaces as build errors, and fail without compiling
+            if (analysis.Diagnostics.Count > 0)
+            {
+                foreach (var diagnostic in analysis.Diagnostics)
+                    await Console.Error.WriteLineAsync(diagnostic.ToString());
+                return 1;
+            }
 
             if (analysis.AllKernels.Count == 0)
             {
@@ -338,7 +365,7 @@ sealed partial class Program
                     cancellationToken: ct);
                 await Console.Out.WriteLineAsync(
                     "ILGPU build: No kernel launch sites found.");
-                return;
+                return 0;
             }
 
             Console.WriteLine(
@@ -358,18 +385,28 @@ sealed partial class Program
 
             // Two-phase compile: stubs -> temp assembly -> resolve -> real kernels
             var parallel = parseResult.GetValue(_parallelOption);
-            var provider =
-                await MainKernelProvider
-                    .CreateAsync(
-                        compilation,
-                        analysis,
-                        backends,
-                        compiler,
-                        compilerManager,
-                        parallel,
-                        dump,
-                        ct)
-                    .ConfigureAwait(false);
+            MainKernelProvider provider;
+            try
+            {
+                provider =
+                    await MainKernelProvider
+                        .CreateAsync(
+                            compilation,
+                            analysis,
+                            backends,
+                            compiler,
+                            compilerManager,
+                            parallel,
+                            dump,
+                            ct)
+                        .ConfigureAwait(false);
+            }
+            catch (KernelDiagnosticException exception)
+            {
+                // Errors in kernel code are reported like invalid launch sites
+                await Console.Error.WriteLineAsync(exception.Diagnostic.ToString());
+                return 1;
+            }
 
             // Rewrite to disk with real compiled kernel sources
             var realRewriter = new CompilationRewriter(provider);
@@ -432,6 +469,8 @@ sealed partial class Program
             Console.WriteLine(
                 $"ILGPU build: {rewrittenCount} file(s) rewritten, " +
                 $"output -> {outputDir}");
+
+            return 0;
         }
 
         /// <summary>
@@ -446,5 +485,15 @@ sealed partial class Program
                 || fileName.StartsWith("ILGPU", StringComparison.OrdinalIgnoreCase)
                 || fileName is "mscorlib.dll" or "netstandard.dll";
         }
+
+        /// <summary>
+        /// Returns <see langword="true"/> if <paramref name="outputType"/> is the
+        /// output type of a library: anything but an executable (Exe or WinExe),
+        /// including no output type at all.
+        /// </summary>
+        /// <param name="outputType">The output type of the project, or null.</param>
+        private static bool IsLibrary(string? outputType) =>
+            !string.Equals(outputType, "Exe", StringComparison.OrdinalIgnoreCase)
+            && !string.Equals(outputType, "WinExe", StringComparison.OrdinalIgnoreCase);
     }
 }

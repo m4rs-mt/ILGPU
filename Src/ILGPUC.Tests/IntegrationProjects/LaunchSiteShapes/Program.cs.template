@@ -1,0 +1,75 @@
+// LaunchSiteShapes: launch sites that need special care when rewritten. A
+// public method capturing its delegate parameter in a kernel is called from
+// another class, which other assemblies cannot do since this is an executable,
+// launches share their lines with other code, and a grouped launch passes
+// values computed from its index to a kernel method. Each line of the output is
+// produced by a different launch.
+
+using System;
+using ILGPU;
+using ILGPU.Runtime;
+
+namespace LaunchSiteShapes;
+
+static class Kernels
+{
+    public static void Apply(
+        Index1D index,
+        ArrayView1D<int, Stride1D.Dense> data,
+        Func<int, int> op) =>
+        data[index] = op(data[index]);
+
+    public static void WriteGrouped(
+        ArrayView1D<int, Stride1D.Dense> data,
+        long gridIndex,
+        int groupIndex) =>
+        data[(int)gridIndex * 4 + groupIndex] = (int)gridIndex * 10 + groupIndex;
+}
+
+public static class Ops
+{
+    public static void Map(
+        AcceleratorStream stream,
+        ArrayView1D<int, Stride1D.Dense> view,
+        Func<int, int> op)
+    {
+        stream.Launch(view.IntExtent, index => Kernels.Apply(index, view, op));
+    }
+}
+
+static class Program
+{
+    static void Print(string label, int[] values) =>
+        Console.WriteLine($"{label}: {string.Join(" ", values)}");
+
+    static void Main()
+    {
+        using var context = Context.Create(b => b.Default());
+        using var accelerator = context.GetPreferredDevice(preferCPU: $(PREFER_CPU))
+            .CreateAccelerator(context);
+        var stream = accelerator.DefaultStream;
+
+        using var buffer = stream.Allocate1D<int>(8);
+        var view = buffer.View;
+
+        // Launches sharing their lines with other code.
+        int k = 5; stream.Launch(view.IntExtent, index =>
+        {
+            view[index] = index + k;
+        }); stream.Synchronize();
+        Print("A", buffer.GetAsArray1D());
+
+        // A public launching method, called with two lambdas.
+        Ops.Map(stream, view, v => v * 2);
+        Ops.Map(stream, view, v => v - 1);
+        stream.Synchronize();
+        Print("B", buffer.GetAsArray1D());
+
+        // A grouped launch passing index.GridIndex and index.GroupIndex.
+        var config = new KernelConfig(2, 4);
+        stream.Launch(config, index =>
+            Kernels.WriteGrouped(view, index.GridIndex, index.GroupIndex));
+        stream.Synchronize();
+        Print("C", buffer.GetAsArray1D());
+    }
+}

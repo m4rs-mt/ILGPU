@@ -14,12 +14,15 @@ using ILGPU.Util;
 using ILGPUC.Frontend.Intrinsic;
 using ILGPUC.IR;
 using ILGPUC.IR.BasicBlockValues;
+using ILGPUC.IR.MethodValues;
 using ILGPUC.IR.ModuleValues;
 using ILGPUC.IR.PureValues;
+using ILGPUC.Roslyn.Analysis;
 using ILGPUC.Util;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
 using System.Reflection;
 
 namespace ILGPUC.Frontend;
@@ -33,7 +36,14 @@ partial class CodeGenerator
     /// </summary>
     /// <param name="method">The target method to invoke.</param>
     /// <param name="arguments">The call arguments.</param>
-    private void CreateCall(MethodBase method, ref ValueBuilderList arguments)
+    /// <param name="delegateArguments">
+    /// The delegate arguments, if the method has delegate parameters (see
+    /// <see cref="PeekDelegateArguments"/>).
+    /// </param>
+    private void CreateCall(
+        MethodBase method,
+        ref ValueBuilderList arguments,
+        DelegateArguments? delegateArguments = null)
     {
         // Try to implement the current intrinsic right now by generating IR code
         var intrinsicContext = new InvocationContext(
@@ -50,13 +60,18 @@ partial class CodeGenerator
             result ??= Builder.UndefinedValue;
             MakeCallReturnValue(method, result);
         }
+        else if (delegateArguments is null)
+        {
+            var target = GetMethod(method);
+            _specializations?.RecordCall(target, MethodBuilder.Method, Location);
+            result = Builder.CreateCall(Location, target, ref arguments);
+
+            // Setup result
+            MakeCallReturnValue(method, result);
+        }
         else
         {
-            var targetFunction = GetMethod(method);
-            result = Builder.CreateCall(
-                Location,
-                targetFunction,
-                ref arguments);
+            result = CreateSpecializedCall(method, ref arguments, delegateArguments);
 
             // Setup result
             MakeCallReturnValue(method, result);
@@ -73,10 +88,16 @@ partial class CodeGenerator
         if (result.Type is VoidType or KindType)
             return;
 
-        var flags = method.GetReturnType().IsUnsignedInt()
+        var returnType = method.GetReturnType();
+        var flags = returnType.IsUnsignedInt()
             ? ConvertFlags.SourceUnsigned
             : ConvertFlags.None;
         Block.Push(LoadOntoEvaluationStack(result, flags));
+        RecordDelegateOrigin(
+            returnType,
+            string.Format(
+                ErrorMessages.KernelDiagnosticDelegateReturned,
+                method.GetDisplayName()));
     }
 
     /// <summary>
@@ -103,6 +124,7 @@ partial class CodeGenerator
     {
         if (target == null)
             throw Location.GetInvalidOperationException();
+        VerifyDelegateMemberCall(target);
 
         // The constructor of System.Object has no effect: a base constructor call
         // (e.g. in a closure class constructor) only consumes the instance
@@ -112,8 +134,16 @@ partial class CodeGenerator
             return;
         }
 
+        // Delegates bound by ILGPUC to the targets registered at call sites
+        if (KernelDelegateTargets.IsBind(target))
+        {
+            MakeKernelDelegateBinding();
+            return;
+        }
+
+        var delegateArguments = PeekDelegateArguments(target);
         var values = Block.PopMethodArgs(Location, target, null);
-        CreateCall(target, ref values);
+        CreateCall(target, ref values, delegateArguments);
     }
 
     /// <summary>
@@ -239,6 +269,7 @@ partial class CodeGenerator
             MakeDelegateInvoke(target);
             return;
         }
+        VerifyDelegateMemberCall(target);
         target = ResolveVirtualCallTarget(target, constrainedType);
         MakeCall(target);
     }
@@ -251,6 +282,8 @@ partial class CodeGenerator
     /// <param name="method">The target method whose function pointer is loaded.</param>
     private void MakeLdFunction(MethodBase method)
     {
+        VerifyNoStructMethodGroup(method);
+
         // Register the method so ILFrontend generates IR for it
         GetMethod(method);
         _pendingLdFunctionMethod = method;
@@ -264,6 +297,23 @@ partial class CodeGenerator
 
         // Push a null IntPtr placeholder — the real value is the closure pointer
         Block.Push(Builder.CreateNull(Location, ModuleBuilder.IntPointerType));
+    }
+
+    /// <summary>
+    /// Rejects delegates created from instance methods of structs, whose
+    /// targets are boxed copies of the struct instances.
+    /// </summary>
+    /// <param name="method">The target method of the delegate.</param>
+    private void VerifyNoStructMethodGroup(MethodBase method)
+    {
+        if (method.IsStatic || method.DeclaringType?.IsValueType != true)
+            return;
+        throw new KernelCompilationException(
+            KernelDiagnostic.StructMethodGroupId,
+            string.Format(
+                ErrorMessages.KernelDiagnosticStructMethodGroup,
+                $"{method.DeclaringType.Name}.{method.Name}"),
+            Location);
     }
 
     /// <summary>
@@ -349,9 +399,10 @@ partial class CodeGenerator
         // Resolve lambda body via static devirtualization
         if (!TryResolveDelegateMethod(delegateHandle, out var lambdaMethodBase))
         {
-            throw Location.GetNotSupportedException(
-                ErrorMessages.NotSupportedCannotDevirtualizeDelegate,
-                invokeSig.Name);
+            // A delegate that is not bound to a single target statically (e.g.
+            // one selected at runtime) dispatches on its tag
+            MakeSelectedDelegateInvoke(invokeSig, delegateHandle, savedArgs);
+            return;
         }
 
         // Only re-push the closure pointer as 'this' when PopMethodArgs
@@ -369,11 +420,11 @@ partial class CodeGenerator
 
     /// <summary>
     /// Tries to resolve the lambda MethodBase behind a delegate handle value.
-    /// Checks the direct value table (same-block resolution), traces phi
-    /// merges back to registered handles (cross-block resolution), and only
-    /// falls back to the recorded delegate state when that state is
-    /// unambiguous. If several distinct lambda bodies are candidates for the
-    /// handle, the resolution fails instead of guessing.
+    /// Checks the direct value table (same-block resolution) and traces
+    /// conversions and phi merges back to registered handles (cross-block
+    /// resolution). The resolution fails for handles that cannot be traced,
+    /// such as delegates returned from methods, and for handles selecting
+    /// between several lambda bodies, which dispatch on their tags instead.
     /// </summary>
     internal bool TryResolveDelegateMethod(
         Value handle,
@@ -383,66 +434,78 @@ partial class CodeGenerator
         if (_delegateTable.TryGetValue(handle, out method))
             return true;
 
-        // Cross-block resolution: a handle that crossed a block boundary on
-        // the evaluation stack arrives here as a phi value that is not
-        // registered in _delegateTable. Trace the phi arguments back to
-        // registered handles (ignoring the null constants produced by the
-        // static delegate-cache diamond); this succeeds only when all
-        // incoming paths agree on a single lambda body.
-        if (handle is PhiValue &&
-            TryTraceDelegateHandle(handle, [], ref method) &&
-            method is not null)
-        {
+        // Trace converted handles and handles that crossed a block boundary on
+        // the evaluation stack (phi values) back to registered handles,
+        // ignoring the null constants of empty delegate caches. This succeeds
+        // only when all incoming paths agree on a single lambda body.
+        if (TryTraceDelegateHandle(handle, out method) && method is not null)
             return true;
-        }
         method = null;
+        return false;
+    }
 
-        // Last-resort fallback for handles that cannot be traced (e.g. a
-        // delegate that was passed directly as a call argument without a
-        // stloc, as in Warp.Reduce(value, (a, b) => a + b)). Guessing is
-        // only sound when every delegate observed in this method refers to
-        // the same lambda body; with multiple distinct candidates the
-        // resolution fails so that the caller reports the call as
-        // non-devirtualizable instead of silently binding the wrong body.
-        var candidate = _pendingDelegateForLocal;
-        foreach (var kv in _delegateLocalTable)
-        {
-            if (candidate is null)
-                candidate = kv.Value;
-            else if (!candidate.Equals(kv.Value))
-                return false;
-        }
-        foreach (var kv in _delegateTable)
-        {
-            if (candidate is null)
-                candidate = kv.Value;
-            else if (!candidate.Equals(kv.Value))
-                return false;
-        }
-        if (candidate is null)
+    /// <summary>
+    /// Resolves the delegate passed to an intrinsic method to its single
+    /// lambda body, or reports it as a delegate that cannot be resolved.
+    /// </summary>
+    /// <param name="handle">The delegate handle.</param>
+    /// <param name="intrinsic">The intrinsic method.</param>
+    /// <param name="argumentIndex">
+    /// The index of the argument, including the instance argument.
+    /// </param>
+    /// <returns>The resolved lambda body.</returns>
+    internal MethodBase ResolveIntrinsicDelegate(
+        Value handle,
+        MethodBase intrinsic,
+        int argumentIndex)
+    {
+        if (TryResolveDelegateMethod(handle, out var method))
+            return method;
+        throw GetUnresolvedDelegateException(
+            intrinsic,
+            argumentIndex - intrinsic.GetParameterOffset(),
+            handle);
+    }
+
+    /// <summary>
+    /// Traces a delegate handle through phi merges back to the handles
+    /// registered in <see cref="_delegateTable"/> and succeeds if all of them
+    /// agree on a single lambda body (see <see cref="TryCollectDelegateTargets"/>).
+    /// </summary>
+    /// <param name="handle">The delegate handle value to trace.</param>
+    /// <param name="method">
+    /// The resolved lambda body (null if the handle is always null).
+    /// </param>
+    private bool TryTraceDelegateHandle(Value handle, out MethodBase? method)
+    {
+        var targets = new List<MethodBase>(2);
+        method = null;
+        if (!TryCollectDelegateTargets(handle, [], targets) || targets.Count > 1)
             return false;
-
-        if (candidate.Equals(_pendingDelegateForLocal))
-            _pendingDelegateForLocal = null;
-        method = candidate;
+        method = targets.Count > 0 ? targets[0] : null;
         return true;
     }
 
     /// <summary>
-    /// Recursively traces a delegate handle through phi merges back to the
-    /// handles registered in <see cref="_delegateTable"/>. All reachable
-    /// registered handles must agree on a single lambda body; null constants
-    /// (the cache-miss branch of the static delegate-cache diamond) are
-    /// ignored. Returns false as soon as the handle becomes ambiguous or
+    /// Recursively traces a delegate handle through phi merges and stored
+    /// variables back to the handles registered in
+    /// <see cref="_delegateTable"/> and collects their distinct lambda bodies.
+    /// Null constants (the cache-miss branch of the static delegate-cache
+    /// diamond) are ignored. Returns false as soon as the handle becomes
     /// untraceable.
     /// </summary>
     /// <param name="handle">The delegate handle value to trace.</param>
     /// <param name="visited">The set of already visited values.</param>
-    /// <param name="method">The resolved lambda body (if any).</param>
-    private bool TryTraceDelegateHandle(
+    /// <param name="targets">The collected lambda bodies.</param>
+    /// <param name="closures">
+    /// The closure of each lambda body, if all handles referring to it agree on
+    /// a single closure value (null for ambiguous closures).
+    /// </param>
+    private bool TryCollectDelegateTargets(
         Value handle,
         HashSet<Value> visited,
-        ref MethodBase? method)
+        List<MethodBase> targets,
+        Dictionary<MethodBase, Value?>? closures = null)
     {
         if (!visited.Add(handle))
         {
@@ -452,11 +515,19 @@ partial class CodeGenerator
 
         if (_delegateTable.TryGetValue(handle, out var found))
         {
-            if (method is not null && !method.Equals(found))
-                return false;
-            method = found;
+            if (!targets.Contains(found))
+                targets.Add(found);
+            if (closures is not null)
+            {
+                closures[found] = !closures.TryGetValue(found, out var closure) ||
+                    closure == handle
+                    ? handle
+                    : null;
+            }
             return true;
         }
+        if (_delegateAliases.TryGetValue(handle, out var source))
+            return TryCollectDelegateTargets(source, visited, targets, closures);
 
         switch (handle)
         {
@@ -466,12 +537,19 @@ partial class CodeGenerator
             case PhiValue phi when phi.NumArguments > 0:
                 foreach (var argument in phi.Arguments)
                 {
-                    if (!TryTraceDelegateHandle(argument, visited, ref method))
+                    if (!TryCollectDelegateTargets(
+                        argument,
+                        visited,
+                        targets,
+                        closures))
+                    {
                         return false;
+                    }
                 }
                 return true;
             default:
-                // Unknown handle kind — nothing can be proven about it
+                // Unknown handle kind (or an incomplete phi of a loop header
+                // that has not been sealed yet) — nothing can be proven about it
                 return false;
         }
     }

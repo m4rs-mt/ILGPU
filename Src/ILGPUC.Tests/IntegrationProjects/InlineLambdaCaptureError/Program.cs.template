@@ -1,0 +1,36 @@
+// InlineLambdaCaptureError: an inline lambda kernel that reads an instance
+// field and thereby captures 'this', which cannot be passed to a kernel.
+// ilgpuc must reject the launch with an ILGPU1101 error pointing at the
+// field access, and the build must fail.
+
+using System;
+using ILGPU;
+using ILGPU.Runtime;
+
+namespace InlineLambdaCaptureError;
+
+sealed class Scaler
+{
+    private readonly int _scale = 3;
+
+    public void Run(AcceleratorStream stream, ArrayView1D<int, Stride1D.Dense> data)
+    {
+        stream.Launch(data.IntExtent, index => data[index] = index * _scale);
+    }
+}
+
+static class Program
+{
+    static void Main()
+    {
+        using var context = Context.Create(b => b.Default());
+        using var accelerator = context.GetPreferredDevice(preferCPU: $(PREFER_CPU))
+            .CreateAccelerator(context);
+        var stream = accelerator.DefaultStream;
+
+        using var buffer = stream.Allocate1D<int>(4);
+        new Scaler().Run(stream, buffer.View);
+        stream.Synchronize();
+        Console.WriteLine(string.Join(" ", buffer.GetAsArray1D()));
+    }
+}

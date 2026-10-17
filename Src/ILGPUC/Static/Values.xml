@@ -3,6 +3,7 @@
     <Group Name="Types" Namespace="ModuleValues" BuilderType="ModuleBuilder"
         BuildContextName="IModuleValueBuildContext">
         <Value Type="TypeArray" Implementation="ArrayType" />
+        <Value Type="TypeDelegateHandle" Implementation="DelegateHandleType" />
         <Value Type="TypeHandle" Implementation="HandleType" />
         <Value Type="TypeKind" Implementation="KindType" />
         <Value Type="TypeObject" Implementation="ObjectType" />

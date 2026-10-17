@@ -61,6 +61,7 @@ partial class ModuleBuilder : IGenerationObject
     private readonly Dictionary<(Type, MemoryAddressSpace), TypeValue> _typeMapping = [];
     private readonly Dictionary<Type, TypeValue> _classStructCache = new(8);
     private readonly HashSet<Type> _classStructInProgress = new(4);
+    private DelegateHandleType? _delegateHandleType;
 
     private InlineList<Global> _globals = InlineList<Global>.Create(32);
     private readonly Dictionary<MethodBase, Method> _methodMapping = new(32);
@@ -235,6 +236,30 @@ partial class ModuleBuilder : IGenerationObject
     /// Returns the managed handle type.
     /// </summary>
     public HandleType HandleType { get; }
+
+    /// <summary>
+    /// Returns all methods created so far.
+    /// </summary>
+    public IEnumerable<Method> GetMethods()
+    {
+        foreach (var builder in _methods.Values)
+            yield return builder.Method;
+    }
+
+    /// <summary>
+    /// Returns the opaque element type of delegate handles, which is created
+    /// on first use.
+    /// </summary>
+    public DelegateHandleType DelegateHandleType =>
+        _delegateHandleType ??= UnifyType(
+            new DelegateHandleType(GetInitializer(), IntPointerType));
+
+    /// <summary>
+    /// Returns the type of delegate handles: a generic pointer to the opaque
+    /// <see cref="DelegateHandleType"/>.
+    /// </summary>
+    public PointerType DelegateType =>
+        CreatePointerType(DelegateHandleType, MemoryAddressSpace.Generic);
 
     /// <summary>
     /// Returns a custom padding type that is used to pad structure values (8-bits).
@@ -464,10 +489,7 @@ partial class ModuleBuilder : IGenerationObject
             {
                 // Delegate types (Func<T>, Action<T>, etc.) are represented as
                 // opaque pointers — we don't model the CLR delegate internals.
-                return Map(
-                    type,
-                    addressSpace,
-                    CreatePointerType(IntPointerType, MemoryAddressSpace.Generic));
+                return Map(type, addressSpace, DelegateType);
             }
             else if (type.IsSealed ||
                      type.IsDefined(typeof(CompilerGeneratedAttribute), false))
@@ -524,6 +546,7 @@ partial class ModuleBuilder : IGenerationObject
 
         try
         {
+            VerifyNoDelegateFields(type, type, []);
             var typeInfo = GetTypeInfo(type);
             var builder = new StructureType.Builder(
                 this,
@@ -580,6 +603,7 @@ partial class ModuleBuilder : IGenerationObject
                     type));
         }
 
+        VerifyNoDelegateFields(type, type, []);
         var typeInfo = GetTypeInfo(type);
         builder = new StructureType.Builder(
             this,
@@ -587,6 +611,36 @@ partial class ModuleBuilder : IGenerationObject
             typeInfo.Size);
         foreach (var field in typeInfo.Fields)
             builder.Add(CreateType(field.FieldType, addressSpace));
+    }
+
+    /// <summary>
+    /// Rejects types with fields of delegate types, including the fields of
+    /// nested structures: delegates are bound to their targets at compile time
+    /// and have no representation in memory.
+    /// </summary>
+    /// <param name="type">The type to verify.</param>
+    /// <param name="containingType">The type the verified type is part of.</param>
+    /// <param name="visited">The structure types visited so far.</param>
+    private static void VerifyNoDelegateFields(
+        Type type,
+        Type containingType,
+        HashSet<Type> visited)
+    {
+        const BindingFlags FieldFlags = BindingFlags.Instance |
+            BindingFlags.Public | BindingFlags.NonPublic;
+        foreach (var field in type.GetFields(FieldFlags))
+        {
+            var fieldType = field.FieldType;
+            if (fieldType.IsDelegate())
+                throw new DelegateFieldException(containingType, field);
+            if (fieldType.IsValueType &&
+                !fieldType.IsPrimitive &&
+                !fieldType.IsEnum &&
+                visited.Add(fieldType))
+            {
+                VerifyNoDelegateFields(fieldType, containingType, visited);
+            }
+        }
     }
 
     /// <summary>
@@ -873,9 +927,12 @@ partial class ModuleBuilder : IGenerationObject
         MethodDeclaration declaration,
         CreateMethodBuilder? createBuilder = null)
     {
-        // Try to disambiguate the declaration
-        if (declaration.Source is not null &&
-            _methodMapping.TryGetValue(declaration.Source, out var existingMethod))
+        // Try to disambiguate the declaration (specialized copies of a source
+        // method are identified by their handles only)
+        bool isMapped = declaration.Source is not null &&
+            !declaration.HasFlags(MethodFlags.Specialized);
+        if (isMapped &&
+            _methodMapping.TryGetValue(declaration.Source!, out var existingMethod))
         {
             return _methods[existingMethod.Declaration.Handle];
         }
@@ -890,8 +947,8 @@ partial class ModuleBuilder : IGenerationObject
             new MethodBuilder(this, initializer, declaration);
 
         _methods.Add(declaration.Handle, builder);
-        if (declaration.Source is not null)
-            _methodMapping.Add(declaration.Source, builder.Method);
+        if (isMapped)
+            _methodMapping.Add(declaration.Source!, builder.Method);
 
         return builder;
     }

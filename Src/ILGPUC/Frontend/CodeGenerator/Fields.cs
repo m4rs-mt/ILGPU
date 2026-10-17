@@ -9,13 +9,16 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
+using ILGPU.Resources;
 using ILGPU.Util;
 using ILGPUC.IR;
 using ILGPUC.IR.ModuleValues;
 using ILGPUC.IR.PureValues;
+using ILGPUC.Roslyn.Analysis;
 using ILGPUC.Util;
 using System;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 
 namespace ILGPUC.Frontend;
 
@@ -78,6 +81,11 @@ partial class CodeGenerator
                 Block.Push(getField);
             }
         }
+        RecordDelegateOrigin(
+            field.FieldType,
+            string.Format(
+                ErrorMessages.KernelDiagnosticDelegateLoadedFromField,
+                field.Name));
     }
 
     /// <summary>
@@ -133,6 +141,18 @@ partial class CodeGenerator
     /// <returns>The loaded field value.</returns>
     private Value CreateLoadStaticFieldValue(FieldInfo field)
     {
+        bool isCompilerGenerated = field.DeclaringType?.Name.StartsWith(
+            "<>",
+            StringComparison.Ordinal) == true;
+        if (!isCompilerGenerated && field.FieldType.IsDelegate())
+        {
+            throw new KernelCompilationException(
+                KernelDiagnostic.DelegateStaticFieldId,
+                string.Format(
+                    ErrorMessages.KernelDiagnosticDelegateStaticField,
+                    $"{field.DeclaringType?.Name}.{field.Name}"),
+                Location);
+        }
         VerifyStaticFieldLoad(field);
 
         // Compiler-generated static fields in closure/display classes (<>c):
@@ -146,10 +166,10 @@ partial class CodeGenerator
             "<>",
             StringComparison.Ordinal) == true)
         {
-            var delegatePointerType = ModuleBuilder.CreatePointerType(
-                ModuleBuilder.IntPointerType,
-                MemoryAddressSpace.Generic);
-            return Builder.CreateNull(Location, delegatePointerType);
+            var nullValue = Builder.CreateNull(Location, ModuleBuilder.DelegateType);
+            if (field.FieldType.IsDelegate())
+                _delegateCacheLoads.Add(nullValue);
+            return nullValue;
         }
 
         var fieldValue = field.GetValue(null);
@@ -183,6 +203,23 @@ partial class CodeGenerator
     /// <param name="field">The field.</param>
     private void MakeStoreField(FieldInfo field)
     {
+        // Values captured by closures are verified once all methods have been
+        // generated (see ClosureCaptures)
+        var declaringType = field.DeclaringType;
+        if (ClosureCaptures is not null &&
+            declaringType is not null &&
+            !field.FieldType.IsClass &&
+            declaringType.IsDefined(typeof(CompilerGeneratedAttribute), false))
+        {
+            ClosureCaptures.Add(
+                Block.GetValue(new VariableRef(
+                    Block.StackCounter - 1,
+                    VariableRefType.Stack)),
+                Method.GetDisplayName(),
+                field.Name,
+                Location);
+        }
+
         var fieldType = ModuleBuilder.CreateType(field.FieldType);
         var value = Block.Pop(
             fieldType,

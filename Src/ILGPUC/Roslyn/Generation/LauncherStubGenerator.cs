@@ -110,12 +110,16 @@ static class LauncherStubGenerator
         else
         {
             sb.AppendLine(",");
+
+            // Prefixed like the parameters of compiled launchers, so names of
+            // captured variables clash neither with the leading parameters nor
+            // with C# keywords
             for (int i = 0; i < kernel.Parameters.Length; i++)
             {
                 var param = kernel.Parameters[i];
                 var suffix = i < kernel.Parameters.Length - 1 ? "," : ")";
                 sb.AppendLine(
-                    $"        {FormatTypeName(param.Type)} {param.Name}{suffix}");
+                    $"        {FormatTypeName(param.Type)} param_{param.Name}{suffix}");
             }
         }
         if (whereClause.Length > 0)

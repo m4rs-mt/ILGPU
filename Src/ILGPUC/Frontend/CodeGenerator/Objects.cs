@@ -29,6 +29,16 @@ partial class CodeGenerator
     /// </summary>
     private void MakeBox()
     {
+        // Delegates created from instance methods of structs box the instance
+        int nextIndex = CurrentInstructionIndex + 1;
+        if (nextIndex < DisassembledMethod.Count &&
+            DisassembledMethod[nextIndex].InstructionType is
+                ILInstructionType.LdFunction or ILInstructionType.LdVirtualFunction)
+        {
+            VerifyNoStructMethodGroup(
+                DisassembledMethod[nextIndex].GetArgumentAs<MethodBase>());
+        }
+
         var value = Block.Pop();
         if (value.Type is not ObjectType)
             throw Location.GetInvalidOperationException();
@@ -168,12 +178,6 @@ partial class CodeGenerator
         // Record: this closure pointer maps to this lambda body
         _delegateTable[closurePtr] = method;
 
-        // Also record as a "pending" delegate for cross-block propagation.
-        // When a stloc stores a phi-merged delegate value, the direct
-        // _delegateTable lookup fails (phi != closurePtr). This fallback
-        // ensures the delegate method is propagated to _delegateLocalTable.
-        _pendingDelegateForLocal = method;
-
         // Push the closure pointer as the delegate handle (type-erased)
         Block.Push(closurePtr);
     }
@@ -197,9 +201,25 @@ partial class CodeGenerator
     /// Realizes an is-instance instruction.
     /// </summary>
     /// <param name="type">The target type.</param>
-    private void MakeIsInstance(Type type) =>
+    private void MakeIsInstance(Type type)
+    {
+        VerifyNoDelegateCast(type, "is");
         throw Location.GetNotSupportedException(
             ErrorMessages.NotSupportedIsInstance);
+    }
+
+    /// <summary>
+    /// Realizes a cast-class instruction, which is not supported.
+    /// </summary>
+    /// <param name="type">The target type.</param>
+    private void MakeCastClass(Type type)
+    {
+        VerifyNoDelegateCast(type, "cast to");
+        throw Location.GetNotSupportedException(
+            ErrorMessages.NotSupportedInstruction,
+            $"castclass {type}",
+            Method.Name);
+    }
 
     /// <summary>
     /// Realizes an indirect load instruction.
@@ -208,11 +228,26 @@ partial class CodeGenerator
     private void MakeLoadObject(Type type)
     {
         var address = Block.Pop();
+
+        // ldind.ref loads the reference stored at the address, such as a
+        // delegate passed by reference
+        if (type == typeof(object) &&
+            address.Type is PointerType { ElementType: PointerType })
+        {
+            Block.Push(Builder.CreateLoad(Location, address));
+            RecordDelegateOrigin(
+                ErrorMessages.KernelDiagnosticDelegateLoadedThroughReference);
+            return;
+        }
+
         var targetElementType = ModuleBuilder.CreateType(type);
         Block.Push(CreateLoad(
             address,
             targetElementType,
             type.ToTargetUnsignedFlags()));
+        RecordDelegateOrigin(
+            type,
+            ErrorMessages.KernelDiagnosticDelegateLoadedThroughReference);
     }
 
     /// <summary>
