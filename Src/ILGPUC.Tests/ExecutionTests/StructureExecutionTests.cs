@@ -42,6 +42,18 @@ public abstract class StructureExecutionTests : ExecutionTestBase
     }
 
     /// <summary>
+    /// Struct parameters with signed byte and unsigned fields are passed by value.
+    /// </summary>
+    [SkippableFact]
+    public async Task StructPassByValueFields_ProducesCorrectOutput()
+    {
+        await VerifyProgramOutputAsync(
+            "TestPrograms/Structure/StructPassByValueFields.cs",
+            ["Kernels.StructPassByValueFieldsKernel"],
+            ["8000059693", "8000059694", "8000059695", "8000059696"]);
+    }
+
+    /// <summary>
     /// Tests local struct construction with per-field writes.
     /// Exercises LoadFieldAddress on local alloca — the vectorized LFA
     /// path on CPU. GPU backends handle this through the shared code generator.
