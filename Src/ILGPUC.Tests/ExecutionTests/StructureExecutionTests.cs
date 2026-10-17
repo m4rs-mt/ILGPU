@@ -54,6 +54,19 @@ public abstract class StructureExecutionTests : ExecutionTestBase
     }
 
     /// <summary>
+    /// Struct parameters that contain an explicitly sized struct are passed by
+    /// value with the host offsets of the fields behind the nested struct.
+    /// </summary>
+    [SkippableFact]
+    public async Task StructPassByValueSized_ProducesCorrectOutput()
+    {
+        await VerifyProgramOutputAsync(
+            "TestPrograms/Structure/StructPassByValueSized.cs",
+            ["Kernels.StructPassByValueSizedKernel"],
+            ["6543", "6544", "6545", "6546"]);
+    }
+
+    /// <summary>
     /// Tests local struct construction with per-field writes.
     /// Exercises LoadFieldAddress on local alloca — the vectorized LFA
     /// path on CPU. GPU backends handle this through the shared code generator.

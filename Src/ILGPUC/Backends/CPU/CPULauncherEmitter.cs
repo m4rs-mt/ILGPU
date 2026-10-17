@@ -285,12 +285,17 @@ sealed class CPULauncherEmitter : LauncherEmitter
 
         ctx.WriteLine($"var {marshaledVar} = default({qualifiedType});");
 
+        // Padding fields that fill explicitly sized structures have no user
+        // accessor, so user accessors are counted separately
+        int accessorIndex = 0;
         for (int i = 0; i < structType.NumFields; i++)
         {
             var fieldType = structType.Fields[i];
             var irFieldName = StructureType.GetFieldName(i);
-            var userAccessor = accessors is not null && i < accessors.Length
-                ? $"{param.Name}.{accessors[i]}"
+            int userIndex = fieldType is PaddingType ? -1 : accessorIndex++;
+            var userAccessor = accessors is not null && userIndex >= 0
+                && userIndex < accessors.Length
+                ? $"{param.Name}.{accessors[userIndex]}"
                 : $"{param.Name}.{irFieldName}";
 
             if (fieldType is ViewType vt)
