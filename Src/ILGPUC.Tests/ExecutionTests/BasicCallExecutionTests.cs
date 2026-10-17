@@ -58,6 +58,20 @@ public abstract class BasicCallExecutionTests : ExecutionTestBase
             ["14", "14", "14", "14"]);
     }
 
+    /// <summary>
+    /// An address-taken local written, passed to an inlined call and read back
+    /// inside a loop that gives SimplifyControlFlow chains to merge (see
+    /// <c>IRTests/InlinedAllocaIRTests</c>).
+    /// </summary>
+    [SkippableFact]
+    public async Task MergedAllocaChain_ProducesCorrectOutput()
+    {
+        await VerifyProgramOutputAsync(
+            "TestPrograms/InlinedAlloca/MergedAllocaChain.cs",
+            ["Kernels.MergedAllocaChainKernel"],
+            ["96", "96", "96", "96"]);
+    }
+
     [SkippableFact]
     public async Task ChainCall_ProducesCorrectOutput()
     {

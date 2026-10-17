@@ -132,7 +132,7 @@ sealed class AcceleratorSpecializer(
         var convert = builder.CreateConvert(
             value.Location,
             convertToNativeType,
-            value.TargetType);
+            transform.Rewrite(value.TargetType));
 
         return convert;
     }

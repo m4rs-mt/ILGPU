@@ -161,6 +161,37 @@ sealed class CompilationHelper : DisposeBase
     }
 
     /// <summary>
+    /// Stage 2a: generate backend source code and the C# launcher wrapper for the
+    /// given launch, without native compilation.
+    /// </summary>
+    public (CodeGenerationResult Compiled, string Wrapper) GenerateLauncher(
+        MethodInfo method,
+        BackendType backend,
+        EntryPointLaunch? launch = null,
+        CompilationProperties? props = null)
+    {
+        var properties = props ?? new CompilationProperties();
+        var rawModule = CompileToModule(method, properties, backend);
+
+        var optTransformer = properties.OptimizationLevel.CreateTransformer();
+        var optimizedModule = optTransformer.Apply(properties, _typeManager, rawModule);
+
+        var backendInstance = CreateBackend(backend);
+        var compiled = backendInstance.GenerateCode(
+            properties, _typeManager, optimizedModule, launch);
+
+        // The wrapper is generated from the pre-backend-transform module
+        using var kernelGen = new CompiledKernelGenerator(
+            backendInstance.CreateCompiledKernelEmitter(),
+            backendInstance.CreateLauncherEmitter(),
+            optimizedModule,
+            compiled,
+            Guid.NewGuid(),
+            launch: launch);
+        return (compiled, kernelGen.Generate().SourceCode);
+    }
+
+    /// <summary>
     /// Stage 2b: compile via native compiler.
     /// </summary>
     public async Task<CompilationResult?> CompileToNativeAsync(

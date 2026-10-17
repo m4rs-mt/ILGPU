@@ -177,7 +177,7 @@ sealed class SSAConstruction(TransformationArgs args) :
                 // NewView(ptr, len).Length → len (with type conversion)
                 var lengthValue = blockTransform.CreateConvert(
                     getLength.Location,
-                    newView.Length,
+                    blockTransform.Rewrite(newView.Length),
                     getLength.LengthType);
                 if (lengthValue != null)
                     transform.Replace(getLength, lengthValue);
