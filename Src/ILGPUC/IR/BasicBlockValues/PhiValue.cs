@@ -214,34 +214,50 @@ sealed partial class PhiValue(
 
     /// <summary>
     /// Removes all arguments whose source block is not contained in the given
-    /// set of reachable blocks. Sources become unreachable when a branch of an
-    /// inlined method folds to an unconditional branch; the blocks are dropped
-    /// when the method is sealed but phi values would still reference them.
+    /// set of reachable blocks or no longer branches to this block. Sources
+    /// become unreachable when a branch of an inlined method folds to an
+    /// unconditional branch, and stop being predecessors when a constant branch
+    /// folds; the blocks or edges are dropped when the method is sealed, but phi
+    /// values would still reference them.
     /// </summary>
     /// <param name="reachableBlocks">All reachable blocks of the method.</param>
     internal void RemoveUnreachableSources(HashSet<BasicBlock> reachableBlocks)
     {
-        int numReachable = 0;
+        // A source must be reachable and still branch to this block: folding a
+        // constant branch removes the edge but leaves the source reachable
+        bool IsLive(BasicBlock source)
+        {
+            if (!reachableBlocks.Contains(source))
+                return false;
+            foreach (var successor in source.Successors)
+            {
+                if (successor == BasicBlock)
+                    return true;
+            }
+            return false;
+        }
+
+        int numLive = 0;
         foreach (var source in Sources)
         {
-            if (reachableBlocks.Contains(source))
-                ++numReachable;
+            if (IsLive(source))
+                ++numLive;
         }
-        if (numReachable == NumArguments)
+        if (numLive == NumArguments)
             return;
 
-        var values = ValueBuilderList.Create(Generation, numReachable * 2);
+        var values = ValueBuilderList.Create(Generation, numLive * 2);
         for (int i = 0; i < NumArguments; ++i)
         {
-            if (reachableBlocks.Contains(Sources[i]))
+            if (IsLive(Sources[i]))
                 values.Add(Arguments[i]);
         }
         for (int i = 0; i < NumArguments; ++i)
         {
-            if (reachableBlocks.Contains(Sources[i]))
+            if (IsLive(Sources[i]))
                 values.Add(Sources[i]);
         }
-        NumArguments = numReachable;
+        NumArguments = numLive;
         ReplaceSealedValues(ref values);
     }
 

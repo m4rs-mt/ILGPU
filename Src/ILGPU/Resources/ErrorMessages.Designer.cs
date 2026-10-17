@@ -502,6 +502,15 @@ namespace ILGPU.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to &apos;{0}&apos; never returns: every path through it loops forever. Kernels and the methods they call must be able to return..
+        /// </summary>
+        internal static string NotSupportedNonTerminatingMethod {
+            get {
+                return ResourceManager.GetString("NotSupportedNonTerminatingMethod", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Not supported instruction &apos;{0}&apos; in method &apos;{1}&apos;..
         /// </summary>
         internal static string NotSupportedInstruction {

@@ -9,6 +9,7 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
+using ILGPU.Resources;
 using ILGPU.Util;
 using ILGPUC.IR.Analyses;
 using ILGPUC.IR.BasicBlockValues;
@@ -410,6 +411,22 @@ class MethodBuilder : PureValueBuilder
             ReversePostOrder<BasicBlock>,
             BasicBlock.SuccessorsProvider<Forwards>,
             Forwards>(_blocks.Count);
+
+        // A method in which every path loops forever has no exit block, which
+        // the IR requires; this also happens when constant branches fold away
+        // the only way out of a loop
+        bool hasExit = false;
+        foreach (var block in allBlocks)
+            hasExit |= block.Successors.Length == 0;
+        if (!hasExit)
+        {
+            var source = Method.Source;
+            throw Method.Location.GetNotSupportedException(
+                ErrorMessages.NotSupportedNonTerminatingMethod,
+                source is null
+                    ? Method.Name
+                    : $"{source.DeclaringType?.Name}.{source.Name}");
+        }
         var exitBlock = allBlocks.FindExitBlock();
 
         // Seal all reachable blocks

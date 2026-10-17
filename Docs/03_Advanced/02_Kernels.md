@@ -4,6 +4,10 @@ Kernels are `static` functions that can work on value types and can invoke other
 `class` (reference) types are currently **not supported** in the scope of kernels.
 Note that exception handling, boxing and recursive programs are also **not supported** and will be rejected by the ILGPU
 compiler.
+Kernels and the functions they call must also be able to return: a function in which every path loops forever, such as
+a `while (true)` loop without a `return` or `break`, is rejected with the error "'X' never returns".
+Such a kernel could only be stopped by resetting the device.
+Loops like `while (true)` that are left through a `return` or `break` are supported.
 
 The type of the first parameter must always be a supported index type in the case of implicitly grouped kernels (see
 below).

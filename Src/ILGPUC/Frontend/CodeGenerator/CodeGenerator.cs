@@ -37,6 +37,11 @@ sealed partial class CodeGenerator
     #region Instance
 
     /// <summary>
+    /// Whether the method has irreducible control flow; computed on first use.
+    /// </summary>
+    private bool? _isIrreducible;
+
+    /// <summary>
     /// Will be invoked once a new method has been called that could not be resolved.
     /// </summary>
     public event EventHandler<MethodBase>? OnNewMethodCalled;
