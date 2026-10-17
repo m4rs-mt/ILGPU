@@ -232,19 +232,6 @@ abstract partial class PureValueBuilder(Generation generation, Location location
         : Append(new HandleValue(GetInitializer(location), handle));
 
     /// <summary>
-    /// Creates a new index structure instance.
-    /// </summary>
-    /// <param name="location">The current location.</param>
-    /// <param name="dimension">The dimension value.</param>
-    /// <returns>The created index type.</returns>
-    public Value CreateIndex(Location location, Value dimension)
-    {
-        var instance = CreateDynamicStructure(location, 1);
-        instance.Add(dimension);
-        return instance.Seal();
-    }
-
-    /// <summary>
     /// Append a new value.
     /// </summary>
     /// <typeparam name="T">The node type.</typeparam>

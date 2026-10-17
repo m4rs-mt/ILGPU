@@ -91,4 +91,37 @@ static class LambdaKernels
         Func<int, int> doubleIt = x => x * 2;
         data[index] = doubleIt(index.X);
     }
+
+    /// <summary>
+    /// Two different non-capturing lambdas stored to locals in one method.
+    /// The ternary argument forces each delegate handle across a block
+    /// boundary on the evaluation stack, so the Invoke sites resolve through
+    /// the cross-block phi-tracing path in TryResolveDelegateMethod.
+    /// Regression test: each call site must devirtualize to its own lambda
+    /// body (the old fallback returned the first table entry for both).
+    /// </summary>
+    public static void TwoLambdasCrossBlockKernel(
+        Index1D index, ArrayView1D<int, Stride1D.Dense> data, int flag)
+    {
+        Func<int, int> inc = x => x + 1;
+        Func<int, int> dbl = x => x * 2;
+        data[index] =
+            inc(flag > 0 ? index.X : 0) +
+            dbl(flag > 0 ? index.X : 1);
+    }
+
+    /// <summary>
+    /// Two different capturing lambdas stored to locals in one method, with
+    /// cross-block delegate handles (see TwoLambdasCrossBlockKernel). Covers
+    /// the closure-object handle path in addition to the static-lambda path.
+    /// </summary>
+    public static void TwoClosuresCrossBlockKernel(
+        Index1D index, ArrayView1D<int, Stride1D.Dense> data, int a, int b)
+    {
+        Func<int, int> addA = x => x + a;
+        Func<int, int> mulB = x => x * b;
+        data[index] =
+            addA(index.X > 0 ? index.X : a) +
+            mulB(index.X > 0 ? index.X : b);
+    }
 }

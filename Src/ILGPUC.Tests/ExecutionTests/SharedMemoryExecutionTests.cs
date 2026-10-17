@@ -44,4 +44,15 @@ public abstract class SharedMemoryExecutionTests : ExecutionTestBase
         Assert.False(result.TimedOut, "Process timed out");
         Assert.Equal(4, result.StdOutLines.Length);
     }
+
+    [SkippableFact]
+    public async Task SharedRefSelectSameArray_ProducesCorrectOutput()
+    {
+        // Even threads increment shared[t] = 10 * (t + 1), odd threads
+        // shared[t + 32] = t; then data[t] = shared[t] + shared[t + 32]
+        await VerifyProgramOutputAsync(
+            "TestPrograms/SharedMemory/SharedRefSelectSameArray.cs",
+            ["Kernels.SharedRefSelectSameArrayKernel"],
+            ["11", "22", "33", "44"]);
+    }
 }

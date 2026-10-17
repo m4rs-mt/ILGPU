@@ -231,15 +231,6 @@ sealed class CompilationRewriter(ICompiledKernelProvider? kernelProvider = null)
     }
 
     /// <summary>
-    /// Convenience: runs both phases in sequence.
-    /// </summary>
-    public RewriteResult Rewrite(CSharpCompilation compilation)
-    {
-        var analysis = Analyze(compilation);
-        return Rewrite(compilation, analysis);
-    }
-
-    /// <summary>
     /// Build-tool mode: analyze, rewrite, and write output files to disk.
     /// Does not modify the in-memory compilation — instead writes rewritten
     /// source files (with #line directives) and generated files to outputDir.

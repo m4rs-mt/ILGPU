@@ -69,4 +69,22 @@ static class BasicSwitchKernels
                 break;
         }
     }
+
+    /// <summary>
+    /// Switch expression over the thread index. Debug builds wrap the arms
+    /// in constant-condition branches (ldc.i4.1; brtrue) whose fall-through
+    /// blocks are unreachable.
+    /// </summary>
+    public static void SwitchExpressionKernel(
+        Index1D index, ArrayView1D<int, Stride1D.Dense> data)
+    {
+        int x = data[index];
+        data[index] = index.X switch
+        {
+            0 => x * 3,
+            1 => x + 5,
+            2 => x - 7,
+            _ => -x,
+        };
+    }
 }

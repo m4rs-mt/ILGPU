@@ -178,10 +178,16 @@ sealed partial class GenerationContext(
         return result;
     }
 
+    private readonly HashSet<string> _declaredNames = [];
+
     /// <summary>
-    /// Generates a unique temporary variable name.
+    /// Returns "var " the first time a name is declared and "" afterwards,
+    /// so statement emitters can re-emit a value (e.g. loop-header values
+    /// re-emitted inside the loop body) as an assignment instead of an
+    /// illegal duplicate declaration in the nested scope.
     /// </summary>
-    public string GenerateTempName() => $"tmp_{_nextTempId++}";
+    public string DeclarePrefix(string name) =>
+        _declaredNames.Add(name) ? "var " : "";
 
     #endregion
 

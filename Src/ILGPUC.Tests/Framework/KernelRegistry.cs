@@ -47,8 +47,6 @@ static class KernelRegistry
     };
 
     private static readonly Dictionary<string, BackendCapability> s_capabilities = [];
-    private static readonly Dictionary<string, KnownFailingOnAttribute>
-        s_knownFailing = [];
     private static readonly Dictionary<string, MethodInfo> s_kernels = Discover();
 
     /// <summary>
@@ -72,15 +70,6 @@ static class KernelRegistry
         s_capabilities.TryGetValue(name, out var caps)
             ? caps
             : BackendCapability.None;
-
-    /// <summary>
-    /// Returns the <see cref="KnownFailingOnAttribute"/> annotation for the
-    /// given kernel, or <c>null</c> if the kernel has no annotation. Used
-    /// by backend-test theories to skip per-kernel-per-backend known
-    /// failures with a tracking message.
-    /// </summary>
-    public static KnownFailingOnAttribute? GetKnownFailing(string name) =>
-        s_knownFailing.TryGetValue(name, out var attr) ? attr : null;
 
     /// <summary>
     /// Total number of discovered kernels.
@@ -113,10 +102,6 @@ static class KernelRegistry
                     var name = $"{type.Name}.{method.Name}";
                     results[name] = method;
                     s_capabilities[name] = InferCapabilities(method);
-                    var knownFailing = method
-                        .GetCustomAttribute<KnownFailingOnAttribute>();
-                    if (knownFailing is not null)
-                        s_knownFailing[name] = knownFailing;
                 }
             }
         }
@@ -143,10 +128,6 @@ static class KernelRegistry
                 var name = $"{declaringType.Name}.{genericMethod.Name}<{argList}>";
                 results[name] = concrete;
                 s_capabilities[name] = InferCapabilities(concrete);
-                var knownFailing = genericMethod
-                    .GetCustomAttribute<KnownFailingOnAttribute>();
-                if (knownFailing is not null)
-                    s_knownFailing[name] = knownFailing;
             }
             catch (ArgumentException)
             {

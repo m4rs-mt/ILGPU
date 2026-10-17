@@ -193,16 +193,4 @@ internal sealed class ILFrontendCache
         }
         return false;
     }
-
-    /// <summary>
-    /// Drops every cached entry. Intended for tests and benchmarking only —
-    /// production callers should let the cache live as long as the owning
-    /// <see cref="ILGPUC.KernelCompiler"/>.
-    /// </summary>
-    public void Clear()
-    {
-        Disassembly.Clear();
-        Pdb.Clear();
-        AssemblyWalkability.Clear();
-    }
 }

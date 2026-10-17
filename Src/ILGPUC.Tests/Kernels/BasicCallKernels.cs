@@ -35,6 +35,8 @@ static class BasicCallKernels
         value = value * 2;
     }
 
+    static int ScaleIf(int value, int mode) => mode == 0 ? value * 2 : value;
+
     /// <summary>
     /// Simple call: call Add and store result.
     /// </summary>
@@ -86,5 +88,15 @@ static class BasicCallKernels
         int step2 = Multiply(step1, c);
         int step3 = Add(step2, a);
         data[index] = step3;
+    }
+
+    /// <summary>
+    /// Inlining a call with a constant argument folds the callee's branch,
+    /// leaving one predecessor of the callee's join block unreachable.
+    /// </summary>
+    public static void ConstantBranchCallKernel(
+        Index1D index, ArrayView1D<int, Stride1D.Dense> data)
+    {
+        data[index] = ScaleIf(data[index], 0) + ScaleIf(data[index], 1);
     }
 }

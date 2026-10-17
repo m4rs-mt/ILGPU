@@ -44,8 +44,16 @@ sealed class MetalCompiledKernelEmitter(
         else
             ctx.WriteLine($"MetalGPUFamily.{gpuFamily})");
 
+        // Source compiled at runtime defaults to strict math; the fast math
+        // modes opt into the Metal compiler's fast math.
         if (ctx.ActiveEmbedMode == KernelEmbedMode.Source)
-            ctx.WriteLine("KernelSource)");
+        {
+            ctx.WriteLine(ctx.MathMode == MathMode.Default
+                ? "KernelSource)"
+                : "KernelSource,");
+            if (ctx.MathMode != MathMode.Default)
+                ctx.WriteLine("fastMath: true)");
+        }
     }
 
     public override void EmitRequiredCapabilitiesProperty(LauncherEmissionContext ctx)

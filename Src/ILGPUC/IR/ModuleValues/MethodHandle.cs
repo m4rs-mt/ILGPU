@@ -26,12 +26,6 @@ namespace ILGPUC.IR.ModuleValues;
 readonly record struct MethodHandle(Guid Id, string? Name = null)
 {
     /// <summary>
-    /// Creates a new method handle.
-    /// </summary>
-    /// <returns>The created method handle.</returns>
-    public static MethodHandle Create() => new(Guid.NewGuid());
-
-    /// <summary>
     /// Creates an empty named method handle.
     /// </summary>
     /// <param name="name">The name of the method reference.</param>
@@ -42,14 +36,6 @@ readonly record struct MethodHandle(Guid Id, string? Name = null)
     /// Returns true if this handle is empty.
     /// </summary>
     public bool IsEmpty => Name is null || Id == default;
-
-    /// <summary>
-    /// Returns a serialization string.
-    /// </summary>
-    /// <returns>The created serialization string.</returns>
-    public string Serialize() => string.IsNullOrWhiteSpace(Name)
-        ? Id.ToString()
-        : $"{Name}/{Id}";
 
     /// <summary>
     /// Returns the string representation of this handle.
@@ -138,31 +124,6 @@ readonly struct MethodDeclaration : IEquatable<MethodDeclaration>
     public MethodFlags Flags { get; }
 
     /// <summary>
-    /// Returns true if this method is an external method.
-    /// </summary>
-    public bool IsExternal => HasFlags(MethodFlags.External);
-
-    /// <summary>
-    /// Returns true if this method is an intrinsic method.
-    /// </summary>
-    public bool IsIntrinsic => HasFlags(MethodFlags.Intrinsic);
-
-    /// <summary>
-    /// Returns true if this method is an entry-point method.
-    /// </summary>
-    public bool IsEntryPoint => HasFlags(MethodFlags.EntryPoint);
-
-    /// <summary>
-    /// Returns true if this method is marked for inlining.
-    /// </summary>
-    public bool IsInline => HasFlags(MethodFlags.Inline);
-
-    /// <summary>
-    /// Returns true if this method must not be inlined.
-    /// </summary>
-    public bool IsNoInline => HasFlags(MethodFlags.NoInline);
-
-    /// <summary>
     /// Returns true if the associated handle is not empty.
     /// </summary>
     public bool HasHandle => !Handle.IsEmpty;
@@ -185,26 +146,6 @@ readonly struct MethodDeclaration : IEquatable<MethodDeclaration>
     #endregion
 
     #region Methods
-
-    /// <summary>
-    /// Specializes the current method declaration by specializing an empty
-    /// method handle.
-    /// </summary>
-    /// <param name="handle">The handle to specialize.</param>
-    /// <returns>The specialized method declaration.</returns>
-    public MethodDeclaration Specialize(MethodHandle handle)
-    {
-        Debug.Assert(!handle.IsEmpty, "Invalid handle");
-        return new MethodDeclaration(handle, ReturnType, Source, Flags);
-    }
-
-    /// <summary>
-    /// Specializes the current method declaration by specializing the return type.
-    /// </summary>
-    /// <param name="returnType">The return type to specialize.</param>
-    /// <returns>The specialized method declaration.</returns>
-    public MethodDeclaration Specialize(TypeValue returnType) =>
-        new(Handle, returnType, Source, Flags);
 
     /// <summary>
     /// Rewrites this method declaration using the rewriter provided.

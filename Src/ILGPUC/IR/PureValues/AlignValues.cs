@@ -35,37 +35,6 @@ abstract class BaseAlignOperationValue(
     /// </summary>
     public bool IsViewOperation => Source.Type is ViewType;
 
-    /// <summary>
-    /// Returns true if the current operation works on a pointer.
-    /// </summary>
-    public bool IsPointerOperation => Source.Type is PointerType;
-
-    /// <summary>
-    /// Tries to determine an explicit alignment compile-time constant (primarily
-    /// for compiler analysis purposes). If this alignment information could not be
-    /// resolved, the function returns the worst-case alignment of 1.
-    /// </summary>
-    public int GetAlignmentConstant() =>
-        TryGetAlignmentConstant(out int constant) ? constant : 1;
-
-    /// <summary>
-    /// Tries to determine a compile-time known alignment constant.
-    /// </summary>
-    /// <param name="alignmentConstant">
-    /// The determined alignment constant (if any).
-    /// </param>
-    /// <returns>True, if an alignment constant could be determined.</returns>
-    public bool TryGetAlignmentConstant(out int alignmentConstant)
-    {
-        if (AlignmentInBytes is PrimitiveValue primitive)
-        {
-            alignmentConstant = Math.Max(primitive.Int32Value, 1);
-            return true;
-        }
-        alignmentConstant = 0;
-        return false;
-    }
-
     /// <inheritdoc cref="Value.ToArgString()"/>
     protected override string ToArgString() =>
         $"{base.ToArgString()}, {AlignmentInBytes}";

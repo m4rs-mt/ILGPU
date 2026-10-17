@@ -63,6 +63,13 @@ sealed class CompilationHelper : DisposeBase
     }
 
     /// <summary>
+    /// Returns the shared type information manager. Intended for tests that
+    /// apply individual transformations to a module produced by
+    /// <see cref="CompileToModule"/>.
+    /// </summary>
+    public TypeInformationManager TypeManager => _typeManager;
+
+    /// <summary>
     /// Initializes the intrinsic registry exactly once across all test instances.
     /// </summary>
     private static void EnsureIntrinsicsInitialized()
@@ -205,12 +212,20 @@ sealed class CompilationHelper : DisposeBase
 
         // Apply backend transforms and dump
         using var sw = new StringWriter();
-        backendInstance.GenerateCode(
-            properties,
-            _typeManager,
-            optimizedModule,
-            sw,
-            IRPrinterFormat.LLVM);
+        try
+        {
+            backendInstance.GenerateCode(
+                properties,
+                _typeManager,
+                optimizedModule,
+                sw,
+                IRPrinterFormat.LLVM);
+        }
+        catch (NotSupportedException) when (sw.GetStringBuilder().Length > 0)
+        {
+            // The IR is dumped before source generation, which may reject
+            // the module for the target (e.g. double on Metal).
+        }
 
         // The GenerateCode with a dumpWriter writes the IR dump to sw.
         // But we want just the IR dump, not the source code.

@@ -84,16 +84,21 @@ sealed partial class CodeGenerator
     /// Backend the IR is being generated for. Used by codegen-time
     /// intrinsic resolution to pick the backend-specific implementation.
     /// </param>
+    /// <param name="isEntryPoint">
+    /// True if the method is a kernel entry point, which is never inlined.
+    /// </param>
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     public CodeGenerator(
         MethodBuilder methodBuilder,
         DisassembledMethod disassembledMethod,
-        Backends.BackendType backendType = default)
+        Backends.BackendType backendType = default,
+        bool isEntryPoint = false)
     {
         ModuleBuilder = methodBuilder.ModuleBuilder;
         MethodBuilder = methodBuilder;
         DisassembledMethod = disassembledMethod;
         BackendType = backendType;
+        IsEntryPoint = isEntryPoint;
 
         _cfgBuilder = new Block.CFGBuilder(this, methodBuilder);
         EntryBlock = _cfgBuilder.EntryBlock;
@@ -235,6 +240,12 @@ sealed partial class CodeGenerator
     public Backends.BackendType BackendType { get; }
 
     /// <summary>
+    /// Returns true if the current method is a kernel entry point. All other
+    /// methods can be inlined into a loop of their caller.
+    /// </summary>
+    public bool IsEntryPoint { get; }
+
+    /// <summary>
     /// Returns compilation properties.
     /// </summary>
     public CompilationProperties Properties => ModuleBuilder.Properties;
@@ -284,6 +295,11 @@ sealed partial class CodeGenerator
     private Location Location { get; set; }
 
     /// <summary>
+    /// Gets or sets the IL offset of the instruction being generated.
+    /// </summary>
+    private int CurrentInstructionOffset { get; set; }
+
+    /// <summary>
     /// Gets or sets the offset for load/store argument instructions in a lambda.
     /// This is used to shift arguments because of the unused 'this' argument.
     /// </summary>
@@ -329,6 +345,10 @@ sealed partial class CodeGenerator
             GenerateCodeForBlock();
         }
 
+        // Close any remaining back edges (no-op if the RPO walk already
+        // sealed every block); Release builds would otherwise silently keep
+        // incomplete phis, as AssertAllSealed is DEBUG-only.
+        SSABuilder.SealRemainingBlocks();
         SSABuilder.AssertAllSealed();
 
         return MethodBuilder.Method;
@@ -427,6 +447,8 @@ sealed partial class CodeGenerator
                 $"body of {methodBase.Name}");
         }
 
+        // See GenerateCode: close any remaining back edges before asserting.
+        SSABuilder.SealRemainingBlocks();
         SSABuilder.AssertAllSealed();
     }
 
@@ -452,6 +474,7 @@ sealed partial class CodeGenerator
         for (int i = Block.InstructionOffset; i < endOffset; ++i)
         {
             var instruction = DisassembledMethod[i];
+            CurrentInstructionOffset = instruction.Offset;
 
             // Setup debug information
             Location = instruction.Location;

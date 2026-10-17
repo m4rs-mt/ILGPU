@@ -130,6 +130,14 @@ struct PhiRewriter(int capacity)
                 if (source is BasicBlock newSource &&
                     value is Value newValue)
                 {
+                    // Checked in every build: AddArgument only asserts this in
+                    // debug builds, and a mistyped argument miscompiles.
+                    if (!newValue.Type.Equals(phiBuilder.Type))
+                    {
+                        throw phiValue.Location.GetInvalidOperationException(
+                            $"Phi argument {newValue} does not have the " +
+                            $"phi type {phiBuilder.Type}");
+                    }
                     phiBuilder.AddArgument(newSource, newValue);
                 }
             }

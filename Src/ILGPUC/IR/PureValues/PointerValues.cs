@@ -37,24 +37,9 @@ abstract class PointerValue(in PureValueInitializer initializer, TypeValue type)
     public Value Offset => GetValue<Value>(1);
 
     /// <summary>
-    /// Returns true if this is a 32bit element access.
-    /// </summary>
-    public bool Is32BitAccess => Offset.BasicValueType <= BasicValueType.Int32;
-
-    /// <summary>
-    /// Returns true if this is a 64bit element access.
-    /// </summary>
-    public bool Is64bitAccess => Offset.BasicValueType == BasicValueType.Int64;
-
-    /// <summary>
     /// Returns the view element type.
     /// </summary>
     public AddressSpaceType AddressSpaceType => Type.As<AddressSpaceType>();
-
-    /// <summary>
-    /// Returns the pointer address space.
-    /// </summary>
-    public MemoryAddressSpace AddressSpace => AddressSpaceType.AddressSpace;
 
     /// <summary>
     /// Returns the element type.
@@ -107,11 +92,6 @@ sealed partial class LoadElementAddress : PointerValue
     /// Returns true if the current access works on a pointer.
     /// </summary>
     public bool IsPointerAccess => Source.Type is PointerType;
-
-    /// <summary>
-    /// Returns true if this access targets the first element.
-    /// </summary>
-    public bool AccessesFirstElement => Offset.IsPrimitiveValue(0);
 
     /// <inheritdoc/>
     public override Value? Rewrite<TRewriter>(in TRewriter rewriter) =>

@@ -30,16 +30,6 @@ sealed class MetalBackend(MetalTargetOS targetOS, MetalGPUFamily gpuFamily) :
         MetalAcceleratorCapabilities.FromGPUFamily(gpuFamily))
 {
     /// <summary>
-    /// Returns the target platform.
-    /// </summary>
-    public MetalTargetOS TargetOS => targetOS;
-
-    /// <summary>
-    /// Returns the target GPU family.
-    /// </summary>
-    public MetalGPUFamily GPUFamily => gpuFamily;
-
-    /// <summary>
     /// Returns the underlying language configuration.
     /// </summary>
     public override LanguageConfiguration LanguageConfiguration { get; } =
@@ -76,6 +66,12 @@ sealed class MetalBackend(MetalTargetOS targetOS, MetalGPUFamily gpuFamily) :
             Target = CompilationTarget.Metal,
             OutputType = OutputType.Binary,
             OptimizationLevel = GetNativeOptLevel(properties.OptimizationLevel),
+            // The Metal compiler enables fast math by default, which assumes
+            // no NaNs, infinities or signed zeros (folding e.g. x != x to
+            // false). Only the fast math modes opt into it.
+            ExtraFlags = properties.MathMode == MathMode.Default
+                ? "-fno-fast-math"
+                : "-ffast-math",
         }, ct).ConfigureAwait(false);
     }
 }

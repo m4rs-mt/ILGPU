@@ -269,29 +269,6 @@ partial class PureValueBuilder
     /// <param name="second">The second operand.</param>
     /// <param name="third">The second operand.</param>
     /// <param name="kind">The operation kind.</param>
-    /// <returns>A node that represents the arithmetic operation.</returns>
-    public Value? CreateArithmetic(
-        Location location,
-        Value? first,
-        Value? second,
-        Value? third,
-        TernaryArithmeticKind kind) =>
-        CreateArithmetic(
-            location,
-            first,
-            second,
-            third,
-            kind,
-            ArithmeticFlags.None);
-
-    /// <summary>
-    /// Creates a ternary arithmetic operation.
-    /// </summary>
-    /// <param name="location">The current location.</param>
-    /// <param name="first">The first operand.</param>
-    /// <param name="second">The second operand.</param>
-    /// <param name="third">The second operand.</param>
-    /// <param name="kind">The operation kind.</param>
     /// <param name="flags">Operation flags.</param>
     /// <returns>A node that represents the arithmetic operation.</returns>
     public Value? CreateArithmetic(

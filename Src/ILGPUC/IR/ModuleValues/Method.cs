@@ -123,38 +123,6 @@ sealed partial class Method : ModuleValue,
     }
 
     /// <summary>
-    /// Represents an enumerator to iterate over all called methods.
-    /// </summary>
-    /// <param name="method">The parent method.</param>
-    internal struct CalledMethodEnumerator(Method method)
-    {
-        private int _index = -1;
-
-        /// <inheritdoc cref="IEnumerator.Current"/>
-        public readonly Method Current => method.CalledMethods[_index];
-
-        /// <inheritdoc cref="IEnumerator.MoveNext()"/>
-        public bool MoveNext() => ++_index < method.NumCalledMethods;
-    }
-
-    /// <summary>
-    /// Represents a collection of called methods.
-    /// </summary>
-    /// <param name="method">The parent method.</param>
-    internal readonly struct CalledMethodCollection(Method method)
-    {
-        /// <summary>
-        /// Returns the number of called methods.
-        /// </summary>
-        public int Count => method.NumCalledMethods;
-
-        /// <summary>
-        /// Returns an enumerator to iterate over all called methods.
-        /// </summary>
-        public CalledMethodEnumerator GetEnumerator() => new(method);
-    }
-
-    /// <summary>
     /// Represents a location that is bound to a managed method.
     /// </summary>
     /// <param name="method">The target method (if any).</param>
@@ -303,11 +271,6 @@ sealed partial class Method : ModuleValue,
     public bool IsInline => HasFlags(MethodFlags.Inline);
 
     /// <summary>
-    /// Returns true if this method must not be inlined.
-    /// </summary>
-    public bool IsNoInline => HasFlags(MethodFlags.NoInline);
-
-    /// <summary>
     /// Returns true if this method has an implementation
     /// (no intrinsic or external method).
     /// </summary>
@@ -319,19 +282,9 @@ sealed partial class Method : ModuleValue,
     public int NumParameters { get; private set; }
 
     /// <summary>
-    /// Returns the number of methods called from this method.
-    /// </summary>
-    public int NumCalledMethods => _calledMethods.Value.Count;
-
-    /// <summary>
     /// Returns the internally stored counters
     /// </summary>
     internal int NumValues { get; private set; }
-
-    /// <summary>
-    /// Returns the internal global value offset.
-    /// </summary>
-    internal int MethodOffset { get; private set; }
 
     /// <summary>
     /// Returns the associated entry block.
@@ -370,21 +323,9 @@ sealed partial class Method : ModuleValue,
     private Parameter GetParameter(int index) => GetValue<Parameter>(index + 1);
 
     /// <summary>
-    /// Returns true if the given method is called from this method.
-    /// </summary>
-    /// <param name="method">The method to be tested.</param>
-    /// <returns>True if the given method is called from this method.</returns>
-    public bool CallsMethod(Method method) => _calledMethods.Value.Contains(method);
-
-    /// <summary>
     /// Returns the stored exit block.
     /// </summary>
     BasicBlock IControlFlowAnalysisSource<Forwards>.FindExitBlock() => ExitBlock;
-
-    /// <summary>
-    /// Sets up the internal method offset.
-    /// </summary>
-    internal void SetupMethodOffset(int methodOffset) => MethodOffset = methodOffset;
 
     /// <summary>
     /// Computes all uses.
@@ -552,12 +493,6 @@ sealed partial class Method : ModuleValue,
     /// <param name="flags">The flags to remove.</param>
     public void RemoveFlags(MethodFlags flags) =>
         Declaration = Declaration.RemoveFlags(flags);
-
-    /// <summary>
-    /// Returns an enumerator to enumerate all called method.
-    /// </summary>
-    /// <returns>An enumerator to enumerate all called methods.</returns>
-    public CalledMethodEnumerator GetCalledMethodEnumerator() => new(this);
 
     /// <summary>
     /// Seals this method using the given information provided by the parent builder.

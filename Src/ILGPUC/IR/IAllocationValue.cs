@@ -47,23 +47,6 @@ interface IAllocationValue
 static class AllocationValueExtensions
 {
     /// <summary>
-    /// Returns true if this allocation is a simple allocation.
-    /// </summary>
-    /// <param name="value">The allocation value.</param>
-    public static bool IsSimpleAllocation<T>(this T value)
-        where T : IAllocationValue =>
-        value.IsStaticAllocation(out var arrayLength) &&
-        arrayLength.HasIntValue(1L);
-
-    /// <summary>
-    /// Returns true if this allocation is a dynamic allocation.
-    /// </summary>
-    /// <param name="value">The allocation value.</param>
-    public static bool IsDynamicAllocation<T>(this T value)
-        where T : IAllocationValue =>
-        value.ArrayLengthValue is not null;
-
-    /// <summary>
     /// Returns true if this allocation is a static array allocation.
     /// </summary>
     /// <param name="value">The allocation value.</param>
@@ -76,25 +59,4 @@ static class AllocationValueExtensions
         arrayLength = value.ArrayLength ?? default;
         return value.ArrayLength.HasValue;
     }
-
-    /// <summary>
-    /// Determines the allocation alignment information based on the given type.
-    /// </summary>
-    /// <param name="type">The type.</param>
-    /// <returns>The compatible allocation alignment in bytes.</returns>
-    public static int GetAllocationTypeAlignment(TypeValue type) =>
-        // Assume that we can align the type to an appropriate power of
-        // 2 if the type size is compatible
-        XMath.IsPowerOf2(type.Size)
-        ? XMath.Max(type.Alignment, type.Size)
-        : type.Alignment;
-
-    /// <summary>
-    /// Determines the allocation alignment information based on the given value.
-    /// </summary>
-    /// <param name="value">The allocation value.</param>
-    /// <returns>The compatible allocation alignment in bytes.</returns>
-    public static int GetAllocationTypeAlignment<T>(this T value)
-        where T : IAllocationValue =>
-        GetAllocationTypeAlignment(value.AllocType);
 }

@@ -54,4 +54,63 @@ static class BasicJumpKernels
     done:
         data[index] = result;
     }
+
+    /// <summary>
+    /// Irreducible loop written with gotos directly in the kernel body: the
+    /// two labels of the loop can both be entered from outside of it.
+    /// </summary>
+    public static void IrreducibleGotoKernel(
+        Index1D index, ArrayView1D<int, Stride1D.Dense> data)
+    {
+        int x = index.X + 1;
+        int y = 0;
+        if (index.X % 3 == 0)
+            goto second;
+    first:
+        x = x * 3 + 1;
+        y++;
+        if (x % 7 == 0)
+            goto done;
+    second:
+        x = x / 2 + y;
+        y += 2;
+        if (y < 12)
+            goto first;
+    done:
+        data[index] = x * 100 + y;
+    }
+
+    /// <summary>
+    /// Three nested loops left with a goto out of all loops, a goto to the
+    /// end of the outer loop body and a break out of the inner loop.
+    /// </summary>
+    public static void NestedLoopGotoKernel(
+        Index1D index,
+        ArrayView1D<int, Stride1D.Dense> input,
+        ArrayView1D<int, Stride1D.Dense> data)
+    {
+        int a, b = 0, c = 0, r = 0;
+        for (a = 0; a < 4; a++)
+        {
+            for (b = 0; b < 4; b++)
+            {
+                for (c = 0; c < 4; c++)
+                {
+                    int v = input[a * 16 + b * 4 + c];
+                    if (v == index.X)
+                        goto done;
+                    if (v > 40)
+                        goto nextA;
+                    if (v < -40)
+                        break;
+                    r += v;
+                }
+                r ^= b;
+            }
+        nextA:
+            r += 1000;
+        }
+    done:
+        data[index] = r * 7 + a * 100 + b * 10 + c;
+    }
 }

@@ -14,6 +14,7 @@
 using ILGPUC.IR;
 using ILGPUC.IR.BasicBlockValues;
 using ILGPUC.IR.PureValues;
+using System;
 
 namespace ILGPUC.Backends;
 
@@ -109,6 +110,16 @@ abstract class IntrinsicEmitter
     public abstract string EmitPow(string x, string y, ArithmeticBasicValueType type);
 
     /// <summary>
+    /// Emits a floating-point remainder (C# <c>%</c> on floats, truncated
+    /// division semantics), or null if the language supports <c>%</c> on
+    /// floating-point operands.
+    /// </summary>
+    public virtual string? EmitFloatRem(
+        string x,
+        string y,
+        ArithmeticBasicValueType type) => null;
+
+    /// <summary>
     /// Emits an absolute value function call.
     /// </summary>
     public abstract string EmitAbs(string arg, ArithmeticBasicValueType type);
@@ -160,25 +171,6 @@ abstract class IntrinsicEmitter
     /// Emits a ceiling function call (round up).
     /// </summary>
     public abstract string EmitCeil(string arg, ArithmeticBasicValueType type);
-
-    /// <summary>
-    /// Emits a truncate function call (round toward zero).
-    /// </summary>
-    public abstract string EmitTrunc(string arg, ArithmeticBasicValueType type);
-
-    /// <summary>
-    /// Emits a round function call (round to nearest).
-    /// </summary>
-    public abstract string EmitRound(string arg, ArithmeticBasicValueType type);
-
-    /// <summary>
-    /// Emits a clamp function call (constrain value to range).
-    /// </summary>
-    public abstract string EmitClamp(
-        string value,
-        string min,
-        string max,
-        ArithmeticBasicValueType type);
 
     /// <summary>
     /// Emits a fused multiply-add function call (a * b + c).
@@ -330,6 +322,41 @@ abstract class IntrinsicEmitter
     /// </summary>
     public abstract string EmitMemoryFence();
 
+    /// <summary>
+    /// Emits a barrier of the given kind.
+    /// </summary>
+    /// <param name="kind">The barrier kind (warp or group level).</param>
+    public virtual string EmitBarrier(BarrierKind kind) =>
+        kind == BarrierKind.WarpLevel ? EmitWarpBarrier() : EmitBarrier();
+
+    /// <summary>
+    /// Emits a barrier that synchronizes all threads of a warp. Defaults to a
+    /// group barrier, which also synchronizes the warp.
+    /// </summary>
+    public virtual string EmitWarpBarrier() => EmitBarrier();
+
+    /// <summary>
+    /// Emits a memory fence of the given scope.
+    /// </summary>
+    /// <param name="kind">The fence scope (group, device or system).</param>
+    public virtual string EmitMemoryFence(MemoryBarrierKind kind) =>
+        EmitMemoryFence();
+
+    /// <summary>
+    /// Emits a barrier that also combines a predicate across all threads of
+    /// the warp or group: the number of threads for which it is true, or the
+    /// logical and/or of it.
+    /// </summary>
+    /// <param name="predicate">The bool predicate expression.</param>
+    /// <param name="kind">The barrier kind (warp or group level).</param>
+    /// <param name="predicateKind">The combination of the predicate.</param>
+    public virtual string EmitPredicateBarrier(
+        string predicate,
+        PredicateBarrierKind kind,
+        PredicateBarrierPredicateKind predicateKind) =>
+        throw new NotSupportedException(
+            $"{kind} predicate barriers are not supported by this backend");
+
     #endregion
 
     #region Warp/Wave Primitives
@@ -433,42 +460,6 @@ abstract class IntrinsicEmitter
     /// </summary>
     /// <param name="dimension">0=x, 1=y, 2=z</param>
     public abstract string EmitGridDim(int dimension);
-
-    #endregion
-
-    #region Debug and Utility
-
-    /// <summary>
-    /// Emits a printf statement for device-side output.
-    /// </summary>
-    /// <param name="format">Format string.</param>
-    /// <param name="args">Arguments to format.</param>
-    /// <returns>Printf statement code, or throws if not supported.</returns>
-    public abstract string EmitPrintf(string format, params string[] args);
-
-    /// <summary>
-    /// Emits an assertion check.
-    /// </summary>
-    /// <param name="condition">Condition expression to assert.</param>
-    /// <param name="message">
-    /// Optional message (may not be supported on all platforms).
-    /// </param>
-    /// <returns>Assert statement code, or custom implementation.</returns>
-    public abstract string EmitAssert(string condition, string? message = null);
-
-    #endregion
-
-    #region Utility Methods
-
-    /// <summary>
-    /// Returns true if printf is supported by this backend.
-    /// </summary>
-    public abstract bool SupportsPrintf { get; }
-
-    /// <summary>
-    /// Returns true if native assertions are supported by this backend.
-    /// </summary>
-    public abstract bool SupportsAssert { get; }
 
     #endregion
 

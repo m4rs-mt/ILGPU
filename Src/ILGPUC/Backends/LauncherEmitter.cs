@@ -196,6 +196,12 @@ sealed class LauncherEmissionContext
     public KernelEmbedMode ActiveEmbedMode { get; init; }
 
     /// <summary>
+    /// The math mode the kernel was compiled with. Used by emitters whose
+    /// runtime compiles embedded source and needs the matching math options.
+    /// </summary>
+    public MathMode MathMode { get; init; }
+
+    /// <summary>
     /// Number of index dimensions (1 = scalar, 2 = Index2D, 3 = Index3D).
     /// Used by the CPU backend to decompose linear indices into multi-dim
     /// struct fields. Set by CompiledKernelGenerator from the entry point's

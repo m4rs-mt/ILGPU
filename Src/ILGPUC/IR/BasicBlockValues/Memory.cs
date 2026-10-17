@@ -164,12 +164,6 @@ sealed partial class Load : MemoryValue
     /// </summary>
     public Value Source => GetValue<Value>(0);
 
-    /// <summary>
-    /// Returns the source address space this load reads from.
-    /// </summary>
-    public MemoryAddressSpace SourceAddressSpace =>
-        Source.GetTypeAs<AddressSpaceType>().AddressSpace;
-
     /// <inheritdoc/>
     public override Value? Rewrite<TRewriter>(in TRewriter rewriter) =>
         rewriter.Builder.CreateLoad(Location, rewriter.Rewrite(Source));
@@ -202,12 +196,6 @@ sealed partial class Store : MemoryValue
     /// Returns the target view.
     /// </summary>
     public Value Target => GetValue<Value>(0);
-
-    /// <summary>
-    /// Returns the target address space this store writes to.
-    /// </summary>
-    public MemoryAddressSpace TargetAddressSpace =>
-        Target.GetTypeAs<AddressSpaceType>().AddressSpace;
 
     /// <summary>
     /// Returns the value to store.

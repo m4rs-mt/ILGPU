@@ -50,7 +50,8 @@ public class MetalCompiledKernel(
     CompiledKernelSharedMemoryMode sharedMemoryMode,
     MetalTargetOS targetOS,
     MetalGPUFamily gpuFamily,
-    string? source = null) :
+    string? source = null,
+    bool fastMath = false) :
     CompiledKernel(guid, kernelName, kernelType, sharedMemoryMode),
     ICompiledKernelKind
 {
@@ -73,6 +74,12 @@ public class MetalCompiledKernel(
     /// Returns the target GPU family.
     /// </summary>
     public MetalGPUFamily GPUFamily { get; } = gpuFamily;
+
+    /// <summary>
+    /// Returns true if source compiled at runtime may use fast math, which
+    /// assumes there are no NaNs, infinities or signed zeros.
+    /// </summary>
+    public bool FastMath { get; } = fastMath;
 
     /// <inheritdoc/>
     public override AcceleratorCapabilities RequiredCapabilities =>

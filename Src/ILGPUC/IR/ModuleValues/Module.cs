@@ -55,11 +55,6 @@ sealed class Module : IGenerationObject, IValueScope, IDumpable
         public int Count => module.NumMethods;
 
         /// <summary>
-        /// Returns the ith method.
-        /// </summary>
-        public Method this[int index] => module.GetMethod(index);
-
-        /// <summary>
         /// Returns an enumerator to iterate over all methods.
         /// </summary>
         public Enumerator GetEnumerator() => new(module);
@@ -104,11 +99,6 @@ sealed class Module : IGenerationObject, IValueScope, IDumpable
         public int Count => module.NumMethods;
 
         /// <summary>
-        /// Returns the ith method.
-        /// </summary>
-        public Method this[int index] => module.GetMethod(Count - index - 1);
-
-        /// <summary>
         /// Returns an enumerator to iterate over all methods.
         /// </summary>
         public Enumerator GetEnumerator() => new(module);
@@ -130,7 +120,7 @@ sealed class Module : IGenerationObject, IValueScope, IDumpable
 
     #region Instance
 
-    private readonly BasicValueTypeMap<PrimitiveType> _basicValueTypes = [];
+    private BasicValueTypeMap<PrimitiveType> _basicValueTypes = [];
     private readonly Lazy<Dictionary<MethodHandle, int>> _methodLookup;
     private ReadOnlyMemory<Method> _methods;
     private ReadOnlyMemory<Global> _globals;
@@ -283,20 +273,10 @@ sealed class Module : IGenerationObject, IValueScope, IDumpable
     public ArithmeticBasicValueType IntPointerArithmeticType { get; private set; }
 
     /// <summary>
-    /// Returns the basic type of native pointer.
-    /// </summary>
-    public BasicValueType PointerBasicValueType => IntPointerType.BasicValueType;
-
-    /// <summary>
     /// Returns the type of native pointer.
     /// </summary>
     public PrimitiveType IntPointerType { get; private set; } =
         Utilities.InitNotNullable<PrimitiveType>();
-
-    /// <summary>
-    /// Returns the pointer size of a native pointer type.
-    /// </summary>
-    public int PointerSize => IntPointerType.Size;
 
     #endregion
 

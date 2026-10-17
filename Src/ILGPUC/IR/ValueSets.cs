@@ -88,16 +88,6 @@ readonly struct ValueSet<TScope, T>(
     public int Count => _elements.Count;
 
     /// <summary>
-    /// Returns true if this value set represents the empty set.
-    /// </summary>
-    public bool IsEmpty => Count < 1;
-
-    /// <summary>
-    /// Returns true if this set has at least one element.
-    /// </summary>
-    public bool HasAny => Count > 0;
-
-    /// <summary>
     /// Verifies the current scope.
     /// </summary>
     [Conditional("DEBUG")]
@@ -129,12 +119,6 @@ readonly struct ValueSet<TScope, T>(
         VerifyValue(value);
         return _elements.Contains(value);
     }
-
-    /// <summary>
-    /// Clones this value set.
-    /// </summary>
-    /// <returns>The cloned value set.</returns>
-    public ValueSet<TScope, T> Clone() => new(this);
 
     /// <inheritdoc cref="HashSet{T}.Clear"/>
     public void Clear() => _elements.Clear();
@@ -182,11 +166,6 @@ sealed class ValueSetList<TScope, T>(TScope scope, int numValues) :
     private InlineList<T> _elements = InlineList<T>.Create(Math.Max(numValues >> 3, 32));
 
     /// <summary>
-    /// Returns the parent scope.
-    /// </summary>
-    public TScope Scope => scope;
-
-    /// <summary>
     /// Returns the underling generation.
     /// </summary>
     public Generation Generation => scope.Generation;
@@ -195,23 +174,6 @@ sealed class ValueSetList<TScope, T>(TScope scope, int numValues) :
     /// Returns the number of elements in this set.
     /// </summary>
     public int Count => _set.Count;
-
-    /// <summary>
-    /// Returns true if this value set represents the empty set.
-    /// </summary>
-    public bool IsEmpty => _set.IsEmpty;
-
-    /// <summary>
-    /// Returns true if this set has at least one element.
-    /// </summary>
-    public bool HasAny => _set.HasAny;
-
-    /// <summary>
-    /// Returns the i-th element.
-    /// </summary>
-    /// <param name="index">The element index.</param>
-    /// <returns>The element.</returns>
-    public T this[int index] => _elements[index];
 
     /// <summary>
     /// Verifies the current scope.
@@ -266,26 +228,6 @@ readonly struct GlobalValueSet(
     GenerationValidator? validator = null
 ) : IGenerationObject
 {
-    /// <summary>
-    /// An enumerator to iterate over elements in a set.
-    /// </summary>
-    internal struct Enumerator(GlobalValueSet parent)
-    {
-        private Dictionary<Value, byte>.Enumerator
-            _enumerator = parent._set.GetEnumerator();
-
-        /// <summary>
-        /// Returns the current element.
-        /// </summary>
-        public Value Current => _enumerator.Current.Key;
-
-        /// <summary>
-        /// Moves the enumerator to the next element and returns true if there is a new
-        /// element available.
-        /// </summary>
-        public bool MoveNext() => _enumerator.MoveNext();
-    }
-
     private readonly Dictionary<Value, byte> _set = new(
         Math.Max(numValues >> 2, 512));
     private readonly GenerationValidator _validator = validator ?? new(generation);
@@ -294,21 +236,6 @@ readonly struct GlobalValueSet(
     /// Returns the underling generation.
     /// </summary>
     public Generation Generation => _validator.Generation;
-
-    /// <summary>
-    /// Returns the number of elements in this set.
-    /// </summary>
-    public int Count => _set.Count;
-
-    /// <summary>
-    /// Returns true if this value set represents the empty set.
-    /// </summary>
-    public bool IsEmpty => _set.Count < 1;
-
-    /// <summary>
-    /// Returns true if this set has at least one element.
-    /// </summary>
-    public bool HasAny => _set.Count > 0;
 
     /// <summary>
     /// Verifies the current scope.
@@ -336,9 +263,4 @@ readonly struct GlobalValueSet(
         VerifyValue(value);
         return _set.ContainsKey(value);
     }
-
-    /// <summary>
-    /// Returns a new enumerator to iterate over all elements in this set.
-    /// </summary>
-    public Enumerator GetEnumerator() => new(this);
 }

@@ -105,18 +105,6 @@ sealed partial class LanguageEmitValue : MemoryValue
     /// </summary>
     public bool UsingRefParams { get; }
 
-    /// <summary>
-    /// Returns true if the argument is an input parameter.
-    /// </summary>
-    public bool IsInputArgument(int argumentIndex) =>
-        Directions[argumentIndex].HasFlag(EmitParameterDirection.In);
-
-    /// <summary>
-    /// Returns true if the argument is an output parameter.
-    /// </summary>
-    public bool IsOutputArgument(int argumentIndex) =>
-        Directions[argumentIndex].HasFlag(EmitParameterDirection.Out);
-
     /// <inheritdoc/>
     public override Value? Rewrite<TRewriter>(in TRewriter rewriter)
     {

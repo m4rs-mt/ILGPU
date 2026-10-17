@@ -111,8 +111,19 @@ public sealed class MetalKernel : Kernel
         var nsSource = MetalAPI.CreateNSString(source);
         try
         {
-            var library = MetalAPI.NewLibraryWithSource(
-                deviceHandle, nsSource, IntPtr.Zero, out var libraryError);
+            // Metal enables fast math by default; strict kernels opt out
+            var options = MetalAPI.CreateCompileOptions(compiledKernel.FastMath);
+            IntPtr library;
+            IntPtr libraryError;
+            try
+            {
+                library = MetalAPI.NewLibraryWithSource(
+                    deviceHandle, nsSource, options, out libraryError);
+            }
+            finally
+            {
+                MetalAPI.Release(options);
+            }
             if (library == IntPtr.Zero)
             {
                 var errorMsg = MetalAPI.GetNSErrorDescription(libraryError);

@@ -54,18 +54,6 @@ abstract partial class Transformation(TransformationArgs args)
     /// account.
     /// </summary>
     /// <param name="sourceType">The source type.</param>
-    /// <param name="fieldAccess">The source access.</param>
-    /// <returns>The target field access.</returns>
-    protected internal FieldAccess ComputeAccess(
-        TypeValue sourceType,
-        FieldAccess fieldAccess) =>
-        ComputeSpan(sourceType, new FieldSpan(fieldAccess, 0)).Access;
-
-    /// <summary>
-    /// Computes a new field span while taking all structure field changes into
-    /// account.
-    /// </summary>
-    /// <param name="sourceType">The source type.</param>
     /// <param name="fieldSpan">The source span.</param>
     /// <returns>The target field span.</returns>
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
@@ -99,29 +87,6 @@ abstract partial class Transformation(TransformationArgs args)
         new Func<ITransform, Value, Value?>[ValueKinds.NumValueKinds];
     private readonly Func<ITransform, Value, Value?>?[] _classConverters =
         new Func<ITransform, Value, Value?>[ValueKinds.NumValueClasses];
-
-    /// <summary>
-    /// Maps a whole class of values to a given converter.
-    /// </summary>
-    /// <typeparam name="TTransform">The transform type.</typeparam>
-    /// <typeparam name="TValueClass">The value class type to transform.</typeparam>
-    /// <param name="converter">The converter to use.</param>
-    protected void MapValueClass<TTransform, TValueClass>(
-        Func<TTransform, TValueClass, Value?> converter)
-        where TTransform : IPureValueRewriter
-        where TValueClass : Value, IValueClassInformation
-    {
-        UsesPureValueMapping |= TValueClass.ValueClass == ValueClass.Pure;
-        UsesBlockValueMapping |= TValueClass.ValueClass == ValueClass.BasicBlock;
-        UsesMethodValueMapping |= TValueClass.ValueClass == ValueClass.Method;
-        UsesTypeMapping |= TValueClass.ValueClass == ValueClass.Type;
-        UsesGlobalMapping |= TValueClass.ValueClass == ValueClass.Global;
-
-        _classConverters[(int)TValueClass.ValueClass] =
-            (rewriter, value) =>
-                converter((TTransform)rewriter,
-                    value.AsNotNullCast<TValueClass>());
-    }
 
     /// <summary>
     /// Registers a given mapping.

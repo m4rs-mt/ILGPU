@@ -13,10 +13,12 @@ using ILGPU.Resources;
 using ILGPU.Util;
 using ILGPUC.Frontend.Intrinsic;
 using ILGPUC.IR;
+using ILGPUC.IR.BasicBlockValues;
 using ILGPUC.IR.ModuleValues;
 using ILGPUC.IR.PureValues;
 using ILGPUC.Util;
 using System;
+using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 
@@ -101,6 +103,15 @@ partial class CodeGenerator
     {
         if (target == null)
             throw Location.GetInvalidOperationException();
+
+        // The constructor of System.Object has no effect: a base constructor call
+        // (e.g. in a closure class constructor) only consumes the instance
+        if (target is ConstructorInfo && target.DeclaringType == typeof(object))
+        {
+            Block.Pop();
+            return;
+        }
+
         var values = Block.PopMethodArgs(Location, target, null);
         CreateCall(target, ref values);
     }
@@ -358,8 +369,11 @@ partial class CodeGenerator
 
     /// <summary>
     /// Tries to resolve the lambda MethodBase behind a delegate handle value.
-    /// Checks both the direct value table (same-block resolution) and the
-    /// local variable table (cross-block resolution through phi merges).
+    /// Checks the direct value table (same-block resolution), traces phi
+    /// merges back to registered handles (cross-block resolution), and only
+    /// falls back to the recorded delegate state when that state is
+    /// unambiguous. If several distinct lambda bodies are candidates for the
+    /// handle, the resolution fails instead of guessing.
     /// </summary>
     internal bool TryResolveDelegateMethod(
         Value handle,
@@ -369,27 +383,97 @@ partial class CodeGenerator
         if (_delegateTable.TryGetValue(handle, out method))
             return true;
 
-        // Cross-block fallback: check the local variable table (populated
-        // when a delegate was stored to a local via stloc).
+        // Cross-block resolution: a handle that crossed a block boundary on
+        // the evaluation stack arrives here as a phi value that is not
+        // registered in _delegateTable. Trace the phi arguments back to
+        // registered handles (ignoring the null constants produced by the
+        // static delegate-cache diamond); this succeeds only when all
+        // incoming paths agree on a single lambda body.
+        if (handle is PhiValue &&
+            TryTraceDelegateHandle(handle, [], ref method) &&
+            method is not null)
+        {
+            return true;
+        }
+        method = null;
+
+        // Last-resort fallback for handles that cannot be traced (e.g. a
+        // delegate that was passed directly as a call argument without a
+        // stloc, as in Warp.Reduce(value, (a, b) => a + b)). Guessing is
+        // only sound when every delegate observed in this method refers to
+        // the same lambda body; with multiple distinct candidates the
+        // resolution fails so that the caller reports the call as
+        // non-devirtualizable instead of silently binding the wrong body.
+        var candidate = _pendingDelegateForLocal;
         foreach (var kv in _delegateLocalTable)
         {
-            method = kv.Value;
-            return true;
+            if (candidate is null)
+                candidate = kv.Value;
+            else if (!candidate.Equals(kv.Value))
+                return false;
         }
-
-        // Pending delegate fallback: when MakeNewDelegate created a delegate
-        // but it was passed directly as an argument (no stloc), the pending
-        // delegate tracks it. This handles Warp.Reduce(value, (a,b) => a+b)
-        // where the lambda goes straight from newobj to the call arguments.
-        if (_pendingDelegateForLocal is not null)
+        foreach (var kv in _delegateTable)
         {
-            method = _pendingDelegateForLocal;
+            if (candidate is null)
+                candidate = kv.Value;
+            else if (!candidate.Equals(kv.Value))
+                return false;
+        }
+        if (candidate is null)
+            return false;
+
+        if (candidate.Equals(_pendingDelegateForLocal))
             _pendingDelegateForLocal = null;
+        method = candidate;
+        return true;
+    }
+
+    /// <summary>
+    /// Recursively traces a delegate handle through phi merges back to the
+    /// handles registered in <see cref="_delegateTable"/>. All reachable
+    /// registered handles must agree on a single lambda body; null constants
+    /// (the cache-miss branch of the static delegate-cache diamond) are
+    /// ignored. Returns false as soon as the handle becomes ambiguous or
+    /// untraceable.
+    /// </summary>
+    /// <param name="handle">The delegate handle value to trace.</param>
+    /// <param name="visited">The set of already visited values.</param>
+    /// <param name="method">The resolved lambda body (if any).</param>
+    private bool TryTraceDelegateHandle(
+        Value handle,
+        HashSet<Value> visited,
+        ref MethodBase? method)
+    {
+        if (!visited.Add(handle))
+        {
+            // Cycle: this path is constrained by the remaining phi arguments
             return true;
         }
 
-        method = null;
-        return false;
+        if (_delegateTable.TryGetValue(handle, out var found))
+        {
+            if (method is not null && !method.Equals(found))
+                return false;
+            method = found;
+            return true;
+        }
+
+        switch (handle)
+        {
+            case NullValue:
+                // The cache-miss branch of the static delegate-cache diamond
+                return true;
+            case PhiValue phi when phi.NumArguments > 0:
+                foreach (var argument in phi.Arguments)
+                {
+                    if (!TryTraceDelegateHandle(argument, visited, ref method))
+                        return false;
+                }
+                return true;
+            default:
+                // Unknown handle kind — nothing can be proven about it
+                return false;
+        }
     }
 
     /// <summary>

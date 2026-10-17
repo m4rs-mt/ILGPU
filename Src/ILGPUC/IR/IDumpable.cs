@@ -127,45 +127,6 @@ enum IRDumpPoint
 static class Dumpable
 {
     /// <summary>
-    /// Dumps the IR object to the console output using the specified mode and
-    /// printer format.
-    /// </summary>
-    public static void DumpToConsole(
-        this IDumpable dumpable,
-        IRDumpMode mode = IRDumpMode.Raw,
-        IRPrinterFormat format = IRPrinterFormat.ILGPU,
-        IRDumpPoint point = IRDumpPoint.None) =>
-        dumpable.Dump(Console.Out, mode, format, point);
-
-    /// <summary>
-    /// Dumps the IR object to the console error output using normalized mode
-    /// and the default printer format.
-    /// </summary>
-    public static void DumpToError(this IDumpable dumpable) =>
-        dumpable.Dump(Console.Error, IRDumpMode.Normalized);
-
-    /// <summary>
-    /// Dumps the IR object to the console error output using the specified mode
-    /// and printer format.
-    /// </summary>
-    public static void DumpToError(
-        this IDumpable dumpable,
-        IRDumpMode mode,
-        IRPrinterFormat format = IRPrinterFormat.ILGPU,
-        IRDumpPoint point = IRDumpPoint.None) =>
-        dumpable.Dump(Console.Error, mode, format, point);
-
-    /// <summary>
-    /// Dumps the IR object to a file using normalized mode and the default
-    /// printer format.
-    /// </summary>
-    public static void DumpToFile(this IDumpable dumpable, string fileName)
-    {
-        using var stream = new StreamWriter(fileName, false);
-        dumpable.Dump(stream, IRDumpMode.Normalized);
-    }
-
-    /// <summary>
     /// Dumps the IR object to a file using the specified mode and printer format.
     /// </summary>
     public static void DumpToFile(

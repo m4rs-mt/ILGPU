@@ -660,7 +660,7 @@ jobs:
           # regression. AdvancedAtomics also needs Float64 atomics. Bump
           # this list when other samples acquire Metal-incompatible
           # features.
-          EXCLUDES: "AdvancedAtomics AlgorithmsMath FixedSizeBuffers SimpleMath WarpShuffle"
+          EXCLUDES: "AdvancedAtomics FixedSizeBuffers MathFunctions SimpleMath WarpShuffle"
         run: |
           set -e
           fail=0

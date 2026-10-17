@@ -17,6 +17,7 @@ using ILGPUC.IR.BasicBlockValues;
 using ILGPUC.IR.MethodValues;
 using ILGPUC.IR.ModuleValues;
 using ILGPUC.IR.PureValues;
+using System;
 using System.Collections.Generic;
 
 namespace ILGPUC.Backends.CPU;
@@ -35,13 +36,23 @@ sealed class CPUMethodEmitter(
     bool emitDebugSymbols,
     bool poolBuffers = false)
 {
-    private int _maskCounter;
-    private HashSet<PhiValue> _handledMergePhis = [];
+    /// <summary>
+    /// The parameter of a helper method holding the caller's active mask.
+    /// </summary>
+    private const string CallerMaskName = "_callerMask";
 
     /// <summary>
-    /// Gets the generation context.
+    /// The parameter of a helper method holding the caller's lane indices.
     /// </summary>
-    public GenerationContext Context => context;
+    private const string CallerLanesName = "_callerLanes";
+
+    private readonly Dictionary<Method, VectorizationAnalysis> _analyses = [];
+    private readonly HashSet<Method> _pendingAnalyses = [];
+    private CPUExpressionEmitter? _expressionEmitter;
+    private int _layoutCounter;
+    private int _maskCounter;
+    private int _phiBroadcastId;
+    private HashSet<PhiValue> _handledMergePhis = [];
 
     /// <summary>
     /// Gets the buffer pool metadata computed during code generation.
@@ -69,22 +80,14 @@ sealed class CPUMethodEmitter(
     private void EmitVectorizedMethod(Method method)
     {
         _maskCounter = 0;
+        _phiBroadcastId = 0;
         _handledMergePhis = [];
 
         bool isEntryPoint = method == context.Module.EntryPoint;
-
-        // Perform vectorization analysis — the entry point's first parameter
-        // (the thread index) is vectorized, mapping to per-lane laneIdx.
-        // For grouped kernels, there is no index parameter, so param0 is
-        // a real parameter and must NOT be vectorized.
-        bool hasIndexParam = isEntryPoint
-            && method.Parameters.Count > 0
-            && (method.Parameters[0].Type is PrimitiveType
-                    { BasicValueType: BasicValueType.Int32 }
-                || (method.Parameters[0].Type is StructureType st
-                    && IsIndexStructType(st)));
-        var analysis = new VectorizationAnalysis(
-            method, vectorizeFirstParam: hasIndexParam);
+        var analysis = GetAnalysis(method)
+            ?? throw new NotSupportedException(
+                $"Recursive calls of '{method.Name}' are not supported by the " +
+                "CPU backend.");
 
         // For entry point in pooled mode, compute buffer pool metadata
         // before emitting the signature (the signature needs the pool slots).
@@ -156,9 +159,23 @@ sealed class CPUMethodEmitter(
         if (!isEntryPoint && method.Type is not VoidType)
         {
             var retVal = method.ExitBlock.TerminationValue;
-            if (retVal is not null)
+            var returnType = GetLaneElementType(method.Type) ?? "int";
+            if (retVal is not null && analysis.IsScalar(retVal))
             {
-                var retName = context.GetValueName(retVal);
+                // Uniform return values are broadcast to all lanes
+                var elemType = GetVectorElementType(retVal) ?? "int";
+                var expr = new ExpressionEmitter(context, new TypeEmitter(context))
+                    .EmitExpression(retVal);
+                expr = ConvertLayout(expr, elemType, returnType);
+                context.WriteLine(
+                    $"return CPUVectorIntrinsics.Broadcast<{returnType}>(" +
+                    $"{expr}, SIMDWidth);");
+            }
+            else if (retVal is not null)
+            {
+                var retName = GetLaneOperand(retVal, analysis);
+                retName = ConvertLaneLayout(
+                    retName, GetVectorElementType(retVal), returnType);
                 context.WriteLine($"return {retName};");
             }
         }
@@ -221,6 +238,14 @@ sealed class CPUMethodEmitter(
             context.Write($"{typeName} {paramName}");
         }
 
+        // Helpers run for the active lanes of their caller
+        if (method != context.Module.EntryPoint)
+        {
+            if (!first)
+                context.Write(", ");
+            context.Write($"bool[] {CallerMaskName}, int[] {CallerLanesName}");
+        }
+
         // Append pool or activeLanes parameter for entry point
         if (method == context.Module.EntryPoint)
         {
@@ -268,9 +293,19 @@ sealed class CPUMethodEmitter(
                 $"var {CPUExpressionEmitter.ActiveMaskName} = pool.activeMask;");
             context.WriteLine();
         }
+        else if (!isEntryPoint)
+        {
+            // Helpers use the lanes of their caller and copy its active mask,
+            // which their own control flow modifies.
+            context.WriteLine($"var laneIdx = {CallerLanesName};");
+            context.WriteLine(
+                $"var {CPUExpressionEmitter.ActiveMaskName} = " +
+                $"CPUVectorIntrinsics.CopyMask({CallerMaskName});");
+            context.WriteLine();
+        }
         else
         {
-            // Non-pooled or non-entry-point: create laneIdx locally
+            // Non-pooled entry point: create laneIdx locally
             context.WriteLine("// Lane indices for vectorized execution");
             context.WriteLine(
                 "var laneIdx = CPUVectorIntrinsics.CreateLaneIndices(SIMDWidth);");
@@ -437,6 +472,11 @@ sealed class CPUMethodEmitter(
             var elemSize = global.AllocType.Size;
             var arrayLen = global.ArrayLength?.Int32Value ?? 1;
             var totalSize = arrayLen * elemSize;
+            // Local arrays are private to each lane: allocate one copy per
+            // lane (shared memory stays a single copy for all lanes).
+            var storageSize = global.AddressSpace == MemoryAddressSpace.Local
+                ? $"SIMDWidth * {totalSize}"
+                : $"{totalSize}";
             var name = context.GetValueName(global);
             var storageName = $"_gstorage_{global.Id}";
             string elemType;
@@ -455,7 +495,7 @@ sealed class CPUMethodEmitter(
 
             // Allocate raw storage on the stack
             context.WriteLine(
-                $"Span<byte> {storageName} = stackalloc byte[{totalSize}];");
+                $"Span<byte> {storageName} = stackalloc byte[{storageSize}];");
             // Wrap in CPURuntimeView<T> via fixed pointer
             context.WriteLine(
                 $"CPURuntimeView<{elemType}> {name};");
@@ -486,7 +526,7 @@ sealed class CPUMethodEmitter(
         // Fields
         foreach (var (elemType, slotIndex) in pool.Slots)
         {
-            var poolName = $"pool_{elemType}_{slotIndex}";
+            var poolName = BufferPoolMetadata.GetSlotName(elemType, slotIndex);
             context.WriteLine($"public {elemType}[] {poolName};");
         }
         context.WriteLine("public int[] laneIdx;");
@@ -498,7 +538,7 @@ sealed class CPUMethodEmitter(
         context.OpenScope();
         foreach (var (elemType, slotIndex) in pool.Slots)
         {
-            var poolName = $"pool_{elemType}_{slotIndex}";
+            var poolName = BufferPoolMetadata.GetSlotName(elemType, slotIndex);
             context.WriteLine($"{poolName} = new {elemType}[simdWidth];");
         }
         context.WriteLine(
@@ -513,7 +553,7 @@ sealed class CPUMethodEmitter(
         context.OpenScope();
         foreach (var (elemType, slotIndex) in pool.Slots)
         {
-            var poolName = $"pool_{elemType}_{slotIndex}";
+            var poolName = BufferPoolMetadata.GetSlotName(elemType, slotIndex);
             context.WriteLine($"Array.Clear({poolName});");
         }
         context.WriteLine(
@@ -539,6 +579,7 @@ sealed class CPUMethodEmitter(
 
         // Create expression emitter
         var expressionEmitter = new CPUExpressionEmitter(context, analysis);
+        _expressionEmitter = expressionEmitter;
 
         // Set up broadcast name overrides for pooled mode. The emitter
         // constructs broadcast names as "_bcast_tmp_{value.Id}"; the
@@ -630,14 +671,7 @@ sealed class CPUMethodEmitter(
                     continue;
 
                 // Single-use scalar PureValues are inlined by their consumers
-                if (value is PureValue && value.Uses.HasExactlyOne
-                    && analysis.IsScalar(value))
-                    continue;
-
-                // Scalar values handled by inline 'var' in expression emitters
-                if (analysis.IsScalar(value) && value is
-                    (Load or BinaryArithmeticValue or CompareValue
-                     or GenericAtomic or ConvertValue))
+                if (IsInlinedScalar(value, analysis))
                     continue;
 
                 // GetField from decomposed multi-dim index: already declared
@@ -691,6 +725,13 @@ sealed class CPUMethodEmitter(
                     context.WriteLine(
                         $"var {varName} = new nint[SIMDWidth];");
                 }
+                else if (analysis.IsPerLaneView(value))
+                {
+                    // Views that differ per lane hold one view per lane
+                    context.WriteLine(
+                        $"var {varName} = new {GetVectorElementType(value)}" +
+                        "[SIMDWidth];");
+                }
                 else if (!analysis.IsScalar(value) && value.Type is StructureType st2)
                 {
                     // Vectorized struct values
@@ -704,6 +745,8 @@ sealed class CPUMethodEmitter(
                     // inside control flow blocks)
                     var typeName = analysis.GetTypeName(value, config);
                     context.WriteLine($"{typeName} {varName} = default;");
+                    // Statement emitters must assign, not redeclare
+                    context.DeclarePrefix(varName);
                 }
 
                 context.MarkNeedsVariable(value);
@@ -751,6 +794,48 @@ sealed class CPUMethodEmitter(
         if (hasDeclarations)
             context.WriteLine();
     }
+
+    /// <summary>
+    /// Returns the element type of the per-lane buffer of a vectorized value,
+    /// or null if the value is not stored in a per-lane array.
+    /// </summary>
+    private string? GetVectorElementType(Value value) =>
+        value is CompareValue ? "bool" : GetLaneElementType(value.Type);
+
+    /// <summary>
+    /// Returns the element type of the per-lane buffer of values of the given
+    /// type, or null if such values are not stored in per-lane arrays.
+    /// </summary>
+    private string? GetLaneElementType(TypeValue type) =>
+        type switch
+        {
+            PrimitiveType pt => ((CPULanguageConfiguration)context.LanguageConfig)
+                .GetPrimitiveTypeName(pt.BasicValueType),
+            PointerType => "nint",
+            StructureType st => $"struct_{st.Id}",
+            ViewType view => "CPURuntimeView<" +
+                VectorizationAnalysis.GetScalarTypeName(
+                    view.ElementType,
+                    (CPULanguageConfiguration)context.LanguageConfig) + ">",
+            _ => null
+        };
+
+    /// <summary>
+    /// Returns true if a single-use scalar pure value is inlined into the
+    /// expression of its consumer. Scalar arithmetic, comparisons and
+    /// conversions are always assigned to variables: their C# expressions
+    /// need casts for small and unsigned integer types that the shared
+    /// expression emitter does not produce. Field insertions need a
+    /// variable to assign the field to.
+    /// </summary>
+    private static bool IsInlinedScalar(
+        Value value,
+        VectorizationAnalysis analysis) =>
+        value is PureValue
+        && value is not (BinaryArithmeticValue or UnaryArithmeticValue
+            or CompareValue or ConvertValue or SetField)
+        && value.Uses.HasExactlyOne
+        && analysis.IsScalar(value);
 
     /// <summary>
     /// Returns true if a LoadElementAddress is only consumed by Load/Store
@@ -942,6 +1027,20 @@ sealed class CPUMethodEmitter(
     }
 
     /// <summary>
+    /// Returns the text to reference a branch/loop condition. Scalar pure
+    /// conditions with exactly one use have no variable allocated (the
+    /// SSAVariableAllocator inlines them), so asking the context for a name
+    /// would mint an undeclared temporary; inline the expression instead.
+    /// </summary>
+    private string EmitConditionExpression(
+        Value condition,
+        VectorizationAnalysis analysis,
+        CPUExpressionEmitter expressionEmitter) =>
+        analysis.IsScalar(condition) && !context.NeedsVariable(condition)
+            ? expressionEmitter.ResolveOperand(condition)
+            : context.GetValueName(condition);
+
+    /// <summary>
     /// Emits non-phi values of a basic block split into two parts:
     /// values that the <paramref name="condition"/> transitively depends on
     /// (emitted first), and all remaining values (emitted second).
@@ -1033,20 +1132,42 @@ sealed class CPUMethodEmitter(
         else
             source = context.GetValueName(arg);
 
-        // If the phi is vectorized but the source is scalar, broadcast
-        if (!analysis.IsScalar(phi) && analysis.IsScalar(arg))
+        EmitPhiAssignment(phi, arg, varName, source, analysis);
+    }
+
+    /// <summary>
+    /// Assigns an incoming value to a phi. Uniform values are broadcast to a
+    /// phi that differs per lane, and the per-lane structures and views of
+    /// other values are copied, as the loop and branch emitters update the
+    /// buffers of phis in place.
+    /// </summary>
+    private void EmitPhiAssignment(
+        PhiValue phi,
+        Value arg,
+        string phiVar,
+        string source,
+        VectorizationAnalysis analysis)
+    {
+        var elemType = GetVectorElementType(phi) ?? "int";
+        if (analysis.IsScalar(phi))
         {
-            var config = (CPULanguageConfiguration)context.LanguageConfig;
-            var elemType = phi.Type is PrimitiveType pt
-                ? config.GetPrimitiveTypeName(pt.BasicValueType)
-                : "int";
+            context.WriteLine($"{phiVar} = {source};");
+        }
+        else if (analysis.IsScalar(arg))
+        {
             context.WriteLine(
                 $"CPUVectorIntrinsics.Broadcast<{elemType}>(" +
-                $"{varName}, {source});");
+                $"{phiVar}, {source});");
+        }
+        else if (phi.Type is ViewType or StructureType)
+        {
+            if (phi.Type is ViewType)
+                source = _expressionEmitter!.ResolveViews(arg);
+            context.WriteLine($"{source}.AsSpan().CopyTo({phiVar});");
         }
         else
         {
-            context.WriteLine($"{varName} = {source};");
+            context.WriteLine($"{phiVar} = {source};");
         }
     }
 
@@ -1059,7 +1180,7 @@ sealed class CPUMethodEmitter(
         CPUExpressionEmitter expressionEmitter)
     {
         // Single-use scalar PureValues are inlined into their consumer's expression
-        if (value is PureValue && value.Uses.HasExactlyOne && analysis.IsScalar(value))
+        if (IsInlinedScalar(value, analysis))
             return;
 
         // Per-lane index values map to laneIdx — no emission needed
@@ -1071,6 +1192,10 @@ sealed class CPUMethodEmitter(
         {
             case Load load:
                 expressionEmitter.EmitLoad(load);
+                break;
+
+            case MethodCall call when call.Target.HasImplementation:
+                EmitHelperCall(call, analysis, expressionEmitter);
                 break;
 
             case Store store:
@@ -1091,6 +1216,10 @@ sealed class CPUMethodEmitter(
 
             case GenericAtomic atomic:
                 expressionEmitter.EmitAtomic(atomic);
+                break;
+
+            case AtomicCAS cas:
+                expressionEmitter.EmitAtomicCAS(cas);
                 break;
 
             case ConvertValue convert:
@@ -1117,8 +1246,13 @@ sealed class CPUMethodEmitter(
                 expressionEmitter.EmitShuffle(shuffle);
                 break;
 
+            case PredicateBarrier barrier:
+                expressionEmitter.EmitPredicateBarrier(barrier);
+                break;
+
             case Predicate predicate
-                when !analysis.IsScalar(predicate.Condition):
+                when !analysis.IsScalar(predicate.Condition) ||
+                    !analysis.IsScalar(predicate):
                 expressionEmitter.EmitPredicate(predicate);
                 break;
 
@@ -1178,26 +1312,34 @@ sealed class CPUMethodEmitter(
                 break;
 
             case GetViewLength viewLen when !analysis.IsScalar(viewLen):
-                // Vectorized GetViewLength: the length is a scalar
-                // property but the pool buffer is an array — broadcast.
-                // Resolve the source view expression directly to avoid
-                // pool redirection of the GetViewLength value itself.
+                // The length of a view that differs per lane: read the length
+                // of every lane's view
                 {
                     var vlResult = context.GetValueName(viewLen);
-                    var te = new TypeEmitter(context);
-                    var ee = new ExpressionEmitter(context, te);
-                    // Get the source view expression (not the viewLen's
-                    // pool name) and append .Length
-                    var srcExpr = ee.EmitExpression(viewLen.Source);
+                    var views = expressionEmitter.ResolveViews(viewLen.Source);
                     var lenField = context.LanguageConfig.ViewLengthFieldName;
                     var cfg = (CPULanguageConfiguration)
                         context.LanguageConfig;
                     var lenType = cfg.GetPrimitiveTypeName(
                         viewLen.BasicValueType);
                     context.WriteLine(
-                        $"CPUVectorIntrinsics.Broadcast<{lenType}>(" +
-                        $"{vlResult}, {srcExpr}.{lenField});");
+                        "for (int _si = 0; _si < SIMDWidth; _si++)");
+                    context.WriteLine(
+                        $"    {vlResult}[_si] = ({lenType})" +
+                        $"{views}[_si].{lenField};");
                 }
+                break;
+
+            case SubView subView when analysis.IsPerLaneView(subView):
+                EmitPerLaneSubView(subView, analysis, expressionEmitter);
+                break;
+
+            case NewView newView when analysis.IsPerLaneView(newView):
+                EmitPerLaneNewView(newView, analysis, expressionEmitter);
+                break;
+
+            case BaseAddressSpaceCast cast when analysis.IsPerLaneView(cast):
+                EmitPerLaneViewCast(cast, expressionEmitter);
                 break;
 
             case PointerAsIntCast ptrCast:
@@ -1274,6 +1416,9 @@ sealed class CPUMethodEmitter(
         {
             var structType = (StructureType)sv.Type;
             var typeName = new TypeEmitter(context).GetTypeName(structType);
+            var fieldValues = new string[sv.Count];
+            for (int i = 0; i < sv.Count; i++)
+                fieldValues[i] = GetLaneOperand(sv.Values[i], analysis);
 
             context.WriteLine(
                 "for (int _si = 0; _si < SIMDWidth; _si++)");
@@ -1284,7 +1429,7 @@ sealed class CPUMethodEmitter(
             {
                 if (i > 0) sb.Append(", ");
                 var fieldName = StructureType.GetFieldName(i);
-                var fieldVal = context.GetValueName(sv.Values[i]);
+                var fieldVal = fieldValues[i];
                 if (analysis.IsScalar(sv.Values[i]))
                     sb.Append($"{fieldName} = {fieldVal}");
                 else
@@ -1296,11 +1441,317 @@ sealed class CPUMethodEmitter(
             return;
         }
 
+        // Field extraction from a vectorized struct: read the field of every
+        // lane's struct (a multi-field span forms a sub-struct)
+        if (value is GetField getField && !analysis.IsScalar(getField.Source))
+        {
+            var source = context.GetValueName(getField.Source);
+            var span = getField.FieldSpan;
+            context.WriteLine("for (int _si = 0; _si < SIMDWidth; _si++)");
+            context.OpenScope();
+            if (span.Span == 1)
+            {
+                var fieldName = StructureType.GetFieldName(span.Index);
+                context.WriteLine($"{varName}[_si] = {source}[_si].{fieldName};");
+            }
+            else
+            {
+                var typeName = new TypeEmitter(context).GetTypeName(getField.Type);
+                var fields = new System.Text.StringBuilder();
+                for (int i = 0; i < span.Span; i++)
+                {
+                    if (i > 0)
+                        fields.Append(", ");
+                    fields.Append(
+                        $"{StructureType.GetFieldName(i)} = {source}[_si]." +
+                        StructureType.GetFieldName(span.Index + i));
+                }
+                context.WriteLine(
+                    $"{varName}[_si] = new {typeName} {{ {fields} }};");
+            }
+            context.CloseScope();
+            return;
+        }
+
+        // Field insertion: copy the source struct and overwrite the field
+        if (value is SetField setField)
+        {
+            EmitSetField(setField, varName, analysis);
+            return;
+        }
+
+        // Views that differ per lane are only formed by the operations above
+        if (analysis.IsPerLaneView(value))
+            throw UnsupportedPerLaneView(value);
+
         // Use the shared expression infrastructure for scalar pure values
         var typeEmitter = new TypeEmitter(context);
         var exprEmitter = new ExpressionEmitter(context, typeEmitter);
         var expr = exprEmitter.EmitDefinition(value);
         context.WriteLine($"{varName} = {expr};");
+    }
+
+    /// <summary>
+    /// Returns the vectorization analysis of a method, or null if the
+    /// analysis of the method is being computed (a recursive call).
+    /// </summary>
+    private VectorizationAnalysis? GetAnalysis(Method method)
+    {
+        if (_analyses.TryGetValue(method, out var analysis))
+            return analysis;
+        if (!_pendingAnalyses.Add(method))
+            return null;
+
+        // The entry point's first parameter (the thread index) is vectorized,
+        // mapping to per-lane laneIdx. For grouped kernels, there is no index
+        // parameter, so param0 is a real parameter and must NOT be vectorized.
+        bool hasIndexParam = method == context.Module.EntryPoint
+            && method.Parameters.Count > 0
+            && (method.Parameters[0].Type is PrimitiveType
+                    { BasicValueType: BasicValueType.Int32 }
+                || (method.Parameters[0].Type is StructureType st
+                    && IsIndexStructType(st)));
+        analysis = new VectorizationAnalysis(
+            method, vectorizeFirstParam: hasIndexParam, GetAnalysis);
+        _pendingAnalyses.Remove(method);
+        _analyses[method] = analysis;
+        return analysis;
+    }
+
+    /// <summary>
+    /// Returns true if values of the given C# types are structures or views
+    /// that only differ in the address spaces of their views and pointers,
+    /// which have the same representation on the CPU.
+    /// </summary>
+    private static bool IsLayoutConversion(string? from, string? to) =>
+        from is not null && to is not null && from != to &&
+        (from.StartsWith("struct_", StringComparison.Ordinal) &&
+            to.StartsWith("struct_", StringComparison.Ordinal) ||
+        from.StartsWith("CPURuntimeView<", StringComparison.Ordinal) &&
+            to.StartsWith("CPURuntimeView<", StringComparison.Ordinal));
+
+    /// <summary>
+    /// Converts a uniform structure or view to another type of the same
+    /// layout. Helper methods may take or return values whose types only
+    /// differ in address spaces from the values at their call sites.
+    /// </summary>
+    private static string ConvertLayout(string expr, string? from, string? to) =>
+        IsLayoutConversion(from, to)
+            ? $"Unsafe.BitCast<{from}, {to}>({expr})"
+            : expr;
+
+    /// <summary>
+    /// Converts a per-lane buffer of structures or views to a buffer of
+    /// another type of the same layout (see <see cref="ConvertLayout"/>).
+    /// </summary>
+    private string ConvertLaneLayout(string buffer, string? from, string? to)
+    {
+        if (!IsLayoutConversion(from, to))
+            return buffer;
+        var converted = $"_layout_{_layoutCounter++}";
+        context.WriteLine($"var {converted} = new {to}[SIMDWidth];");
+        context.WriteLine("for (int _si = 0; _si < SIMDWidth; _si++)");
+        context.WriteLine(
+            $"    {converted}[_si] = Unsafe.BitCast<{from}, {to}>({buffer}[_si]);");
+        return converted;
+    }
+
+    /// <summary>
+    /// Returns the text of an operand of a per-lane operation: the expression
+    /// of a uniform operand, or the per-lane buffer of an operand that differs
+    /// per lane. Views of local arrays become the views of the private arrays
+    /// of all lanes.
+    /// </summary>
+    private string GetLaneOperand(Value operand, VectorizationAnalysis analysis)
+    {
+        if (analysis.IsScalar(operand))
+        {
+            return new ExpressionEmitter(context, new TypeEmitter(context))
+                .EmitExpression(operand);
+        }
+        return operand.Type is ViewType
+            ? _expressionEmitter!.ResolveViews(operand)
+            : context.GetValueName(operand);
+    }
+
+    /// <summary>
+    /// Returns the exception reporting a view that differs per lane, which
+    /// the CPU backend cannot represent for the given value.
+    /// </summary>
+    private System.NotSupportedException UnsupportedPerLaneView(Value value) =>
+        new($"The kernel '{context.Module.EntryPoint.Name}' uses a view that " +
+            $"differs per lane in a '{value.GetType().Name}' operation, " +
+            "which the CPU backend does not support.");
+
+    /// <summary>
+    /// Emits a sub-view of a view that differs per lane, or with an offset or
+    /// length that differs per lane.
+    /// </summary>
+    private void EmitPerLaneSubView(
+        SubView subView,
+        VectorizationAnalysis analysis,
+        CPUExpressionEmitter expressionEmitter)
+    {
+        var result = context.GetValueName(subView);
+        var source = expressionEmitter.ResolveViews(subView.Source);
+        var offset = GetLaneOperand(subView.Offset, analysis);
+        var length = GetLaneOperand(subView.Length, analysis);
+        string Lane(Value operand, string text) =>
+            analysis.IsScalar(operand) ? $"({text})" : $"{text}[_si]";
+        context.WriteLine("for (int _si = 0; _si < SIMDWidth; _si++)");
+        context.WriteLine(
+            $"    {result}[_si] = {source}[_si].SubView(" +
+            $"{Lane(subView.Offset, offset)}, {Lane(subView.Length, length)});");
+    }
+
+    /// <summary>
+    /// Emits a view of per-lane pointers or lengths.
+    /// </summary>
+    private void EmitPerLaneNewView(
+        NewView newView,
+        VectorizationAnalysis analysis,
+        CPUExpressionEmitter expressionEmitter)
+    {
+        if (newView.Pointer.Type is not PointerType)
+            throw UnsupportedPerLaneView(newView);
+        var result = context.GetValueName(newView);
+        var pointer = analysis.IsScalar(newView.Pointer)
+            ? $"({GetLaneOperand(newView.Pointer, analysis)})"
+            : $"{expressionEmitter.ResolveOperand(newView.Pointer)}[_si]";
+        var length = GetLaneOperand(newView.Length, analysis);
+        if (!analysis.IsScalar(newView.Length))
+            length += "[_si]";
+        var elemType = VectorizationAnalysis.GetScalarTypeName(
+            newView.ViewElementType,
+            (CPULanguageConfiguration)context.LanguageConfig);
+        context.WriteLine("for (int _si = 0; _si < SIMDWidth; _si++)");
+        context.WriteLine(
+            $"    {result}[_si] = new CPURuntimeView<{elemType}>(" +
+            $"({elemType}*){pointer}, {length});");
+    }
+
+    /// <summary>
+    /// Emits an address space or element type cast of a view that differs per
+    /// lane. The views are copied, as the buffers of both values may be
+    /// reused independently.
+    /// </summary>
+    private void EmitPerLaneViewCast(
+        BaseAddressSpaceCast cast,
+        CPUExpressionEmitter expressionEmitter)
+    {
+        var result = context.GetValueName(cast);
+        var source = expressionEmitter.ResolveViews(cast.Source);
+        var sourceType = GetVectorElementType(cast.Source);
+        var targetType = GetVectorElementType(cast);
+        context.WriteLine("for (int _si = 0; _si < SIMDWidth; _si++)");
+        context.WriteLine(sourceType == targetType
+            ? $"    {result}[_si] = {source}[_si];"
+            : $"    {result}[_si] = Unsafe.BitCast<{sourceType}, {targetType}>(" +
+                $"{source}[_si]);");
+    }
+
+    /// <summary>
+    /// Emits a call of a vectorized helper method. Uniform arguments of
+    /// per-lane parameters are broadcast, and the helper runs for the active
+    /// lanes of the caller.
+    /// </summary>
+    private void EmitHelperCall(
+        MethodCall call,
+        VectorizationAnalysis analysis,
+        CPUExpressionEmitter expressionEmitter)
+    {
+        var target = call.Target;
+        var targetAnalysis = GetAnalysis(target)
+            ?? throw new NotSupportedException(
+                $"Recursive calls of '{target.Name}' are not supported by the " +
+                "CPU backend.");
+        var exprEmitter = new ExpressionEmitter(context, new TypeEmitter(context));
+        var arguments = new List<string>();
+        for (int i = 0; i < call.Arguments.Length; i++)
+        {
+            var arg = call.Arguments[i];
+            var param = target.Parameters[i];
+            bool perLaneParam = !targetAnalysis.IsScalar(param);
+            var paramType = GetVectorElementType(param);
+            if (!analysis.IsScalar(arg))
+            {
+                var buffer = arg.Type is ViewType
+                    ? expressionEmitter.ResolveViews(arg)
+                    : expressionEmitter.ResolveOperand(arg);
+                arguments.Add(ConvertLaneLayout(
+                    buffer, GetVectorElementType(arg), paramType));
+                continue;
+            }
+            var expr = ConvertLayout(
+                exprEmitter.EmitExpression(arg),
+                GetVectorElementType(arg),
+                paramType);
+            if (perLaneParam)
+            {
+                var elemType = paramType ?? "int";
+                expr = $"CPUVectorIntrinsics.Broadcast<{elemType}>(" +
+                    $"{expr}, SIMDWidth)";
+            }
+            arguments.Add(expr);
+        }
+        arguments.Add(CPUExpressionEmitter.ActiveMaskName);
+        arguments.Add("laneIdx");
+
+        var callText =
+            $"{context.GetValueName(target)}({string.Join(", ", arguments)})";
+        if (call.Type is VoidType || !context.NeedsVariable(call))
+        {
+            context.WriteLine($"{callText};");
+            return;
+        }
+        // Copy the per-lane results instead of rebinding the buffer
+        var result = context.GetValueName(call);
+        context.WriteLine($"{callText}.CopyTo({result}, 0);");
+    }
+
+    /// <summary>
+    /// Emits a field insertion into a (possibly vectorized) struct value.
+    /// </summary>
+    private void EmitSetField(
+        SetField setField,
+        string varName,
+        VectorizationAnalysis analysis)
+    {
+        bool vectorized = !analysis.IsScalar(setField);
+        var lane = vectorized ? "[_si]" : "";
+        string Operand(Value operand)
+        {
+            var text = GetLaneOperand(operand, analysis);
+            return analysis.IsScalar(operand) ? text : text + lane;
+        }
+        var source = Operand(setField.Source);
+        var fieldValue = Operand(setField.Value);
+
+        if (vectorized)
+        {
+            context.WriteLine("for (int _si = 0; _si < SIMDWidth; _si++)");
+            context.OpenScope();
+        }
+        var target = $"{varName}{lane}";
+        context.WriteLine($"{target} = {source};");
+        var span = setField.FieldSpan;
+        if (span.Span == 1)
+        {
+            context.WriteLine(
+                $"{target}.{StructureType.GetFieldName(span.Index)} = " +
+                $"{fieldValue};");
+        }
+        else
+        {
+            for (int i = 0; i < span.Span; i++)
+            {
+                context.WriteLine(
+                    $"{target}.{StructureType.GetFieldName(span.Index + i)} = " +
+                    $"({fieldValue}).{StructureType.GetFieldName(i)};");
+            }
+        }
+        if (vectorized)
+            context.CloseScope();
     }
 
     /// <summary>
@@ -1348,7 +1799,8 @@ sealed class CPUMethodEmitter(
         // ReconstructBlock adds it both as an element AND via the
         // IfStatement — we only emit it once (the standalone one).
 
-        var condition = context.GetValueName(ifStmt.Condition);
+        var condition = EmitConditionExpression(
+            ifStmt.Condition, analysis, expressionEmitter);
 
         // Scalar-condition fast path: emit a native C# if/else, no masking needed
         if (analysis.IsScalar(ifStmt.Condition))
@@ -1357,10 +1809,10 @@ sealed class CPUMethodEmitter(
                 // Collect only DIRECT blocks in each branch (not blocks
                 // from nested sub-structures) for phi assignment. Nested
                 // if/else chains handle their own phi assignments.
-                var sTrueBlocks = new HashSet<BasicBlock>();
-                CollectDirectBlocks(ifStmt.TrueBranch, sTrueBlocks);
-                var sFalseBlocks = new HashSet<BasicBlock>();
-                CollectDirectBlocks(ifStmt.FalseBranch, sFalseBlocks);
+                var sTrueBlocks = GetIfBranchPhiSources(
+                    ifStmt, isTrueBranch: true, direct: true);
+                var sFalseBlocks = GetIfBranchPhiSources(
+                    ifStmt, isTrueBranch: false, direct: true);
 
                 context.WriteLine($"if ({condition})");
                 context.OpenScope();
@@ -1371,7 +1823,8 @@ sealed class CPUMethodEmitter(
                         ifStmt.MergeBlock, sTrueBlocks, analysis);
                 context.CloseScope();
 
-                if (ifStmt.FalseBranch.Elements.Count > 0)
+                if (ifStmt.FalseBranch.Elements.Count > 0 ||
+                    FeedsMergePhis(ifStmt.MergeBlock, sFalseBlocks))
                 {
                     context.WriteLine("else");
                     context.OpenScope();
@@ -1400,10 +1853,10 @@ sealed class CPUMethodEmitter(
         context.WriteLine();
 
         // Pre-compute which blocks belong to each branch for phi Select emission
-        var trueBlocks = new HashSet<BasicBlock>();
-        CollectBlocks(ifStmt.TrueBranch, trueBlocks);
-        var falseBlocks = new HashSet<BasicBlock>();
-        CollectBlocks(ifStmt.FalseBranch, falseBlocks);
+        var trueBlocks = GetIfBranchPhiSources(
+            ifStmt, isTrueBranch: true, direct: false);
+        var falseBlocks = GetIfBranchPhiSources(
+            ifStmt, isTrueBranch: false, direct: false);
 
         // True branch: activeMask = savedMask & mask
         context.WriteLine("// True branch");
@@ -1417,7 +1870,8 @@ sealed class CPUMethodEmitter(
         context.CloseScope();
 
         // False branch: activeMask = savedMask & !mask
-        if (ifStmt.FalseBranch.Elements.Count > 0)
+        if (ifStmt.FalseBranch.Elements.Count > 0 ||
+            FeedsMergePhis(ifStmt.MergeBlock, falseBlocks))
         {
             context.WriteLine("// False branch");
             context.WriteLine(
@@ -1437,6 +1891,22 @@ sealed class CPUMethodEmitter(
             $"CPUVectorIntrinsics.CopyMask({am}, {savedMask});");
         context.WriteLine();
     }
+
+    /// <summary>
+    /// Returns the scalar continue condition of the given loop, negating the
+    /// header condition if the header exits the loop on true.
+    /// </summary>
+    private static string GetScalarContinueCondition(
+        LoopStatement loop,
+        string condition) =>
+        loop.IsConditionInverted ? $"!({condition})" : condition;
+
+    /// <summary>
+    /// Returns the mask intrinsic that keeps the lanes continuing the given
+    /// loop: <c>AndMask</c> or, if the header exits on true, <c>AndNotMask</c>.
+    /// </summary>
+    private static string GetContinueMaskIntrinsic(LoopStatement loop) =>
+        loop.IsConditionInverted ? "AndNotMask" : "AndMask";
 
     /// <summary>
     /// Emits a masked while loop that continues while any lane is active.
@@ -1465,18 +1935,7 @@ sealed class CPUMethodEmitter(
             else
                 initVal = context.GetValueName(preHeader);
 
-            if (!analysis.IsScalar(phi) && analysis.IsScalar(preHeader))
-            {
-                var et = phi.Type is PrimitiveType pt
-                    ? wConfig.GetPrimitiveTypeName(pt.BasicValueType) : "int";
-                context.WriteLine(
-                    $"CPUVectorIntrinsics.Broadcast<{et}>(" +
-                    $"{phiVar}, {initVal});");
-            }
-            else
-            {
-                context.WriteLine($"{phiVar} = {initVal};");
-            }
+            EmitPhiAssignment(phi, preHeader, phiVar, initVal, analysis);
             _handledMergePhis.Add(phi);
         }
 
@@ -1492,15 +1951,17 @@ sealed class CPUMethodEmitter(
             headerBlock, placement, analysis, expressionEmitter);
 
         // Pre-loop condition check
-        var condition = context.GetValueName(whileLoop.Condition);
+        var condition = EmitConditionExpression(
+            whileLoop.Condition, analysis, expressionEmitter);
         if (analysis.IsScalar(whileLoop.Condition))
         {
-            context.WriteLine($"while ({condition})");
+            context.WriteLine(
+                $"while ({GetScalarContinueCondition(whileLoop, condition)})");
         }
         else
         {
             context.WriteLine(
-                $"CPUVectorIntrinsics.AndMask(" +
+                $"CPUVectorIntrinsics.{GetContinueMaskIntrinsic(whileLoop)}(" +
                 $"{am}, {am}, {condition});");
             context.WriteLine(
                 $"while (CPUVectorIntrinsics.Any({am}))");
@@ -1532,7 +1993,7 @@ sealed class CPUMethodEmitter(
         if (!analysis.IsScalar(whileLoop.Condition))
         {
             context.WriteLine(
-                $"CPUVectorIntrinsics.AndMask(" +
+                $"CPUVectorIntrinsics.{GetContinueMaskIntrinsic(whileLoop)}(" +
                 $"{am}, {am}, {condition});");
 
             // Break handling: scan the header's PureValues for
@@ -1546,7 +2007,8 @@ sealed class CPUMethodEmitter(
         }
         else
         {
-            context.WriteLine($"if (!{condition}) break;");
+            context.WriteLine(
+                $"if (!({GetScalarContinueCondition(whileLoop, condition)})) break;");
         }
 
         context.CloseScope();
@@ -1590,19 +2052,7 @@ sealed class CPUMethodEmitter(
             else
                 initVal = context.GetValueName(preHeader);
 
-            // Broadcast scalar init to vectorized phi target
-            if (!analysis.IsScalar(phi) && analysis.IsScalar(preHeader))
-            {
-                var et = phi.Type is PrimitiveType pt
-                    ? config.GetPrimitiveTypeName(pt.BasicValueType) : "int";
-                context.WriteLine(
-                    $"CPUVectorIntrinsics.Broadcast<{et}>(" +
-                    $"{phiVar}, {initVal});");
-            }
-            else
-            {
-                context.WriteLine($"{phiVar} = {initVal};");
-            }
+            EmitPhiAssignment(phi, preHeader, phiVar, initVal, analysis);
             _handledMergePhis.Add(phi);
         }
 
@@ -1611,8 +2061,7 @@ sealed class CPUMethodEmitter(
         if (!analysis.IsScalar(inductionVar.Phi)
             && analysis.IsScalar(inductionVar.InitialValue))
         {
-            var et = inductionVar.Phi.Type is PrimitiveType ipt
-                ? config.GetPrimitiveTypeName(ipt.BasicValueType) : "int";
+            var et = GetVectorElementType(inductionVar.Phi) ?? "int";
             context.WriteLine(
                 $"CPUVectorIntrinsics.Broadcast<{et}>(" +
                 $"{varName}, {initial});");
@@ -1636,15 +2085,17 @@ sealed class CPUMethodEmitter(
             headerBlock, placement, analysis, expressionEmitter);
 
         // Pre-loop condition check — skip the loop entirely if false
-        var condition = context.GetValueName(forLoop.Condition);
+        var condition = EmitConditionExpression(
+            forLoop.Condition, analysis, expressionEmitter);
         if (analysis.IsScalar(forLoop.Condition))
         {
-            context.WriteLine($"while ({condition})");
+            context.WriteLine(
+                $"while ({GetScalarContinueCondition(forLoop, condition)})");
         }
         else
         {
             context.WriteLine(
-                $"CPUVectorIntrinsics.AndMask(" +
+                $"CPUVectorIntrinsics.{GetContinueMaskIntrinsic(forLoop)}(" +
                 $"{am}, {savedMask}, {condition});");
             context.WriteLine(
                 $"while (CPUVectorIntrinsics.Any({am}))");
@@ -1665,8 +2116,7 @@ sealed class CPUMethodEmitter(
         if (!analysis.IsScalar(inductionVar.Phi))
         {
             // Vectorized induction variable: use CPUMathIntrinsics
-            var indType = inductionVar.Phi.Type is PrimitiveType ipt2
-                ? config.GetPrimitiveTypeName(ipt2.BasicValueType) : "int";
+            var indType = GetVectorElementType(inductionVar.Phi) ?? "int";
             var bcastStep = $"_step_{maskId}";
             context.WriteLine(
                 $"var {bcastStep} = new {indType}[SIMDWidth];");
@@ -1690,12 +2140,15 @@ sealed class CPUMethodEmitter(
             headerBlock, placement, analysis, expressionEmitter,
             forceNeedsVariable: true);
 
-        // Bottom condition check
+        // Bottom condition check: AND with the current activeMask (as the
+        // while-loop emitter does) so that lanes that already left the loop
+        // through a break stay retired instead of being revived from the
+        // pre-loop mask.
         if (!analysis.IsScalar(forLoop.Condition))
         {
             context.WriteLine(
-                $"CPUVectorIntrinsics.AndMask(" +
-                $"{am}, {savedMask}, {condition});");
+                $"CPUVectorIntrinsics.{GetContinueMaskIntrinsic(forLoop)}(" +
+                $"{am}, {am}, {condition});");
 
             // Break handling: before excluding break lanes, capture
             // the header's computed values for lanes that are about to
@@ -1712,9 +2165,7 @@ sealed class CPUMethodEmitter(
                         continue; // scalar phis already captured
                     var phiVar = context.GetValueName(phi);
                     var newVal = context.GetValueName(backEdge);
-                    var selType = phi.Type is PrimitiveType spt2
-                        ? config.GetPrimitiveTypeName(spt2.BasicValueType)
-                        : "int";
+                    var selType = GetVectorElementType(phi) ?? "int";
                     // Capture final values for ALL active lanes (including
                     // those about to break). Break lanes keep this value;
                     // continuing lanes will overwrite at the next Select.
@@ -1731,7 +2182,8 @@ sealed class CPUMethodEmitter(
         }
         else
         {
-            context.WriteLine($"if (!{condition}) break;");
+            context.WriteLine(
+                $"if (!({GetScalarContinueCondition(forLoop, condition)})) break;");
         }
 
         context.CloseScope();
@@ -1761,7 +2213,7 @@ sealed class CPUMethodEmitter(
         {
             var phiVar = context.GetValueName(phi);
             var initVal = context.GetValueName(preHeader);
-            context.WriteLine($"{phiVar} = {initVal};");
+            EmitPhiAssignment(phi, preHeader, phiVar, initVal, analysis);
             _handledMergePhis.Add(phi);
         }
 
@@ -1780,29 +2232,32 @@ sealed class CPUMethodEmitter(
         // Emit back-edge Selects before condition filters the mask
         // (all lanes that ran the body in this iteration must update their phi)
         var dwConfig = (CPULanguageConfiguration)context.LanguageConfig;
+        var dwPhiNames = SnapshotLoopPhis(loopPhis, analysis);
         foreach (var (phi, _, backEdge) in loopPhis)
         {
-            var phiVar = context.GetValueName(phi);
+            var phiVar = dwPhiNames[phi];
             var newVal = context.GetValueName(backEdge);
-            var selT = phi.Type is PrimitiveType dwpt
-                ? dwConfig.GetPrimitiveTypeName(dwpt.BasicValueType) : "int";
+            var selT = GetVectorElementType(phi) ?? "int";
             context.WriteLine(
                 $"CPUVectorIntrinsics.Select<{selT}>(" +
                 $"{phiVar}, {am}, {newVal}, {phiVar});");
         }
+        RestoreLoopPhiNames(dwPhiNames);
 
         // Evaluate condition and combine with mask
-        var condition = context.GetValueName(doWhileLoop.Condition);
+        var condition = EmitConditionExpression(
+            doWhileLoop.Condition, analysis, expressionEmitter);
         if (analysis.IsScalar(doWhileLoop.Condition))
         {
             // Scalar condition: all lanes agree — use the condition directly
             context.CloseScope();
-            context.WriteLine($"while ({condition});");
+            context.WriteLine(
+                $"while ({GetScalarContinueCondition(doWhileLoop, condition)});");
         }
         else
         {
             context.WriteLine(
-                $"CPUVectorIntrinsics.AndMask(" +
+                $"CPUVectorIntrinsics.{GetContinueMaskIntrinsic(doWhileLoop)}(" +
                 $"{am}, {am}, {condition});");
             context.CloseScope();
             context.WriteLine(
@@ -1831,7 +2286,8 @@ sealed class CPUMethodEmitter(
         // NOTE: The switch condition block was already emitted by
         // EmitControlFlow as a standalone BasicBlock element.
 
-        var condition = context.GetValueName(switchStmt.Condition);
+        var condition = EmitConditionExpression(
+            switchStmt.Condition, analysis, expressionEmitter);
 
         // Scalar switch: emit plain C# switch with phi assignments
         if (analysis.IsScalar(switchStmt.Condition))
@@ -1845,15 +2301,16 @@ sealed class CPUMethodEmitter(
                 EmitControlFlow(body, placement, analysis, expressionEmitter);
                 if (switchStmt.MergeBlock != null)
                 {
-                    var caseBlocks = new HashSet<BasicBlock>();
-                    CollectDirectBlocks(body, caseBlocks);
                     EmitScalarPhiAssignments(
-                        switchStmt.MergeBlock, caseBlocks, analysis);
+                        switchStmt.MergeBlock,
+                        CollectCaseBlocks(switchStmt, body, direct: true),
+                        analysis);
                 }
                 context.WriteLine("break;");
                 context.CloseScope();
             }
-            if (switchStmt.DefaultCase.Elements.Count > 0)
+            if (switchStmt.DefaultCase.Elements.Count > 0 ||
+                HasDirectMergeEdge(switchStmt))
             {
                 context.WriteLine("default:");
                 context.OpenScope();
@@ -1862,10 +2319,11 @@ sealed class CPUMethodEmitter(
                     expressionEmitter);
                 if (switchStmt.MergeBlock != null)
                 {
-                    var defaultBlocks = new HashSet<BasicBlock>();
-                    CollectDirectBlocks(switchStmt.DefaultCase, defaultBlocks);
                     EmitScalarPhiAssignments(
-                        switchStmt.MergeBlock, defaultBlocks, analysis);
+                        switchStmt.MergeBlock,
+                        CollectCaseBlocks(
+                            switchStmt, switchStmt.DefaultCase, direct: true),
+                        analysis);
                 }
                 context.WriteLine("break;");
                 context.CloseScope();
@@ -1898,12 +2356,22 @@ sealed class CPUMethodEmitter(
             context.OpenScope();
             EmitControlFlow(
                 body, placement, analysis, expressionEmitter);
+            if (switchStmt.MergeBlock != null)
+            {
+                EmitPhiSelectsForBranch(
+                    switchStmt.MergeBlock,
+                    CollectCaseBlocks(switchStmt, body),
+                    am,
+                    analysis);
+            }
             context.CloseScope();
             caseIdx++;
         }
 
-        // Emit default case
-        if (switchStmt.DefaultCase.Elements.Count > 0)
+        // Emit default case (also when it is empty but its lanes still
+        // select their incoming phi values on the direct edge to the merge)
+        if (switchStmt.DefaultCase.Elements.Count > 0 ||
+            HasDirectMergeEdge(switchStmt))
         {
             context.WriteLine("// Default case");
             context.WriteLine(
@@ -1921,6 +2389,14 @@ sealed class CPUMethodEmitter(
             EmitControlFlow(
                 switchStmt.DefaultCase, placement, analysis,
                 expressionEmitter);
+            if (switchStmt.MergeBlock != null)
+            {
+                EmitPhiSelectsForBranch(
+                    switchStmt.MergeBlock,
+                    CollectCaseBlocks(switchStmt, switchStmt.DefaultCase),
+                    am,
+                    analysis);
+            }
             context.CloseScope();
         }
 
@@ -1932,12 +2408,145 @@ sealed class CPUMethodEmitter(
     }
 
     /// <summary>
+    /// Returns the blocks of an if branch whose edges into the merge block
+    /// feed its phis. An empty branch reaches the merge block either directly
+    /// (the if block is the phi source) or through an empty forwarding block
+    /// that is shared with another path and emitted elsewhere.
+    /// </summary>
+    private static HashSet<BasicBlock> GetIfBranchPhiSources(
+        IfStatement ifStmt,
+        bool isTrueBranch,
+        bool direct)
+    {
+        var branch = isTrueBranch ? ifStmt.TrueBranch : ifStmt.FalseBranch;
+        var blocks = new HashSet<BasicBlock>();
+        if (direct)
+            CollectDirectBlocks(branch, blocks);
+        else
+            CollectBlocks(branch, blocks, ifStmt.MergeBlock);
+
+        var merge = ifStmt.MergeBlock;
+        if (merge is null || branch.Elements.Count > 0 ||
+            ifStmt.Block.TerminationKind != BlockTerminationKind.Conditional ||
+            IsLoopExit(ifStmt.Block, merge))
+        {
+            // Loop exits (breaks) are handled by the masked loop emitters,
+            // which retire breaking lanes before the branch body runs.
+            return blocks;
+        }
+
+        var view = ifStmt.Block.AsConditionalView();
+        var target = isTrueBranch ? view.TrueTarget : view.FalseTarget;
+        if (target == merge)
+            blocks.Add(ifStmt.Block);
+        else if (IsForwardingBlock(target, merge))
+            blocks.Add(target);
+        return blocks;
+    }
+
+    /// <summary>
+    /// Returns true if <paramref name="block"/> lies on a cycle that does not
+    /// pass through <paramref name="merge"/>, i.e. the edge into the merge
+    /// block leaves a loop.
+    /// </summary>
+    private static bool IsLoopExit(BasicBlock block, BasicBlock merge)
+    {
+        var visited = new HashSet<BasicBlock>();
+        var stack = new Stack<BasicBlock>();
+        foreach (var successor in block.Successors)
+            stack.Push(successor);
+        while (stack.Count > 0)
+        {
+            var current = stack.Pop();
+            if (current == block)
+                return true;
+            if (current == merge || !visited.Add(current))
+                continue;
+            foreach (var successor in current.Successors)
+                stack.Push(successor);
+        }
+        return false;
+    }
+
+    /// <summary>
+    /// Returns true if the block holds no values and only branches to
+    /// <paramref name="merge"/>.
+    /// </summary>
+    private static bool IsForwardingBlock(BasicBlock block, BasicBlock merge) =>
+        block.FirstPhiValue is null &&
+        block.FirstValue is null &&
+        block.TerminationKind == BlockTerminationKind.Unconditional &&
+        block.Successors.Length == 1 &&
+        block.Successors[0] == merge;
+
+    /// <summary>
+    /// Returns true if any phi of the merge block has an incoming value from
+    /// one of the given blocks.
+    /// </summary>
+    private static bool FeedsMergePhis(
+        BasicBlock? merge,
+        HashSet<BasicBlock> sources)
+    {
+        if (merge is null || sources.Count == 0)
+            return false;
+        foreach (var phi in merge.PhiValues)
+        {
+            for (int i = 0; i < phi.NumArguments; ++i)
+            {
+                if (sources.Contains(phi.Sources[i]))
+                    return true;
+            }
+        }
+        return false;
+    }
+
+    /// <summary>
+    /// Returns the blocks of a switch case whose edges into the merge block
+    /// feed its phis. An empty case branches directly from the switch block
+    /// to the merge block, so the switch block itself is the phi source.
+    /// </summary>
+    private static HashSet<BasicBlock> CollectCaseBlocks(
+        SwitchStatement switchStmt,
+        ControlFlowStructure body,
+        bool direct = false)
+    {
+        var blocks = new HashSet<BasicBlock>();
+        if (direct)
+            CollectDirectBlocks(body, blocks);
+        else
+            CollectBlocks(body, blocks, switchStmt.MergeBlock);
+        if (body.Elements.Count == 0)
+            blocks.Add(switchStmt.Block);
+        return blocks;
+    }
+
+    /// <summary>
+    /// Returns true if the switch block branches directly to the merge block
+    /// and the merge block has phis fed over that edge.
+    /// </summary>
+    private static bool HasDirectMergeEdge(SwitchStatement switchStmt)
+    {
+        if (switchStmt.MergeBlock is null)
+            return false;
+        foreach (var phi in switchStmt.MergeBlock.PhiValues)
+        {
+            for (int i = 0; i < phi.NumArguments; ++i)
+            {
+                if (phi.Sources[i] == switchStmt.Block)
+                    return true;
+            }
+        }
+        return false;
+    }
+
+    /// <summary>
     /// Collects all <see cref="BasicBlock"/> instances reachable within a
     /// control flow structure into <paramref name="result"/>.
     /// </summary>
     private static void CollectBlocks(
         ControlFlowStructure structure,
-        HashSet<BasicBlock> result)
+        HashSet<BasicBlock> result,
+        BasicBlock? ownMerge = null)
     {
         foreach (var element in structure.Elements)
         {
@@ -1946,17 +2555,21 @@ sealed class CPUMethodEmitter(
                 case BasicBlock block:
                     result.Add(block);
                     break;
-                case IfStatement nested:
-                    CollectBlocks(nested.TrueBranch, result);
-                    CollectBlocks(nested.FalseBranch, result);
+                // Nested statements merging into the same block select their
+                // own incoming phi values under their narrower masks.
+                case IfStatement nested when
+                    ownMerge is null || nested.MergeBlock != ownMerge:
+                    CollectBlocks(nested.TrueBranch, result, ownMerge);
+                    CollectBlocks(nested.FalseBranch, result, ownMerge);
                     break;
                 case LoopStatement loop:
-                    CollectBlocks(loop.Body, result);
+                    CollectBlocks(loop.Body, result, ownMerge);
                     break;
-                case SwitchStatement sw:
+                case SwitchStatement sw when
+                    ownMerge is null || sw.MergeBlock != ownMerge:
                     foreach (var (_, body) in sw.Cases)
-                        CollectBlocks(body, result);
-                    CollectBlocks(sw.DefaultCase, result);
+                        CollectBlocks(body, result, ownMerge);
+                    CollectBlocks(sw.DefaultCase, result, ownMerge);
                     break;
                 case UnstructuredRegion ur:
                     foreach (var b in ur.Blocks)
@@ -2000,9 +2613,10 @@ sealed class CPUMethodEmitter(
         ExpressionEmitter exprEmitter,
         string activeMask)
     {
+        var phiNames = SnapshotLoopPhis(loopPhis, analysis);
         foreach (var (phi, _, backEdge) in loopPhis)
         {
-            var phiVar = context.GetValueName(phi);
+            var phiVar = phiNames[phi];
 
             // PhiValue back-edge with self-reference: the inner phi merges
             // a "continue" path (self = old value) and an "accumulate" path
@@ -2089,9 +2703,7 @@ sealed class CPUMethodEmitter(
                         var innerPhiVar = context.NeedsVariable(backEdge)
                             ? context.GetValueName(backEdge)
                             : exprEmitter.EmitExpression(backEdge);
-                        var elemType2 = phi.Type is PrimitiveType pt2
-                            ? config.GetPrimitiveTypeName(pt2.BasicValueType)
-                            : "int";
+                        var elemType2 = GetVectorElementType(phi) ?? "int";
                         context.WriteLine(
                             $"CPUVectorIntrinsics.Select<{elemType2}>(" +
                             $"{phiVar}, {activeMask}, " +
@@ -2101,9 +2713,7 @@ sealed class CPUMethodEmitter(
 
                     if (condName != null)
                     {
-                        var elemType = phi.Type is PrimitiveType pt
-                            ? config.GetPrimitiveTypeName(pt.BasicValueType)
-                            : "int";
+                        var elemType = GetVectorElementType(phi) ?? "int";
 
                         // Broadcast scalar values if needed
                         if (analysis.IsScalar(otherArg))
@@ -2131,8 +2741,7 @@ sealed class CPUMethodEmitter(
             // into a vectorized Select using the Predicate's operands.
             if (backEdge is Predicate pred && !analysis.IsScalar(phi))
             {
-                var elemType = phi.Type is PrimitiveType pt
-                    ? config.GetPrimitiveTypeName(pt.BasicValueType) : "int";
+                var elemType = GetVectorElementType(phi) ?? "int";
 
                 // Resolve each operand: use pool name if vectorized,
                 // broadcast if scalar, or inline expression.
@@ -2146,6 +2755,12 @@ sealed class CPUMethodEmitter(
                 var cond = ResolveForSelect(pred.Condition);
                 var trueVal = ResolveForSelect(pred.TrueValue);
                 var falseVal = ResolveForSelect(pred.FalseValue);
+                bool isView = phi.Type is ViewType;
+                if (isView)
+                {
+                    trueVal = _expressionEmitter!.ResolveViews(pred.TrueValue);
+                    falseVal = _expressionEmitter!.ResolveViews(pred.FalseValue);
+                }
 
                 // Broadcast scalar condition to bool[] if needed
                 if (analysis.IsScalar(pred.Condition))
@@ -2160,7 +2775,7 @@ sealed class CPUMethodEmitter(
                 }
 
                 // Broadcast scalar true/false values
-                if (analysis.IsScalar(pred.TrueValue))
+                if (!isView && analysis.IsScalar(pred.TrueValue))
                 {
                     var bcast = $"_seltrue_{phi.Id}";
                     context.WriteLine(
@@ -2170,7 +2785,7 @@ sealed class CPUMethodEmitter(
                         $"{bcast}, {trueVal});");
                     trueVal = bcast;
                 }
-                if (analysis.IsScalar(pred.FalseValue))
+                if (!isView && analysis.IsScalar(pred.FalseValue))
                 {
                     var bcast = $"_selfalse_{phi.Id}";
                     context.WriteLine(
@@ -2200,13 +2815,117 @@ sealed class CPUMethodEmitter(
                 var newVal = context.NeedsVariable(backEdge)
                     ? context.GetValueName(backEdge)
                     : exprEmitter.EmitExpression(backEdge);
-                var selType = phi.Type is PrimitiveType spt
-                    ? config.GetPrimitiveTypeName(spt.BasicValueType) : "int";
+                var selType = GetVectorElementType(phi) ?? "int";
+                if (phi.Type is ViewType)
+                {
+                    // Uniform views and views of local arrays become the
+                    // views of all lanes
+                    newVal = _expressionEmitter!.ResolveViews(backEdge);
+                }
+                else if (analysis.IsScalar(backEdge))
+                {
+                    // Uniform back-edge values of phis that differ per lane
+                    // (the lanes leave the loop in different iterations)
+                    var bcast = $"_backedge_{phi.Id}";
+                    context.WriteLine($"var {bcast} = new {selType}[SIMDWidth];");
+                    context.WriteLine(
+                        $"CPUVectorIntrinsics.Broadcast<{selType}>(" +
+                        $"{bcast}, {newVal});");
+                    newVal = bcast;
+                }
                 context.WriteLine(
                     $"CPUVectorIntrinsics.Select<{selType}>(" +
                     $"{phiVar}, {activeMask}, {newVal}, {phiVar});");
             }
         }
+        RestoreLoopPhiNames(phiNames);
+    }
+
+    /// <summary>
+    /// Prepares the back-edge updates of the given loop phis, which must act
+    /// as a parallel copy: copies every phi that the update of a later phi may
+    /// read (e.g. when two phis swap their values) into a snapshot, and lets
+    /// all expressions refer to the snapshot until the updates are done.
+    /// </summary>
+    /// <returns>The variable names of all phis to assign.</returns>
+    private Dictionary<PhiValue, string> SnapshotLoopPhis(
+        List<(PhiValue Phi, Value PreHeader, Value BackEdge)> loopPhis,
+        VectorizationAnalysis analysis)
+    {
+        var phiNames = new Dictionary<PhiValue, string>();
+        foreach (var (phi, _, _) in loopPhis)
+            phiNames[phi] = context.GetValueName(phi);
+
+        var assigned = new HashSet<Value>();
+        var snapshots = new HashSet<PhiValue>();
+        foreach (var (phi, _, backEdge) in loopPhis)
+        {
+            CollectReadPhis(backEdge, assigned, snapshots);
+            if (backEdge != phi)
+                assigned.Add(phi);
+        }
+
+        foreach (var phi in snapshots)
+        {
+            var snapshot = $"_phisnap_{phi.Id}_{_phiBroadcastId++}";
+            var name = phiNames[phi];
+            context.WriteLine(analysis.IsScalar(phi)
+                ? $"var {snapshot} = {name};"
+                : $"var {snapshot} = {name}.Clone() as " +
+                    $"{GetVectorTypeName(phi)};");
+            context.SetValueName(phi, snapshot);
+        }
+        return phiNames;
+    }
+
+    /// <summary>
+    /// Returns the C# type of the vectorized buffer of the given phi.
+    /// </summary>
+    private string GetVectorTypeName(PhiValue phi)
+    {
+        var elementType = GetVectorElementType(phi) ?? "int";
+        return $"{elementType}[]";
+    }
+
+    /// <summary>
+    /// Adds all phis of <paramref name="assigned"/> that the given value may
+    /// read to <paramref name="result"/>. Phis are stored in variables; all
+    /// other operands may be inlined and are followed.
+    /// </summary>
+    private static void CollectReadPhis(
+        Value value,
+        HashSet<Value> assigned,
+        HashSet<PhiValue> result)
+    {
+        if (assigned.Count == 0)
+            return;
+        var visited = new HashSet<Value>();
+        var worklist = new Stack<Value>();
+        worklist.Push(value);
+        while (worklist.TryPop(out var current))
+        {
+            if (!visited.Add(current))
+                continue;
+            if (current is PhiValue phi)
+            {
+                if (assigned.Contains(phi))
+                    result.Add(phi);
+                continue;
+            }
+            if (current is BasicBlock or Method or TypeValue)
+                continue;
+            foreach (var operand in current.Values)
+                worklist.Push(operand);
+        }
+    }
+
+    /// <summary>
+    /// Restores the variable names of all phis after their back-edge updates.
+    /// </summary>
+    private void RestoreLoopPhiNames(Dictionary<PhiValue, string> phiNames)
+    {
+        foreach (var (phi, name) in phiNames)
+            context.SetValueName(phi, name);
     }
 
     /// <summary>
@@ -2278,19 +2997,7 @@ sealed class CPUMethodEmitter(
                 else
                     source = context.GetValueName(arg);
 
-                if (!analysis.IsScalar(phi) && analysis.IsScalar(arg))
-                {
-                    var elemType = phi.Type is PrimitiveType pt
-                        ? config.GetPrimitiveTypeName(pt.BasicValueType)
-                        : "int";
-                    context.WriteLine(
-                        $"CPUVectorIntrinsics.Broadcast<{elemType}>(" +
-                        $"{phiVar}, {source});");
-                }
-                else
-                {
-                    context.WriteLine($"{phiVar} = {source};");
-                }
+                EmitPhiAssignment(phi, arg, phiVar, source, analysis);
 
                 _handledMergePhis.Add(phi);
             }
@@ -2332,13 +3039,18 @@ sealed class CPUMethodEmitter(
                 // is truly scalar — NeedsVariable is unreliable for
                 // values like laneIdx that are already vectorized.
                 string incoming;
-                if (analysis.IsScalar(arg))
+                if (phi.Type is ViewType)
+                {
+                    // Views of local arrays become the views of the private
+                    // arrays of all lanes
+                    incoming = _expressionEmitter!.ResolveViews(arg);
+                }
+                else if (analysis.IsScalar(arg))
                 {
                     var scalarExpr = exprEmitter.EmitExpression(arg);
-                    var elemType = phi.Type is PrimitiveType pt
-                        ? config.GetPrimitiveTypeName(pt.BasicValueType)
-                        : "int";
-                    var bcastName = $"_phi_bcast_{phi.Id}_{i}";
+                    var elemType = GetVectorElementType(phi) ?? "int";
+                    var bcastName =
+                        $"_phi_bcast_{phi.Id}_{i}_{_phiBroadcastId++}";
                     context.WriteLine(
                         $"var {bcastName} = new {elemType}[SIMDWidth];");
                     context.WriteLine(
@@ -2351,9 +3063,7 @@ sealed class CPUMethodEmitter(
                     incoming = context.GetValueName(arg);
                 }
 
-                var elemT = phi.Type is PrimitiveType pt2
-                    ? config.GetPrimitiveTypeName(pt2.BasicValueType)
-                    : "int";
+                var elemT = GetVectorElementType(phi) ?? "int";
                 context.WriteLine(
                     $"CPUVectorIntrinsics.Select<{elemT}>(" +
                     $"{phiVar}, {activeMask}, {incoming}, {phiVar});");

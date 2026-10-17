@@ -95,53 +95,11 @@ sealed partial class BasicBlock(in MethodValueInitializer initializer, string? n
     }
 
     /// <summary>
-    /// Represents a value reference within a single basic block.
-    /// </summary>
-    /// <param name="Value">The actual value reference.</param>
-    /// <param name="Index">The index within the block.</param>
-    internal readonly record struct ValueEntry<TValue>(TValue Value, int Index)
-        where TValue : BasicBlockValue
-    {
-        /// <summary>
-        /// Returns the parent basic block.
-        /// </summary>
-        public BasicBlock BasicBlock => Value.BasicBlock;
-
-        /// <summary>
-        /// Returns the string representation of the underlying value.
-        /// </summary>
-        /// <returns>The string representation of the underlying value.</returns>
-        public override string ToString() =>
-            $"{Value} @ {BasicBlock.ToReferenceString()}";
-    }
-
-    /// <summary>
     /// A collection for non-termination values.
     /// </summary>
     /// <param name="basicBlock">The parent basic block.</param>
     internal readonly struct BasicBlockValueCollection(BasicBlock basicBlock)
     {
-        /// <summary>
-        /// Returns the parent basic block.
-        /// </summary>
-        public BasicBlock BasicBlock => basicBlock;
-
-        /// <summary>
-        /// Returns the number of all directly associated basic block values.
-        /// </summary>
-        public int Count => basicBlock.NumPhiValues + basicBlock.NumValues;
-
-        /// <summary>
-        /// Returns the first basic block value of this block (if any).
-        /// </summary>
-        public BasicBlockValue? FirstValue =>
-            basicBlock.FirstPhiValue ?? basicBlock.FirstValue;
-
-        /// <summary>
-        /// Returns the last basic block value of this block (if any).
-        /// </summary>
-        public BasicBlockValue? LastValue => basicBlock.LastValue;
-
         /// <summary>
         /// Returns the current enumerator.
         /// </summary>
@@ -187,24 +145,13 @@ sealed partial class BasicBlock(in MethodValueInitializer initializer, string? n
     internal readonly struct ValueCollection(BasicBlock basicBlock)
     {
         /// <summary>
-        /// Returns the parent basic block.
-        /// </summary>
-        public BasicBlock BasicBlock => basicBlock;
-
-        /// <summary>
-        /// Returns the number of all directly associated values.
+        /// Returns the number of all directly associated values. A termination
+        /// value that is part of the phi or value chain is counted once.
         /// </summary>
         public int Count =>
             basicBlock.NumValues
             + basicBlock.NumPhiValues
-            + (basicBlock.TerminationValue is not null ? 1 : 0);
-
-        /// <summary>
-        /// Returns the first value of this block (if any).
-        /// </summary>
-        public Value? FirstValue => basicBlock.FirstPhiValue
-            ?? basicBlock.FirstValue
-            ?? basicBlock.TerminationValue;
+            + (basicBlock.HasSeparateTerminationValue ? 1 : 0);
 
         /// <summary>
         /// Returns the current enumerator.
@@ -219,6 +166,7 @@ sealed partial class BasicBlock(in MethodValueInitializer initializer, string? n
     internal ref struct ValueCollectionEnumerator(BasicBlock basicBlock)
     {
         private BasicBlockValueCollectionEnumerator _enumerator = new(basicBlock);
+        private bool _terminationVisited;
 
         /// <summary>
         /// Returns the current node.
@@ -235,11 +183,12 @@ sealed partial class BasicBlock(in MethodValueInitializer initializer, string? n
                 return true;
             }
 
-            // Check for the termination value
-            if (basicBlock.TerminationValue is not null &&
-                Current != basicBlock.TerminationValue)
+            // Check for a termination value that has not been enumerated as part
+            // of the phi or value chain
+            if (!_terminationVisited && basicBlock.HasSeparateTerminationValue)
             {
-                Current = basicBlock.TerminationValue;
+                _terminationVisited = true;
+                Current = basicBlock.TerminationValue.AsNotNull();
                 return true;
             }
 
@@ -253,21 +202,6 @@ sealed partial class BasicBlock(in MethodValueInitializer initializer, string? n
     /// <param name="basicBlock">The parent basic block.</param>
     internal readonly struct PhiValueCollection(BasicBlock basicBlock)
     {
-        /// <summary>
-        /// Returns the parent basic block.
-        /// </summary>
-        public BasicBlock BasicBlock => basicBlock;
-
-        /// <summary>
-        /// Returns the first phi value (if any).
-        /// </summary>
-        public PhiValue? First => basicBlock.FirstPhiValue;
-
-        /// <summary>
-        /// Returns the number of phi values.
-        /// </summary>
-        public int Count => basicBlock.NumPhiValues;
-
         /// <summary>
         /// Returns the current enumerator.
         /// </summary>
@@ -320,11 +254,6 @@ sealed partial class BasicBlock(in MethodValueInitializer initializer, string? n
     /// </summary>
     internal readonly struct SuccessorsBuilder(BasicBlock basicBlock)
     {
-        /// <summary>
-        /// Gets the parent basic block.
-        /// </summary>
-        public BasicBlock BasicBlock => basicBlock;
-
         /// <summary>
         /// Adds a successor.
         /// </summary>
@@ -385,6 +314,12 @@ sealed partial class BasicBlock(in MethodValueInitializer initializer, string? n
     /// Returns the number of values.
     /// </summary>
     public int NumValues { get; private set; }
+
+    /// <summary>
+    /// Returns true if this block has a termination value that is not part of
+    /// its phi or value chain (e.g. a pure condition or a value of another block).
+    /// </summary>
+    public bool HasSeparateTerminationValue { get; private set; }
 
     /// <summary>
     /// Returns all values without the termination value (for iteration during
@@ -486,32 +421,6 @@ sealed partial class BasicBlock(in MethodValueInitializer initializer, string? n
     {
         Debug.Assert(IsSealed | TDirection.IsForwards);
         return TDirection.IsForwards ? _successors : _predecessors;
-    }
-
-    /// <summary>
-    /// Tries to find the first value of the given type that fulfills the given
-    /// predicate in this block.
-    /// </summary>
-    /// <typeparam name="T">The value type.</typeparam>
-    /// <param name="predicate">The predicate.</param>
-    /// <param name="entry">
-    /// The result pair consisting of a value index and the matched value itself.
-    /// </param>
-    /// <returns>True, if a value could be matched.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    public bool TryFindFirstValueOf<T>(Predicate<T> predicate, out ValueEntry<T> entry)
-        where T : BasicBlockValue
-    {
-        entry = default;
-        foreach (var (value, index) in BasicBlockValues)
-        {
-            if (value is T tValue && predicate(tValue))
-            {
-                entry = new(tValue, index);
-                return true;
-            }
-        }
-        return false;
     }
 
     /// <summary>
@@ -701,7 +610,8 @@ sealed partial class BasicBlock(in MethodValueInitializer initializer, string? n
         foreach (var (bbValue, _) in BasicBlockValues)
             bbValue.ComputeUses(visited);
 
-        TerminationValue?.AddUseInternal(new Use(this, Index: 0));
+        // The termination value is operand 0 of this block, so
+        // base.ComputeUses has already registered its use.
 
         return true;
     }
@@ -715,6 +625,9 @@ sealed partial class BasicBlock(in MethodValueInitializer initializer, string? n
     /// <param name="firstValue">The first basic block value (if any).</param>
     /// <param name="lastValue">The last basic block value (if any).</param>
     /// <param name="terminationValue">The termination value (if any).</param>
+    /// <param name="terminationValueInChain">
+    /// True if the termination value is part of the phi or value chain.
+    /// </param>
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     internal void SealBlock(
         int numPhiValues,
@@ -722,7 +635,8 @@ sealed partial class BasicBlock(in MethodValueInitializer initializer, string? n
         int numValues,
         BasicBlockValue? firstValue,
         BasicBlockValue? lastValue,
-        Value? terminationValue)
+        Value? terminationValue,
+        bool terminationValueInChain)
     {
         this.Assert(TerminationKind > BlockTerminationKind.Pending,
             $"Block '{Name}' is being sealed without a termination " +
@@ -738,6 +652,8 @@ sealed partial class BasicBlock(in MethodValueInitializer initializer, string? n
         NumValues = numValues;
         FirstValue = firstValue;
         LastValue = lastValue;
+        HasSeparateTerminationValue =
+            terminationValue is not null && !terminationValueInChain;
 
         if (terminationValue is not null)
             Seal(terminationValue);
@@ -781,14 +697,6 @@ sealed partial class BasicBlock(in MethodValueInitializer initializer, string? n
                 throw new UnreachableException();
         }
     }
-
-    /// <summary>
-    /// Creates a new basic block rewriter from this block.
-    /// </summary>
-    /// <param name="methodBuilder">The method builder to use.</param>
-    /// <returns>The basic block rewriter for this block.</returns>
-    public BasicBlockRewriter CreateRewriter(MethodBuilder methodBuilder) =>
-        new(methodBuilder.CreateBasicBlockFromOldBlock(this), this);
 
     /// <summary>
     /// Returns a value enumerator.

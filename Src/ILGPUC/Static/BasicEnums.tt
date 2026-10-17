@@ -219,7 +219,11 @@ namespace ILGPUC
                         throw new KeyNotFoundException();
                     return _values[(int)item];
                 }
-                set => Add(item, value);
+                set
+                {
+                    _set.Add(item);
+                    _values[(int)item] = value;
+                }
             }
 
             /// <summary>

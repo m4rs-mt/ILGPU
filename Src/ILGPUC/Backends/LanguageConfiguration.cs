@@ -11,6 +11,7 @@
 
 using ILGPUC.IR;
 using ILGPUC.IR.ModuleValues;
+using ILGPUC.IR.PureValues;
 using System.Collections.Generic;
 
 namespace ILGPUC.Backends;
@@ -106,11 +107,6 @@ abstract class LanguageConfiguration
             : $"{addressSpaceKeyword} {elementTypeName}*";
 
     /// <summary>
-    /// Returns the keyword for a pointer type.
-    /// </summary>
-    public abstract string PointerSyntax { get; }
-
-    /// <summary>
     /// Returns true if this language supports a specific feature.
     /// </summary>
     public abstract bool SupportsFeature(LanguageFeature feature);
@@ -124,6 +120,12 @@ abstract class LanguageConfiguration
     /// Gets language-specific pragmas or attributes.
     /// </summary>
     public virtual IEnumerable<string> GetPragmas() => [];
+
+    /// <summary>
+    /// Formats a constant in the target language, or returns null to use the
+    /// default C-style literal syntax.
+    /// </summary>
+    public virtual string? FormatPrimitive(PrimitiveValue value) => null;
 
     /// <summary>
     /// Formats a null literal for a given type name.
@@ -151,6 +153,27 @@ abstract class LanguageConfiguration
     public virtual string StructFieldModifier => "";
 
     /// <summary>
+    /// Returns the suffix that raises the alignment of a struct field to the
+    /// given number of bytes, or null if the language cannot express it.
+    /// Flattened nested structures use it to keep the inner alignment so that
+    /// the device layout matches the host layout.
+    /// </summary>
+    public virtual string? FormatFieldAlignment(int alignment) => null;
+
+    /// <summary>
+    /// Returns true if the language places struct fields at explicit byte
+    /// offsets, which keeps the host layout of flattened nested structures.
+    /// </summary>
+    public virtual bool SupportsExplicitFieldOffsets => false;
+
+    /// <summary>
+    /// Returns the type name used to store bool struct fields, or null to use
+    /// the regular bool type name. Languages whose bool has no defined size
+    /// (OpenCL C) store bools as one byte to match the host layout.
+    /// </summary>
+    public virtual string? BoolStorageTypeName => null;
+
+    /// <summary>
     /// Formats a default-initialized value for the given type name.
     /// C/C++/Metal: <c>(TypeName){}</c>, C#: <c>default(TypeName)</c>.
     /// </summary>
@@ -165,11 +188,6 @@ abstract class LanguageConfiguration
     /// function-scoped; only <c>constant</c> can be at program scope.
     /// </summary>
     public virtual bool IsFileScopeAddressSpace(MemoryAddressSpace addressSpace) => true;
-
-    /// <summary>
-    /// Returns true if pointers use '*' syntax, false if they use special keywords.
-    /// </summary>
-    public virtual bool UsesPointerStar => true;
 
     /// <summary>
     /// Returns the attribute/qualifier for the entry point function.
@@ -290,6 +308,14 @@ abstract class LanguageConfiguration
     /// GPU backends (Metal, CUDA, OpenCL, ROCm) return true; CPU returns false.
     /// </summary>
     public virtual bool UsesCStyleStructLiterals => false;
+
+    /// <summary>
+    /// Returns true if the thread index and dimension built-ins are unsigned
+    /// (e.g. <c>uint</c> or <c>size_t</c>), while the IR treats them as signed
+    /// integers. Such built-ins are cast to their IR type so that comparisons
+    /// and divisions with negative operands stay signed.
+    /// </summary>
+    public virtual bool HasUnsignedThreadBuiltIns => false;
 
     /// <summary>
     /// Returns additional built-in parameter declarations to append after all regular

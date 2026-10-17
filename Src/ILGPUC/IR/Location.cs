@@ -30,11 +30,6 @@ abstract class Location : ILocation
     /// </summary>
     public static Location Unknown { get; } = new UnknownLocation();
 
-    /// <summary>
-    /// Represents no location.
-    /// </summary>
-    public static Location Nowhere { get; } = new NoLocation();
-
     #endregion
 
     #region Nested Types
@@ -317,35 +312,6 @@ sealed class CompilationStackLocation : Location
         }
 
         return builder.ToString();
-    }
-
-    /// <summary>
-    /// Merges this location with the other one.
-    /// </summary>
-    /// <param name="other">The other one to merge with.</param>
-    /// <returns>The merged location.</returns>
-    public CompilationStackLocation Append(Location other) => new(Stack.Push(other));
-
-    /// <summary>
-    /// Returns the most recent location of the given type from the compilation
-    /// stack, if any.
-    /// </summary>
-    /// <param name="location">Filled in with the location found.</param>
-    /// <returns>True if this compilation stack has the location type.</returns>
-    public bool TryGetLocation<T>([NotNullWhen(true)] out T? location)
-        where T : Location
-    {
-        foreach (var loc in Stack.Reverse())
-        {
-            if (loc is T typedLocation)
-            {
-                location = typedLocation;
-                return true;
-            }
-        }
-
-        location = null;
-        return false;
     }
 
     #endregion

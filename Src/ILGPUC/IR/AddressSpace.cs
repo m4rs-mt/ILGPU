@@ -47,32 +47,6 @@ enum MemoryAddressSpace : int
 }
 
 /// <summary>
-/// Represents the base interface for all address spaces.
-/// </summary>
-interface IAddressSpace { }
-
-/// <summary>
-/// Represents an address-space annotation.
-/// </summary>
-[AttributeUsage(AttributeTargets.Struct)]
-sealed class AddressSpaceAttribute : Attribute
-{
-    /// <summary>
-    /// Constructs a new address-space attribute.
-    /// </summary>
-    /// <param name="addressSpace">The target address space.</param>
-    internal AddressSpaceAttribute(MemoryAddressSpace addressSpace)
-    {
-        AddressSpace = addressSpace;
-    }
-
-    /// <summary>
-    /// Returns the associated address space.
-    /// </summary>
-    public MemoryAddressSpace AddressSpace { get; }
-}
-
-/// <summary>
 /// Extensions to encode ILGPU address space information in the .Net type
 /// system environment.
 /// </summary>
@@ -87,55 +61,4 @@ static class AddressSpaces
             MemoryAddressSpace.Global,
             MemoryAddressSpace.Local,
             MemoryAddressSpace.Shared);
-
-    /// <summary>
-    /// Represents the generic address space.
-    /// </summary>
-    [AddressSpace(MemoryAddressSpace.Generic)]
-    internal struct Generic : IAddressSpace { }
-
-    /// <summary>
-    /// Represents the global address space.
-    /// </summary>
-    [AddressSpace(MemoryAddressSpace.Global)]
-    internal struct Global : IAddressSpace { }
-
-    /// <summary>
-    /// Represents the shared address space.
-    /// </summary>
-    [AddressSpace(MemoryAddressSpace.Shared)]
-    internal struct Shared : IAddressSpace { }
-
-    /// <summary>
-    /// Represents the local address space.
-    /// </summary>
-    [AddressSpace(MemoryAddressSpace.Local)]
-    internal struct Local : IAddressSpace { }
-
-    /// <summary>
-    /// Resolves the managed type for the given address space.
-    /// </summary>
-    /// <param name="space">The address space.</param>
-    /// <returns>The .Net representation of the given address space.</returns>
-    public static Type GetManagedType(this MemoryAddressSpace space) =>
-        space switch
-        {
-            MemoryAddressSpace.Global => typeof(Global),
-            MemoryAddressSpace.Local => typeof(Local),
-            MemoryAddressSpace.Shared => typeof(Shared),
-            _ => typeof(Generic),
-        };
-
-    /// <summary>
-    /// Resolves the address-space type for the given .Net type.
-    /// </summary>
-    /// <param name="type">The type.</param>
-    /// <returns>The resolved address space.</returns>
-    public static MemoryAddressSpace GetAddressSpaceType(this Type type)
-    {
-        var attr = type.GetCustomAttribute<AddressSpaceAttribute>();
-        return attr != null
-            ? attr.AddressSpace
-            : MemoryAddressSpace.Generic;
-    }
 }

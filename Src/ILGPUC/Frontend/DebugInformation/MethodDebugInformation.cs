@@ -98,20 +98,6 @@ readonly struct MethodDebugInformation
 
     #endregion
 
-    #region Properties
-
-    /// <summary>
-    /// Returns all sequence points of the current method.
-    /// </summary>
-    public ReadOnlySpan<SequencePoint> SequencePoints => _sequencePoints.Span;
-
-    /// <summary>
-    /// Returns all method scopes of the current method.
-    /// </summary>
-    public ReadOnlySpan<DebugMethodScope> MethodScopes => _methodScopes.Span;
-
-    #endregion
-
     #region Methods
 
     /// <summary>

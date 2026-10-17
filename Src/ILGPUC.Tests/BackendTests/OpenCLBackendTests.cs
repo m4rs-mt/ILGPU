@@ -46,6 +46,5 @@ public sealed class OpenCLBackendTests : BackendTestBase
     public async Task NativeCompilation(string kernelName) =>
         await AssertNativeCompilationSucceeds(
             KernelRegistry.Resolve(kernelName),
-            required: KernelRegistry.GetRequiredCapabilities(kernelName),
-            knownFailing: KernelRegistry.GetKnownFailing(kernelName));
+            required: KernelRegistry.GetRequiredCapabilities(kernelName));
 }

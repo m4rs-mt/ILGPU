@@ -83,17 +83,6 @@ partial class PureValueBuilder
     }
 
     /// <summary>
-    /// Creates a node that gets the stride of an intrinsic array view.
-    /// </summary>
-    /// <param name="location">The current location.</param>
-    /// <returns>The created node.</returns>
-    public Value CreateGetViewStride(Location location)
-    {
-        var denseType = ModuleBuilder.CreateType(typeof(Stride1D.Dense));
-        return CreateNull(location, denseType);
-    }
-
-    /// <summary>
     /// Computes a new sub view from a given view.
     /// </summary>
     /// <param name="location">The current location.</param>

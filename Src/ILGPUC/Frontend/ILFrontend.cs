@@ -157,16 +157,6 @@ sealed class ILFrontend
     #region Methods
 
     /// <summary>
-    /// Pushes a processing scope to record all methods to be encountered.
-    /// </summary>
-    public void PushScope() => _methodsStack.Push(new(256));
-
-    /// <summary>
-    /// Pops a processing scope and returns the set of all methods encountered.
-    /// </summary>
-    public IReadOnlyCollection<MethodBase> PopScope() => _methodsStack.Pop();
-
-    /// <summary>
     /// Tries to find a pdb file for the given assembly.
     /// </summary>
     /// <param name="assembly">The assembly to find the pdb file for.</param>
@@ -796,7 +786,7 @@ sealed class ILFrontend
             try
             {
                 var codeGenerator = new CodeGenerator(
-                    methodBuilder, disassembled, BackendType);
+                    methodBuilder, disassembled, BackendType, isEntryPoint);
                 codeGenerator.OnNewMethodCalled += (_, e) => queue.Enqueue(e);
 
                 codeGenerator.GenerateCode();
@@ -820,18 +810,6 @@ sealed class ILFrontend
             GenerateCodeFor(method);
 
         return processed.Count > 0;
-    }
-
-    /// <summary>
-    /// Generates code for all methods in the current scope.
-    /// </summary>
-    /// <param name="builder">The target builder.</param>
-    /// <returns>True if code was generated.</returns>
-    public bool GenerateCode(ModuleBuilder builder)
-    {
-        // Declare all methods and register them
-        var methods = PopScope();
-        return GenerateCode(builder, methods);
     }
 
     #endregion

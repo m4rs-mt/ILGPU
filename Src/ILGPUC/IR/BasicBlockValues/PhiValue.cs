@@ -15,6 +15,7 @@ using ILGPUC.IR.MethodValues;
 using ILGPUC.IR.ModuleValues;
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using BlockList = ILGPU.Util.InlineList<ILGPUC.IR.MethodValues.BasicBlock>;
@@ -70,13 +71,6 @@ sealed partial class PhiValue(
         public int Count => _arguments.Count;
 
         /// <summary>
-        /// Returns the i-th argument.
-        /// </summary>
-        /// <param name="index">The argument index.</param>
-        /// <returns>The resolved argument.</returns>
-        public Value this[int index] => _arguments.Get<Value>(index);
-
-        /// <summary>
         /// Adds the given argument.
         /// </summary>
         /// <param name="predecessor">
@@ -100,13 +94,6 @@ sealed partial class PhiValue(
             PhiValue.SealPhiArguments(ref _argumentBlocks, ref _arguments);
             return PhiValue;
         }
-
-        /// <summary>
-        /// Returns a new enumerator.
-        /// </summary>
-        /// <returns>The created enumerator.</returns>
-        public ReadOnlySpan<Value>.Enumerator GetEnumerator() =>
-            _arguments.GetEnumerator();
     }
 
     /// <summary>
@@ -223,6 +210,39 @@ sealed partial class PhiValue(
         foreach (var sourceBlock in sources)
             arguments.Add(sourceBlock);
         Seal(ref arguments);
+    }
+
+    /// <summary>
+    /// Removes all arguments whose source block is not contained in the given
+    /// set of reachable blocks. Sources become unreachable when a branch of an
+    /// inlined method folds to an unconditional branch; the blocks are dropped
+    /// when the method is sealed but phi values would still reference them.
+    /// </summary>
+    /// <param name="reachableBlocks">All reachable blocks of the method.</param>
+    internal void RemoveUnreachableSources(HashSet<BasicBlock> reachableBlocks)
+    {
+        int numReachable = 0;
+        foreach (var source in Sources)
+        {
+            if (reachableBlocks.Contains(source))
+                ++numReachable;
+        }
+        if (numReachable == NumArguments)
+            return;
+
+        var values = ValueBuilderList.Create(Generation, numReachable * 2);
+        for (int i = 0; i < NumArguments; ++i)
+        {
+            if (reachableBlocks.Contains(Sources[i]))
+                values.Add(Arguments[i]);
+        }
+        for (int i = 0; i < NumArguments; ++i)
+        {
+            if (reachableBlocks.Contains(Sources[i]))
+                values.Add(Sources[i]);
+        }
+        NumArguments = numReachable;
+        ReplaceSealedValues(ref values);
     }
 
     /// <inheritdoc cref="Value.ToPrefixString"/>

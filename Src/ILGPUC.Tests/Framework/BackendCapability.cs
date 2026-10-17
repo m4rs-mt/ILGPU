@@ -32,17 +32,29 @@ public enum BackendCapability
     /// <summary>
     /// Float64 atomic operations (built-in <c>Atomic.Add</c> for double and
     /// the custom-CAS path that <c>Atomic.MakeAtomic</c> lowers to).
-    /// Distinct from <see cref="Float64"/> arithmetic — Metal lacks a
-    /// Float64-atomic emitter path entirely, and OpenCL's CAS over Int64
-    /// requires the <c>cl_khr_int64_base_atomics</c> extension.
+    /// Distinct from <see cref="Float64"/> arithmetic — Metal has no 64-bit
+    /// atomics, and OpenCL's CAS over Int64 requires the
+    /// <c>cl_khr_int64_base_atomics</c> extension.
     /// </summary>
     Float64Atomics = 1 << 2,
 
     /// <summary>
-    /// Signed 64-bit atomic min/max. Metal has no signed 64-bit atomic type,
-    /// and the OpenCL emitter does not map 64-bit atomic min/max.
+    /// Signed 64-bit atomic min/max. Metal has no signed 64-bit atomic type;
+    /// OpenCL requires the <c>cl_khr_int64_extended_atomics</c> extension.
     /// </summary>
     Int64AtomicMinMax = 1 << 3,
+
+    /// <summary>
+    /// Predicate barriers (<c>Group.BarrierPopCount</c>, <c>Warp.BarrierAnd</c>,
+    /// ...).
+    /// </summary>
+    PredicateBarriers = 1 << 4,
+
+    /// <summary>
+    /// 64-bit integer atomics. Metal has no 64-bit atomic arithmetic or
+    /// compare-and-swap.
+    /// </summary>
+    Int64Atomics = 1 << 5,
 }
 
 /// <summary>
@@ -63,29 +75,6 @@ public sealed class RequiresCapabilityAttribute : Attribute
 }
 
 /// <summary>
-/// Marks a kernel method as known-failing on one or more backends —
-/// typically because of an open compiler bug whose fix is tracked
-/// elsewhere. Tests that consult this attribute (e.g. <c>BackendTests</c>'
-/// <c>NativeCompilation</c> theory) skip the affected backend rows with
-/// the attribute's <see cref="Reason"/> message. Removing the attribute
-/// when the underlying bug is fixed re-arms the tests; that's the holding
-/// pen the test framework provides for in-flight bugs.
-/// </summary>
-[AttributeUsage(AttributeTargets.Method, AllowMultiple = false)]
-public sealed class KnownFailingOnAttribute : Attribute
-{
-    public KnownFailingOnAttribute(params BackendType[] backends)
-    {
-        Backends = backends;
-    }
-
-    public BackendType[] Backends { get; }
-
-    public string Reason { get; init; } =
-        "Known failing — see attribute site for tracking.";
-}
-
-/// <summary>
 /// Declares which capabilities each backend supports. Used by the test framework
 /// to skip tests that require unsupported capabilities.
 /// </summary>
@@ -96,18 +85,29 @@ public static class BackendCapabilities
         [BackendType.CPU] = BackendCapability.Float64
             | BackendCapability.Float16
             | BackendCapability.Float64Atomics
-            | BackendCapability.Int64AtomicMinMax,
+            | BackendCapability.Int64AtomicMinMax
+            | BackendCapability.Int64Atomics
+            | BackendCapability.PredicateBarriers,
         [BackendType.Cuda] = BackendCapability.Float64
             | BackendCapability.Float16
             | BackendCapability.Float64Atomics
-            | BackendCapability.Int64AtomicMinMax,
+            | BackendCapability.Int64AtomicMinMax
+            | BackendCapability.Int64Atomics
+            | BackendCapability.PredicateBarriers,
         [BackendType.ROCm] = BackendCapability.Float64
             | BackendCapability.Float16
             | BackendCapability.Float64Atomics
-            | BackendCapability.Int64AtomicMinMax,
+            | BackendCapability.Int64AtomicMinMax
+            | BackendCapability.Int64Atomics
+            | BackendCapability.PredicateBarriers,
         [BackendType.OpenCL] = BackendCapability.Float64
-            | BackendCapability.Float16,
-        [BackendType.Metal] = BackendCapability.Float16,
+            | BackendCapability.Float16
+            | BackendCapability.Float64Atomics
+            | BackendCapability.Int64AtomicMinMax
+            | BackendCapability.Int64Atomics
+            | BackendCapability.PredicateBarriers,
+        [BackendType.Metal] = BackendCapability.Float16
+            | BackendCapability.PredicateBarriers,
     };
 
     /// <summary>

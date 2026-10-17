@@ -90,4 +90,16 @@ static class BinaryIntOpKernels
     {
         result[index] = a[index] ^ b[index];
     }
+
+    public static void UnsignedMinMaxKernel(
+        Index1D index,
+        ArrayView1D<uint, Stride1D.Dense> u32,
+        ArrayView1D<ulong, Stride1D.Dense> u64,
+        ArrayView1D<ulong, Stride1D.Dense> result)
+    {
+        result[index * 4 + 0] = System.Math.Min(u32[index], u32[index + 1]);
+        result[index * 4 + 1] = System.Math.Max(u32[index], u32[index + 1]);
+        result[index * 4 + 2] = System.Math.Min(u64[index], u64[index + 1]);
+        result[index * 4 + 3] = System.Math.Max(u64[index], u64[index + 1]);
+    }
 }

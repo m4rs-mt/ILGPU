@@ -41,41 +41,6 @@ sealed partial class DebugAssertOperation : MemoryValue
     /// </summary>
     public Value Message => GetValue<Value>(1);
 
-    /// <summary>
-    /// Determines the current location information.
-    /// </summary>
-    /// <returns>The location information.</returns>
-    public (string FileName, int Line, string Method) GetLocationInfo()
-    {
-        const string KernelName = "Kernel";
-
-        // Return information based on the current file location
-        static (string FileName, int Line, string Method) MakeLocation(
-            FileLocation fileLocation) => (
-                string.IsNullOrWhiteSpace(fileLocation.FileName)
-                ? KernelName
-                : fileLocation.FileName,
-                fileLocation.StartLine,
-                string.Empty);
-
-        if (Location.IsKnown && Location is FileLocation fileLocation)
-        {
-            return MakeLocation(fileLocation);
-        }
-        else if (Location.IsKnown &&
-            Location is CompilationStackLocation compilationStackLocation &&
-            compilationStackLocation.TryGetLocation(
-                out FileLocation? innerFileLocation))
-        {
-            return MakeLocation(innerFileLocation);
-        }
-        else
-        {
-            // Return dummy location information
-            return (KernelName, 0, KernelName);
-        }
-    }
-
     /// <inheritdoc/>
     public override Value? Rewrite<TRewriter>(in TRewriter rewriter) =>
         rewriter.Builder.CreateDebugAssert(

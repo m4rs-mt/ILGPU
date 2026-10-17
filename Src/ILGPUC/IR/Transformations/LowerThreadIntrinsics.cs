@@ -58,7 +58,16 @@ sealed class LowerThreadIntrinsics(TransformationArgs args) : Transformation(arg
         where TValue : ThreadValue
     {
         if (variable?.Type is not PrimitiveType primitiveType)
-            return null;
+        {
+            // Returning null from a converter deletes the value (see the
+            // converter contract) — never a valid outcome here. Reject leaf
+            // types that are neither structures nor primitives explicitly.
+            throw new NotSupportedException(
+                $"Cannot lower the thread intrinsic '{sourceValue}': the " +
+                $"operand type '{variable?.Type}' is not supported. Only " +
+                "primitive types and structures of primitive types can be " +
+                "used in broadcast, shuffle, reduce, and scan operations.");
+        }
         Value value = variable;
         if (primitiveType.BasicValueType < BasicValueType.Int32)
         {
@@ -119,9 +128,10 @@ sealed class LowerThreadIntrinsics(TransformationArgs args) : Transformation(arg
     /// </summary>
     private static Value? LowerBroadcast(BasicBlockTransform transform, Broadcast value)
     {
-        // Only lower non-built-in broadcasts
+        // Only lower non-built-in broadcasts; returning the same reference
+        // means "leave unchanged" (returning null would delete the value).
         if (value.IsBuiltIn)
-            return null;
+            return value;
 
         var variable = transform.Rewrite(value.Variable)!;
         var origin = transform.Rewrite(value.Origin)!;
@@ -143,9 +153,10 @@ sealed class LowerThreadIntrinsics(TransformationArgs args) : Transformation(arg
     /// </summary>
     private static Value? LowerShuffle(BasicBlockTransform transform, Shuffle value)
     {
-        // Only lower non-built-in shuffles
+        // Only lower non-built-in shuffles; returning the same reference
+        // means "leave unchanged" (returning null would delete the value).
         if (value.IsBuiltIn)
-            return null;
+            return value;
 
         var variable = transform.Rewrite(value.Variable)!;
         var origin = transform.Rewrite(value.Origin)!;

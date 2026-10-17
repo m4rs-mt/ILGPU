@@ -150,8 +150,10 @@ partial class ModuleBuilder : IGenerationObject
         // Populate unified types
         foreach (var basicValueType in Enum.GetValues<BasicValueType>())
         {
+            // Skip aliased entries (Float64 maps to Float32 in Fast32BitOnly)
             var basicType = GetPrimitiveType(basicValueType);
-            AddNewType(basicType);
+            if (basicType.BasicValueType == basicValueType)
+                AddNewType(basicType);
         }
 
         // Initialize static values
@@ -274,26 +276,9 @@ partial class ModuleBuilder : IGenerationObject
     public ArithmeticBasicValueType IntPointerArithmeticType { get; }
 
     /// <summary>
-    /// Returns the basic type of a native pointer.
-    /// </summary>
-    public BasicValueType IntPointerBasicValueType => IntPointerType.BasicValueType;
-
-    /// <summary>
     /// Returns the type of a native pointer.
     /// </summary>
     public PrimitiveType IntPointerType { get; }
-
-    /// <summary>
-    /// Returns the pointer size of a native pointer type.
-    /// </summary>
-    public int IntPointerSize => IntPointerType.Size;
-
-    /// <summary>
-    /// Returns the method building belonging to the given method handle.
-    /// </summary>
-    /// <param name="methodHandle">The method handle.</param>
-    /// <returns>The method builder.</returns>
-    public MethodBuilder this[MethodHandle methodHandle] => _methods[methodHandle];
 
     #endregion
 
@@ -677,24 +662,6 @@ partial class ModuleBuilder : IGenerationObject
     }
 
     /// <summary>
-    /// Tries to specialize a view or a pointer address space.
-    /// </summary>
-    /// <param name="type">The pointer or view type.</param>
-    /// <param name="addressSpace">The target address space.</param>
-    /// <param name="specializedType">The specialized type.</param>
-    /// <returns>True, if the type could be specialized.</returns>
-    public bool TrySpecializeAddressSpaceType(
-        TypeValue type,
-        MemoryAddressSpace addressSpace,
-        [NotNullWhen(true)] out TypeValue? specializedType)
-    {
-        specializedType = type is AddressSpaceType addressSpaceType
-            ? SpecializeAddressSpaceType(addressSpaceType, addressSpace)
-            : null;
-        return specializedType is not null;
-    }
-
-    /// <summary>
     /// Creates a type.
     /// </summary>
     /// <typeparam name="T">The type of the  type.</typeparam>
@@ -1067,8 +1034,8 @@ partial class ModuleBuilder : IGenerationObject
 
         // Seal the parent module
         Module.Seal(
-            totalNumValues,
             _numValues,
+            totalNumValues,
             orderedMethods.AsReadOnlyMemory(),
             usedGlobals.AsReadOnlyMemory(),
             usedTypes.AsReadOnlyMemory(),

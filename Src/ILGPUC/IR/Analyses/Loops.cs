@@ -227,11 +227,6 @@ sealed class Loops<TOrder, TDirection>
         public int Level { get; }
 
         /// <summary>
-        /// Returns the number of blocks in this loop.
-        /// </summary>
-        public int Count => AllMembers.Count;
-
-        /// <summary>
         /// Returns the parent loop.
         /// </summary>
         public Node? Parent { get; }
@@ -246,11 +241,6 @@ sealed class Loops<TOrder, TDirection>
         /// </summary>
         public bool IsNested => Parent != null;
 
-        /// <summary>
-        /// Returns true if this is an innermost loop (has no child loops).
-        /// </summary>
-        public bool IsInnermost => children.Count < 1;
-
         #endregion
 
         #region Methods
@@ -264,31 +254,6 @@ sealed class Loops<TOrder, TDirection>
             block != null && AllMembers.Contains(block);
 
         /// <summary>
-        /// Checks whether the given block belongs exclusively to this loop
-        /// (not to a nested child loop).
-        /// </summary>
-        /// <param name="block">The block to check.</param>
-        /// <returns>
-        /// True if the block is part of this loop but not part of any child loop.
-        /// </returns>
-        public bool ContainsExclusively(BasicBlock block)
-        {
-            // The given block can be null when querying the block of a parameter
-            if (!Contains(block))
-                return false;
-
-            // Exclude nested blocks of nested loops
-            if (IsInnermost)
-                return true;
-            foreach (var child in Children)
-            {
-                if (child.Contains(block))
-                    return false;
-            }
-            return true;
-        }
-
-        /// <summary>
         /// Adds the given child node.
         /// </summary>
         /// <param name="child">The child node to add.</param>
@@ -298,72 +263,7 @@ sealed class Loops<TOrder, TDirection>
             children.Add(child);
         }
 
-        /// <summary>
-        /// Computes a block ordering of all blocks in this loop using the current
-        /// order and control-flow direction.
-        /// </summary>
-        /// <param name="entryIndex">
-        /// The index of the entry block to use as starting point (default: 0).
-        /// </param>
-        /// <returns>The computed block ordering.</returns>
-        public BasicBlockCollection<TOrder, TDirection> ComputeOrderedBlocks(
-            int entryIndex = 0) =>
-            ComputeOrderedBlocks<TOrder, TDirection>(entryIndex);
-
-        /// <summary>
-        /// Computes a block ordering of all blocks in this loop.
-        /// </summary>
-        /// <typeparam name="TOtherOrder">The other order.</typeparam>
-        /// <typeparam name="TOtherDirection">The target direction.</typeparam>
-        /// <param name="entryIndex">
-        /// The index of the entry block to use as starting point.
-        /// </param>
-        /// <returns>The computed block ordering.</returns>
-        public BasicBlockCollection<TOtherOrder, TOtherDirection>
-            ComputeOrderedBlocks<TOtherOrder, TOtherDirection>(
-            int entryIndex)
-            where TOtherOrder : struct, ITraversalOrder<BasicBlock>
-            where TOtherDirection : struct, IControlFlowDirection =>
-            Entries[entryIndex].TraverseToCollection<
-                TOtherOrder,
-                MembersSuccessorProvider<TOtherDirection>,
-                TOtherDirection>(Count);
-
         #endregion
-    }
-
-    /// <summary>
-    /// An enumerator to iterate over all loops.
-    /// </summary>
-    internal struct Enumerator : IEnumerator<Node>
-    {
-        private List<Node>.Enumerator enumerator;
-
-        /// <summary>
-        /// Constructs a new node enumerator.
-        /// </summary>
-        /// <param name="nodes">The nodes to iterate over.</param>
-        internal Enumerator(List<Node> nodes)
-        {
-            enumerator = nodes.GetEnumerator();
-        }
-
-        /// <summary>
-        /// Returns the current node.
-        /// </summary>
-        public Node Current => enumerator.Current;
-
-        /// <summary cref="IEnumerator.Current"/>
-        object IEnumerator.Current => Current;
-
-        /// <summary cref="IDisposable.Dispose"/>
-        public void Dispose() => enumerator.Dispose();
-
-        /// <summary cref="IEnumerator.MoveNext"/>
-        public bool MoveNext() => enumerator.MoveNext();
-
-        /// <summary cref="IEnumerator.Reset"/>
-        void IEnumerator.Reset() => throw new InvalidOperationException();
     }
 
     /// <summary>
@@ -581,28 +481,6 @@ sealed class Loops<TOrder, TDirection>
     public CFG<TOrder, TDirection> CFG { get; }
 
     /// <summary>
-    /// Returns all underlying blocks.
-    /// </summary>
-    public BasicBlockCollection<TOrder, TDirection> Blocks => CFG.Blocks;
-
-    /// <summary>
-    /// Returns the number of loops.
-    /// </summary>
-    public int Count => loops.Count;
-
-    /// <summary>
-    /// Returns true if there are no loops in this analysis.
-    /// </summary>
-    public bool IsEmpty => loops.Count == 0;
-
-    /// <summary>
-    /// Returns the i-th loop.
-    /// </summary>
-    /// <param name="index">The index of the i-th loop.</param>
-    /// <returns>The resolved loop.</returns>
-    public Node this[int index] => loops[index];
-
-    /// <summary>
     /// Returns all top-level loop nodes (non-nested loops).
     /// </summary>
     public ReadOnlySpan<Node> TopLevelLoops => headers;
@@ -800,26 +678,6 @@ sealed class Loops<TOrder, TDirection>
 
         processor(loop);
     }
-
-    /// <summary>
-    /// Enumerates all loops in this analysis.
-    /// </summary>
-    /// <returns>An enumerable of all loops.</returns>
-    public IEnumerable<Node> GetAllLoops()
-    {
-        for (int i = 0; i < loops.Count; i++)
-            yield return loops[i];
-    }
-
-    #endregion
-
-    #region IEnumerable
-
-    /// <summary>
-    /// Returns an enumerator that iterates over all loops.
-    /// </summary>
-    /// <returns>The resolved enumerator.</returns>
-    public ReadOnlySpan<Node>.Enumerator GetEnumerator() => loops.GetEnumerator();
 
     #endregion
 }

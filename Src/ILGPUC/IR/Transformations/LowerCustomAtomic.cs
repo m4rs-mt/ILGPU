@@ -9,6 +9,7 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
+using ILGPU.Runtime;
 using ILGPU.Util;
 using ILGPUC.IR.BasicBlockValues;
 using ILGPUC.IR.MethodValues;
@@ -43,33 +44,189 @@ namespace ILGPUC.IR.Transformations;
 ///     br.cond same, exit, loop
 ///
 ///   exit:                    // receives the rest of the original block
-///     result   = load(currentVar)
-///     ...downstream users of the CustomAtomic site receive result...
+///     ...downstream users of the CustomAtomic site receive casRes...
 /// </code>
+/// <para>
+/// <see cref="GenericAtomic"/> operations that the target has no native
+/// instruction for (e.g. float min/max) are lowered the same way, computing
+/// the new value inline instead of calling an operation method.
+/// </para>
 /// </summary>
 /// <param name="args">The transformation args.</param>
-sealed class LowerCustomAtomic(TransformationArgs args) : Transformation(args)
+/// <param name="specification">The target architecture specification.</param>
+sealed class LowerCustomAtomic(
+    TransformationArgs args,
+    ArchitectureSpecification specification) : Transformation(args)
+{
+    /// <summary>
+    /// Safety cap for the number of lowering rounds.
+    /// </summary>
+    private const int MaxIterations = 256;
+
+    /// <summary>
+    /// Lowers one atomic site per block and round until no site remains:
+    /// splitting a block at a site moves the remaining values of the block
+    /// into a new exit block, which is lowered in the next round.
+    /// </summary>
+    protected override Module TransformInternal(Module module)
+    {
+        var current = module;
+        for (int i = 0; i < MaxIterations && HasSites(current); ++i)
+        {
+            current = Transformer.Create(
+                a => new LowerAtomicSites(a, specification))
+                .Apply(Properties, TypeInformationManager, current);
+        }
+        return current;
+    }
+
+    /// <summary>
+    /// Returns true if the module contains an atomic site to lower.
+    /// </summary>
+    private bool HasSites(Module module)
+    {
+        foreach (var method in module.Methods)
+        {
+            foreach (var block in method.Blocks)
+            {
+                foreach (var value in block.Values)
+                {
+                    if (IsSite(value, specification))
+                        return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    /// <summary>
+    /// Returns true if the given value is an atomic that must be lowered to a
+    /// CAS loop on the given target.
+    /// </summary>
+    internal static bool IsSite(Value value, ArchitectureSpecification specification) =>
+        value is CustomAtomic ||
+        value is GenericAtomic genericAtomic &&
+        !IsNativeOrUnlowerable(
+            specification.AcceleratorType,
+            genericAtomic.Kind,
+            genericAtomic.ArithmeticBasicValueType);
+
+    #region Static
+
+    /// <summary>
+    /// Returns true if the given accelerator implements the generic atomic
+    /// natively, or if the operation cannot be lowered to a CAS loop on it
+    /// (the backend then reports a meaningful error).
+    /// </summary>
+    internal static bool IsNativeOrUnlowerable(
+        AcceleratorType acceleratorType,
+        GenericAtomicKind kind,
+        ArithmeticBasicValueType type) =>
+        acceleratorType switch
+        {
+            AcceleratorType.CPU => true,
+            _ => type switch
+            {
+                ArithmeticBasicValueType.Float32 => acceleratorType switch
+                {
+                    AcceleratorType.OpenCL => kind == GenericAtomicKind.Exchange,
+                    _ => kind is GenericAtomicKind.Add or GenericAtomicKind.Exchange,
+                },
+                ArithmeticBasicValueType.Float64 => acceleratorType switch
+                {
+                    // Metal has no 64-bit compare-and-swap to loop on
+                    AcceleratorType.Metal => true,
+                    AcceleratorType.OpenCL => false,
+                    _ => kind == GenericAtomicKind.Add,
+                },
+                // All integer atomics are native (or rejected by the backend)
+                _ => true,
+            },
+        };
+
+    #endregion
+}
+
+/// <summary>
+/// Lowers the first atomic site of every block into a CAS loop (see
+/// <see cref="LowerCustomAtomic"/>).
+/// </summary>
+/// <param name="args">The transformation args.</param>
+/// <param name="specification">The target architecture specification.</param>
+sealed class LowerAtomicSites(
+    TransformationArgs args,
+    ArchitectureSpecification specification) : Transformation(args)
 {
     /// <inheritdoc/>
     protected override void OnTransform(MethodTransform transform)
     {
         base.OnTransform(transform);
 
-        var sites = new List<CustomAtomic>();
+        var sites = new List<AtomicValue>();
         foreach (var block in transform.OldMethod.Blocks)
+        {
             foreach (var value in block.Values)
-                if (value is CustomAtomic ca) sites.Add(ca);
-
-        if (sites.Count == 0) return;
+            {
+                if (LowerCustomAtomic.IsSite(value, specification))
+                {
+                    sites.Add((AtomicValue)value);
+                    break;
+                }
+            }
+        }
 
         foreach (var site in sites)
             LowerOne(transform, site);
     }
 
     /// <summary>
-    /// Lowers a single <see cref="CustomAtomic"/> site into a CAS loop.
+    /// Computes the new value of a lowered atomic operation inside the loop.
     /// </summary>
-    private static void LowerOne(MethodTransform transform, CustomAtomic site)
+    private static Value ComputeNewValue(
+        BasicBlockTransform loopBuilder,
+        Location location,
+        AtomicValue site,
+        Value current,
+        Value value)
+    {
+        if (site is CustomAtomic customAtomic)
+        {
+            // Call the user's binary operation via the MethodCall.Builder API.
+            var operationMethod = customAtomic.Operation.AsNotNullCast<Method>();
+            var callBuilder = loopBuilder.CreateCall(location, operationMethod);
+            callBuilder.Add(current);
+            callBuilder.Add(value);
+            return callBuilder.Seal();
+        }
+
+        var genericAtomic = site.AsNotNullCast<GenericAtomic>();
+        var flags = genericAtomic.IsUnsigned
+            ? ArithmeticFlags.Unsigned
+            : ArithmeticFlags.None;
+        var kind = genericAtomic.Kind switch
+        {
+            GenericAtomicKind.Exchange => (BinaryArithmeticKind?)null,
+            GenericAtomicKind.Add => BinaryArithmeticKind.Add,
+            GenericAtomicKind.And => BinaryArithmeticKind.And,
+            GenericAtomicKind.Or => BinaryArithmeticKind.Or,
+            GenericAtomicKind.Xor => BinaryArithmeticKind.Xor,
+            GenericAtomicKind.Max => BinaryArithmeticKind.Max,
+            _ => BinaryArithmeticKind.Min,
+        };
+        return kind.HasValue
+            ? loopBuilder.CreateArithmetic(
+                location,
+                current,
+                value,
+                kind.Value,
+                flags).AsNotNull()
+            : value;
+    }
+
+    /// <summary>
+    /// Lowers a single atomic site into a CAS loop.
+    /// </summary>
+    private static void LowerOne(MethodTransform transform, AtomicValue site)
     {
         var location = site.Location;
         var oldBlock = site.BasicBlock;
@@ -114,14 +271,14 @@ sealed class LowerCustomAtomic(TransformationArgs args) : Transformation(args)
             ? loopBuilder.CreateIntAsFloatCast(location, current).AsNotNull()
             : current;
 
-        // Call the user's binary operation via the MethodCall.Builder API.
-        var operationMethod = site.Operation.AsNotNullCast<Method>();
-        var callBuilder = loopBuilder.CreateCall(location, operationMethod);
-        callBuilder.Add(currentTyped);
-        callBuilder.Add(castValue is var cv && isBitcast
-            ? loopBuilder.CreateIntAsFloatCast(location, cv).AsNotNull()
-            : site.Value);
-        Value newValueTyped = callBuilder.Seal();
+        Value newValueTyped = ComputeNewValue(
+            loopBuilder,
+            location,
+            site,
+            currentTyped,
+            isBitcast
+                ? loopBuilder.CreateIntAsFloatCast(location, castValue).AsNotNull()
+                : site.Value);
 
         var newValueInt = isBitcast
             ? loopBuilder.CreateFloatAsIntCast(location, newValueTyped).AsNotNull()
@@ -149,24 +306,14 @@ sealed class LowerCustomAtomic(TransformationArgs args) : Transformation(args)
         loopBuilder.CreateConditionalTermination(
             notSame, loopBuilder.BasicBlock, exitBuilder.BasicBlock);
 
-        // exit block: insert the "load final result" and bit-cast-back
-        // values at the START of the exit block (before any values we
-        // moved here from the original block's tail, and before the
-        // terminator we're about to copy).
-        // Since AppendTo put the tail values after preHeader's current Last
-        // (which is site, now replaced), and exit's Last currently points
-        // to the LAST of those moved values (or is null if there were none),
-        // we need to inject our final-result values at the HEAD of exit.
-        //
-        // Simpler: add the final-result load BEFORE the tail values by
-        // temporarily clearing exit, building our values, then re-appending
-        // the tail. But that's brittle. Instead: the common case has no
-        // tail (site was last non-terminator in block), so just append here.
-        var finalInt = (Value)exitBuilder.CreateLoad(location, currentVar)
-            .AsNotNull();
+        // The loop exits once the CAS succeeded, so the CAS result of the
+        // final iteration is the previous value at the target. The loop block
+        // dominates the exit block, so the tail moved to the exit block can
+        // use it directly. (Loading the result in the exit block would place
+        // the load after the moved tail values that consume it.)
         var finalTyped = isBitcast
-            ? exitBuilder.CreateIntAsFloatCast(location, finalInt).AsNotNull()
-            : finalInt;
+            ? loopBuilder.CreateIntAsFloatCast(location, casResult).AsNotNull()
+            : casResult;
 
         // Now copy the termination from the original block to the exit block.
         exitBuilder.CopyTerminationFrom(oldBlock);

@@ -92,9 +92,6 @@ class CudaLanguageConfiguration : LanguageConfiguration
         };
 
     /// <inheritdoc/>
-    public override string PointerSyntax => "*";
-
-    /// <inheritdoc/>
     /// <remarks>
     /// CUDA / HIP pointer types do not take a pointee address-space
     /// qualifier (unlike Metal's <c>threadgroup T*</c> or OpenCL's
@@ -129,6 +126,14 @@ class CudaLanguageConfiguration : LanguageConfiguration
     public override bool UsesCStyleStructLiterals => true;
 
     /// <inheritdoc/>
+    /// <remarks>threadIdx, blockIdx and blockDim are unsigned int.</remarks>
+    public override bool HasUnsignedThreadBuiltIns => true;
+
+    /// <inheritdoc/>
+    public override string? FormatFieldAlignment(int alignment) =>
+        $" __attribute__((aligned({alignment})))";
+
+    /// <inheritdoc/>
     public override bool SupportsFeature(LanguageFeature feature) =>
         feature switch
         {
@@ -145,8 +150,9 @@ class CudaLanguageConfiguration : LanguageConfiguration
     /// <inheritdoc/>
     public override IEnumerable<string> GetHeaderIncludes()
     {
-        // CUDA includes are typically handled by the compiler
-        yield break;
+        // nvcc includes the CUDA runtime implicitly, but not __half and its
+        // conversions and intrinsics
+        yield return "#include <cuda_fp16.h>";
     }
 
     /// <inheritdoc/>

@@ -99,6 +99,11 @@ static class Optimizer
     /// <param name="builder">The transformation manager to populate.</param>
     public static void AddConditionalOptimizations(this Transformer.Builder builder)
     {
+        // Fold side-effect-free conditional regions (short-circuit branch
+        // chains, internal diamonds) into compound conditions and branch
+        // ladders BEFORE IfConversion — the fold produces the single-branch
+        // diamonds that IfConversion then predicates.
+        builder.Add(static args => new IfConditionConversion(args));
         builder.Add(static args => new IfConversion(args));
         builder.Add(static args => new SimplifyControlFlow(args));
     }
@@ -150,9 +155,8 @@ static class Optimizer
         // explicit CAS loops before further lowering. Follow with an Inliner
         // pass to inline the operation lambda that LowerCustomAtomic inserts
         // as a MethodCall in the loop body. A later SSAConstruction pass
-        // (after ClosureElimination) promotes the loop's currentVar alloca
-        // into a proper phi.
-        builder.Add(static args => new LowerCustomAtomic(args));
+        // promotes the loop's currentVar alloca into a proper phi.
+        builder.Add(args => new LowerCustomAtomic(args, specification));
         builder.Add(static args => new Inliner(args));
         builder.Add(static args => new SimplifyControlFlow(args));
 
@@ -177,10 +181,9 @@ static class Optimizer
         builder.Add(args =>
             new LowerWarpCollectives(args, specification));
 
-        // Eliminate closure allocations by decomposing closure struct Globals
-        // into per-field allocas. SSA construction then promotes them to direct
-        // SSA values, ensuring no closures survive to backend code generation.
-        builder.Add(static args => new ClosureElimination(args));
+        // Promote closure and array storage to SSA values, so no closure
+        // survives to backend code generation. SSAConstruction's
+        // SSAGlobalAllocations analysis promotes the backing Globals directly.
         builder.Add(static args => new SSAConstruction(args));
         builder.Add(static args => new SSACleanup(args));
         builder.Add(static args => new DeadLoadElimination(args));
@@ -205,7 +208,8 @@ static class Optimizer
                 args,
                 specification));
 
-        // Perform an second inlining pass to specialize specialized functions
+        // Clean up control flow and eliminate loads made dead by the
+        // accelerator specialization above.
         builder.Add(static args => new SimplifyControlFlow(args));
         builder.Add(static args => new DeadLoadElimination(args));
     }

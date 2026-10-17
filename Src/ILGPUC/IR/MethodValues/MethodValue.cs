@@ -44,16 +44,6 @@ readonly record struct MethodValueInitializer(
     public Method Method => Builder.Method;
 
     /// <summary>
-    /// Returns associated compilation properties.
-    /// </summary>
-    public CompilationProperties Properties => Builder.ModuleBuilder.Properties;
-
-    /// <summary>
-    /// Returns the current generation.
-    /// </summary>
-    public Generation Generation => Builder.Generation;
-
-    /// <summary>
     /// Formats an error message to include specific location information.
     /// </summary>
     string ILocation.FormatErrorMessage(string message) =>

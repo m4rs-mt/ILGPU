@@ -61,15 +61,7 @@ interface IValue : ILocation, IDumpable, IGenerationObject
     /// <summary>
     /// Returns the number of uses.
     /// </summary>
-    int NumUses { get; }
-
-    /// <summary>
-    /// Accepts the given visitor.
-    /// </summary>
-    /// <typeparam name="TVisitor">The visitor type.</typeparam>
-    /// <param name="visitor">The visitor to accept.</param>
-    void Accept<TVisitor>(TVisitor visitor) where TVisitor : IValueVisitor;
-}
+    int NumUses { get; }}
 
 /// <summary>
 /// The base interface of all values in a specific scope.
@@ -91,13 +83,7 @@ interface IValueInformation
     /// <summary>
     /// Returns the current value kind.
     /// </summary>
-    static abstract ValueKind ValueKind { get; }
-
-    /// <summary>
-    /// Returns the current value group.
-    /// </summary>
-    static abstract ValueGroup ValueGroup { get; }
-}
+    static abstract ValueKind ValueKind { get; }}
 
 /// <summary>
 /// The base interface of class values.
@@ -202,11 +188,6 @@ abstract class Value(in ValueInitializer initializer, TypeValue type) : IValue
     public abstract ValueKind ValueKind { get; }
 
     /// <summary>
-    /// Returns the current value group.
-    /// </summary>
-    public abstract ValueGroup ValueGroup { get; }
-
-    /// <summary>
     /// Returns the current value class.
     /// </summary>
     public abstract ValueClass ValueClass { get; }
@@ -287,28 +268,6 @@ abstract class Value(in ValueInitializer initializer, TypeValue type) : IValue
     public T GetTypeAs<T>() where T : TypeValue => Type.As<T>();
 
     /// <summary>
-    /// Returns the index of the given value (if any).
-    /// </summary>
-    /// <param name="value">The value to look for.</param>
-    /// <returns>
-    /// The index of the given value or -1 in case the value cannot be found.
-    /// </returns>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining |
-        MethodImplOptions.AggressiveOptimization)]
-    public int IndexOf(Value value)
-    {
-        var nativeSpan = Values;
-        for (int i = 0; i < nativeSpan.Length; ++i)
-        {
-            if (nativeSpan[i] == value)
-                return i;
-        }
-
-        return -1;
-    }
-
-    /// <summary>
     /// Returns true if the given value is a primitive value with the specified raw
     /// value.
     /// </summary>
@@ -368,39 +327,6 @@ abstract class Value(in ValueInitializer initializer, TypeValue type) : IValue
     /// <param name="textWriter">The text writer.</param>
     public virtual void Dump(TextWriter textWriter) =>
         textWriter.WriteLine(ToString());
-
-    /// <summary>
-    /// Accepts the given visitor.
-    /// </summary>
-    /// <typeparam name="TVisitor">The visitor type.</typeparam>
-    /// <param name="visitor">The visitor to accept.</param>
-    public abstract void Accept<TVisitor>(TVisitor visitor)
-        where TVisitor : IValueVisitor;
-
-    /// <summary>
-    /// Resolves the first use.
-    /// </summary>
-    /// <returns>The first use.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Use GetFirstUse()
-    {
-        var enumerator = Uses.GetEnumerator();
-        return enumerator.MoveNext()
-            ? enumerator.Current
-            : throw new InvalidOperationException(ErrorMessages.NoUses);
-    }
-
-    /// <summary>
-    /// Invokes the callback for every use of the given value type.
-    /// </summary>
-    /// <typeparam name="TValue">The value type.</typeparam>
-    /// <param name="callback">
-    /// The callback to be invoked for a use of the given value type.
-    /// </param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void ForEachUseOf<TValue>(Action<TValue> callback)
-        where TValue : Value =>
-        Uses.ForEachUseOf(callback);
 
     /// <summary>
     /// Adds a new node as a child to this value.
@@ -513,6 +439,17 @@ abstract class Value(in ValueInitializer initializer, TypeValue type) : IValue
         valueList.MoveTo(ref _values);
 
         Seal();
+    }
+
+    /// <summary>
+    /// Replaces the child nodes of an already sealed value. Only valid before
+    /// the uses of the parent method have been computed.
+    /// </summary>
+    /// <param name="valueList">The new child nodes.</param>
+    protected void ReplaceSealedValues(ref ValueBuilderList valueList)
+    {
+        Debug.Assert(IsSealed, "Value has not been sealed");
+        valueList.MoveTo(ref _values);
     }
 
     #endregion
