@@ -396,7 +396,7 @@ sealed class VectorizationAnalysis
     /// This catches PureValues that may not be visited by block-based analysis.
     /// In CPU vectorized mode, per-lane values (GroupIndex,
     /// SubGroupLaneIndex) are NOT scalar — they vary per lane.
-    /// SubGroupIndex (warp index) IS scalar — the CPU model uses a single warp.
+    /// SubGroupIndex (warp index) IS scalar — the lanes of a call form one warp.
     /// Parameters are handled in <see cref="PerformAnalysis"/> — the first
     /// entry-point parameter (thread index) may be vectorized.
     /// </summary>

@@ -45,6 +45,18 @@ sealed partial class CPUMethodEmitter(
     /// </summary>
     private const string CallerLanesName = "_callerLanes";
 
+    /// <summary>
+    /// The parameter of a helper method holding the indices of the caller's
+    /// lanes within their group.
+    /// </summary>
+    private const string CallerGroupLanesName = "_callerGroupLanes";
+
+    /// <summary>
+    /// The parameter of a helper method holding the indices of the caller's
+    /// lanes within their warp.
+    /// </summary>
+    private const string CallerWarpLanesName = "_callerWarpLanes";
+
     private readonly Dictionary<Method, VectorizationAnalysis> _analyses = [];
     private readonly HashSet<Method> _pendingAnalyses = [];
     private CPUExpressionEmitter? _expressionEmitter;
@@ -137,6 +149,12 @@ sealed partial class CPUMethodEmitter(
             {
                 // Multi-dim index: decompose laneIdx into X, Y (, Z) arrays
                 EmitIndexDecomposition(indexStruct, param0, analysis);
+            }
+            else if (param0.Type is StructureType kernelIndex
+                && IsKernelIndexStructType(kernelIndex))
+            {
+                // Grouped launch: the group index differs per lane
+                EmitKernelIndexDecomposition(param0);
             }
             else if (param0.Type is PrimitiveType { BasicValueType: BasicValueType.Int32 })
             {
@@ -241,7 +259,9 @@ sealed partial class CPUMethodEmitter(
         {
             if (!first)
                 context.Write(", ");
-            context.Write($"bool[] {CallerMaskName}, int[] {CallerLanesName}");
+            context.Write(
+                $"bool[] {CallerMaskName}, int[] {CallerLanesName}, " +
+                $"int[] {CallerGroupLanesName}, int[] {CallerWarpLanesName}");
         }
 
         // Append pool or activeLanes parameter for entry point
@@ -297,6 +317,11 @@ sealed partial class CPUMethodEmitter(
             // activeMask with per-lane offsets and bounds masking.
             context.WriteLine("var laneIdx = pool.laneIdx;");
             context.WriteLine(
+                $"var {CPUIntrinsicEmitter.GroupLanesName} = pool.groupLanes;");
+            context.WriteLine(
+                $"var {CPUIntrinsicEmitter.WarpLanesName} = pool.warpLanes;");
+            EmitLaneNumbering();
+            context.WriteLine(
                 $"var {CPUExpressionEmitter.ActiveMaskName} = pool.activeMask;");
             context.WriteLine();
         }
@@ -305,6 +330,12 @@ sealed partial class CPUMethodEmitter(
             // Helpers use the lanes of their caller and copy its active mask,
             // which their own control flow modifies.
             context.WriteLine($"var laneIdx = {CallerLanesName};");
+            context.WriteLine(
+                $"var {CPUIntrinsicEmitter.GroupLanesName} = " +
+                $"{CallerGroupLanesName};");
+            context.WriteLine(
+                $"var {CPUIntrinsicEmitter.WarpLanesName} = " +
+                $"{CallerWarpLanesName};");
             context.WriteLine(
                 $"var {CPUExpressionEmitter.ActiveMaskName} = " +
                 $"CPUVectorIntrinsics.CopyMask({CallerMaskName});");
@@ -316,10 +347,19 @@ sealed partial class CPUMethodEmitter(
             context.WriteLine("// Lane indices for vectorized execution");
             context.WriteLine(
                 "var laneIdx = CPUVectorIntrinsics.CreateLaneIndices(SIMDWidth);");
+            context.WriteLine(
+                $"var {CPUIntrinsicEmitter.GroupLanesName} = " +
+                "CPUVectorIntrinsics.CreateLaneIndices(SIMDWidth);");
+            context.WriteLine(
+                $"var {CPUIntrinsicEmitter.WarpLanesName} = " +
+                "CPUVectorIntrinsics.CreateLaneIndices(SIMDWidth);");
+            EmitLaneNumbering();
 
             // For non-pooled entry points, initialize laneIdx with the
             // baseIndex offset so per-lane indices are [base, base+1, ...].
-            if (isEntryPoint && method != null && method.Parameters.Count > 0)
+            // Grouped kernels take no linear base index.
+            if (isEntryPoint && method != null && method.Parameters.Count > 0
+                && !context.Launch.IsGrouped)
             {
                 var paramName = context.GetValueName(method.Parameters[0]);
                 context.WriteLine(
@@ -370,6 +410,29 @@ sealed partial class CPUMethodEmitter(
         }
         return true;
     }
+
+    /// <summary>
+    /// Numbers the lanes of an entry point call within their warp and within
+    /// their group, which starts at the group offset set by the launcher.
+    /// </summary>
+    private void EmitLaneNumbering()
+    {
+        context.WriteLine(
+            $"CPUVectorIntrinsics.InitLaneIndices(" +
+            $"{CPUIntrinsicEmitter.GroupLanesName}, " +
+            $"{CPUIntrinsicEmitter.GroupOffsetName});");
+        context.WriteLine(
+            $"CPUVectorIntrinsics.InitLaneIndices(" +
+            $"{CPUIntrinsicEmitter.WarpLanesName}, 0);");
+    }
+
+    /// <summary>
+    /// Returns <see langword="true"/> when the entry point's first parameter of
+    /// type <paramref name="st"/> is decomposed into per-lane field arrays: a
+    /// multi-dim index or a <c>KernelIndex</c>.
+    /// </summary>
+    private static bool IsDecomposedIndexType(StructureType st) =>
+        IsIndexStructType(st) || IsKernelIndexStructType(st);
 
     /// <summary>
     /// Returns <see langword="true"/> when <paramref name="st"/> has the
@@ -463,6 +526,50 @@ sealed partial class CPUMethodEmitter(
     }
 
     /// <summary>
+    /// Decomposes the <c>KernelIndex</c> parameter of a grouped launch into
+    /// per-lane field arrays: the grid index of the group, which the launcher
+    /// passes, and the index of each lane within the group.
+    /// </summary>
+    private void EmitKernelIndexDecomposition(Parameter param0)
+    {
+        var paramName = context.GetValueName(param0);
+        var gridIndex = $"_idx_{StructureType.GetFieldName(0)}";
+        var groupIndex = $"_idx_{StructureType.GetFieldName(1)}";
+        context.WriteLine("// Decompose the kernel index into per-lane components");
+        context.WriteLine($"var {gridIndex} = new long[SIMDWidth];");
+        context.WriteLine(
+            $"CPUVectorIntrinsics.Broadcast<long>({gridIndex}, " +
+            $"{paramName}.{StructureType.GetFieldName(0)});");
+        context.WriteLine($"var {groupIndex} = new int[SIMDWidth];");
+        context.WriteLine(
+            $"{CPUIntrinsicEmitter.GroupLanesName}.CopyTo({groupIndex}, 0);");
+
+        // Other uses of the whole index, such as helper calls, take the index
+        // of every lane
+        var lanes = $"_idx_{paramName}";
+        var typeName = new TypeEmitter(context).GetTypeName(param0.Type);
+        context.WriteLine($"var {lanes} = new {typeName}[SIMDWidth];");
+        context.WriteLine("for (int _d = 0; _d < SIMDWidth; _d++)");
+        context.OpenScope();
+        context.WriteLine($"{lanes}[_d] = {paramName};");
+        context.WriteLine(
+            $"{lanes}[_d].{StructureType.GetFieldName(1)} = {groupIndex}[_d];");
+        context.CloseScope();
+        context.WriteLine();
+        context.SetValueName(param0, lanes);
+
+        string[] fieldNames = [gridIndex, groupIndex];
+        param0.Scope.Blocks.ForEachValue<GetField>(gf =>
+        {
+            if (gf.Source == param0 && gf.FieldSpan.Index < fieldNames.Length)
+            {
+                context.SetValueName(gf, fieldNames[gf.FieldSpan.Index]);
+                context.MarkNeedsVariable(gf);
+            }
+        });
+    }
+
+    /// <summary>
     /// Emits local storage for Global values in Local or Shared address
     /// spaces. These are backing stores for local arrays and shared memory.
     /// Each global is allocated as stackalloc and wrapped in a
@@ -537,6 +644,8 @@ sealed partial class CPUMethodEmitter(
             context.WriteLine($"public {elemType}[] {poolName};");
         }
         context.WriteLine("public int[] laneIdx;");
+        context.WriteLine("public int[] groupLanes;");
+        context.WriteLine("public int[] warpLanes;");
         context.WriteLine("public bool[] activeMask;");
         context.WriteLine();
 
@@ -550,6 +659,10 @@ sealed partial class CPUMethodEmitter(
         }
         context.WriteLine(
             "laneIdx = CPUVectorIntrinsics.CreateLaneIndices(simdWidth);");
+        context.WriteLine(
+            "groupLanes = CPUVectorIntrinsics.CreateLaneIndices(simdWidth);");
+        context.WriteLine(
+            "warpLanes = CPUVectorIntrinsics.CreateLaneIndices(simdWidth);");
         context.WriteLine(
             "activeMask = CPUVectorIntrinsics.CreateAllTrueMask(simdWidth);");
         context.CloseScope();
@@ -685,7 +798,7 @@ sealed partial class CPUMethodEmitter(
                 // and variable declaration entirely.
                 if (value is GetField gf2 && gf2.Source is Parameter p2
                     && p2.Index == 0 && p2.Type is StructureType gf2St
-                    && IsIndexStructType(gf2St)
+                    && IsDecomposedIndexType(gf2St)
                     && p2.Scope == context.Module.EntryPoint)
                 {
                     // Name was already set by EmitIndexDecomposition
@@ -1092,7 +1205,7 @@ sealed partial class CPUMethodEmitter(
         // the pool variable (or whatever varName was set to).
         if (value is GetField gf && gf.Source is Parameter p
             && p.Index == 0 && p.Type is StructureType gfSt
-            && IsIndexStructType(gfSt)
+            && IsDecomposedIndexType(gfSt)
             && p.Scope == context.Module.EntryPoint)
         {
             // The field's decomposed name was registered via SetValueName
@@ -1204,7 +1317,7 @@ sealed partial class CPUMethodEmitter(
             && (method.Parameters[0].Type is PrimitiveType
                     { BasicValueType: BasicValueType.Int32 }
                 || (method.Parameters[0].Type is StructureType st
-                    && IsIndexStructType(st)));
+                    && IsDecomposedIndexType(st)));
         analysis = new VectorizationAnalysis(
             method, vectorizeFirstParam: hasIndexParam, GetAnalysis);
         _pendingAnalyses.Remove(method);
@@ -1388,6 +1501,8 @@ sealed partial class CPUMethodEmitter(
         }
         arguments.Add(CPUExpressionEmitter.ActiveMaskName);
         arguments.Add("laneIdx");
+        arguments.Add(CPUIntrinsicEmitter.GroupLanesName);
+        arguments.Add(CPUIntrinsicEmitter.WarpLanesName);
 
         var callText =
             $"{context.GetValueName(target)}({string.Join(", ", arguments)})";

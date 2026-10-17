@@ -31,7 +31,6 @@ public abstract class LaunchGeometryExecutionTests : ExecutionTestBase
     [SkippableFact]
     public async Task GroupedImplicitIndex_ProducesCorrectOutput()
     {
-        SkipOnSingleBlockCpu();
         await VerifyProgramOutputAsync(
             "TestPrograms/LaunchGeometry/GroupedImplicitIndex.cs",
             ["Kernels.GroupedImplicitIndexKernel"],
@@ -44,7 +43,6 @@ public abstract class LaunchGeometryExecutionTests : ExecutionTestBase
     [SkippableFact]
     public async Task GroupedKernelIndex_ProducesCorrectOutput()
     {
-        SkipOnSingleBlockCpu();
         await VerifyProgramOutputAsync(
             "TestPrograms/LaunchGeometry/GroupedKernelIndex.cs",
             ["Kernels.GroupedKernelIndexKernel"],
@@ -54,15 +52,30 @@ public abstract class LaunchGeometryExecutionTests : ExecutionTestBase
             ]);
     }
 
+    [SkippableFact]
+    public async Task GroupedKernelIndexHelper_ProducesCorrectOutput()
+    {
+        await VerifyProgramOutputAsync(
+            "TestPrograms/LaunchGeometry/GroupedKernelIndexHelper.cs",
+            ["Kernels.KernelIndexHelperKernel"],
+            ["0 1 2 3 1000 1001 1002 1003 2000 2001 2002 2003"]);
+    }
+
     /// <summary>
-    /// The CPU backend runs a kernel as a single vectorized block (Grid.Index
-    /// is 0, Group.Dimension is the SIMD width), so it does not model
-    /// explicitly grouped launches yet.
+    /// The CPU backend runs groups wider than its SIMD lanes in several calls
+    /// and rejects them for kernels that synchronize their group.
     /// </summary>
-    private void SkipOnSingleBlockCpu() =>
+    [SkippableFact]
+    public async Task GroupedWideGroups_ProducesCorrectOutput()
+    {
         Skip.If(
-            Backend == BackendType.CPU,
-            "The CPU backend does not model grids and groups of grouped launches");
+            Backend != BackendType.CPU,
+            "Emulates a CPU device with wide groups");
+        await VerifyProgramOutputAsync(
+            "TestPrograms/LaunchGeometry/GroupedWideGroups.cs",
+            ["Kernels.WideGroupKernel", "Kernels.WideBarrierKernel"],
+            ["group 32 mismatches 0", "group 20 mismatches 0", "barrier rejected True"]);
+    }
 
     [SkippableFact]
     public async Task Implicit1DBounds_ProducesCorrectOutput()

@@ -57,6 +57,32 @@ static class FloatArithmeticKernels
             System.Math.Round(x, 2);
     }
 
+    public static void FloatPowCopySignKernel(
+        Index1D index,
+        ArrayView1D<float, Stride1D.Dense> a,
+        ArrayView1D<float, Stride1D.Dense> b,
+        ArrayView1D<float, Stride1D.Dense> result,
+        float uniform)
+    {
+        result[index] = System.MathF.Pow(a[index], b[index]) +
+            System.MathF.CopySign(a[index], b[index]) +
+            System.MathF.Pow(uniform, b[index]) +
+            System.MathF.CopySign(uniform, a[index]);
+    }
+
+    public static void DoublePowCopySignKernel(
+        Index1D index,
+        ArrayView1D<double, Stride1D.Dense> a,
+        ArrayView1D<double, Stride1D.Dense> b,
+        ArrayView1D<double, Stride1D.Dense> result,
+        double uniform)
+    {
+        result[index] = System.Math.Pow(a[index], b[index]) +
+            System.Math.CopySign(a[index], b[index]) +
+            System.Math.Pow(uniform, b[index]) +
+            System.Math.CopySign(uniform, a[index]);
+    }
+
     public static void HalfAbsIsNaNKernel(
         Index1D index,
         ArrayView1D<ILGPU.Half, Stride1D.Dense> data,

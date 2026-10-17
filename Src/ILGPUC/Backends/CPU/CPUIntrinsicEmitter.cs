@@ -420,18 +420,52 @@ sealed class CPUIntrinsicEmitter(int? vectorWidth) : IntrinsicEmitter
 
     #region Thread/Block Identification
 
-    /// <inheritdoc/>
-    /// <remarks>
-    /// Lane index within the vectorized execution (0 to vectorWidth-1).
-    /// </remarks>
-    public override string EmitLaneIdx(int dimension) =>
-        dimension == 0 ? "laneIdx" : "0";
+    /// <summary>
+    /// The per-lane indices of the lanes within their group. Every vectorized
+    /// call runs up to vectorWidth threads of one group.
+    /// </summary>
+    internal const string GroupLanesName = "groupLanes";
+
+    /// <summary>
+    /// The per-lane indices of the lanes within their warp (0 to
+    /// vectorWidth-1). The lanes of a call form one warp.
+    /// </summary>
+    internal const string WarpLanesName = "warpLanes";
+
+    /// <summary>
+    /// The thread-static field holding the index of the group being run.
+    /// </summary>
+    internal const string GridIndexName = "_gridIndex";
+
+    /// <summary>
+    /// The thread-static field holding the index of the first lane of a call
+    /// within its group.
+    /// </summary>
+    internal const string GroupOffsetName = "_groupOffset";
+
+    /// <summary>
+    /// The thread-static field holding the number of groups of the launch.
+    /// </summary>
+    internal const string GridDimensionName = "_gridDimension";
+
+    /// <summary>
+    /// The thread-static field holding the number of threads per group.
+    /// </summary>
+    internal const string GroupDimensionName = "_groupDimension";
 
     /// <inheritdoc/>
     /// <remarks>
-    /// In vectorized execution, warp index is always 0 (single warp).
+    /// The lanes of a call form one warp.
     /// </remarks>
-    public override string EmitWarpIdx(int dimension) => "0";
+    public override string EmitLaneIdx(int dimension) =>
+        dimension == 0 ? WarpLanesName : "0";
+
+    /// <inheritdoc/>
+    /// <remarks>
+    /// Groups larger than the vector width run one warp per call.
+    /// </remarks>
+    public override string EmitWarpIdx(int dimension) =>
+        dimension == 0 ? $"({GroupOffsetName} / SIMDWidth)" : "0";
 
     /// <inheritdoc/>
     /// <remarks>
@@ -442,29 +476,31 @@ sealed class CPUIntrinsicEmitter(int? vectorWidth) : IntrinsicEmitter
 
     /// <inheritdoc/>
     /// <remarks>
-    /// Thread index is the same as lane index in vectorized execution.
+    /// The index of a lane within its group.
     /// </remarks>
     public override string EmitThreadIdx(int dimension) =>
-        dimension == 0 ? "laneIdx" : "0";
+        dimension == 0 ? GroupLanesName : "0";
 
     /// <inheritdoc/>
     /// <remarks>
-    /// Block index is always 0 in vectorized single-block execution.
+    /// The index of the group being run, set by the launcher.
     /// </remarks>
-    public override string EmitBlockIdx(int dimension) => "0";
+    public override string EmitBlockIdx(int dimension) =>
+        dimension == 0 ? GridIndexName : "0";
 
     /// <inheritdoc/>
     /// <remarks>
-    /// Block dimension is the vector width for dimension 0, 1 otherwise.
+    /// The group size of the launch, set by the launcher.
     /// </remarks>
     public override string EmitBlockDim(int dimension) =>
-        dimension == 0 ? vectorWidth?.ToString() ?? "1" : "1";
+        dimension == 0 ? GroupDimensionName : "1";
 
     /// <inheritdoc/>
     /// <remarks>
-    /// Grid dimension is always 1 in vectorized execution.
+    /// The number of groups of the launch, set by the launcher.
     /// </remarks>
-    public override string EmitGridDim(int dimension) => "1";
+    public override string EmitGridDim(int dimension) =>
+        dimension == 0 ? GridDimensionName : "1";
 
     #endregion
 

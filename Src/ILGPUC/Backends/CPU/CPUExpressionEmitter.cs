@@ -528,6 +528,8 @@ sealed class CPUExpressionEmitter(
             BinaryArithmeticKind.Shr => "ShiftRight",
             BinaryArithmeticKind.Max => "Max",
             BinaryArithmeticKind.Min => "Min",
+            BinaryArithmeticKind.Pow => "Pow",
+            BinaryArithmeticKind.CopySign => "CopySign",
             _ => throw new System.NotSupportedException(
                 $"Binary op {binary.Kind} not supported")
         };
@@ -669,6 +671,14 @@ sealed class CPUExpressionEmitter(
             var r = CastScalar(right, storageType, opType);
             var function = binary.Kind == BinaryArithmeticKind.Max ? "Max" : "Min";
             expr = $"System.Math.{function}({l}, {r})";
+        }
+        else if (binary.Kind is BinaryArithmeticKind.Pow
+            or BinaryArithmeticKind.CopySign)
+        {
+            // The floating-point types implement both as static methods with
+            // the semantics of Math.Pow and Math.CopySign
+            var r = CastScalar(right, storageType, opType);
+            expr = $"{opType}.{binary.Kind}({l}, {r})";
         }
         else
         {
@@ -1359,9 +1369,9 @@ sealed class CPUExpressionEmitter(
 
     /// <summary>
     /// Emits a group or warp predicate barrier. The lanes of a vectorized call
-    /// form one group (and one warp) that runs in lockstep, so the barrier
-    /// itself needs no synchronization and the predicate is combined across
-    /// the active lanes.
+    /// form one warp that runs in lockstep, and the whole group of kernels
+    /// that synchronize their group, so the barrier itself needs no
+    /// synchronization and the predicate is combined across the active lanes.
     /// </summary>
     public void EmitPredicateBarrier(PredicateBarrier barrier)
     {
@@ -1384,7 +1394,9 @@ sealed class CPUExpressionEmitter(
         {
             PredicateBarrierPredicateKind.PopCount => "BarrierPopCount",
             PredicateBarrierPredicateKind.And => "BarrierAnd",
-            _ => "BarrierOr",
+            PredicateBarrierPredicateKind.Or => "BarrierOr",
+            _ => throw new System.NotSupportedException(
+                $"Predicate barrier {barrier.PredicateKind} not supported")
         };
         context.WriteLine(
             $"CPUVectorIntrinsics.{method}({result}, {predicate}, " +

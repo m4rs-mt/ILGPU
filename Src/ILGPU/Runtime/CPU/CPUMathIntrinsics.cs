@@ -1141,6 +1141,30 @@ public static class CPUMathIntrinsics
         => TensorPrimitives.Abs<T>(input, target);
 
     /// <summary>
+    /// Computes element-wise values with the magnitude of
+    /// <paramref name="x"/> and the sign of <paramref name="sign"/> across
+    /// all lanes into a pre-allocated target.
+    /// </summary>
+    /// <typeparam name="T">
+    /// The element type satisfying <see cref="INumber{T}"/>.
+    /// </typeparam>
+    /// <param name="target">The destination span to write results into.</param>
+    /// <param name="x">The magnitude values, one per lane.</param>
+    /// <param name="sign">The sign values, one per lane.</param>
+    /// <remarks>
+    /// Floating-point values take the sign bit of <paramref name="sign"/>,
+    /// including the sign bits of zeros and NaNs, like
+    /// <see cref="MathF.CopySign(float, float)"/>.
+    /// </remarks>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void CopySign<T>(
+        Span<T> target,
+        ReadOnlySpan<T> x,
+        ReadOnlySpan<T> sign)
+        where T : INumber<T>
+        => TensorPrimitives.CopySign<T>(x, sign, target);
+
+    /// <summary>
     /// Computes the element-wise number of set bits across all lanes.
     /// </summary>
     /// <typeparam name="T">The integer element type of the input.</typeparam>

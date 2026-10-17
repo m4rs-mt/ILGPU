@@ -10,6 +10,7 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPUC.IR;
+using ILGPUC.IR.BasicBlockValues;
 using ILGPUC.IR.ModuleValues;
 using System.IO;
 using System.Text;
@@ -58,6 +59,25 @@ sealed class CPUCodeGenerator(
         context.WriteLine($"public const int SIMDWidth = {vectorWidth};");
         context.WriteLine();
 
+        // The launcher runs one group per call and publishes the launch
+        // geometry, which helper methods read as well
+        foreach (var name in new[]
+        {
+            CPUIntrinsicEmitter.GridIndexName,
+            CPUIntrinsicEmitter.GridDimensionName,
+            CPUIntrinsicEmitter.GroupDimensionName,
+            CPUIntrinsicEmitter.GroupOffsetName,
+        })
+        {
+            context.WriteLine($"[System.ThreadStatic] public static int {name};");
+        }
+
+        // Barriers and shared memory span the threads of one call only
+        context.WriteLine(
+            $"public const bool {SynchronizesGroupsName} = " +
+            $"{(SynchronizesGroups() ? "true" : "false")};");
+        context.WriteLine();
+
         // Generate vectorized method implementations
         // The emitter computes BufferPool during emission
         var methodEmitter = GenerateVectorizedMethodImplementations(context);
@@ -71,6 +91,40 @@ sealed class CPUCodeGenerator(
             KernelClassName: className,
             EntryPointParamTypeNames: GetEntryPointParamTypeNames(context),
             EntryPointIndexTypeName: GetEntryPointIndexTypeName(context));
+    }
+
+    /// <summary>
+    /// The name of the constant telling the launcher whether the kernel
+    /// synchronizes the threads of its group.
+    /// </summary>
+    internal const string SynchronizesGroupsName = "SynchronizesGroups";
+
+    /// <summary>
+    /// Returns <see langword="true"/> if the kernel synchronizes the threads of
+    /// a group: through group barriers, group broadcasts or shared memory.
+    /// </summary>
+    private bool SynchronizesGroups()
+    {
+        foreach (var global in module.Globals)
+        {
+            if (global.AddressSpace == MemoryAddressSpace.Shared)
+                return true;
+        }
+        bool synchronizes = false;
+        foreach (var method in module.Methods)
+        {
+            method.Blocks.ForEachValue<BarrierOperation>(barrier =>
+                synchronizes |= barrier switch
+                {
+                    Barrier b => b.Kind == BarrierKind.GroupLevel,
+                    PredicateBarrier p =>
+                        p.Kind == PredicateBarrierKind.GroupLevel,
+                    _ => false,
+                });
+            method.Blocks.ForEachValue<Broadcast>(broadcast =>
+                synchronizes |= broadcast.Kind == BroadcastKind.GroupLevel);
+        }
+        return synchronizes;
     }
 
     /// <summary>
