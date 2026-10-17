@@ -377,6 +377,10 @@
     <value>'{0}' related to type {1} (managed type '{2}')</value>
     <comment/>
   </data>
+  <data name="NotSupportedPackedStructureLayout" xml:space="preserve">
+    <value>The type '{0}' has a structure layout that kernels do not support: Pack and Size in the StructLayout attributes of the type and of its nested structures must keep every field at its natural alignment and the size of every structure a multiple of its alignment</value>
+    <comment/>
+  </data>
   <data name="NotSupportedStructureLayout" xml:space="preserve">
     <value>The type '{0}' has an unsupported structure layout</value>
     <comment/>

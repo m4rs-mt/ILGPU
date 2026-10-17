@@ -11,11 +11,13 @@
 
 using ILGPU.Resources;
 using ILGPU.Util;
+using ILGPUC.IR.ModuleValues;
 using ILGPUC.Util;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
+using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -316,30 +318,7 @@ sealed class TypeInformationManager
     /// <returns>The created type information object.</returns>
     private TypeInformation CreateCompoundTypeInfo(Type type)
     {
-        var fieldArray = type.GetFields(
-            BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance);
-        Array.Sort(fieldArray, (left, right) =>
-            left.MetadataToken.CompareTo(right.MetadataToken));
-
-        // Handle [InlineArray(N)]: the C# compiler declares such structs
-        // with a single element field but the struct is sized as N copies
-        // of that field. Replicate the field N times so the IR sees the
-        // full layout. Without this, struct sizes and field access
-        // through Unsafe.Add are wrong (e.g. IntBuffer4 { int _element0; }
-        // decorated with [InlineArray(4)] would appear to be 1 int / 4
-        // bytes instead of 4 ints / 16 bytes).
-        var inlineArrayAttr = type.GetCustomAttribute<
-            System.Runtime.CompilerServices.InlineArrayAttribute>(inherit: false);
-        if (inlineArrayAttr is not null
-            && fieldArray.Length == 1
-            && inlineArrayAttr.Length > 1)
-        {
-            var original = fieldArray[0];
-            var expanded = new FieldInfo[inlineArrayAttr.Length];
-            for (int i = 0; i < inlineArrayAttr.Length; i++)
-                expanded[i] = original;
-            fieldArray = expanded;
-        }
+        var fieldArray = GetLayoutFields(type);
 
         int size = 0;
         if (type.IsValueType && type.StructLayoutAttribute != null)
@@ -398,6 +377,18 @@ sealed class TypeInformationManager
                 : 1;
         }
 
+        // Kernels lay out all fields at their natural alignments and round all
+        // sizes up to the alignment, which the runtime only does as well if the
+        // packing and the explicit sizes of this structure and of its nested
+        // structures keep that layout
+        if (type.IsValueType && !type.IsValueTuple() && !HasNaturalLayout(type))
+        {
+            throw new NotSupportedException(
+                string.Format(
+                    ErrorMessages.NotSupportedPackedStructureLayout,
+                    type));
+        }
+
         return new TypeInformation(
             this,
             type,
@@ -408,6 +399,107 @@ sealed class TypeInformationManager
             flattenedFields,
             isBlittable,
             isValidKernelParameter);
+    }
+
+    /// <summary>
+    /// Returns the instance fields of the given type in layout order.
+    /// </summary>
+    /// <param name="type">The type.</param>
+    /// <returns>The instance fields in layout order.</returns>
+    private static FieldInfo[] GetLayoutFields(Type type)
+    {
+        var fieldArray = type.GetFields(
+            BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance);
+        Array.Sort(fieldArray, (left, right) =>
+            left.MetadataToken.CompareTo(right.MetadataToken));
+
+        // Handle [InlineArray(N)]: the C# compiler declares such structs
+        // with a single element field but the struct is sized as N copies
+        // of that field. Replicate the field N times so the IR sees the
+        // full layout. Without this, struct sizes and field access
+        // through Unsafe.Add are wrong (e.g. IntBuffer4 { int _element0; }
+        // decorated with [InlineArray(4)] would appear to be 1 int / 4
+        // bytes instead of 4 ints / 16 bytes).
+        var inlineArrayAttr = type.GetCustomAttribute<
+            System.Runtime.CompilerServices.InlineArrayAttribute>(inherit: false);
+        if (inlineArrayAttr is not null
+            && fieldArray.Length == 1
+            && inlineArrayAttr.Length > 1)
+        {
+            var original = fieldArray[0];
+            var expanded = new FieldInfo[inlineArrayAttr.Length];
+            for (int i = 0; i < inlineArrayAttr.Length; i++)
+                expanded[i] = original;
+            fieldArray = expanded;
+        }
+        return fieldArray;
+    }
+
+    /// <summary>
+    /// Returns true if the runtime lays out the given structure type like
+    /// kernels do: with all fields at the offsets of their natural alignments
+    /// and with a size that is a multiple of its natural alignment.
+    /// </summary>
+    /// <param name="type">The structure type.</param>
+    /// <returns>True if the runtime lays out the type like kernels do.</returns>
+    private static bool HasNaturalLayout(Type type)
+    {
+        var naturalOffsets = new List<int>();
+        var runtimeOffsets = new List<int>();
+        var natural = ComputeLayout(type, false, naturalOffsets);
+        var runtime = ComputeLayout(type, true, runtimeOffsets);
+        return natural.Size == runtime.Size &&
+            naturalOffsets.SequenceEqual(runtimeOffsets);
+    }
+
+    /// <summary>
+    /// Computes the layout of the given type.
+    /// </summary>
+    /// <param name="type">The type.</param>
+    /// <param name="packed">
+    /// True to compute the layout of the runtime, which applies the packing and
+    /// the explicit sizes of sequential structures, false to compute the layout
+    /// of kernels, which align all fields naturally and round explicit sizes up
+    /// to the natural alignment of their structures.
+    /// </param>
+    /// <param name="offsets">Receives the offsets of all fields (if any).</param>
+    /// <returns>The size and the alignment of the type.</returns>
+    private static (int Size, int Alignment) ComputeLayout(
+        Type type,
+        bool packed,
+        List<int>? offsets = null)
+    {
+        if (!type.IsValueType)
+            return (IntPtr.Size, IntPtr.Size);
+        if (type.IsPrimitive || type.IsEnum)
+        {
+            int primitiveSize = type.SizeOf();
+            return (primitiveSize, primitiveSize);
+        }
+
+        var layout = type.StructLayoutAttribute;
+        bool isSequential = layout is { Value: LayoutKind.Sequential } &&
+            !type.IsValueTuple();
+        int pack = packed && isSequential && layout!.Pack > 0
+            ? layout.Pack
+            : int.MaxValue;
+        int offset = 0;
+        int alignment = 1;
+        foreach (var field in GetLayoutFields(type))
+        {
+            var (fieldSize, fieldAlignment) = ComputeLayout(field.FieldType, packed);
+            fieldAlignment = Math.Min(fieldAlignment, pack);
+            offset = TypeValue.Align(offset, fieldAlignment);
+            offsets?.Add(offset);
+            offset += fieldSize;
+            alignment = Math.Max(alignment, fieldAlignment);
+        }
+
+        int explicitSize = isSequential ? layout!.Size : 0;
+        int size = packed
+            ? Math.Max(TypeValue.Align(offset, alignment), explicitSize)
+            : TypeValue.Align(Math.Max(offset, explicitSize), alignment);
+        return (Math.Max(size, 1), alignment);
     }
 
     #endregion

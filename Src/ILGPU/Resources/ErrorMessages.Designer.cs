@@ -754,6 +754,15 @@ namespace ILGPU.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to The type &apos;{0}&apos; has a structure layout that kernels do not support: Pack and Size in the StructLayout attributes of the type and of its nested structures must keep every field at its natural alignment and the size of every structure a multiple of its alignment.
+        /// </summary>
+        internal static string NotSupportedPackedStructureLayout {
+            get {
+                return ResourceManager.GetString("NotSupportedPackedStructureLayout", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Cannot store a value to the static field &apos;{0}&apos;.
         /// </summary>
         internal static string NotSupportedStoreToStaticField {

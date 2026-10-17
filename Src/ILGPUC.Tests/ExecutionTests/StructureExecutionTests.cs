@@ -120,6 +120,37 @@ public abstract class StructureExecutionTests : ExecutionTestBase
     }
 
     /// <summary>
+    /// Structures whose packing and explicit sizes keep all fields at their
+    /// natural alignments have the host layout on the device, in views and as
+    /// by-value parameters.
+    /// </summary>
+    [SkippableFact]
+    public async Task PackedStructLayout_ProducesCorrectOutput()
+    {
+        await VerifyProgramOutputAsync(
+            "TestPrograms/Structure/PackedStructLayout.cs",
+            [
+                "Kernels.Pack4NaturalKernel",
+                "Kernels.Pack1BytesKernel",
+                "Kernels.Pack8Kernel",
+                "Kernels.WithPack1IntsKernel",
+                "Kernels.WithSizedKernel",
+                "Kernels.FieldAddressKernel",
+                "Kernels.ByValueKernel",
+            ],
+            [
+                "12 4 24 12 32",
+                "Pack4NaturalKernel ok",
+                "Pack1BytesKernel ok",
+                "Pack8Kernel ok",
+                "WithPack1IntsKernel ok",
+                "WithSizedKernel ok",
+                "FieldAddressKernel ok",
+                "ByValueKernel ok",
+            ]);
+    }
+
+    /// <summary>
     /// Instance methods on a readonly record struct in a kernel local receive
     /// their receiver by reference from local memory.
     /// </summary>
