@@ -60,6 +60,7 @@ sealed class ROCmBackend(string arch) :
     public override async Task<CompilationResult?> CompileSourceAsync<TManager>(
         CodeGenerationResult source,
         TManager manager,
+        CompilationProperties properties,
         CancellationToken ct = default)
     {
         return await manager.CompileAsync(new CompileRequest
@@ -67,6 +68,10 @@ sealed class ROCmBackend(string arch) :
             SourceCode = source.SourceCode,
             Target = CompilationTarget.Hip,
             OutputType = OutputType.Binary,
+            OptimizationLevel = GetNativeOptLevel(properties.OptimizationLevel),
+            // AMD GPUs have no PTX-style JIT fallback: the code object must
+            // be built for the exact gfx target it will run on.
+            ExtraFlags = $"--offload-arch={arch}",
         }, ct).ConfigureAwait(false);
     }
 }

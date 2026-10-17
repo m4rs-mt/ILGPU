@@ -20,7 +20,10 @@ sealed class MetalLauncherEmitter : PerArgumentLauncherEmitter
 
     protected override void EmitPreamble(LauncherEmissionContext ctx)
     {
-        ctx.WriteLine("var metalKernel = (MetalKernel)_runtimeKernel!;");
+        ctx.WriteLine("var metalKernel = (MetalKernel)(_runtimeKernel" +
+            " ?? throw new System.InvalidOperationException(" +
+            "\"The kernel is not loaded on this accelerator: it is not " +
+            "compatible with the device or failed to build for it.\"));");
         ctx.WriteLine("var metalStream = (MetalStream)stream;");
         ctx.WriteLine(
             "var launchConfig = stream.PrepareKernelLaunch(" +
@@ -71,7 +74,7 @@ sealed class MetalLauncherEmitter : PerArgumentLauncherEmitter
         return argIndex;
     }
 
-    protected override void EmitPointerArg(
+    protected override int EmitPointerArg(
         LauncherEmissionContext ctx,
         string expression,
         int argIndex)
@@ -83,6 +86,7 @@ sealed class MetalLauncherEmitter : PerArgumentLauncherEmitter
             "throw new System.NotSupportedException(" +
             "\"Raw pointer kernel arguments are not supported on Metal. " +
             "Use ArrayView<T> instead.\");");
+        return argIndex + 1;
     }
 
     protected override void EmitPostamble(

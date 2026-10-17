@@ -11,7 +11,6 @@
 
 using System;
 using System.Runtime.CompilerServices;
-using System.Text;
 using static ILGPU.Runtime.ROCm.ROCmAPI;
 
 namespace ILGPU.Runtime.ROCm;
@@ -32,14 +31,12 @@ public sealed class ROCmKernel : Kernel
         ROCmCompiledKernel compiledKernel)
         : base(accelerator, compiledKernel)
     {
-        // Get the kernel source as bytes (HSACO binary or assembly text).
-        var source = compiledKernel.GetSourceAsString();
-        var sourceBytes = Encoding.UTF8.GetBytes(source + '\0');
-
-        fixed (byte* pSource = sourceBytes)
+        // Load the pre-compiled HIP code object (built by hipcc --genco).
+        var binary = compiledKernel.GetCompiledBinary();
+        fixed (byte* pBinary = binary.Span)
         {
             ROCmException.ThrowIfFailed(
-                CurrentAPI.ModuleLoadData(pSource, out IntPtr module));
+                CurrentAPI.ModuleLoadData(pBinary, out IntPtr module));
             ModuleHandle = module;
         }
 

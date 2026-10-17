@@ -550,7 +550,7 @@ partial class ArrayViewExtensions
         }
 <#      } #>
 
-        view.AsGeneral().CopyToCPU(stream, data);
+        view.AsGeneral().CopyFromCPU(stream, data);
     }
 <#      } #>
 

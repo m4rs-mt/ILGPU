@@ -29,7 +29,8 @@ sealed class CPUCodeGenerator(
     LanguageConfiguration languageConfiguration,
     int vectorWidth,
     bool emitDebugSymbols,
-    bool poolBuffers = true)
+    bool poolBuffers,
+    EntryPointLaunch launch)
 {
     /// <summary>
     /// Gets the module being compiled.
@@ -58,7 +59,8 @@ sealed class CPUCodeGenerator(
     {
         var builder = new StringBuilder(16 * 1024);
         using var writer = new StringWriter(builder);
-        var context = new GenerationContext(module, languageConfiguration, writer);
+        var context = new GenerationContext(
+            module, languageConfiguration, writer, launch);
 
         // Generate header with includes
         GenerateHeader(context);

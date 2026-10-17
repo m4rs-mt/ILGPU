@@ -94,6 +94,10 @@
     <Import Name="hipSetDevice">
         <Parameter Name="device" Type="int" />
     </Import>
+    <Import Name="hipGetDevicePropertiesR0600">
+        <Parameter Name="properties" Type="byte*" />
+        <Parameter Name="device" Type="int" />
+    </Import>
     <Import Name="hipDeviceGetName">
         <Parameter Name="name" Type="byte*" />
         <Parameter Name="len" Type="int" />
@@ -111,14 +115,14 @@
     <Import Name="hipDeviceSynchronize" />
     <Import Name="hipDeviceReset" />
 
-    <!-- Occupancy -->
-    <Import Name="hipOccupancyMaxActiveBlocksPerMultiprocessor">
+    <!-- Occupancy (module API: takes a hipFunction_t, not a host stub) -->
+    <Import Name="hipModuleOccupancyMaxActiveBlocksPerMultiprocessor">
         <Parameter Name="numBlocks" Type="int" Flags="Out" />
         <Parameter Name="function" Type="IntPtr" />
         <Parameter Name="blockSize" Type="int" />
         <Parameter Name="dynSharedMemPerBlk" Type="UIntPtr" />
     </Import>
-    <Import Name="hipOccupancyMaxPotentialBlockSize">
+    <Import Name="hipModuleOccupancyMaxPotentialBlockSize">
         <Parameter Name="gridSize" Type="int" Flags="Out" />
         <Parameter Name="blockSize" Type="int" Flags="Out" />
         <Parameter Name="function" Type="IntPtr" />

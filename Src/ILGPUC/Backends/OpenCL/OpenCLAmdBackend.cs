@@ -32,6 +32,7 @@ sealed class OpenCLAmdBackend(int clcMajor, int clcMinor) :
     public override async Task<CompilationResult?> CompileSourceAsync<TManager>(
         CodeGenerationResult source,
         TManager manager,
+        CompilationProperties properties,
         CancellationToken ct = default)
     {
         return await manager.CompileAsync(new CompileRequest
@@ -39,6 +40,7 @@ sealed class OpenCLAmdBackend(int clcMajor, int clcMinor) :
             SourceCode = source.SourceCode,
             Target = CompilationTarget.OpenCLAmd,
             OutputType = OutputType.SpirV,
+            OptimizationLevel = GetNativeOptLevel(properties.OptimizationLevel),
         }, ct).ConfigureAwait(false);
     }
 }

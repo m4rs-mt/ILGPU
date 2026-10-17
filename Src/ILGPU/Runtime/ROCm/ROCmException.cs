@@ -17,7 +17,7 @@ namespace ILGPU.Runtime.ROCm;
 /// <summary>
 /// Represents a HIP exception.
 /// </summary>
-public sealed class ROCmException : Exception
+public sealed class ROCmException : AcceleratorException
 {
     /// <summary>
     /// Creates a new HIP exception.
@@ -71,4 +71,7 @@ public sealed class ROCmException : Exception
         if (error != ROCmError.Success)
             throw new ROCmException(error);
     }
+
+    /// <inheritdoc/>
+    public override AcceleratorType AcceleratorType => AcceleratorType.ROCm;
 }

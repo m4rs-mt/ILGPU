@@ -12,6 +12,7 @@
 
 // disable: max_line_length
 using ILGPUC.IR;
+using ILGPUC.IR.ModuleValues;
 using System.Collections.Generic;
 
 namespace ILGPUC.Backends.OpenCL;
@@ -142,6 +143,81 @@ sealed class CLLanguageConfiguration(CLVendor vendor = CLVendor.Intel) : Languag
 
     /// <inheritdoc/>
     public override string KernelAttribute => "__kernel";
+
+    /// <summary>
+    /// The suffix of the byte-offset parameter that follows every buffer
+    /// pointer parameter of a kernel entry point.
+    /// </summary>
+    public const string BufferOffsetSuffix = "_offset";
+
+    /// <inheritdoc/>
+    /// <remarks>
+    /// A buffer argument is a <c>cl_mem</c> handle, which cannot point into
+    /// the middle of a buffer, so every buffer pointer is followed by the
+    /// byte offset of the view within its buffer.
+    /// </remarks>
+    public override string EmitNonFlattenedKernelParam(
+        TypeValue type,
+        string typeName,
+        string paramName,
+        int bufferIndex) =>
+        type is AddressSpaceType
+            ? $"{typeName} {paramName}, long {paramName}{BufferOffsetSuffix}"
+            : $"{typeName} {paramName}";
+
+    /// <inheritdoc/>
+    public override string? EmitKernelParamPrologue(
+        TypeValue type,
+        string typeName,
+        string paramName) =>
+        type is AddressSpaceType
+            ? $"  {paramName} = ({typeName})" +
+                $"((global char*){paramName} + {paramName}{BufferOffsetSuffix});"
+            : null;
+
+    /// <inheritdoc/>
+    /// <remarks>
+    /// The launcher only passes the kernel's own arguments; the thread index
+    /// is computed from the work-item built-ins.
+    /// </remarks>
+    public override bool SkipsIndexParameter => true;
+
+    /// <inheritdoc/>
+    /// <remarks>
+    /// The NDRange is rounded up to whole work-groups; the extra work-items
+    /// are skipped by the guard against the hidden extent parameters.
+    /// </remarks>
+    public override string? LaunchExtentTypeName => "long";
+
+    /// <inheritdoc/>
+    public override string? EmitIndexComputation(
+        string typeName,
+        string paramName,
+        TypeValue indexType,
+        EntryPointLaunch launch)
+    {
+        // Grouped launch: KernelIndex {long GridIndex, int GroupIndex} is
+        // the work-group id and the work-item id within the group.
+        if (launch.HasKernelIndex)
+        {
+            var kernelIndex = new System.Text.StringBuilder();
+            kernelIndex.AppendLine($"  {typeName} {paramName};");
+            kernelIndex.AppendLine($"  {paramName}.Field0 = (long)get_group_id(0);");
+            kernelIndex.AppendLine($"  {paramName}.Field1 = (int)get_local_id(0);");
+            return kernelIndex.ToString().TrimEnd();
+        }
+
+        if (indexType is StructureType structType)
+        {
+            var lines = new System.Text.StringBuilder();
+            lines.AppendLine($"  {typeName} {paramName};");
+            for (int i = 0; i < structType.NumFields && i < 3; i++)
+                lines.AppendLine($"  {paramName}.Field{i} = (int)get_global_id({i});");
+            return lines.ToString().TrimEnd();
+        }
+
+        return $"  {typeName} {paramName} = ({typeName})get_global_id(0);";
+    }
 
     /// <inheritdoc/>
     public override IEnumerable<string> GetPragmas()

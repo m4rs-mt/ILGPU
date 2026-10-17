@@ -713,6 +713,54 @@ unsafe partial class CLAPI
         clSetKernelArg(kernel.KernelPtr, index, new IntPtr(size), value);
 
     /// <summary>
+    /// Launches the given kernel function on an explicit 3-D NDRange of
+    /// <paramref name="gridX"/> x <paramref name="gridY"/> x
+    /// <paramref name="gridZ"/> work-groups of <paramref name="groupX"/> x
+    /// <paramref name="groupY"/> x <paramref name="groupZ"/> work-items.
+    /// </summary>
+    /// <param name="stream">The current stream.</param>
+    /// <param name="kernel">The current kernel.</param>
+    /// <param name="gridX">The number of work-groups in X.</param>
+    /// <param name="gridY">The number of work-groups in Y.</param>
+    /// <param name="gridZ">The number of work-groups in Z.</param>
+    /// <param name="groupX">The work-group size in X.</param>
+    /// <param name="groupY">The work-group size in Y.</param>
+    /// <param name="groupZ">The work-group size in Z.</param>
+    /// <returns>The error status.</returns>
+    [MethodImpl(
+        MethodImplOptions.AggressiveOptimization |
+        MethodImplOptions.AggressiveInlining)]
+    public unsafe CLError LaunchKernelWithStreamBinding3D(
+        CLStream stream,
+        CLKernel kernel,
+        int gridX, int gridY, int gridZ,
+        int groupX, int groupY, int groupZ)
+    {
+        var binding = stream.BindScoped();
+
+        IntPtr* globalWorkSizes = stackalloc IntPtr[3];
+        globalWorkSizes[0] = new IntPtr((long)gridX * groupX);
+        globalWorkSizes[1] = new IntPtr((long)gridY * groupY);
+        globalWorkSizes[2] = new IntPtr((long)gridZ * groupZ);
+
+        IntPtr* localWorkSizes = stackalloc IntPtr[3];
+        localWorkSizes[0] = new IntPtr(groupX);
+        localWorkSizes[1] = new IntPtr(groupY);
+        localWorkSizes[2] = new IntPtr(groupZ);
+
+        var result = LaunchKernelUnsafe(
+            stream.CommandQueue,
+            kernel.KernelPtr,
+            3,
+            null,
+            globalWorkSizes,
+            localWorkSizes);
+
+        binding.Recover();
+        return result;
+    }
+
+    /// <summary>
     /// Launches the given kernel function.
     /// </summary>
     /// <typeparam name="THandler">

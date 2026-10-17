@@ -107,6 +107,8 @@ public sealed class CLAccelerator : Accelerator
 
         InitVendorFeatures();
         InitSubGroupSupport(description);
+
+        OnAcceleratorCreated();
     }
 
     /// <summary>

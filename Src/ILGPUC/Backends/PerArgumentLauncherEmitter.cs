@@ -69,7 +69,8 @@ abstract class PerArgumentLauncherEmitter : LauncherEmitter
     /// <summary>
     /// Emits code to set a pointer argument at the given index.
     /// </summary>
-    protected abstract void EmitPointerArg(
+    /// <returns>The next argument index after the pointer args.</returns>
+    protected abstract int EmitPointerArg(
         LauncherEmissionContext ctx,
         string expression,
         int argIndex);
@@ -155,8 +156,7 @@ abstract class PerArgumentLauncherEmitter : LauncherEmitter
                     param.UserFieldAccessors);
 
             case ParameterKind.Pointer:
-                EmitPointerArg(ctx, param.Name, argIndex);
-                return argIndex + 1;
+                return EmitPointerArg(ctx, param.Name, argIndex);
 
             default:
                 return argIndex;

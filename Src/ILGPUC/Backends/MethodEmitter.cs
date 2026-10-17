@@ -15,6 +15,7 @@ using ILGPUC.IR.BasicBlockValues;
 using ILGPUC.IR.MethodValues;
 using ILGPUC.IR.ModuleValues;
 using ILGPUC.IR.PureValues;
+using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 
 namespace ILGPUC.Backends;
@@ -119,7 +120,8 @@ sealed class MethodEmitter(
         bool first = true;
         int bufferIndex = 0;
         bool skipsIndex = isEntryPoint
-            && context.LanguageConfig.SkipsIndexParameter;
+            && context.LanguageConfig.SkipsIndexParameter
+            && context.Launch.HasIndexParameter;
 
         foreach (var param in method.Parameters)
         {
@@ -131,6 +133,20 @@ sealed class MethodEmitter(
             if (!first) context.Write(", ");
             first = false;
             EmitParameter(param, isEntryPoint, ref bufferIndex);
+        }
+
+        // Append the hidden launch-extent parameters of implicitly grouped
+        // launches (see LanguageConfiguration.LaunchExtentTypeName).
+        if (UsesLaunchExtents(method))
+        {
+            var extentType = context.LanguageConfig.LaunchExtentTypeName;
+            for (int i = 0; i < context.Launch.IndexDimensions; ++i)
+            {
+                if (!first) context.Write(", ");
+                first = false;
+                context.Write(
+                    $"{extentType} {EntryPointLaunch.GetExtentParameterName(i)}");
+            }
         }
 
         // Append language-specific built-in parameters (Metal thread position, etc.)
@@ -176,23 +192,81 @@ sealed class MethodEmitter(
     }
 
     /// <summary>
+    /// Returns true if the given method is an entry point that receives the
+    /// hidden launch-extent parameters of an implicitly grouped launch.
+    /// </summary>
+    private bool UsesLaunchExtents(Method method) =>
+        method == context.Module.EntryPoint
+        && context.LanguageConfig.SkipsIndexParameter
+        && context.LanguageConfig.LaunchExtentTypeName is not null
+        && context.Launch.IsImplicit;
+
+    /// <summary>
+    /// Emits the early return for threads outside the launch extent.
+    /// </summary>
+    private void EmitExtentGuard(string indexName, TypeValue indexType)
+    {
+        var conditions = new List<string>();
+        if (indexType is StructureType structType)
+        {
+            int dimensions = System.Math.Min(
+                structType.NumFields, context.Launch.IndexDimensions);
+            for (int i = 0; i < dimensions; ++i)
+            {
+                conditions.Add(
+                    $"{indexName}.{StructureType.GetFieldName(i)} >= " +
+                    EntryPointLaunch.GetExtentParameterName(i));
+            }
+        }
+        else
+        {
+            conditions.Add(
+                $"{indexName} >= {EntryPointLaunch.GetExtentParameterName(0)}");
+        }
+        context.WriteLine($"  if ({string.Join(" || ", conditions)}) return;");
+    }
+
+    /// <summary>
     /// Emits the body of a method.
     /// </summary>
     private void EmitMethodBody(Method method)
     {
+        // Entry point parameter set-up (e.g. applying OpenCL buffer offsets).
+        if (method == context.Module.EntryPoint)
+        {
+            bool skipsIndex = context.LanguageConfig.SkipsIndexParameter
+                && context.Launch.HasIndexParameter;
+            foreach (var param in method.Parameters)
+            {
+                if (skipsIndex && param.Index == 0)
+                    continue;
+                var prologue = context.LanguageConfig.EmitKernelParamPrologue(
+                    param.Type,
+                    typeEmitter.GetTypeName(param.Type),
+                    context.GetValueName(param));
+                if (prologue is not null)
+                    context.WriteLine(prologue);
+            }
+        }
+
         // GPU backends: compute the thread index from built-in attributes
         // instead of receiving it as a buffer parameter.
         if (method == context.Module.EntryPoint
             && context.LanguageConfig.SkipsIndexParameter
+            && context.Launch.HasIndexParameter
             && method.NumParameters > 0)
         {
             var indexParam = method.Parameters[0];
             var typeName = typeEmitter.GetTypeName(indexParam.Type);
             var paramName = context.GetValueName(indexParam);
             var computation = context.LanguageConfig.EmitIndexComputation(
-                typeName, paramName, indexParam.Type);
+                typeName, paramName, indexParam.Type, context.Launch);
             if (computation != null)
                 context.WriteLine(computation);
+
+            // Skip the threads the launch added to fill the last group.
+            if (UsesLaunchExtents(method))
+                EmitExtentGuard(paramName, indexParam.Type);
         }
 
         // Emit function-scoped globals (e.g. Metal thread/threadgroup arrays).

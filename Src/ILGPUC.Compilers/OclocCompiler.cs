@@ -72,6 +72,9 @@ public sealed class OclocCompiler : CompilerBase
             // device choice affects validation, not the IR output).
             // ocloc compile -file input.cl -spv_only -device pvc \
             //     -options "-cl-std=CL2.0" -out_dir <tempdir>
+            // The OpenCL front-end rejects -O<N> ("Unrecognized build
+            // options"); it optimizes by default and only accepts
+            // -cl-opt-disable, which ILGPU's optimization levels never map to.
             var args =
                 $"compile -file \"{inputFile}\" -spv_only -device pvc" +
                 $" -options \"-cl-std=CL2.0\" -out_dir \"{tempDir}\"";

@@ -70,7 +70,7 @@ sealed class CompiledKernelGenerator : DisposeBase
     /// ensure the generated Launch signature matches the stub and call-site
     /// rewriter (which both derive dimensions from <c>LaunchVariant</c>).
     /// </summary>
-    private readonly int? _indexDimOverride;
+    private readonly EntryPointLaunch _launch;
     /// <summary>The string builder accumulating the generated source code.</summary>
     private readonly StringBuilder _builder;
     /// <summary>The text writer wrapping the string builder.</summary>
@@ -114,11 +114,12 @@ sealed class CompiledKernelGenerator : DisposeBase
     /// original names instead of the synthetic <c>Field0</c>/<c>Field1</c>
     /// fallback.
     /// </param>
-    /// <param name="indexDimOverride">
-    /// When set, overrides the heuristic index-dimension detection. The
-    /// Roslyn pipeline passes the value derived from
-    /// <c>LaunchVariant</c> so the generated Launch signature matches
-    /// the stub and the rewritten call site.
+    /// <param name="launch">
+    /// How the entry point is launched. The Roslyn pipeline passes the
+    /// launch derived from <c>LaunchVariant</c> so the generated Launch
+    /// signature matches the stub and the rewritten call site; when
+    /// <see langword="null"/>, it is derived from the entry point's first
+    /// parameter.
     /// </param>
     public CompiledKernelGenerator(
         CompiledKernelEmitter compiledKernelEmitter,
@@ -132,7 +133,7 @@ sealed class CompiledKernelGenerator : DisposeBase
         string? kernelName = null,
         string[]? launchParamTypeNames = null,
         string[]?[]? launchParamFieldAccessors = null,
-        int? indexDimOverride = null)
+        EntryPointLaunch? launch = null)
     {
         _compiledKernelEmitter = compiledKernelEmitter;
         _launcherEmitter = launcherEmitter;
@@ -145,7 +146,7 @@ sealed class CompiledKernelGenerator : DisposeBase
         _kernelName = kernelName;
         _launchParamTypeNames = launchParamTypeNames;
         _launchParamFieldAccessors = launchParamFieldAccessors;
-        _indexDimOverride = indexDimOverride;
+        _launch = EntryPointLaunch.Resolve(module, launch);
         _builder = new StringBuilder(16 * 1024);
         _writer = new StringWriter(_builder);
 
@@ -366,10 +367,9 @@ sealed class CompiledKernelGenerator : DisposeBase
     {
         var result = new List<ParameterInfo>();
 
-        // For auto-sized launches, skip parameter 0 (the implicit thread
-        // index). For grouped launches (_indexDimOverride == 0), there is
-        // no index parameter — all IR parameters are real kernel params.
-        int startParam = _indexDimOverride == 0 ? 0 : 1;
+        // Skip parameter 0 if it is the thread index. Grouped kernels
+        // without a KernelIndex parameter take only real kernel params.
+        int startParam = _launch.HasIndexParameter ? 1 : 0;
         for (int i = startParam; i < entryPoint.NumParameters; i++)
         {
             var param = entryPoint.Parameters[i];
@@ -626,6 +626,19 @@ sealed class CompiledKernelGenerator : DisposeBase
 
     /// <summary>
     /// Emits the flat KernelArgs struct used by FlatStructLauncherEmitter backends.
+    /// Also emits a <c>KernelArgsSize</c> constant whose value is the exact
+    /// CUDA / HIP parameter-buffer size required by the generated device-side
+    /// kernel signature. This is NOT the same as <c>sizeof(KernelArgs)</c>:
+    /// the C# struct may include trailing padding (e.g. an <c>int</c>
+    /// following an 8-byte-aligned struct rounds the C# struct size up to
+    /// the next 8-byte boundary), but CUDA's <c>cuLaunchKernel</c> requires
+    /// the user buffer size to match the kernel's parameter list size
+    /// exactly -- supplying a larger buffer returns
+    /// CUDA_ERROR_LAUNCH_OUT_OF_RESOURCES (701). The constant is computed
+    /// at codegen time by replaying the marshaled-field layout (views ->
+    /// 16-byte ViewImplementation, pointers -> 8-byte IntPtr, structs ->
+    /// recursive flat size with C-style internal padding) and stopping at
+    /// the end of the final field with no trailing alignment pad.
     /// </summary>
     private void EmitKernelArgsStruct(List<ParameterInfo> parameters)
     {
@@ -638,9 +651,130 @@ sealed class CompiledKernelGenerator : DisposeBase
             WriteLine($"public {param.MarshaledTypeName} {param.Name};");
         }
 
+        // Hidden launch-extent arguments (appended after the kernel's own
+        // parameters, matching the device signature).
+        int numExtents = GetNumLaunchExtents();
+        for (int i = 0; i < numExtents; ++i)
+            WriteLine($"public long {EntryPointLaunch.GetExtentParameterName(i)};");
+
         CloseScope();
         WriteLine();
+
+        // Emit the exact CUDA-side parameter-buffer size (no trailing pad)
+        int argsSize = ComputeKernelArgsSize(parameters);
+        for (int i = 0; i < numExtents; ++i)
+            argsSize = AlignUp(argsSize, sizeof(long)) + sizeof(long);
+        WriteLine($"private const int KernelArgsSize = {argsSize};");
+        WriteLine();
     }
+
+    /// <summary>
+    /// Returns the number of hidden launch-extent arguments the kernel takes.
+    /// </summary>
+    private int GetNumLaunchExtents() =>
+        _launcherEmitter.PassesLaunchExtents && _launch.IsImplicit
+            ? _launch.IndexDimensions
+            : 0;
+
+    /// <summary>
+    /// Computes the total CUDA / HIP parameter-buffer size for the given
+    /// parameter list. Each field is placed at its natural marshaled
+    /// alignment with C-style internal padding; no trailing alignment pad
+    /// is added at the end of the buffer (CUDA's parameter list is a
+    /// concatenation of params, not a struct).
+    /// </summary>
+    private static int ComputeKernelArgsSize(List<ParameterInfo> parameters)
+    {
+        int offset = 0;
+        foreach (var param in parameters)
+        {
+            var (size, align) = ComputeMarshaledLayout(param.Type, param.Kind);
+            offset = AlignUp(offset, align);
+            offset += size;
+        }
+        return offset;
+    }
+
+    /// <summary>
+    /// Returns (size, align) of a parameter as it appears in the CUDA
+    /// parameter buffer. Mirrors <see cref="GetMarshaledTypeName"/>:
+    /// views -> 16/8 (ViewImplementation), pointers -> 8/8 (IntPtr),
+    /// view-dependent structs -> recursive flat layout, plain structs ->
+    /// IR struct layout, primitives -> IR type size/align.
+    /// </summary>
+    private static (int Size, int Align) ComputeMarshaledLayout(
+        TypeValue type,
+        ParameterKind kind)
+    {
+        switch (kind)
+        {
+            case ParameterKind.View:
+                // ViewImplementation<T>: void* Ptr (8) + long Length (8) = 16
+                return (16, 8);
+            case ParameterKind.Pointer:
+                // IntPtr on a 64-bit host -- ILGPUC only targets 64-bit
+                // CUDA / ROCm devices today.
+                return (8, 8);
+            case ParameterKind.StructWithViews:
+                return ComputeMarshaledStructLayout((StructureType)type);
+            case ParameterKind.StructPlain:
+                // Plain structs already lay out identically in C# and in
+                // the emitted CUDA C++ struct (no view substitution).
+                var plain = (StructureType)type;
+                return (plain.Size, plain.Alignment);
+            default:
+                // Primitives -- TypeValue.Size matches both sizeof(T)
+                // in C# and the natural CUDA scalar size.
+                return (type.Size, type.Alignment);
+        }
+    }
+
+    /// <summary>
+    /// Recursively computes the (size, align) of a view-dependent
+    /// marshaled struct. Each field uses
+    /// <see cref="ComputeMarshaledLayout"/>; struct size is rounded up to
+    /// its overall alignment (C-style trailing pad) so that the struct
+    /// can be placed in arrays / outer structs naturally.
+    /// </summary>
+    private static (int Size, int Align) ComputeMarshaledStructLayout(
+        StructureType st)
+    {
+        int offset = 0;
+        int maxAlign = 1;
+        for (int i = 0; i < st.NumFields; i++)
+        {
+            var fieldType = st.Fields[i];
+            ParameterKind fieldKind;
+            if (fieldType is ViewType)
+                fieldKind = ParameterKind.View;
+            else if (fieldType is PointerType)
+                fieldKind = ParameterKind.Pointer;
+            else if (fieldType is StructureType nested &&
+                nested.HasFlags(TypeFlags.ViewDependent))
+                fieldKind = ParameterKind.StructWithViews;
+            else if (fieldType is StructureType)
+                fieldKind = ParameterKind.StructPlain;
+            else
+                fieldKind = ParameterKind.Primitive;
+
+            var (fsize, falign) = ComputeMarshaledLayout(fieldType, fieldKind);
+            offset = AlignUp(offset, falign);
+            offset += fsize;
+            if (falign > maxAlign) maxAlign = falign;
+        }
+        // Internal struct trailing pad to its own alignment so the type
+        // tiles cleanly -- matches both C# Sequential and CUDA C++ rules.
+        int size = AlignUp(offset, maxAlign);
+        return (size, maxAlign);
+    }
+
+    /// <summary>
+    /// Returns <paramref name="value"/> rounded up to the next multiple
+    /// of <paramref name="alignment"/>. Returns the input unchanged for
+    /// non-positive alignment.
+    /// </summary>
+    private static int AlignUp(int value, int alignment) =>
+        alignment <= 1 ? value : (value + alignment - 1) / alignment * alignment;
 
     #endregion
 
@@ -653,22 +787,9 @@ sealed class CompiledKernelGenerator : DisposeBase
         string className,
         List<ParameterInfo> parameters)
     {
-        // Detect multi-dim index from entry point's first parameter type.
-        // StructureType with 2 fields = Index2D, 3 fields = Index3D.
-        // When the Roslyn pipeline provides an override (derived from
-        // LaunchVariant), use it — this prevents grouped kernels whose
-        // first user parameter happens to be a struct from being
-        // misidentified as multi-dim index kernels.
-        // Fallback heuristic: only treat as multi-dim index if the struct
-        // has no pointer/view dependencies (index types are pure numeric
-        // structs; ArrayView and other user structs carry pointer/view
-        // flags).
-        int indexDims = _indexDimOverride
-            ?? (_module.EntryPoint?.Parameters[0].Type is
-                StructureType st
-                && !st.HasFlags(TypeFlags.PointerDependent
-                    | TypeFlags.ViewDependent)
-                    ? st.NumFields : 1);
+        // Multi-dim implicit launches pass the extent per dimension so the
+        // launcher can reconstruct Index2D / Index3D.
+        int indexDims = _launch.IsImplicit ? _launch.IndexDimensions : 1;
 
         var sigParams = new List<string>
         {
@@ -711,7 +832,10 @@ sealed class CompiledKernelGenerator : DisposeBase
         OpenScope();
 
         var ctx = CreateEmissionContext();
-        ctx.IndexDimensions = indexDims;
+        ctx.IndexDimensions = _launch.IsGrouped
+            ? _launch.IndexDimensions
+            : indexDims;
+        ctx.Launch = _launch;
 
         // Grouped kernels that take a KernelIndex as their first parameter
         // need the launcher to construct a per-thread KernelIndex struct
@@ -926,6 +1050,7 @@ sealed class CompiledKernelGenerator : DisposeBase
             SimdWidth = _simdWidth,
             BufferPool = _compiled.BufferPool,
             ActiveEmbedMode = _effectiveEmbedMode,
+            KernelSourceCode = _compiled.SourceCode,
         };
 
     #endregion

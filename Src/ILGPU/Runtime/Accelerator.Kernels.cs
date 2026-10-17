@@ -51,10 +51,23 @@ partial class Accelerator
             b.RequiredCapabilities.SpecificityOrdinal.CompareTo(
                 a.RequiredCapabilities.SpecificityOrdinal));
 
-        // Load in sorted order
+        // Load in sorted order. A kernel that fails to load (e.g. the driver
+        // cannot build it for this device) is skipped so the remaining kernels
+        // stay usable; launching it reports that it is not loaded.
         _kernels = InlineList<Kernel>.Create(compatible.Count);
         foreach (var compiledKernel in compatible)
-            LoadCompiledKernel(compiledKernel);
+        {
+            try
+            {
+                LoadCompiledKernel(compiledKernel);
+            }
+            catch (AcceleratorException exception)
+            {
+                System.Diagnostics.Trace.WriteLine(
+                    $"Skipped kernel '{compiledKernel.KernelName}' on " +
+                    $"{AcceleratorType}: {exception.Message}");
+            }
+        }
     }
 
     /// <summary>

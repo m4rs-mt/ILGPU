@@ -149,7 +149,14 @@ public sealed class ROCmDevice : Device, IDeviceAcceleratorTypeInfo
         ROCmException.ThrowIfFailed(
             CurrentAPI.GetDeviceName(out string name, DeviceId));
         Name = name;
-        Architecture = name;
+
+        // The marketing name ("AMD Radeon ...") does not identify the gfx
+        // target that kernels are compiled for; the target ID does.
+        Architecture =
+            CurrentAPI.GetDeviceArchitecture(out string architecture, DeviceId)
+                == ROCmError.Success
+            ? architecture
+            : string.Empty;
 
         WarpSize = CurrentAPI.GetDeviceAttributeValue(
             HipDeviceAttributeKind.WarpSize, DeviceId);

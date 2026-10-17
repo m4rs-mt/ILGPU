@@ -436,6 +436,27 @@ sealed class CPUExpressionEmitter(
         var operand = ResolveOperand(unary.Value);
         var result = context.GetValueName(unary);
 
+        // Bit counting takes the operand's integer type and yields an int.
+        var bitCountMethod = unary.Kind switch
+        {
+            UnaryArithmeticKind.PopC => "PopCount",
+            UnaryArithmeticKind.CLZ => "LeadingZeroCount",
+            UnaryArithmeticKind.CTZ => "TrailingZeroCount",
+            _ => null
+        };
+        if (bitCountMethod is not null
+            && unary.Value.Type is PrimitiveType operandType)
+        {
+            var bitConfig = (CPULanguageConfiguration)context.LanguageConfig;
+            var operandElemType = bitConfig.GetPrimitiveTypeName(
+                operandType.BasicValueType);
+            context.WriteLine(analysis.IsScalar(unary.Value)
+                ? $"var {result} = (int){operandElemType}.{bitCountMethod}({operand});"
+                : $"CPUMathIntrinsics.{bitCountMethod}<{operandElemType}>(" +
+                    $"{result}, {operand});");
+            return;
+        }
+
         if (analysis.IsScalar(unary.Value))
         {
             // Scalar unary operations use plain C# operators or Math calls

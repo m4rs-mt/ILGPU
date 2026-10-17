@@ -87,6 +87,28 @@ sealed class ROCmIntrinsicEmitter : IntrinsicEmitter
         type == ArithmeticBasicValueType.Float64 ? $"pow({x}, {y})" : $"powf({x}, {y})";
 
     /// <inheritdoc/>
+    public override string EmitPopCount(string arg, ArithmeticBasicValueType type) =>
+        Is64BitInteger(type) ? $"__popcll({arg})" : $"__popc({arg})";
+
+    /// <inheritdoc/>
+    public override string EmitLeadingZeroCount(
+        string arg,
+        ArithmeticBasicValueType type) =>
+        Is64BitInteger(type) ? $"__clzll({arg})" : $"__clz({arg})";
+
+    /// <inheritdoc/>
+    /// <remarks>
+    /// There is no trailing-zero intrinsic; <c>__ffs</c> returns the 1-based
+    /// position of the lowest set bit, or 0 for zero.
+    /// </remarks>
+    public override string EmitTrailingZeroCount(
+        string arg,
+        ArithmeticBasicValueType type) =>
+        Is64BitInteger(type)
+            ? $"({arg} == 0 ? 64 : __ffsll({arg}) - 1)"
+            : $"({arg} == 0 ? 32 : __ffs({arg}) - 1)";
+
+    /// <inheritdoc/>
     public override string EmitAbs(string arg, ArithmeticBasicValueType type) => type switch
     {
         ArithmeticBasicValueType.Float64 => $"fabs({arg})",
@@ -103,9 +125,9 @@ sealed class ROCmIntrinsicEmitter : IntrinsicEmitter
         {
             ArithmeticBasicValueType.Float64 => $"fmin({arg1}, {arg2})",
             ArithmeticBasicValueType.Float32 => $"fminf({arg1}, {arg2})",
-            ArithmeticBasicValueType.Int64 => $"llmin({arg1}, {arg2})",
-            ArithmeticBasicValueType.UInt64 => $"ullmin({arg1}, {arg2})",
-            ArithmeticBasicValueType.UInt32 => $"umin({arg1}, {arg2})",
+            ArithmeticBasicValueType.Int64 or
+            ArithmeticBasicValueType.UInt64 or
+            ArithmeticBasicValueType.UInt32 => EmitSelect(arg1, "<", arg2),
             _ => $"min({arg1}, {arg2})"
         };
 
@@ -115,11 +137,20 @@ sealed class ROCmIntrinsicEmitter : IntrinsicEmitter
         {
             ArithmeticBasicValueType.Float64 => $"fmax({arg1}, {arg2})",
             ArithmeticBasicValueType.Float32 => $"fmaxf({arg1}, {arg2})",
-            ArithmeticBasicValueType.Int64 => $"llmax({arg1}, {arg2})",
-            ArithmeticBasicValueType.UInt64 => $"ullmax({arg1}, {arg2})",
-            ArithmeticBasicValueType.UInt32 => $"umax({arg1}, {arg2})",
+            ArithmeticBasicValueType.Int64 or
+            ArithmeticBasicValueType.UInt64 or
+            ArithmeticBasicValueType.UInt32 => EmitSelect(arg1, ">", arg2),
             _ => $"max({arg1}, {arg2})"
         };
+
+    /// <summary>
+    /// Emits a min/max as a conditional expression. HIP has no
+    /// <c>llmin</c>/<c>ullmin</c>/<c>umin</c> helpers (those exist only in
+    /// CUDA's headers), and its <c>min</c>/<c>max</c> overloads are not
+    /// guaranteed for all 64-bit and unsigned types.
+    /// </summary>
+    private static string EmitSelect(string arg1, string comparison, string arg2) =>
+        $"(({arg1}) {comparison} ({arg2}) ? ({arg1}) : ({arg2}))";
 
     /// <inheritdoc/>
     public override string EmitFloor(string arg, ArithmeticBasicValueType type) =>
@@ -214,7 +245,7 @@ sealed class ROCmIntrinsicEmitter : IntrinsicEmitter
         type switch
         {
             ArithmeticBasicValueType.Int32 => $"atomicMin({ptr}, {value})",
-            ArithmeticBasicValueType.Int64 => $"atomicMin((unsigned long long*){ptr}, {value})",
+            ArithmeticBasicValueType.Int64 => $"atomicMin((long long*){ptr}, {value})",
             _ => throw new NotSupportedException(
                 $"Atomic min not supported for type {type} in HIP")
         };
@@ -228,7 +259,7 @@ sealed class ROCmIntrinsicEmitter : IntrinsicEmitter
         type switch
         {
             ArithmeticBasicValueType.Int32 => $"atomicMax({ptr}, {value})",
-            ArithmeticBasicValueType.Int64 => $"atomicMax((unsigned long long*){ptr}, {value})",
+            ArithmeticBasicValueType.Int64 => $"atomicMax((long long*){ptr}, {value})",
             _ => throw new NotSupportedException(
                 $"Atomic max not supported for type {type} in HIP")
         };

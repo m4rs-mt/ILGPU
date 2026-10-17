@@ -147,23 +147,27 @@ sealed class TypeEmitter(GenerationContext context)
     /// Gets the name for a pointer type with proper address space qualification.
     /// </summary>
     /// <remarks>
-    /// This method generates language-specific pointer syntax with address space keywords.
-    /// Examples:
+    /// This method generates language-specific pointer syntax with address
+    /// space keywords. Examples:
     /// - Metal: "device int*", "threadgroup float*"
     /// - OpenCL: "global int*", "local float*"
-    /// - CUDA: "int*", "__shared__ float*"
+    /// - CUDA / HIP: always "int*" — pointer types in CUDA C++ don't carry
+    ///   address-space qualifiers; the address space is implied by the
+    ///   pointee's storage and is tracked by the compiler. Emitting
+    ///   <c>__shared__ int* p</c> as a local variable would put the
+    ///   variable <c>p</c> itself in shared memory, causing all threads to
+    ///   share a single pointer cell and racing on assignment — which
+    ///   manifested as scrambled radix-sort output (e.g. all 8 threads
+    ///   reading the same shared slot). The per-language override lives
+    ///   on <see cref="LanguageConfiguration.GetPointerTypeName"/>.
     /// </remarks>
     private string GetPointerTypeName(PointerType pointer)
     {
         var elementTypeName = GetTypeName(pointer.ElementType);
-        var addrSpace = pointer.AddressSpace;
-        var addrSpaceKeyword = context.LanguageConfig.GetAddressSpaceKeyword(addrSpace);
-
-        // All languages use pointer star syntax
-        if (string.IsNullOrEmpty(addrSpaceKeyword))
-            return $"{elementTypeName}*";
-
-        return $"{addrSpaceKeyword} {elementTypeName}*";
+        var addrSpaceKeyword = context.LanguageConfig.GetAddressSpaceKeyword(
+            pointer.AddressSpace);
+        return context.LanguageConfig.GetPointerTypeName(
+            elementTypeName, addrSpaceKeyword);
     }
 
     /// <summary>
