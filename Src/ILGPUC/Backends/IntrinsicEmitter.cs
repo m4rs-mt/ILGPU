@@ -330,10 +330,13 @@ abstract class IntrinsicEmitter
         kind == BarrierKind.WarpLevel ? EmitWarpBarrier() : EmitBarrier();
 
     /// <summary>
-    /// Emits a barrier that synchronizes all threads of a warp. Defaults to a
-    /// group barrier, which also synchronizes the warp.
+    /// Emits a barrier that synchronizes only the lanes of the current warp
+    /// (sub-group, SIMD-group, wavefront), with the memory guarantees that
+    /// <see cref="EmitBarrier()"/> gives to the group. Other warps of the group
+    /// do not take part, so the barrier is valid in branches that are uniform
+    /// per warp.
     /// </summary>
-    public virtual string EmitWarpBarrier() => EmitBarrier();
+    public abstract string EmitWarpBarrier();
 
     /// <summary>
     /// Emits a memory fence of the given scope.

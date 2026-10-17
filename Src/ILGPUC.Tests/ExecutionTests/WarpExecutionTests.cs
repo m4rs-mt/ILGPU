@@ -57,6 +57,53 @@ public abstract class WarpExecutionTests : ExecutionTestBase
     }
 
     /// <summary>
+    /// A warp barrier that only the first warp of each group reaches, while the
+    /// other warps wait for it to pass.
+    /// </summary>
+    [SkippableFact]
+    public async Task WarpBarrierDivergent_ProducesCorrectOutput()
+    {
+        await VerifyProgramOutputAsync(
+            "TestPrograms/Warp/WarpBarrierDivergent.cs",
+            ["Kernels.WarpBarrierDivergentKernel"],
+            ["17", "16", "15", "14", "13", "12", "11", "10", "0"]);
+    }
+
+    /// <summary>
+    /// The warps of a group take a WarpSpinLock in turn without blocking the
+    /// warp that holds it.
+    /// </summary>
+    [SkippableFact]
+    public async Task WarpSpinLockGroups_ProducesCorrectOutput()
+    {
+        await VerifyProgramOutputAsync(
+            "TestPrograms/Warp/WarpSpinLockGroups.cs",
+            ["Kernels.WarpSpinLockGroupsKernel"],
+            ["lanes 128", "threads 128"]);
+    }
+
+    /// <summary>
+    /// Shuffles, broadcasts, reductions and scans of values taken directly from
+    /// the thread indices, which differ per thread.
+    /// </summary>
+    [SkippableFact]
+    public async Task WarpShuffleKinds_ProducesCorrectOutput()
+    {
+        // Groups wider than a warp cannot synchronize on the CPU backend
+        var broadcast = Backend == BackendType.CPU
+            ? "warp index broadcast skipped"
+            : "warp index broadcast mismatches 0";
+        await VerifyProgramOutputAsync(
+            "TestPrograms/Warp/WarpShuffleKinds.cs",
+            [
+                "Kernels.WarpShuffleKindsKernel",
+                "Kernels.IndexShuffleKernel",
+                "Kernels.WarpIndexBroadcastKernel",
+            ],
+            ["warp mismatches 0", "index mismatches 0", broadcast]);
+    }
+
+    /// <summary>
     /// Warp shuffles of 64-bit integers.
     /// </summary>
     [SkippableFact]

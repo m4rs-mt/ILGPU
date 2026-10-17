@@ -770,6 +770,200 @@ public static class CPUVectorIntrinsics
         return result;
     }
 
+    /// <summary>Masked exclusive prefix sum from the given identity.</summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static T[] WarpScanExclusiveAdd<T>(
+        ReadOnlySpan<T> values,
+        ReadOnlySpan<bool> mask,
+        T identity)
+        where T : IAdditionOperators<T, T, T> =>
+        ScanExclusive<T, AddOperation<T>>(values, mask, identity);
+
+    /// <summary>Masked exclusive prefix product from the identity.</summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static T[] WarpScanExclusiveMul<T>(
+        ReadOnlySpan<T> values,
+        ReadOnlySpan<bool> mask,
+        T identity)
+        where T : IMultiplyOperators<T, T, T> =>
+        ScanExclusive<T, MulOperation<T>>(values, mask, identity);
+
+    /// <summary>Masked inclusive prefix minimum.</summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static T[] WarpScanInclusiveMin<T>(
+        ReadOnlySpan<T> values,
+        ReadOnlySpan<bool> mask)
+        where T : IComparisonOperators<T, T, bool> =>
+        ScanInclusive<T, MinOperation<T>>(values, mask);
+
+    /// <summary>Masked exclusive prefix minimum from the identity.</summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static T[] WarpScanExclusiveMin<T>(
+        ReadOnlySpan<T> values,
+        ReadOnlySpan<bool> mask,
+        T identity)
+        where T : IComparisonOperators<T, T, bool> =>
+        ScanExclusive<T, MinOperation<T>>(values, mask, identity);
+
+    /// <summary>Masked inclusive prefix maximum.</summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static T[] WarpScanInclusiveMax<T>(
+        ReadOnlySpan<T> values,
+        ReadOnlySpan<bool> mask)
+        where T : IComparisonOperators<T, T, bool> =>
+        ScanInclusive<T, MaxOperation<T>>(values, mask);
+
+    /// <summary>Masked exclusive prefix maximum from the identity.</summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static T[] WarpScanExclusiveMax<T>(
+        ReadOnlySpan<T> values,
+        ReadOnlySpan<bool> mask,
+        T identity)
+        where T : IComparisonOperators<T, T, bool> =>
+        ScanExclusive<T, MaxOperation<T>>(values, mask, identity);
+
+    /// <summary>Masked inclusive prefix bitwise-AND.</summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static T[] WarpScanInclusiveAnd<T>(
+        ReadOnlySpan<T> values,
+        ReadOnlySpan<bool> mask)
+        where T : IBitwiseOperators<T, T, T> =>
+        ScanInclusive<T, AndOperation<T>>(values, mask);
+
+    /// <summary>Masked exclusive prefix bitwise-AND from the identity.</summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static T[] WarpScanExclusiveAnd<T>(
+        ReadOnlySpan<T> values,
+        ReadOnlySpan<bool> mask,
+        T identity)
+        where T : IBitwiseOperators<T, T, T> =>
+        ScanExclusive<T, AndOperation<T>>(values, mask, identity);
+
+    /// <summary>Masked inclusive prefix bitwise-OR.</summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static T[] WarpScanInclusiveOr<T>(
+        ReadOnlySpan<T> values,
+        ReadOnlySpan<bool> mask)
+        where T : IBitwiseOperators<T, T, T> =>
+        ScanInclusive<T, OrOperation<T>>(values, mask);
+
+    /// <summary>Masked exclusive prefix bitwise-OR from the identity.</summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static T[] WarpScanExclusiveOr<T>(
+        ReadOnlySpan<T> values,
+        ReadOnlySpan<bool> mask,
+        T identity)
+        where T : IBitwiseOperators<T, T, T> =>
+        ScanExclusive<T, OrOperation<T>>(values, mask, identity);
+
+    /// <summary>Masked inclusive prefix bitwise-XOR.</summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static T[] WarpScanInclusiveXor<T>(
+        ReadOnlySpan<T> values,
+        ReadOnlySpan<bool> mask)
+        where T : IBitwiseOperators<T, T, T> =>
+        ScanInclusive<T, XorOperation<T>>(values, mask);
+
+    /// <summary>Masked exclusive prefix bitwise-XOR from the identity.</summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static T[] WarpScanExclusiveXor<T>(
+        ReadOnlySpan<T> values,
+        ReadOnlySpan<bool> mask,
+        T identity)
+        where T : IBitwiseOperators<T, T, T> =>
+        ScanExclusive<T, XorOperation<T>>(values, mask, identity);
+
+    /// <summary>
+    /// A binary operation combining the values of two lanes in a scan.
+    /// </summary>
+    private interface IScanOperation<T>
+    {
+        static abstract T Combine(T left, T right);
+    }
+
+    private readonly struct AddOperation<T> : IScanOperation<T>
+        where T : IAdditionOperators<T, T, T>
+    {
+        public static T Combine(T left, T right) => left + right;
+    }
+
+    private readonly struct MulOperation<T> : IScanOperation<T>
+        where T : IMultiplyOperators<T, T, T>
+    {
+        public static T Combine(T left, T right) => left * right;
+    }
+
+    private readonly struct MinOperation<T> : IScanOperation<T>
+        where T : IComparisonOperators<T, T, bool>
+    {
+        public static T Combine(T left, T right) => right < left ? right : left;
+    }
+
+    private readonly struct MaxOperation<T> : IScanOperation<T>
+        where T : IComparisonOperators<T, T, bool>
+    {
+        public static T Combine(T left, T right) => right > left ? right : left;
+    }
+
+    private readonly struct AndOperation<T> : IScanOperation<T>
+        where T : IBitwiseOperators<T, T, T>
+    {
+        public static T Combine(T left, T right) => left & right;
+    }
+
+    private readonly struct OrOperation<T> : IScanOperation<T>
+        where T : IBitwiseOperators<T, T, T>
+    {
+        public static T Combine(T left, T right) => left | right;
+    }
+
+    private readonly struct XorOperation<T> : IScanOperation<T>
+        where T : IBitwiseOperators<T, T, T>
+    {
+        public static T Combine(T left, T right) => left ^ right;
+    }
+
+    /// <summary>
+    /// Masked inclusive scan starting at the first active lane.
+    /// </summary>
+    private static T[] ScanInclusive<T, TOperation>(
+        ReadOnlySpan<T> values,
+        ReadOnlySpan<bool> mask)
+        where TOperation : IScanOperation<T>
+    {
+        var result = new T[values.Length];
+        T acc = default!;
+        bool seen = false;
+        for (int i = 0; i < values.Length; i++)
+        {
+            if (!mask[i]) continue;
+            acc = seen ? TOperation.Combine(acc, values[i]) : values[i];
+            seen = true;
+            result[i] = acc;
+        }
+        return result;
+    }
+
+    /// <summary>
+    /// Masked exclusive scan starting at the given identity.
+    /// </summary>
+    private static T[] ScanExclusive<T, TOperation>(
+        ReadOnlySpan<T> values,
+        ReadOnlySpan<bool> mask,
+        T identity)
+        where TOperation : IScanOperation<T>
+    {
+        var result = new T[values.Length];
+        T acc = identity;
+        for (int i = 0; i < values.Length; i++)
+        {
+            if (!mask[i]) continue;
+            result[i] = acc;
+            acc = TOperation.Combine(acc, values[i]);
+        }
+        return result;
+    }
+
     #endregion
 
     #region Pointer Operations

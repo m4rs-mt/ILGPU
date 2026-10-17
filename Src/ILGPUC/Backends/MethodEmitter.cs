@@ -151,6 +151,14 @@ sealed partial class MethodEmitter(
             }
         }
 
+        // Helpers receive the names that only exist in the kernel function
+        foreach (var scopeParameter in context.GetHelperScopeParameters(method))
+        {
+            if (!first) context.Write(", ");
+            first = false;
+            context.Write(scopeParameter.Declaration);
+        }
+
         // Append language-specific built-in parameters (Metal thread position, etc.)
         if (isEntryPoint)
         {

@@ -38,17 +38,7 @@ static class Program
         // Enable profiling via the context builder
         using var context = Context.Create(builder => builder.Default().Profiling());
 
-        var device = context.Devices
-            .OrderByDescending(d => d.AcceleratorType switch
-            {
-                AcceleratorType.Metal  => 5,
-                AcceleratorType.Cuda   => 4,
-                AcceleratorType.ROCm   => 3,
-                AcceleratorType.OpenCL => 2,
-                AcceleratorType.CPU    => 1,
-                _                      => 0,
-            })
-            .First();
+        var device = context.GetPreferredDevice(preferCPU: false);
 
         using var accelerator = device.CreateAccelerator(context);
         Console.WriteLine($"Using {accelerator}");

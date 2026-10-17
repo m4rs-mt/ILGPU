@@ -271,6 +271,14 @@ sealed class CPUIntrinsicEmitter(int? vectorWidth) : IntrinsicEmitter
         "/* barrier - vectorized execution, no synchronization needed */";
 
     /// <inheritdoc/>
+    /// <remarks>
+    /// The lanes of a warp are the lanes of one vectorized call, which execute
+    /// in lockstep.
+    /// </remarks>
+    public override string EmitWarpBarrier() =>
+        "/* warp barrier - vectorized execution, no synchronization needed */";
+
+    /// <inheritdoc/>
     public override string EmitMemoryFence() =>
         "System.Threading.Thread.MemoryBarrier()";
 
@@ -311,25 +319,14 @@ sealed class CPUIntrinsicEmitter(int? vectorWidth) : IntrinsicEmitter
     }
 
     /// <inheritdoc/>
-    /// <remarks>
-    /// Broadcast operations are simulated using runtime helper methods.
-    /// </remarks>
     public override string EmitBroadcast(
         string variable,
         string origin,
         BroadcastKind kind,
-        ArithmeticBasicValueType type)
-    {
-        var methodName = kind switch
-        {
-            BroadcastKind.WarpLevel => "Broadcast",
-            BroadcastKind.GroupLevel => "BroadcastGroup",
-            _ => throw new ArgumentException($"Unknown broadcast kind: {kind}")
-        };
-
-        var elemType = GetPrimitiveTypeName(type);
-        return $"CPUVectorIntrinsics.{methodName}<{elemType}>({variable}, {origin})";
-    }
+        ArithmeticBasicValueType type) =>
+        throw new NotSupportedException(
+            "CPU backend uses CPUExpressionEmitter.EmitBroadcast " +
+            "directly; this path should not be reached.");
 
     /// <summary>
     /// Maps an <see cref="ArithmeticBasicValueType"/> to its C# primitive type
@@ -390,30 +387,61 @@ sealed class CPUIntrinsicEmitter(int? vectorWidth) : IntrinsicEmitter
     /// <inheritdoc/>
     /// <remarks>
     /// CPU masked warp scan — see <see cref="EmitWarpReduce"/> for rationale.
-    /// Only Add and Mul are currently provided.
+    /// Exclusive scans start at the identity of the operation; use the
+    /// overload taking the identity of the scan instead.
     /// </remarks>
     public override string EmitWarpScan(
         string variable,
         BinaryArithmeticKind operation,
         WarpScanKind kind,
-        ArithmeticBasicValueType type)
+        ArithmeticBasicValueType type) =>
+        EmitWarpScan(variable, operation, kind, type, identity: null);
+
+    /// <summary>
+    /// Emits a masked warp scan. Exclusive scans start at
+    /// <paramref name="identity"/>, which is required for all operations but
+    /// Add and Mul.
+    /// </summary>
+    /// <param name="variable">The per-lane values to scan.</param>
+    /// <param name="operation">The scan operation.</param>
+    /// <param name="kind">Inclusive or Exclusive.</param>
+    /// <param name="type">The arithmetic value type.</param>
+    /// <param name="identity">The identity of exclusive scans, if known.</param>
+    public static string EmitWarpScan(
+        string variable,
+        BinaryArithmeticKind operation,
+        WarpScanKind kind,
+        ArithmeticBasicValueType type,
+        string? identity)
     {
-        var inclusive = kind == WarpScanKind.Inclusive;
-        var methodName = operation switch
+        var name = operation switch
         {
-            BinaryArithmeticKind.Add => inclusive
-                ? "WarpScanInclusiveAdd"
-                : "WarpScanExclusiveAdd",
-            BinaryArithmeticKind.Mul => inclusive
-                ? "WarpScanInclusiveMul"
-                : "WarpScanExclusiveMul",
+            BinaryArithmeticKind.Add => "Add",
+            BinaryArithmeticKind.Mul => "Mul",
+            BinaryArithmeticKind.Min => "Min",
+            BinaryArithmeticKind.Max => "Max",
+            BinaryArithmeticKind.And => "And",
+            BinaryArithmeticKind.Or => "Or",
+            BinaryArithmeticKind.Xor => "Xor",
             _ => throw new NotSupportedException(
                 $"CPU warp scan does not support op {operation}")
         };
         var elemType = GetPrimitiveTypeName(type);
-        return
-            $"CPUVectorIntrinsics.{methodName}<{elemType}>(" +
-            $"{variable}, {CPUExpressionEmitter.ActiveMaskName})";
+        var arguments = $"{variable}, {CPUExpressionEmitter.ActiveMaskName}";
+        if (kind == WarpScanKind.Inclusive)
+        {
+            return $"CPUVectorIntrinsics.WarpScanInclusive{name}<{elemType}>(" +
+                $"{arguments})";
+        }
+        if (identity is not null)
+            arguments += $", ({elemType})({identity})";
+        else if (operation is not BinaryArithmeticKind.Add
+            and not BinaryArithmeticKind.Mul)
+        {
+            throw new NotSupportedException(
+                $"CPU exclusive warp scan of op {operation} needs an identity");
+        }
+        return $"CPUVectorIntrinsics.WarpScanExclusive{name}<{elemType}>({arguments})";
     }
 
     #endregion

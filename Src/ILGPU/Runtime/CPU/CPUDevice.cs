@@ -20,17 +20,27 @@ namespace ILGPU.Runtime.CPU;
 public sealed class CPUDevice : Device, IDeviceAcceleratorTypeInfo
 {
     /// <summary>
-    /// Default device: array-based vectorization with 8 lanes.
-    /// Hardware acceleration depends on <see cref="Vector.IsHardwareAccelerated"/>.
+    /// The number of lanes the ILGPU compiler vectorizes CPU kernels for by
+    /// default (its <c>--simd-width</c> option).
+    /// </summary>
+    public const int DefaultVectorWidth = 8;
+
+    /// <summary>
+    /// Default device: array-based vectorization with
+    /// <see cref="DefaultVectorWidth"/> lanes, the width CPU kernels are compiled
+    /// for. Hardware acceleration depends on
+    /// <see cref="Vector.IsHardwareAccelerated"/>.
     /// </summary>
     public static readonly CPUDevice Default = new(
-        vectorWidth: Vector<int>.Count,
+        vectorWidth: DefaultVectorWidth,
         isHardwareAccelerated: Vector.IsHardwareAccelerated);
 
     /// <summary>
     /// Creates a CPU device that emulates a specific warp size.
-    /// Useful for testing kernels targeting GPUs with specific warp sizes
-    /// (e.g., 32 for CUDA, 64 for AMD) on the CPU.
+    /// CPU kernels compiled for the same SIMD width (the <c>--simd-width</c>
+    /// option of the ILGPU compiler) run warps of this size, which is useful for
+    /// testing kernels targeting GPUs with specific warp sizes (e.g., 32 for CUDA,
+    /// 64 for AMD) on the CPU.
     /// </summary>
     public static CPUDevice Emulated(int warpSize) => new(
         vectorWidth: warpSize,

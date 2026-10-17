@@ -376,10 +376,16 @@ sealed class ROCmIntrinsicEmitter : IntrinsicEmitter
 
     /// <inheritdoc/>
     /// <remarks>
-    /// The lanes of a wavefront execute in lockstep; the wave barrier keeps
-    /// the compiler from moving memory operations across it.
+    /// The wave barrier itself orders no memory, so wavefront-scope release and
+    /// acquire fences surround it. This is the body of HIP's own
+    /// <c>__syncwarp()</c> (ROCm 7.0 and later), emitted directly so that kernels
+    /// also compile with ROCm 6.x headers and when
+    /// <c>HIP_DISABLE_WARP_SYNC_BUILTINS</c> is defined.
     /// </remarks>
-    public override string EmitWarpBarrier() => "__builtin_amdgcn_wave_barrier()";
+    public override string EmitWarpBarrier() =>
+        "__builtin_amdgcn_fence(__ATOMIC_RELEASE, \"wavefront\"); " +
+        "__builtin_amdgcn_wave_barrier(); " +
+        "__builtin_amdgcn_fence(__ATOMIC_ACQUIRE, \"wavefront\")";
 
     /// <inheritdoc/>
     public override string EmitMemoryFence(MemoryBarrierKind kind) =>
