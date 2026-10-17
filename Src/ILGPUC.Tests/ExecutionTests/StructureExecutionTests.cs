@@ -69,6 +69,19 @@ public abstract class StructureExecutionTests : ExecutionTestBase
     }
 
     /// <summary>
+    /// In-place updates of struct fields behind alignment padding go through
+    /// field addresses that include the padding.
+    /// </summary>
+    [SkippableFact]
+    public async Task StructFieldAddressPadding_ProducesCorrectOutput()
+    {
+        await VerifyProgramOutputAsync(
+            "TestPrograms/Structure/StructFieldAddressPadding.cs",
+            ["Kernels.StructFieldAddressPaddingKernel"],
+            ["11 3000 18 130", "12 3003 19 131", "13 3006 20 132", "14 3009 21 133"]);
+    }
+
+    /// <summary>
     /// A nested struct keeps its alignment within the flattened outer struct
     /// so that device and host layouts agree.
     /// </summary>

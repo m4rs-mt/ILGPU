@@ -1129,11 +1129,10 @@ sealed partial class CPUMethodEmitter(
                     }
                     else
                     {
-                        // Compute byte offset from field index and element sizes
-                        var structType = lfa.StructureType;
-                        int byteOffset = 0;
-                        for (int f = 0; f < fieldOffset; f++)
-                            byteOffset += structType[f].Size;
+                        // The byte offset of the field includes the padding
+                        // that aligns the fields in front of it
+                        int byteOffset = lfa.StructureType.GetOffset(
+                            new FieldAccess(fieldOffset));
                         context.WriteLine(
                             $"CPUVectorIntrinsics.OffsetPointers(" +
                             $"{lfaVar}, {srcVar}, {byteOffset});");
