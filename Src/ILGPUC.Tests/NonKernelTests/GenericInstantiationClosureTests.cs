@@ -1167,6 +1167,19 @@ public sealed class GenericInstantiationClosureTests
         },
         {
             """
+            public ref struct Scope<T> where T : unmanaged
+            {
+                public void Dispose() => Launcher.Run<T>(Program.Stream);
+            }
+            public static partial class Program
+            {
+                public static void Entry() { using var scope = new Scope<sbyte>(); }
+            }
+            """,
+            "sbyte"
+        },
+        {
+            """
             public sealed class Resource<T> : IDisposable where T : unmanaged
             {
                 public void Dispose() => Launcher.Run<T>(Program.Stream);
