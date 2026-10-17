@@ -72,7 +72,9 @@ sealed class MetalLanguageConfiguration : LanguageConfiguration
     public override bool SupportsFeature(LanguageFeature feature) =>
         feature switch
         {
-            LanguageFeature.GenericAddressSpace => true,
+            // Metal has no generic address space; every pointer is device,
+            // threadgroup, thread or constant.
+            LanguageFeature.GenericAddressSpace => false,
             LanguageFeature.ConstantAddressSpace => true,
             LanguageFeature.LocalAddressSpace => true,
             LanguageFeature.Atomics => true,

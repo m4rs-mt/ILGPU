@@ -55,6 +55,13 @@ public enum BackendCapability
     /// compare-and-swap.
     /// </summary>
     Int64Atomics = 1 << 5,
+
+    /// <summary>
+    /// References that may point into different address spaces (e.g. shared or
+    /// global memory) at run time. Metal and the OpenCL backend have no generic
+    /// address space.
+    /// </summary>
+    GenericAddressSpace = 1 << 6,
 }
 
 /// <summary>
@@ -87,19 +94,22 @@ public static class BackendCapabilities
             | BackendCapability.Float64Atomics
             | BackendCapability.Int64AtomicMinMax
             | BackendCapability.Int64Atomics
+            | BackendCapability.GenericAddressSpace
             | BackendCapability.PredicateBarriers,
         [BackendType.Cuda] = BackendCapability.Float64
             | BackendCapability.Float16
             | BackendCapability.Float64Atomics
             | BackendCapability.Int64AtomicMinMax
             | BackendCapability.Int64Atomics
-            | BackendCapability.PredicateBarriers,
+            | BackendCapability.PredicateBarriers
+            | BackendCapability.GenericAddressSpace,
         [BackendType.ROCm] = BackendCapability.Float64
             | BackendCapability.Float16
             | BackendCapability.Float64Atomics
             | BackendCapability.Int64AtomicMinMax
             | BackendCapability.Int64Atomics
-            | BackendCapability.PredicateBarriers,
+            | BackendCapability.PredicateBarriers
+            | BackendCapability.GenericAddressSpace,
         [BackendType.OpenCL] = BackendCapability.Float64
             | BackendCapability.Float16
             | BackendCapability.Float64Atomics

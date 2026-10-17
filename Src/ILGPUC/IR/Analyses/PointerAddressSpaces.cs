@@ -323,16 +323,18 @@ sealed class PointerAddressSpaces(PointerAddressSpaces.AnalysisFlags flags) :
     {
         var analysis = Create(flags);
 
-        // Mark all global values as global
+        // Globals live in the address space of their type (shared, local or
+        // constant memory)
         var globalMap = rootMethod.Module.CreateGlobalMap<
             AnalysisValue<AddressSpaceInfo>>();
         foreach (var global in rootMethod.Module.Globals)
         {
-            globalMap.Add(global, AnalysisValue.Create(
-                new AddressSpaceInfo(AddressSpaceFlags.Global), global.Type));
+            globalMap.Add(
+                global,
+                AddressSpaceInfo.AnalysisValueFromType(global.Type));
         }
 
-        // Initialize kernel parameters
+        // Kernel parameters point to global memory
         foreach (var parameter in rootMethod.Parameters)
         {
             globalMap.Add(parameter, AnalysisValue.Create(
@@ -352,30 +354,26 @@ sealed class PointerAddressSpaces(PointerAddressSpaces.AnalysisFlags flags) :
         (flags & otherFlags) != AnalysisFlags.None;
 
     /// <summary>
-    /// Returns initial and address space information.
+    /// Pure values are analyzed: address chains (casts, element and field
+    /// addresses, views) inherit the address spaces of their sources.
     /// </summary>
-    /// <param name="node">The IR node.</param>
-    /// <returns>The initial address space information.</returns>
-    private AddressSpaceInfo GetInitialInfo(Value node)
-    {
-        if (node.Type is not AddressSpaceType type)
-            return default;
-        return
-            type.AddressSpace != MemoryAddressSpace.Generic ||
-            !HasFlags(AnalysisFlags.IgnoreGenericAddressSpace)
-            ? type.AddressSpace
-            : default;
-    }
+    protected override bool AnalyzesPureValues => true;
 
     /// <summary>
-    /// Tries to convert the given type into an <see cref="AddressSpaceType"/>
-    /// and returns the determined address space.
+    /// Returns the initial value of all values that are not seeded explicitly.
     /// </summary>
+    /// <remarks>
+    /// When ignoring the generic address space, every value starts without any
+    /// address space and receives its information from <see cref="Analyze"/>
+    /// alone. This keeps casts to the generic address space and generic phi or
+    /// parameter types from polluting values whose sources are all known.
+    /// Otherwise, every value starts with the address spaces of its type.
+    /// </remarks>
     protected override AnalysisValue<AddressSpaceInfo>?
         TryProvideForType(TypeValue type) =>
-        type is AddressSpaceType spaceType
-        ? AnalysisValue.Create<AddressSpaceInfo>(spaceType.AddressSpace, type)
-        : null;
+        HasFlags(AnalysisFlags.IgnoreGenericAddressSpace)
+        ? AnalysisValue.Create(default(AddressSpaceInfo), type)
+        : AddressSpaceInfo.AnalysisValueFromType(type);
 
     /// <summary>
     /// Returns the unified address-space flags.
@@ -386,32 +384,151 @@ sealed class PointerAddressSpaces(PointerAddressSpaces.AnalysisFlags flags) :
         AddressSpaceInfo.Merge(first, second);
 
     /// <summary>
+    /// Returns the current analysis value of the given operand.
+    /// </summary>
+    private AnalysisValue<AddressSpaceInfo> GetOperand(
+        Value operand,
+        GlobalValueMap<AnalysisValue<AddressSpaceInfo>> data) =>
+        data.TryGetValue(operand, out var result)
+        ? result
+        : CreateInitialValue(operand.Type);
+
+    /// <summary>
+    /// Returns the information of the given field of a structure value.
+    /// </summary>
+    private static AddressSpaceInfo GetField(
+        in AnalysisValue<AddressSpaceInfo> value,
+        int index) =>
+        value.IsStructure && index < value.NumFields
+        ? value[index]
+        : value.Data;
+
+    /// <summary>
+    /// Creates a structure analysis value from the given field information.
+    /// </summary>
+    private static AnalysisValue<AddressSpaceInfo> CreateStructure(
+        AddressSpaceInfo[] fields)
+    {
+        var data = new AddressSpaceInfo();
+        foreach (var field in fields)
+            data = AddressSpaceInfo.Merge(data, field);
+        return new AnalysisValue<AddressSpaceInfo>(data, fields);
+    }
+
+    /// <summary>
+    /// Analyzes a field load from a structure value.
+    /// </summary>
+    private AnalysisValue<AddressSpaceInfo> AnalyzeGetField(
+        GetField getField,
+        GlobalValueMap<AnalysisValue<AddressSpaceInfo>> data)
+    {
+        var source = GetOperand(getField.Source, data);
+        var span = getField.FieldSpan;
+        if (getField.Type is not StructureType structureType)
+            return AnalysisValue.Create(GetField(source, span.Index), getField.Type);
+
+        var fields = new AddressSpaceInfo[structureType.NumFields];
+        for (int i = 0; i < fields.Length; ++i)
+            fields[i] = GetField(source, span.Index + i);
+        return CreateStructure(fields);
+    }
+
+    /// <summary>
+    /// Analyzes a field store into a structure value.
+    /// </summary>
+    private AnalysisValue<AddressSpaceInfo> AnalyzeSetField(
+        SetField setField,
+        GlobalValueMap<AnalysisValue<AddressSpaceInfo>> data)
+    {
+        var source = GetOperand(setField.Source, data);
+        var value = GetOperand(setField.Value, data);
+        var span = setField.FieldSpan;
+
+        var fields = new AddressSpaceInfo[setField.StructureType.NumFields];
+        for (int i = 0; i < fields.Length; ++i)
+        {
+            fields[i] = i >= span.Index && i < span.Index + span.Span
+                ? GetField(value, i - span.Index)
+                : GetField(source, i);
+        }
+        return CreateStructure(fields);
+    }
+
+    /// <summary>
+    /// Analyzes a structure value built from its (flattened) fields.
+    /// </summary>
+    private AnalysisValue<AddressSpaceInfo> AnalyzeStructure(
+        StructureValue structureValue,
+        GlobalValueMap<AnalysisValue<AddressSpaceInfo>> data)
+    {
+        var operands = structureValue.Values;
+        var fields = new AddressSpaceInfo[structureValue.StructureType.NumFields];
+        for (int i = 0; i < fields.Length; ++i)
+        {
+            fields[i] = i < operands.Length
+                ? GetOperand(operands[i], data).Data
+                : default;
+        }
+        return CreateStructure(fields);
+    }
+
+    /// <summary>
     /// Analyzes a value to compute its address space information.
     /// </summary>
+    /// <remarks>
+    /// Values that derive an address from another one point into the address
+    /// spaces of their source. All other values point into the address spaces
+    /// of their types, including the generic one: a pointer loaded from memory
+    /// or returned from a call may point anywhere.
+    /// </remarks>
     protected override AnalysisValue<AddressSpaceInfo> Analyze(
         Value value,
         GlobalValueMap<AnalysisValue<AddressSpaceInfo>> data)
     {
-        // Load information about address-space types for phi values
-        if (value is PhiValue phiValue)
-            return MergePhiValue(phiValue, data);
+        switch (value)
+        {
+            case PhiValue phiValue:
+                return MergePhiValue(phiValue, data);
 
-        // PointerCast: inherit address space from source.
-        // PointerCast changes element type but preserves address space.
-        // Propagating source info allows tracing alloca-derived pointers
-        // through Unsafe.As<T,U>() reinterpret casts.
-        if (value is PointerCast ptrCast
-            && data.TryGetValue(ptrCast.Source, out var ptrSrcData))
-            return AnalysisValue.Create(ptrSrcData.Data, value.Type);
+            // A cast into a specific address space asserts it; a cast into the
+            // generic one keeps pointing into the source's address spaces.
+            case AddressSpaceCast cast:
+                return cast.TargetAddressSpace != MemoryAddressSpace.Generic
+                    ? AddressSpaceInfo.AnalysisValueFromType(cast.Type)
+                    : AnalysisValue.Create(
+                        GetOperand(cast.Source, data).Data,
+                        cast.Type);
 
-        // AddressSpaceCast: inherit address space from source.
-        // The cast target space is in the type, but the source's actual
-        // space may be more specific (e.g., Local from alloca).
-        if (value is AddressSpaceCast asCast
-            && data.TryGetValue(asCast.Source, out var asSrcData))
-            return AnalysisValue.Create(asSrcData.Data, value.Type);
+            // Address computations and views preserve the address space
+            case PointerCast:
+            case ViewCast:
+            case LoadElementAddress:
+            case LoadFieldAddress:
+            case NewView:
+            case SubView:
+            case BaseAlignOperationValue:
+                return AnalysisValue.Create(
+                    GetOperand(value.Values[0], data).Data,
+                    value.Type);
 
-        // Default behavior: use initial info from type
-        return AnalysisValue.Create(GetInitialInfo(value), value.Type);
+            case Predicate predicate:
+                return Merge(
+                    GetOperand(predicate.TrueValue, data),
+                    GetOperand(predicate.FalseValue, data));
+
+            case StructureValue structureValue:
+                return AnalyzeStructure(structureValue, data);
+            case GetField getField:
+                return AnalyzeGetField(getField, data);
+            case SetField setField:
+                return AnalyzeSetField(setField, data);
+
+            // A null pointer is compatible with every address space
+            case NullValue:
+                return AnalysisValue.Create(default(AddressSpaceInfo), value.Type);
+
+            default:
+                return AddressSpaceInfo.AnalysisValueFromType(value.Type);
+        }
     }
 }

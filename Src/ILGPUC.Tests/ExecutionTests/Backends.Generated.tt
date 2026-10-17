@@ -67,6 +67,7 @@ var testClasses = new[]
     "DivergentMemoryExecutionTests",
     "VectorArithmeticExecutionTests",
     "VectorStructuresExecutionTests",
+    "AddressSpaceExecutionTests",
 };
 
 var backends = new[] { "CPU", "Metal", "Cuda", "ROCm", "OpenCL" };

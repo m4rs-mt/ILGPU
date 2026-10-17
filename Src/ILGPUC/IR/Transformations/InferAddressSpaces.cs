@@ -31,8 +31,7 @@ namespace ILGPUC.IR.Transformations;
 /// Changing the type of a value changes the types of all address computations
 /// derived from it. A value is only retyped when every (transitive) user either
 /// follows the new type or receives a cast back to the type it expects (phi
-/// arguments, call arguments, selected values, stored values and returned
-/// values). Otherwise,
+/// arguments, call arguments, stored values and returned values). Otherwise,
 /// the value keeps its type.
 /// </remarks>
 /// <param name="args">The transformation args.</param>
@@ -43,14 +42,20 @@ sealed class InferAddressSpaces(TransformationArgs args) : Transformation(args)
         PointerAddressSpaces.AnalysisFlags.IgnoreGenericAddressSpace);
 
     /// <summary>
+    /// The generation of the input module.
+    /// </summary>
+    private readonly Generation _generation = args.Module.Generation;
+
+    /// <summary>
     /// Caches whether a value of the input module may change its type.
     /// </summary>
     private readonly Dictionary<ValueId, bool> _canRetype = [];
 
     /// <summary>
-    /// The generation of the input module.
+    /// Caches the specialized types of all method parameters (null if a
+    /// parameter keeps its type).
     /// </summary>
-    private readonly Generation _generation = args.Module.Generation;
+    private readonly Dictionary<ValueId, TypeValue?> _parameterTypes = [];
 
     /// <summary>
     /// Specializes a type based on detailed analysis value information.
@@ -137,12 +142,10 @@ sealed class InferAddressSpaces(TransformationArgs args) : Transformation(args)
     /// </summary>
     /// <remarks>
     /// Address computations derived from the value follow its type and are
-    /// checked recursively. Phi arguments, stored values and returned values
-    /// are converted back by this pass, call arguments of methods with an
-    /// implementation are cast by <see cref="RewriteMethodCall"/> and the
-    /// selected values of predicates by <see cref="RewritePredicate"/>. All
-    /// other users (e.g. structure values or comparisons) require the original
-    /// type.
+    /// checked recursively. Phi arguments, call arguments of methods with an
+    /// implementation, stored values and returned values are converted back by
+    /// this pass, and so are the selected values of predicates. All other users
+    /// (e.g. structure values or comparisons) require the original type.
     /// </remarks>
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     private bool CanRetype(Value value)
@@ -172,7 +175,7 @@ sealed class InferAddressSpaces(TransformationArgs args) : Transformation(args)
     /// </summary>
     private bool CanRetypeUse(Use use) => use.Target switch
     {
-        // Converted back by this pass (or cast by RewriteMethodCall)
+        // Converted back by this pass
         Method or PhiValue or Store => true,
         MethodCall call => use.Index > 0 && call.Target.HasImplementation,
         BasicBlock block => block.TerminationKind == BlockTerminationKind.Return,
@@ -196,6 +199,30 @@ sealed class InferAddressSpaces(TransformationArgs args) : Transformation(args)
         GetViewLength or PointerAsIntCast => true,
         _ => false,
     };
+
+    /// <summary>
+    /// Returns true if the given value may change its type and if this is
+    /// worth it: values that are only stored or returned would be converted
+    /// back right away.
+    /// </summary>
+    private bool ShouldRetype(Value value)
+    {
+        if (!CanRetype(value))
+            return false;
+        foreach (var use in value.Uses)
+        {
+            switch (use.Target)
+            {
+                case Method:
+                case Store when use.Index == 1:
+                case BasicBlock:
+                    break;
+                default:
+                    return true;
+            }
+        }
+        return false;
+    }
 
     /// <summary>
     /// Analyzes the module to determine address space usage patterns.
@@ -238,7 +265,7 @@ sealed class InferAddressSpaces(TransformationArgs args) : Transformation(args)
                     continue;
 
                 var phiType = transform.Rewrite(phi.Type);
-                if (CanRetype(phi) &&
+                if (ShouldRetype(phi) &&
                     SpecializeType(
                         transform.ModuleBuilder,
                         phiType,
@@ -312,9 +339,34 @@ sealed class InferAddressSpaces(TransformationArgs args) : Transformation(args)
         // users of the cast accept the specific type. This eliminates spurious
         // Local→Generic casts on alloca-derived pointers.
         return cast.TargetAddressSpace == MemoryAddressSpace.Generic &&
-            _results.GetUnifiedAddressSpace(cast.Source) !=
-                MemoryAddressSpace.Generic &&
-            CanRetype(cast);
+            _results.GetUnifiedAddressSpace(cast.Source) != MemoryAddressSpace.Generic &&
+            ShouldRetype(cast);
+    }
+
+    /// <summary>
+    /// Returns true if the given address is only read (loaded from), possibly
+    /// through derived addresses.
+    /// </summary>
+    private static bool IsReadOnly(Value value)
+    {
+        foreach (var use in value.Uses)
+        {
+            switch (use.Target)
+            {
+                case Load:
+                    break;
+                case AddressSpaceCast or
+                    PointerCast or
+                    LoadElementAddress or
+                    LoadFieldAddress when use.Index == 0:
+                    if (!IsReadOnly(use.Target))
+                        return false;
+                    break;
+                default:
+                    return false;
+            }
+        }
+        return true;
     }
 
     /// <summary>
@@ -332,16 +384,31 @@ sealed class InferAddressSpaces(TransformationArgs args) : Transformation(args)
         if (!allocType.HasFlags(TypeFlags.AddressSpaceDependent))
             return alloca;
 
-        // Determine address space from values stored into this alloca
+        // Determine address space from values stored into this alloca. All
+        // writes must be direct stores; writes through derived or escaping
+        // addresses could store anything.
         AnalysisValue<AddressSpaceInfo>? mergedAnalysis = null;
         foreach (var use in alloca.Uses)
         {
-            if (use.Target is Store store && store.Target == alloca)
+            switch (use.Target)
             {
-                var valueAnalysis = _results.GetAnalysisValue(store.Value);
-                mergedAnalysis = mergedAnalysis == null
-                    ? valueAnalysis
-                    : Merge(mergedAnalysis.Value, valueAnalysis);
+                case Store store when use.Index == 0:
+                    var valueAnalysis = _results.GetAnalysisValue(store.Value);
+                    mergedAnalysis = mergedAnalysis == null
+                        ? valueAnalysis
+                        : Merge(mergedAnalysis.Value, valueAnalysis);
+                    break;
+                case Load:
+                    break;
+                case AddressSpaceCast or
+                    PointerCast or
+                    LoadElementAddress or
+                    LoadFieldAddress when use.Index == 0:
+                    if (!IsReadOnly(use.Target))
+                        return alloca;
+                    break;
+                default:
+                    return alloca;
             }
         }
 
@@ -363,10 +430,12 @@ sealed class InferAddressSpaces(TransformationArgs args) : Transformation(args)
             return transform.CreateAlloca(alloca.Location, specializedType, arrayLength)
                 ?? alloca;
 
+        if (alloca.ArrayLengthValue is not { } arrayLengthValue)
+            return alloca;
         return transform.CreateAlloca(
             alloca.Location,
             specializedType,
-            alloca.ArrayLengthValue)
+            transform.Rewrite(arrayLengthValue))
             ?? alloca;
     }
 
@@ -481,26 +550,27 @@ sealed class InferAddressSpaces(TransformationArgs args) : Transformation(args)
 
     /// <summary>
     /// Returns the specialized type of the given parameter, or null if the
-    /// parameter keeps its type.
+    /// parameter keeps its type. Parameters and the arguments of all calls
+    /// must agree on this type.
     /// </summary>
     private TypeValue? GetSpecializedParameterType(
         ITypeRewriter typeRewriter,
         Parameter parameter)
     {
-        // Skip parameters whose type graph cannot be safely rewritten and
-        // parameters with users that require the original type
-        if (!CanRewriteParameterType(parameter.Type, _generation) ||
-            !CanRetype(parameter))
-        {
-            return null;
-        }
+        if (_parameterTypes.TryGetValue(parameter.Id, out var result))
+            return result;
 
-        // Try to specialize the type based on analysis results (including
-        // per-field data)
-        return SpecializeType(
-            typeRewriter.ModuleBuilder,
-            typeRewriter.Rewrite(parameter.Type),
-            _results.GetAnalysisValue(parameter));
+        result = null;
+        if (CanRewriteParameterType(parameter.Type, _generation) &&
+            ShouldRetype(parameter))
+        {
+            result = SpecializeType(
+                typeRewriter.ModuleBuilder,
+                typeRewriter.Rewrite(parameter.Type),
+                _results.GetAnalysisValue(parameter));
+        }
+        _parameterTypes[parameter.Id] = result;
+        return result;
     }
 
     /// <summary>
@@ -546,11 +616,9 @@ sealed class InferAddressSpaces(TransformationArgs args) : Transformation(args)
     {
         // External methods have no analyzed parameters — skip rewriting
         var target = call.Target;
-        if (target.IsExternal)
+        if (!target.HasImplementation)
             return call;
 
-        // Note: call.Count includes the target method at index 0 (Values[0] = target,
-        // Values[1..] = arguments). Use call.Arguments to iterate only arguments.
         var arguments = new Value?[call.Arguments.Length];
         bool anyChanges = false;
         for (int i = 0; i < arguments.Length; ++i)
@@ -568,19 +636,7 @@ sealed class InferAddressSpaces(TransformationArgs args) : Transformation(args)
             if (newArg.Type.Equals(paramType))
                 continue;
 
-            // Pointers whose element types differ (e.g. a local copy of a
-            // structure holding a global view) keep their element type and
-            // only change their own address space, as reinterpreting the
-            // element type prevents simplifying the copy after inlining
-            arguments[i] =
-                newArg.Type is PointerType argPointer &&
-                paramType is PointerType paramPointer &&
-                !argPointer.ElementType.Equals(paramPointer.ElementType)
-                ? transform.CreateAddressSpaceCast(
-                    call.Location,
-                    newArg,
-                    paramPointer.AddressSpace)
-                : Coerce(transform, call.Location, newArg, paramType);
+            arguments[i] = Coerce(transform, call.Location, newArg, paramType);
             anyChanges = true;
         }
 

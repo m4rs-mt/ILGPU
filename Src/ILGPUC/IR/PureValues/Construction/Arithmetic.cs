@@ -237,12 +237,163 @@ partial class PureValueBuilder
             }
         }
 
+        if ((simplified = LogicalSimplify(location, left, right, kind, flags)) != null)
+            return simplified;
+
         return Append(new BinaryArithmeticValue(
             GetInitializer(location),
             left,
             right,
             kind,
             flags));
+    }
+
+    /// <summary>
+    /// Returns true if both values are the same value or equal constants.
+    /// </summary>
+    private static bool AreSameOperand(Value first, Value second) =>
+        first == second ||
+        first is PrimitiveValue firstConstant &&
+        second is PrimitiveValue secondConstant &&
+        firstConstant.BasicValueType == secondConstant.BasicValueType &&
+        firstConstant.RawValue == secondConstant.RawValue;
+
+    /// <summary>
+    /// Returns true if both boolean values are known to be equal: they are the
+    /// same value or comparisons of the same operands.
+    /// </summary>
+    private static bool AreEquivalent(Value first, Value second) =>
+        first == second ||
+        first is CompareValue firstCompare &&
+        second is CompareValue secondCompare &&
+        firstCompare.Kind == secondCompare.Kind &&
+        firstCompare.Flags == secondCompare.Flags &&
+        AreSameOperand(firstCompare.Left, secondCompare.Left) &&
+        AreSameOperand(firstCompare.Right, secondCompare.Right);
+
+    /// <summary>
+    /// Returns true if the given boolean values are known to be complements
+    /// of each other: one is the negation of the other, or both compare the
+    /// same operands with inverse conditions (including unordered floats).
+    /// </summary>
+    private static bool AreComplementary(Value first, Value second)
+    {
+        if (second is UnaryArithmeticValue { Kind: UnaryArithmeticKind.Not } secondNot)
+            return AreEquivalent(first, secondNot.Value);
+        if (first is UnaryArithmeticValue { Kind: UnaryArithmeticKind.Not } firstNot)
+            return AreEquivalent(firstNot.Value, second);
+        if (first is not CompareValue firstCompare ||
+            second is not CompareValue secondCompare)
+        {
+            return false;
+        }
+
+        var flags = firstCompare.Flags;
+        var leftType = firstCompare.Left.BasicValueType;
+        var rightType = firstCompare.Right.BasicValueType;
+        var inverted = CompareValue.Invert(
+            firstCompare.Kind,
+            leftType,
+            rightType,
+            ref flags);
+        if (AreSameOperand(secondCompare.Left, firstCompare.Left) &&
+            AreSameOperand(secondCompare.Right, firstCompare.Right))
+        {
+            return secondCompare.Kind == inverted && secondCompare.Flags == flags;
+        }
+
+        // Compare the swapped form of the inverse: !(a < b) == (b <= a)
+        var swapped = CompareValue.SwapOperands(
+            inverted,
+            leftType,
+            rightType,
+            ref flags);
+        return AreSameOperand(secondCompare.Left, firstCompare.Right) &&
+            AreSameOperand(secondCompare.Right, firstCompare.Left) &&
+            secondCompare.Kind == swapped &&
+            secondCompare.Flags == flags;
+    }
+
+    /// <summary>
+    /// Simplifies logical and/or operations on booleans whose operands are
+    /// equivalent or complementary: x | x → x, x | !x → true, x &amp; !x →
+    /// false, including the commuted forms and one level of nesting.
+    /// </summary>
+    /// <param name="location">The current location.</param>
+    /// <param name="left">The left operand.</param>
+    /// <param name="right">The right operand.</param>
+    /// <param name="kind">The operation kind.</param>
+    /// <param name="flags">Operation flags.</param>
+    /// <returns>The simplified value (if any).</returns>
+    private Value? LogicalSimplify(
+        Location location,
+        Value left,
+        Value right,
+        BinaryArithmeticKind kind,
+        ArithmeticFlags flags)
+    {
+        if (kind is not BinaryArithmeticKind.And and not BinaryArithmeticKind.Or ||
+            left.BasicValueType != BasicValueType.Int1)
+        {
+            return null;
+        }
+
+        if (AreEquivalent(left, right))
+            return left;
+        if (AreComplementary(left, right))
+            return CreatePrimitiveValue(location, kind == BinaryArithmeticKind.Or);
+
+        return LogicalSimplifyNested(location, left, right, kind, flags)
+            ?? LogicalSimplifyNested(location, right, left, kind, flags);
+    }
+
+    /// <summary>
+    /// Simplifies a logical operation whose nested operand is itself a logical
+    /// operation, where op is the given kind and op' its dual:
+    /// (x op y) op !x → true/false, (x op y) op x → x op y,
+    /// (x op' y) op x → x and (x op' y) op !x → y op !x.
+    /// </summary>
+    /// <param name="location">The current location.</param>
+    /// <param name="nested">The (potentially) nested logical operation.</param>
+    /// <param name="other">The other operand.</param>
+    /// <param name="kind">The operation kind.</param>
+    /// <param name="flags">Operation flags.</param>
+    /// <returns>The simplified value (if any).</returns>
+    private Value? LogicalSimplifyNested(
+        Location location,
+        Value nested,
+        Value other,
+        BinaryArithmeticKind kind,
+        ArithmeticFlags flags)
+    {
+        if (nested is not BinaryArithmeticValue
+            {
+                Kind: BinaryArithmeticKind.And or BinaryArithmeticKind.Or
+            } binary)
+        {
+            return null;
+        }
+
+        var (x, y) = (binary.Left, binary.Right);
+        if (binary.Kind == kind)
+        {
+            if (AreComplementary(x, other) || AreComplementary(y, other))
+                return CreatePrimitiveValue(location, kind == BinaryArithmeticKind.Or);
+            if (AreEquivalent(x, other) || AreEquivalent(y, other))
+                return nested;
+            return null;
+        }
+
+        // Absorption
+        if (AreEquivalent(x, other) || AreEquivalent(y, other))
+            return other;
+
+        // The complement of the other operand cannot change the result
+        if (AreComplementary(x, other))
+            return CreateArithmetic(location, y, other, kind, flags);
+        if (AreComplementary(y, other))
+            return CreateArithmetic(location, x, other, kind, flags);
+        return null;
     }
 
     /// <summary>

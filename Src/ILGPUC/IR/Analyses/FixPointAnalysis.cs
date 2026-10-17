@@ -14,6 +14,7 @@
 using ILGPUC.IR.BasicBlockValues;
 using ILGPUC.IR.MethodValues;
 using ILGPUC.IR.ModuleValues;
+using ILGPUC.IR.PureValues;
 using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
@@ -61,6 +62,17 @@ abstract class FixPointAnalysis<T, TDirection>(T defaultValue = default)
     /// Returns the default analysis value for generic IR nodes.
     /// </summary>
     public T DefaultValue { get; } = defaultValue;
+
+    /// <summary>
+    /// Returns true if this analysis computes information for pure values.
+    /// </summary>
+    /// <remarks>
+    /// Pure values are not part of any block chain. When enabled, every pure
+    /// value that is (transitively) used by a block value or a terminator is
+    /// passed to <see cref="Analyze"/>; otherwise, pure values keep their
+    /// initial type-based value.
+    /// </remarks>
+    protected virtual bool AnalyzesPureValues => false;
 
     /// <summary>
     /// Computes the analysis value for a given IR value.
@@ -183,22 +195,49 @@ abstract class FixPointAnalysis<T, TDirection>(T defaultValue = default)
                 : CreateInitialValue(method.Type);
         }
 
-        // Work-list algorithm
-        var onStack = method.CreateSet<BasicBlock>();
-        var stack = new Stack<BasicBlock>(blocks.Count);
+        // Pure values float outside the block chains; they are analyzed on
+        // demand, operands first, whenever a block value or a terminator that
+        // uses them is processed. Each pure value is analyzed at most once per
+        // sweep.
+        var visitedPureValues = method.CreateSet<PureValue>();
 
         [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-        void ProcessBlock(BasicBlock block)
+        bool Update(Value value)
+        {
+            var oldValue = valueData.TryGetValue(value, out var current)
+                ? current
+                : CreateInitialValue(value.Type);
+            var newValue = Merge(oldValue, Analyze(value, valueData));
+            valueData[value] = newValue;
+            return !oldValue.Equals(newValue);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+        bool UpdatePureValue(Value value)
+        {
+            if (value is not PureValue pureValue || !visitedPureValues.Add(pureValue))
+                return false;
+
+            bool changed = false;
+            foreach (var operand in pureValue.Values)
+                changed |= UpdatePureValue(operand);
+            return Update(pureValue) | changed;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+        bool ProcessBlock(BasicBlock block)
         {
             bool changed = false;
 
-            // Update all values (including terminator)
+            // Update all phi values and values
             foreach (var (bbValue, _) in block)
             {
-                var oldValue = valueData[bbValue];
-                var newValue = Analyze(bbValue, valueData);
-                valueData[bbValue] = Merge(oldValue, newValue);
-                changed |= !oldValue.Equals(newValue);
+                if (AnalyzesPureValues)
+                {
+                    foreach (var operand in bbValue.Values)
+                        changed |= UpdatePureValue(operand);
+                }
+                changed |= Update(bbValue);
 
                 // For method calls, propagate argument values to parameters
                 if (bbValue is not MethodCall call)
@@ -239,28 +278,28 @@ abstract class FixPointAnalysis<T, TDirection>(T defaultValue = default)
                     onCalleeChange?.Invoke(target);
             }
 
-            if (!changed)
-                return;
+            // Terminators are not block values; analyze the pure values they use
+            if (AnalyzesPureValues && block.TerminationValue is { } terminationValue)
+                changed |= UpdatePureValue(terminationValue);
 
-            // Push successors onto work stack
-            foreach (var successor in block.GetSuccessors<TDirection>())
-            {
-                if (onStack.Add(successor))
-                    stack.Push(successor);
-            }
+            return changed;
         }
 
-        // Initial pass
-        foreach (var block in blocks)
-            ProcessBlock(block);
-
-        // Fix point iteration
-        while (stack.Count > 0)
+        // Fix point iteration. The values of this sparse analysis flow along
+        // def-use edges, not along control-flow edges: a value feeds all blocks
+        // it dominates, not only the successors of its own block. Hence, sweep
+        // all blocks until no value changes any more instead of revisiting the
+        // successors of changed blocks only. Termination: all updates are
+        // monotone merges bounded by the lattice height.
+        bool changed;
+        do
         {
-            var block = stack.Pop();
-            onStack.Remove(block);
-            ProcessBlock(block);
+            changed = false;
+            visitedPureValues.Clear();
+            foreach (var block in blocks)
+                changed |= ProcessBlock(block);
         }
+        while (changed);
 
         return new(valueData, DefaultValue);
     }

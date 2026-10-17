@@ -43,6 +43,18 @@ public abstract class BasicPhiExecutionTests : ExecutionTestBase
     }
 
     [SkippableFact]
+    public async Task DeepPhi_O0_ProducesCorrectOutput()
+    {
+        // At O0, the view is accessed through a local copy whose address
+        // flows through a phi of all four branches
+        await VerifyProgramOutputAsync(
+            "TestPrograms/BasicPhi/DeepPhi.cs",
+            ["Kernels.DeepPhiKernel"],
+            ["3", "3", "3", "3"],
+            new CompilationProperties { OptimizationLevel = OptimizationLevel.O0 });
+    }
+
+    [SkippableFact]
     public async Task IntSwapLoop_ProducesCorrectOutput()
     {
         // input = [1, 2, 3, 4]; a and b swap each iteration, thread t sums a
