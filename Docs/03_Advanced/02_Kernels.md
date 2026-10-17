@@ -165,6 +165,8 @@ The following are evaluated at compile time:
 * The type properties `IsValueType`, `IsPrimitive`, `IsEnum` and `IsGenericType`, and `IsAssignableFrom` and
   `IsAssignableTo` between types.
 * `RuntimeHelpers.IsReferenceOrContainsReferences<T>()` and `Unsafe.SizeOf<T>()`.
+* Type tests with patterns on values of value types, such as `x is float f`, `default(T) is int` and `x is IComparable`,
+  and `GetType()` on such values: a boxed value type is never null and its type is known exactly.
 * Helper predicates built from these, at any depth: generic methods such as `IsFloat<T>()`, static members of generic
   types such as `Ops<T>.IsFloat()`, `static readonly` fields of generic types, static abstract interface members, and
   struct members called through a type parameter such as `default(TOp).IsFloat()`. A helper is evaluated when all its
@@ -180,8 +182,8 @@ for its type arguments, the build skips it with warning `ILGPU1006` instead, and
 throws a `NotSupportedException`, as the same code would on the CPU. An instantiation is only skipped if reachable
 `throw`s are its only problem; any other error in it still fails the build.
 
-Other reflection, such as `typeof(T).Name`, `GetType()`, `MakeGenericType` or `Type` values that are computed at run
-time, is not supported in kernels and is reported with an error that names the member.
+Other reflection, such as `typeof(T).Name`, `MakeGenericType` or `Type` values that are computed at run time, is not
+supported in kernels and is reported with an error that names the member.
 
 ## Implicitly Grouped Kernels
 

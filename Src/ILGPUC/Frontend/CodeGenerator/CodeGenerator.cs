@@ -108,6 +108,12 @@ sealed partial class CodeGenerator
     private readonly Dictionary<VariableRef, Value> _constantLocals = [];
 
     /// <summary>
+    /// Maps the addresses of boxed values to the boxed value type; see
+    /// <see cref="MakeBox"/>.
+    /// </summary>
+    private readonly Dictionary<Value, Type> _boxedTypes = [];
+
+    /// <summary>
     /// Records why calls could not be evaluated at compile time.
     /// </summary>
     private readonly Dictionary<MethodBase, string> _evaluationFailures = [];

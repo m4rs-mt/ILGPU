@@ -152,11 +152,40 @@ partial class CodeGenerator
         }
 
         // typeof(T) comparisons and type properties are folded to constants
-        if (TryMakeReflectionCall(target))
+        if (TryMakeReflectionCall(target) || TryMakeGetType(target, null))
             return;
         var delegateArguments = PeekDelegateArguments(target);
         var values = Block.PopMethodArgs(Location, target, null);
         CreateCall(target, ref values, delegateArguments);
+    }
+
+    /// <summary>
+    /// Folds <c>GetType()</c> on a value type: on a value of a type parameter
+    /// (a constrained call) or on a boxed value. The result is exactly that type,
+    /// because value types are sealed.
+    /// </summary>
+    /// <param name="target">The called method.</param>
+    /// <param name="constrainedType">The constrained type, if any.</param>
+    /// <returns>True if the call was folded.</returns>
+    private bool TryMakeGetType(MethodBase target, Type? constrainedType)
+    {
+        if (target.DeclaringType != typeof(object) || target.Name != nameof(GetType))
+            return false;
+
+        var instance = Block.Pop();
+        var exactType = constrainedType is { IsValueType: true }
+            ? constrainedType
+            : _boxedTypes.TryGetValue(instance, out var boxedType)
+                ? boxedType
+                : null;
+        if (exactType is null)
+        {
+            Block.Push(instance);
+            return false;
+        }
+
+        Block.Push(Builder.CreateRuntimeHandle(Location, exactType));
+        return true;
     }
 
     /// <summary>
@@ -281,16 +310,8 @@ partial class CodeGenerator
         if (TryMakeReflectionCall(target))
             return;
 
-        // GetType() on a value of a type parameter that is a value type is
-        // exactly typeof(T), because value types are sealed
-        if (constrainedType is { IsValueType: true } &&
-            target.DeclaringType == typeof(object) &&
-            target.Name == nameof(GetType))
-        {
-            Block.Pop();
-            Block.Push(Builder.CreateRuntimeHandle(Location, constrainedType));
+        if (TryMakeGetType(target, constrainedType))
             return;
-        }
 
         // Intercept delegate Invoke calls for static devirtualization
         if (target.Name == "Invoke" &&

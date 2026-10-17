@@ -167,6 +167,56 @@ static class TypeSpecializationKernels
 }
 
 /// <summary>
+/// Generic kernels that test the type of a value with patterns, which box the
+/// value: <c>x is float f</c>, <c>default(T) is int</c>, the null test Roslyn
+/// emits for <c>x.Equals(default)</c>, and <c>GetType()</c> on a boxed value.
+/// A boxed value type is never null and has an exact type, so all of them fold.
+/// </summary>
+static class TypeTestKernels
+{
+    public static void PatternMatch<T>(
+        Index1D index,
+        ArrayView1D<T, Stride1D.Dense> data,
+        ArrayView1D<float, Stride1D.Dense> result)
+        where T : unmanaged
+    {
+        var value = data[index];
+        if (value is float f)
+            result[index] = f * 2.0f;
+        else if (value is int i)
+            result[index] = i + 0.5f;
+        else
+            result[index] = -1.0f;
+    }
+
+    public static void DefaultIs<T>(
+        Index1D index,
+        ArrayView1D<int, Stride1D.Dense> result)
+        where T : unmanaged
+    {
+        result[index] = default(T) is float ? 1 : default(T) is int ? 2 : 3;
+    }
+
+    public static void EquatableDefault<T>(
+        Index1D index,
+        ArrayView1D<T, Stride1D.Dense> data,
+        ArrayView1D<int, Stride1D.Dense> result)
+        where T : unmanaged, IEquatable<T>
+    {
+        result[index] = data[index].Equals(default) ? 1 : 2;
+    }
+
+    public static void BoxedGetType<T>(
+        Index1D index,
+        ArrayView1D<T, Stride1D.Dense> data,
+        ArrayView1D<int, Stride1D.Dense> result)
+        where T : unmanaged
+    {
+        result[index] = ((object)data[index]).GetType() == typeof(float) ? 1 : 2;
+    }
+}
+
+/// <summary>
 /// Kernels that dispatch on a type-operation struct, through static abstract
 /// interface members and through struct instance members.
 /// </summary>

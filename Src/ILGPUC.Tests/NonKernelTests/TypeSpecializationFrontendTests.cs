@@ -45,15 +45,6 @@ public sealed class TypeSpecializationFrontendTests
             data[index] = typeof(T).Name.Length;
         }
 
-        public static void BoxedTypeTest<T>(
-            Index1D index,
-            ArrayView1D<T, Stride1D.Dense> data,
-            ArrayView1D<int, Stride1D.Dense> result)
-            where T : unmanaged
-        {
-            result[index] = data[index] is int ? 1 : 0;
-        }
-
         public static void RuntimeTypeValue(
             Index1D index,
             ArrayView1D<int, Stride1D.Dense> data)
@@ -281,15 +272,39 @@ public sealed class TypeSpecializationFrontendTests
             "get_Name",
             "only typeof(T) comparisons");
 
-    [Fact]
-    public void BoxedTypeTest_SuggestsTypeof() =>
-        AssertCompileError(
-            GetKernel(
-                typeof(ErrorKernels),
-                nameof(ErrorKernels.BoxedTypeTest),
-                typeof(int)),
-            "Boxing a value of type 'Int32'",
-            "compare typeof(T)");
+    public static IEnumerable<object[]> TypeTestKernels()
+    {
+        foreach (var kernel in new[]
+        {
+            nameof(Kernels.TypeTestKernels.PatternMatch),
+            nameof(Kernels.TypeTestKernels.DefaultIs),
+            nameof(Kernels.TypeTestKernels.EquatableDefault),
+            nameof(Kernels.TypeTestKernels.BoxedGetType),
+        })
+        {
+            foreach (var type in new[] { typeof(float), typeof(double), typeof(int) })
+                yield return [kernel, type];
+        }
+    }
+
+    [Theory]
+    [MemberData(nameof(TypeTestKernels))]
+    public void BoxedTypeTests_FoldInTheFrontend(string kernelName, Type typeArgument)
+    {
+        using var helper = new CompilationHelper(BackendType.CPU);
+        var kernel = GetKernel(
+            typeof(Kernels.TypeTestKernels),
+            kernelName,
+            typeArgument);
+
+        var ir = helper.GetNormalizedIR(kernel, IRDumpPoint.AfterFrontend);
+
+        // Only the branch for the actual type remains: no type value, no
+        // GetType call and no pointer comparison of the boxed value
+        Assert.DoesNotContain("handle", ir, StringComparison.Ordinal);
+        Assert.DoesNotContain("@GetType", ir, StringComparison.Ordinal);
+        Assert.DoesNotMatch("icmp \\w+ ptr", ir);
+    }
 
     [Fact]
     public void RuntimeTypeValue_IsRejected() =>

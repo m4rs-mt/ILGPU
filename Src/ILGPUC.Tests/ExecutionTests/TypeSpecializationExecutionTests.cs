@@ -87,4 +87,21 @@ public abstract class TypeSpecializationExecutionTests : ExecutionTestBase
             ["2 4 6", "1 3 5"],
             programOptimization: programOptimization);
     }
+
+    /// <summary>
+    /// Type tests with patterns (<c>x is float f</c>, <c>default(T) is float</c>,
+    /// <c>x.Equals(default)</c>) fold for boxed value types.
+    /// </summary>
+    [SkippableTheory]
+    [InlineData(RoslynOptimizationLevel.Release)]
+    [InlineData(RoslynOptimizationLevel.Debug)]
+    public async Task TypeTests_ProduceCorrectOutput(
+        RoslynOptimizationLevel programOptimization)
+    {
+        await VerifyProgramOutputAsync(
+            "TestPrograms/TypeSpecialization/TypeTests.cs",
+            ["Kernels.Classify"],
+            ["1", "1", "2", "1", "2", "2", "4.5", "1.5"],
+            programOptimization: programOptimization);
+    }
 }
