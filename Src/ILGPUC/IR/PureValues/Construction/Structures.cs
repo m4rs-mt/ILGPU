@@ -39,7 +39,12 @@ partial class PureValueBuilder
         if (managedType.IsEnum)
             return CreateEnumValue(location, instance);
         if (managedType.IsArray || managedType.IsImmutableArray(out _))
-            throw location.GetArgumentException(nameof(instance));
+        {
+            // Arrays inside other values would have to be copied on every load
+            throw location.GetNotSupportedException(
+                ErrorMessages.NotSupportedNestedStaticArray,
+                managedType);
+        }
 
         // Reject class types for now
         if (managedType.IsClass)

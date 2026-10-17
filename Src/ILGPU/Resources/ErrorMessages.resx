@@ -450,7 +450,7 @@
     <comment/>
   </data>
   <data name="NotSupportedLoadFromStaticArray" xml:space="preserve">
-    <value>Cannot load from the static array '{0} since it is mutable.</value>
+    <value>Cannot load from the static array '{0}': its elements can change at run time. Use a static readonly ImmutableArray, pass the data to the kernel in an ArrayView, or compile with '--arrays InlineMutableStaticArrays' to use the contents the array has at compile time.</value>
     <comment/>
   </data>
   <data name="NotSupportNonConstArrayDimension" xml:space="preserve">
@@ -479,6 +479,18 @@
   </data>
   <data name="NotSupportedNonTerminatingMethod" xml:space="preserve">
     <value>'{0}' never returns: every path through it loops forever. Kernels and the methods they call must be able to return.</value>
+    <comment/>
+  </data>
+  <data name="NotSupportedNullStaticArray" xml:space="preserve">
+    <value>The static array '{0}' is null at compile time.</value>
+    <comment/>
+  </data>
+  <data name="NotSupportedStaticArrayTooLarge" xml:space="preserve">
+    <value>The static array '{0}' has {1} elements, more than the {2} that can be inlined into a kernel. Pass the data to the kernel in an ArrayView.</value>
+    <comment/>
+  </data>
+  <data name="NotSupportedNestedStaticArray" xml:space="preserve">
+    <value>An array of type '{0}' inside a static value cannot be used in kernels. Store it in its own static readonly field, or pass the data to the kernel in an ArrayView.</value>
     <comment/>
   </data>
   <data name="NotSupportedRecursiveReferenceType" xml:space="preserve">
