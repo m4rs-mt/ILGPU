@@ -140,6 +140,18 @@ public abstract class RecursionExecutionTests : ExecutionTestBase
     }
 
     [SkippableFact]
+    public Task TailRecursionPassingPointerFields_ProducesCorrectOutput() =>
+        VerifyAsync(
+            "TailRecursionPointerFields",
+            "0 0 2 4 5 10 9 18 14 28 20 40 27 54 35 70");
+
+    [SkippableFact]
+    public Task RecursionPassingPointerFields_ProducesCorrectOutput() =>
+        VerifyAsync(
+            "RecursivePointerFields",
+            "0 0 2 4 5 10 9 18 14 28 20 40 27 54 35 70");
+
+    [SkippableFact]
     public Task ConstantRecursion_ProducesCorrectOutput() =>
         VerifyWithoutRecursionAsync("ConstantRecursion", "1120 1121 1122 1123");
 }

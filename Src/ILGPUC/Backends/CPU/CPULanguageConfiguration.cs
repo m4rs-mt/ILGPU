@@ -172,9 +172,10 @@ sealed class CPULanguageConfiguration(int vectorWidth) : LanguageConfiguration
     /// <remarks>
     /// Nested struct types in C# need explicit access modifiers. Use
     /// <c>public struct</c> so they're accessible from the generated
-    /// Launch method and KernelEntryPoint parameters.
+    /// Launch method and KernelEntryPoint parameters. Structures are unsafe,
+    /// as their fields may be pointers.
     /// </remarks>
-    public override string StructKeyword => "internal struct";
+    public override string StructKeyword => "internal unsafe struct";
 
     /// <inheritdoc/>
     public override string StructFieldModifier => "public ";

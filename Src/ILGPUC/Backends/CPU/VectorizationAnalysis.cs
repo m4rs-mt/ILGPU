@@ -433,14 +433,10 @@ sealed class VectorizationAnalysis
         {
             if (_vectorizeFirstParam && param.Index == 0)
                 continue;
-            // Structures holding pointers are passed as they are; they
-            // cannot be split into per-lane arrays. Pointers are passed as
-            // per-lane addresses (nint[]), and views and structures holding
-            // views as one value per lane if a caller passes one that
-            // differs per lane.
-            bool perLaneType = param.Type is PointerType
-                || !param.Type.HasFlags(TypeFlags.PointerDependent);
-            if (perLaneType && vectorizedParams is not null
+            // Pointers are passed as per-lane addresses (nint[]), and views
+            // and structures, including those holding pointers or views, as
+            // one value per lane if a caller passes one that differs per lane.
+            if (vectorizedParams is not null
                 && vectorizedParams.Contains(param.Index))
             {
                 continue;

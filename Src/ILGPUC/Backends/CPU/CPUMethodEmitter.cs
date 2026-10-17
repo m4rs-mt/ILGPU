@@ -1263,7 +1263,11 @@ sealed partial class CPUMethodEmitter(
                 if (analysis.IsScalar(sv.Values[i]))
                     sb.Append($"{fieldName} = {fieldVal}");
                 else
-                    sb.Append($"{fieldName} = {fieldVal}[_si]");
+                {
+                    sb.Append(
+                        $"{fieldName} = " +
+                        ToFieldElement(sv.Values[i], $"{fieldVal}[_si]"));
+                }
             }
             sb.Append(" };");
             context.WriteLine(sb.ToString());
@@ -1281,8 +1285,12 @@ sealed partial class CPUMethodEmitter(
             context.OpenScope();
             if (span.Span == 1)
             {
+                // Pointer fields become the addresses of per-lane pointers
                 var fieldName = StructureType.GetFieldName(span.Index);
-                context.WriteLine($"{varName}[_si] = {source}[_si].{fieldName};");
+                var field = $"{source}[_si].{fieldName}";
+                if (getField.Type is PointerType)
+                    field = $"(nint){field}";
+                context.WriteLine($"{varName}[_si] = {field};");
             }
             else
             {
@@ -1542,6 +1550,16 @@ sealed partial class CPUMethodEmitter(
     }
 
     /// <summary>
+    /// Converts the element of a per-lane buffer into a field value of a
+    /// structure. Per-lane pointers are stored as addresses, whereas the
+    /// pointer fields of structures are typed pointers.
+    /// </summary>
+    private string ToFieldElement(Value value, string element) =>
+        value.Type is PointerType pointer
+            ? $"({new TypeEmitter(context).GetTypeName(pointer)}){element}"
+            : element;
+
+    /// <summary>
     /// Emits a field insertion into a (possibly vectorized) struct value.
     /// </summary>
     private void EmitSetField(
@@ -1554,7 +1572,9 @@ sealed partial class CPUMethodEmitter(
         string Operand(Value operand)
         {
             var text = GetLaneOperand(operand, analysis);
-            return analysis.IsScalar(operand) ? text : text + lane;
+            return analysis.IsScalar(operand)
+                ? text
+                : ToFieldElement(operand, text + lane);
         }
         var source = Operand(setField.Source);
         var fieldValue = Operand(setField.Value);
