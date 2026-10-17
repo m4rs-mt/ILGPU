@@ -98,6 +98,19 @@ public abstract class ConvertExecutionTests : ExecutionTestBase
             ["10 11 12 13"]);
     }
 
+    /// <summary>
+    /// Unsigned 32-bit offsets converted to nuint zero-extend in element
+    /// addresses, both per-thread and constant offsets.
+    /// </summary>
+    [SkippableFact]
+    public async Task NativeUnsignedOffset_ProducesCorrectOutput()
+    {
+        await VerifyProgramOutputAsync(
+            "TestPrograms/ConvertInt/NativeUnsignedOffset.cs",
+            ["Kernels.NativeUnsignedOffsetKernel"],
+            ["10 12", "11 12", "12 12", "13 12"]);
+    }
+
     [SkippableFact]
     public async Task FloatToDouble_ProducesCorrectOutput()
     {
