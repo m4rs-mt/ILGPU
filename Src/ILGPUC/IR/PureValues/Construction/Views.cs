@@ -148,8 +148,11 @@ partial class PureValueBuilder
         var addressSpaceType = source.Type.AsNotNullCast<AddressSpaceType>();
         location.AssertNotNull(addressSpaceType);
 
-        // Fold nested conversion operations that do not change the semantics
+        // Fold nested conversion operations that do not change the semantics:
+        // 32-bit indices are sign-extended, which differs from zero-extending
+        // unsigned indices from 2^31 on
         if (elementIndex is ConvertValue convertValue &&
+            !convertValue.IsSourceUnsigned &&
             convertValue.Value.BasicValueType == BasicValueType.Int32 &&
             convertValue.BasicValueType == BasicValueType.Int64)
         {

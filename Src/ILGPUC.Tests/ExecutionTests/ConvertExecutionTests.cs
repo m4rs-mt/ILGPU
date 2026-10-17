@@ -86,6 +86,18 @@ public abstract class ConvertExecutionTests : ExecutionTestBase
             ["4000000001", "4000000001", "4000000001", "4000000001"]);
     }
 
+    /// <summary>
+    /// Unsigned 32-bit offsets widened to long zero-extend in element addresses.
+    /// </summary>
+    [SkippableFact]
+    public async Task UnsignedElementOffset_ProducesCorrectOutput()
+    {
+        await VerifyProgramOutputAsync(
+            "TestPrograms/ConvertInt/UnsignedElementOffset.cs",
+            ["Kernels.UnsignedElementOffsetKernel"],
+            ["10 11 12 13"]);
+    }
+
     [SkippableFact]
     public async Task FloatToDouble_ProducesCorrectOutput()
     {
