@@ -18,7 +18,7 @@
 // and a group of 3 threads, and checks that a group larger than the device
 // allows is rejected.
 // Expected output: per size, the mismatches of both kernels, then whether the
-// oversized group was rejected.
+// oversized group was rejected with an error reporting the requested group size.
 
 using System;
 using ILGPU;
@@ -152,9 +152,12 @@ static class Program
                 Kernels.GroupedBarriersKernel(input.View, output.View));
             stream.Synchronize();
         }
-        catch (InvalidOperationException)
+        catch (InvalidOperationException exception)
         {
-            rejected = true;
+            // The error reports the requested group size
+            rejected = exception.Message.StartsWith(
+                $"Invalid group dimensions {maxGroupSize + 1} (exceeds maximum ",
+                StringComparison.Ordinal);
         }
         Console.WriteLine($"oversized rejected {rejected}");
     }

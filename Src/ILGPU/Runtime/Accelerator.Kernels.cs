@@ -10,6 +10,7 @@
 // ---------------------------------------------------------------------------------------
 
 using System;
+using System.Globalization;
 using System.Runtime.CompilerServices;
 using ILGPU.CodeGeneration;
 using ILGPU.Resources;
@@ -119,8 +120,11 @@ partial class Accelerator
         // Check for compatibility to launch this kernel on the current accelerator
         if (launchConfig.Dimension.GroupSize > MaxNumThreadsPerGroup)
         {
-            throw new InvalidOperationException(
-                RuntimeErrorMessages.InvalidKernelLaunchGroupDimension);
+            throw new InvalidOperationException(string.Format(
+                CultureInfo.CurrentCulture,
+                RuntimeErrorMessages.InvalidKernelLaunchGroupDimension,
+                launchConfig.Dimension.GroupSize,
+                MaxNumThreadsPerGroup));
         }
 
         // Bind accelerator to make sure we have a valid execution context

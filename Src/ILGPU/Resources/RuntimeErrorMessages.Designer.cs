@@ -298,6 +298,61 @@ namespace ILGPU.Resources
         }
 
         /// <summary>
+        ///   Looks up a localized string similar to Kernel &apos;{0}&apos; was not compiled for {1}: {2}.
+        /// </summary>
+        internal static string KernelNotCompiled
+        {
+            get
+            {
+                return ResourceManager.GetString("KernelNotCompiled", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to ILGPUC did not compile its launch site. ILGPUC compiles the stream.Launch calls in the sources of the project it builds, so kernels launched inside ILGPU algorithms (such as Initialize, Sequence, Transform, Reorder, Reduce, Scan, RadixSort, Permute or FillUniform) or inside other assemblies have no compiled kernel. Launch the kernel, or a kernel of your own in place of the ILGPU algorithm, with stream.Launch from the sources of a project built with ILGPUC..
+        /// </summary>
+        internal static string KernelNotCompiledLaunchSite
+        {
+            get
+            {
+                return ResourceManager.GetString("KernelNotCompiledLaunchSite", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to it was compiled for {0}. Build the project for {1} (ILGPUBackend property) to launch it on {1}..
+        /// </summary>
+        internal static string KernelNotCompiledOtherAccelerator
+        {
+            get
+            {
+                return ResourceManager.GetString("KernelNotCompiledOtherAccelerator", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to ILGPUC compiled it only for the type arguments of the launches it found in the sources of the project. Launch it with these type arguments from the project sources to compile it for them..
+        /// </summary>
+        internal static string KernelNotCompiledTypeArguments
+        {
+            get
+            {
+                return ResourceManager.GetString("KernelNotCompiledTypeArguments", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Kernel &apos;{0}&apos; is not loaded on {1}: the device does not provide the capabilities it requires or failed to build it.
+        /// </summary>
+        internal static string KernelNotLoaded
+        {
+            get
+            {
+                return ResourceManager.GetString("KernelNotLoaded", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to The accelerator stream is not supported for this operation.
         /// </summary>
         internal static string NotSupportedAcceleratorStream

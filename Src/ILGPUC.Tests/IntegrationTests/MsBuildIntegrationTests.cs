@@ -574,6 +574,51 @@ public sealed class MsBuildIntegrationTests
     }
 
     // -----------------------------------------------------------------------
+    // Test 12: LibraryAlgorithms — the app kernel runs, and an ILGPU library
+    // algorithm launching its kernel from inside ILGPU.dll reports that its
+    // kernel was not compiled for the accelerator.
+    // -----------------------------------------------------------------------
+
+    [SkippableTheory]
+    [InlineData(BackendType.CPU)]
+    [InlineData(BackendType.Metal)]
+    public async Task Build_LibraryAlgorithms_ReportsNotCompiledKernel(
+        BackendType backend)
+    {
+        await RequireBackendAsync(backend);
+
+        using var project = new IntegrationProjectFixture(
+            "LibraryAlgorithms", backend, _output);
+        try
+        {
+            var build = await project.BuildAsync();
+            Assert.True(build.Succeeded,
+                $"dotnet build failed (exit {build.ExitCode}). " +
+                $"Stderr: {build.StdErr}");
+
+            var run = await project.RunAsync();
+            Assert.False(run.TimedOut, "Binary timed out");
+            Assert.Equal(0, run.ExitCode);
+
+            var lines = run.StdOutLines;
+            Assert.Equal(3, lines.Length);
+            Assert.Equal("0 2 4 6", lines[0]);
+            Assert.Equal("KernelNotCompiledException", lines[1]);
+            Assert.StartsWith(
+                "Kernel 'ILGPU.Initialization.Initializer.Initialize' was not " +
+                $"compiled for {ExpectedAcceleratorTypeName(backend)}: ILGPUC " +
+                "did not compile its launch site.",
+                lines[2],
+                StringComparison.Ordinal);
+        }
+        catch
+        {
+            project.MarkFailed();
+            throw;
+        }
+    }
+
+    // -----------------------------------------------------------------------
     // Helpers
     // -----------------------------------------------------------------------
 

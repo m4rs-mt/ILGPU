@@ -61,10 +61,10 @@ abstract class FlatStructLauncherEmitter : LauncherEmitter
         LauncherEmissionContext ctx,
         List<ParameterInfo> parameters)
     {
-        ctx.WriteLine($"var typedKernel = ({KernelTypeName})(_runtimeKernel" +
-            " ?? throw new System.InvalidOperationException(" +
-            "\"The kernel is not loaded on this accelerator: it is not " +
-            "compatible with the device or failed to build for it.\"));");
+        ctx.WriteLine(
+            $"var typedKernel = stream.GetCompiledKernel<{KernelTypeName}>(" +
+            $"_runtimeKernel, {ctx.KernelNameLiteral}, " +
+            $"{ctx.AcceleratorTypeExpression});");
         ctx.WriteLine($"var typedStream = ({StreamTypeName})stream;");
         ctx.WriteLine(
             "var launchConfig = stream.PrepareKernelLaunch(" +

@@ -1,0 +1,62 @@
+// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                           Copyright (c) 2026 ILGPU Project
+//                                    www.ilgpu.net
+//
+// File: Program.cs
+//
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details.
+// ---------------------------------------------------------------------------------------
+
+// LibraryAlgorithms: a console app that launches its own kernel and calls an
+// ILGPU library algorithm (stream.Initialize), which launches its kernel from
+// inside ILGPU.dll. The app kernel runs; the library launch reports that its
+// kernel was not compiled.
+// Expected output: 0 2 4 6, then the exception type and message
+
+using System;
+using ILGPU;
+using ILGPU.Initialization;
+using ILGPU.Runtime;
+
+namespace LibraryAlgorithms;
+
+static class Kernels
+{
+    public static void DoubleKernel(
+        Index1D index, ArrayView1D<int, Stride1D.Dense> data)
+    {
+        data[index] = index.X * 2;
+    }
+}
+
+static class Program
+{
+    static void Main()
+    {
+        using var context = Context.Create(b => b.Default());
+        using var accelerator = context.GetPreferredDevice(preferCPU: $(PREFER_CPU))
+            .CreateAccelerator(context);
+        var stream = accelerator.DefaultStream;
+
+        using var buffer = stream.Allocate1D<int>(4);
+        stream.Launch(
+            (Index1D)4,
+            index => Kernels.DoubleKernel(index, buffer.View));
+        stream.Synchronize();
+        Console.WriteLine(string.Join(" ", buffer.GetAsArray1D()));
+
+        try
+        {
+            stream.Initialize(buffer.View, 23);
+            stream.Synchronize();
+            Console.WriteLine(string.Join(" ", buffer.GetAsArray1D()));
+        }
+        catch (KernelNotCompiledException exception)
+        {
+            Console.WriteLine(exception.GetType().Name);
+            Console.WriteLine(exception.Message);
+        }
+    }
+}

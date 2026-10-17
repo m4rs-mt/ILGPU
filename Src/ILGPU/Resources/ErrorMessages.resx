@@ -245,10 +245,6 @@
     <value>The operation '{0}' on the .Net activator is not supported.</value>
     <comment/>
   </data>
-  <data name="NotSupportedPlatform" xml:space="preserve">
-    <value>Not supported platform '{0}' ({1} required)</value>
-    <comment/>
-  </data>
   <data name="NotSupportedSizeOf" xml:space="preserve">
     <value>Could not resolve the native size of the type '{0}'</value>
     <comment/>
@@ -575,10 +571,6 @@
   </data>
   <data name="KernelDiagnosticDelegateRecursion" xml:space="preserve">
     <value>Method '{0}' calls itself while passing delegates, directly or through the delegates passed to it. Recursion is not supported in kernels.</value>
-    <comment/>
-  </data>
-  <data name="NotSupportedUncompiledKernelLaunch" xml:space="preserve">
-    <value>This kernel launch was not compiled by ILGPUC. Kernel launches are compiled at build time and must be direct calls on a stream expression, such as 'stream.Launch(...)'. Launches through reflection, delegates or conditional access ('stream?.Launch(...)') are not compiled.</value>
     <comment/>
   </data>
   <data name="NotSupportedKernelDelegateBind" xml:space="preserve">

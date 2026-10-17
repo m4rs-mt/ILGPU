@@ -20,10 +20,10 @@ sealed class MetalLauncherEmitter : PerArgumentLauncherEmitter
 
     protected override void EmitPreamble(LauncherEmissionContext ctx)
     {
-        ctx.WriteLine("var metalKernel = (MetalKernel)(_runtimeKernel" +
-            " ?? throw new System.InvalidOperationException(" +
-            "\"The kernel is not loaded on this accelerator: it is not " +
-            "compatible with the device or failed to build for it.\"));");
+        ctx.WriteLine(
+            "var metalKernel = stream.GetCompiledKernel<MetalKernel>(" +
+            $"_runtimeKernel, {ctx.KernelNameLiteral}, " +
+            $"{ctx.AcceleratorTypeExpression});");
         ctx.WriteLine("var metalStream = (MetalStream)stream;");
         ctx.WriteLine(
             "var launchConfig = stream.PrepareKernelLaunch(" +
