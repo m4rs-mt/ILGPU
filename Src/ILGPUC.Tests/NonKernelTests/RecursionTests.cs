@@ -399,6 +399,31 @@ public sealed class RecursionTests
             data[index] = Fields(data[index], new Node { Value = &start }, 0);
         }
 
+        private unsafe struct Link
+        {
+            public int* Value;
+            public int Depth;
+        }
+
+        private static unsafe int AssignedFields(int n, Link p, int sum)
+        {
+            int x = n;
+            if (n == 0)
+                return sum;
+            sum += *p.Value + p.Depth;
+            p.Value = &x;
+            return AssignedFields(n - 1, p, sum); // AssignedFields
+        }
+
+        public static unsafe void AssignedFieldsKernel(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data)
+        {
+            int start = 0;
+            var link = new Link { Value = &start, Depth = 1 };
+            data[index] = AssignedFields(data[index], link, 0);
+        }
+
         private static unsafe int* AddressOf(ref int value)
         {
             fixed (int* address = &value)
@@ -648,6 +673,9 @@ public sealed class RecursionTests
         helper.GenerateBackendCode(
             GetKernel(nameof(Kernels.MutualRecursionKernel)),
             backend);
+        helper.GenerateBackendCode(
+            GetKernel(nameof(Kernels.AssignedFieldsKernel)),
+            backend);
     }
 
     [Theory]
@@ -667,6 +695,22 @@ public sealed class RecursionTests
             "backend.",
             exception.Message);
         AssertLocation(exception.Location, "Factorial");
+    }
+
+    [Theory]
+    [InlineData(BackendType.Metal)]
+    [InlineData(BackendType.OpenCL)]
+    public void BackendsWithoutRecursiveCalls_RejectRecursionAssigningPointerFields(
+        BackendType backend)
+    {
+        using var helper = new CompilationHelper(backend);
+        var exception = Assert.Throws<KernelCompilationException>(() =>
+            helper.GenerateBackendCode(
+                GetKernel(nameof(Kernels.AssignedFieldsKernel)),
+                backend));
+
+        Assert.Equal("ILGPU1211", exception.Id);
+        AssertLocation(exception.Location, "AssignedFields");
     }
 
     [Theory]
@@ -808,6 +852,7 @@ public sealed class RecursionTests
     [InlineData(nameof(Kernels.ArgumentsKernel), "Arguments")]
     [InlineData(nameof(Kernels.OutputsKernel), "Outputs")]
     [InlineData(nameof(Kernels.FieldsKernel), "Fields")]
+    [InlineData(nameof(Kernels.AssignedFieldsKernel), "AssignedFields")]
     [InlineData(nameof(Kernels.SlotsKernel), "Slots")]
     [InlineData(nameof(Kernels.CalleesKernel), "Callees")]
     [InlineData(nameof(Kernels.NestedCalleesKernel), "NestedCallees")]

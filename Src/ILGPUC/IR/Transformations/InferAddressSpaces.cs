@@ -149,8 +149,10 @@ sealed class InferAddressSpaces(TransformationArgs args) : Transformation(args)
     /// Address computations derived from the value follow its type and are
     /// checked recursively. Phi arguments, call arguments of methods with an
     /// implementation, stored values and returned values are converted back by
-    /// this pass, and so are the selected values of predicates. All other users
-    /// (e.g. structure values or comparisons) require the original type.
+    /// this pass, and so are the selected values of predicates and the operands
+    /// of field insertions whose structure and inserted value do not match any
+    /// more. All other users (e.g. structure values or comparisons) require the
+    /// original type.
     /// </remarks>
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     private bool CanRetype(Value value)
@@ -197,8 +199,11 @@ sealed class InferAddressSpaces(TransformationArgs args) : Transformation(args)
         NewView or
         SubView or
         BaseAlignOperationValue or
-        GetField or
-        SetField => use.Index == 0 && CanRetype(use.Target),
+        GetField => use.Index == 0 && CanRetype(use.Target),
+
+        // Field insertions follow the type of their structure; a structure and
+        // an inserted value that do not match are converted back
+        SetField => CanRetype(use.Target),
 
         // Users with primitive results
         GetViewLength or PointerAsIntCast => true,
@@ -240,6 +245,7 @@ sealed class InferAddressSpaces(TransformationArgs args) : Transformation(args)
 
         MapMethodValue<Parameter>(RewriteParameter);
         MapPureValue<Predicate>(RewritePredicate);
+        MapPureValue<SetField>(RewriteSetField);
     }
 
     /// <summary>
@@ -474,8 +480,8 @@ sealed class InferAddressSpaces(TransformationArgs args) : Transformation(args)
         if (!store.Value.Type.HasFlags(TypeFlags.AddressSpaceDependent))
             return store;
 
-        var target = transform.Rewrite(store.Target);
-        var value = transform.Rewrite(store.Value);
+        var target = RewriteOperand(transform, store.Target);
+        var value = RewriteOperand(transform, store.Value);
         if (target?.Type is not PointerType targetType || value is null ||
             value.Type.Equals(targetType.ElementType))
         {
@@ -519,6 +525,94 @@ sealed class InferAddressSpaces(TransformationArgs args) : Transformation(args)
             Coerce(transform, predicate.Location, trueValue, type),
             Coerce(transform, predicate.Location, falseValue, type))
             ?? predicate;
+    }
+
+    /// <summary>
+    /// Rewrites field insertions into retyped structures (see
+    /// <see cref="ConvertSetField{TTransform}(TTransform, SetField)"/>).
+    /// </summary>
+    private static Value RewriteSetField(
+        PureValueTransform transform,
+        SetField setField) =>
+        ConvertSetField(transform, setField) ?? setField;
+
+    /// <summary>
+    /// Converts a field insertion whose retyped structure and inserted value do
+    /// not match, e.g. the address of a local variable assigned to the pointer
+    /// field of a retyped structure parameter. Both are converted back to the
+    /// type of the field insertion, which its users follow or convert back.
+    /// Returns null if the standard rewrite applies.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+    private static Value? ConvertSetField<TTransform>(
+        TTransform transform,
+        SetField setField)
+        where TTransform : PureValueBuilder, IRewriter, ITypeRewriter
+    {
+        // Field insertions used by calls and stores are converted first
+        if (transform.TryGetReplaced(setField, out var replaced))
+            return replaced;
+        if (!setField.Value.Type.HasFlags(TypeFlags.AddressSpaceDependent) ||
+            transform.Rewrite(setField.Source) is not Value source ||
+            transform.Rewrite(setField.Value) is not Value value)
+        {
+            return null;
+        }
+
+        var fieldSpan = transform.Rewrite(setField.StructureType, setField.FieldSpan);
+        var fieldType = source.GetTypeAs<StructureType>().Get(
+            transform.ModuleBuilder,
+            fieldSpan);
+        if (fieldType.Equals(value.Type))
+            return null;
+
+        var type = transform.Rewrite(setField.Type).As<StructureType>();
+        return transform.CreateSetField(
+            setField.Location,
+            Coerce(transform, setField.Location, source, type),
+            fieldSpan,
+            Coerce(
+                transform,
+                setField.Location,
+                value,
+                type.Get(transform.ModuleBuilder, fieldSpan)));
+    }
+
+    /// <summary>
+    /// Rewrites a value used by a call or a store. Calls and stores are
+    /// rewritten before the pure values they use are mapped, so the field
+    /// insertions among these values are converted first.
+    /// </summary>
+    private static Value? RewriteOperand(BasicBlockTransform transform, Value value)
+    {
+        ConvertSetFields(transform, value, []);
+        return transform.Rewrite(value);
+    }
+
+    /// <summary>
+    /// Converts the field insertions among the given value and its operands
+    /// that carry addresses (see
+    /// <see cref="ConvertSetField{TTransform}(TTransform, SetField)"/>).
+    /// </summary>
+    private static void ConvertSetFields(
+        BasicBlockTransform transform,
+        Value value,
+        HashSet<Value> visited)
+    {
+        if (value is not PureValue ||
+            !value.Type.HasFlags(TypeFlags.AddressSpaceDependent) ||
+            !visited.Add(value))
+        {
+            return;
+        }
+
+        foreach (var operand in value.Values)
+            ConvertSetFields(transform, operand, visited);
+        if (value is SetField setField &&
+            ConvertSetField(transform, setField) is Value converted)
+        {
+            transform.Replace(setField, converted);
+        }
     }
 
     /// <summary>
@@ -630,7 +724,7 @@ sealed class InferAddressSpaces(TransformationArgs args) : Transformation(args)
         {
             var arg = call.Arguments[i];
             if (!arg.Type.HasFlags(TypeFlags.AddressSpaceDependent) ||
-                transform.Rewrite(arg) is not Value newArg)
+                RewriteOperand(transform, arg) is not Value newArg)
             {
                 continue;
             }
