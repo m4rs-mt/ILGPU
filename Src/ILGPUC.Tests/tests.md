@@ -44,12 +44,9 @@ ILGPUC.Tests/
 │   └── ...
 │
 ├── IRTests/                # Layer 1: IR snapshot tests (28 files)
-├── BackendTests/           # Layer 2: Backend code generation (5 files)
-│   ├── CpuBackendTests.cs
-│   ├── CudaBackendTests.cs
-│   ├── MetalBackendTests.cs
-│   ├── ROCmBackendTests.cs
-│   └── OpenCLBackendTests.cs
+├── BackendTests/           # Layer 2: Backend code generation
+│   ├── BackendTests.Generated.tt # Per-backend test classes (Cpu, Cuda, Metal, ROCm, OpenCL)
+│   └── ...                   # Source shape tests of individual backends
 │
 ├── ExecutionTests/         # Layer 3: Execution tests (26 files)
 │   ├── BasicIfExecutionTests.cs
@@ -157,17 +154,27 @@ git diff ILGPUC.Tests/Snapshots/
 - `KernelRegistry` auto-discovers all public static methods from `Kernels/*.cs` via reflection
 - Generic kernels (e.g., `BinaryIntOpKernels.AddKernel<T>`) are expanded with representative
   type arguments (int/long for integer ops, float/double for float ops)
-- Each backend test file uses `[Theory] + [MemberData]` to test all kernels:
+- `BackendTests.Generated.tt` generates a static class per backend (`CpuBackendTests`,
+  `CudaBackendTests`, ...) whose nested classes use `[SkippableTheory] + [MemberData]` to test
+  all kernels: `Debug` and `Release` generate source in both compilation modes, and the GPU
+  backends' `Native0` to `Native3` each compile a quarter of the kernels
+  (`KernelRegistry.KernelNameShard`) with the native compiler. xUnit runs the tests of a class
+  one after another and different classes in parallel, so the shards compile in parallel:
 
 ```csharp
-public sealed class CpuBackendTests : BackendTestBase
+public static class CpuBackendTests
 {
-    public CpuBackendTests(ITestOutputHelper output) : base(output, BackendType.CPU) { }
-
-    [Theory]
-    [MemberData(nameof(KernelRegistry.AllKernelNames), MemberType = typeof(KernelRegistry))]
-    public void SourceGeneration(string kernelName) =>
-        AssertSourceGenerationSucceeds(KernelRegistry.Resolve(kernelName));
+    public sealed class Debug(ITestOutputHelper output)
+        : BackendTestBase(output, BackendType.CPU)
+    {
+        [SkippableTheory]
+        [MemberData(nameof(KernelRegistry.AllKernelNames), MemberType = typeof(KernelRegistry))]
+        public void SourceGeneration(string kernelName) =>
+            AssertSourceGenerationSucceeds(
+                KernelRegistry.Resolve(kernelName),
+                required: KernelRegistry.GetRequiredCapabilities(kernelName));
+    }
+    // Release, and Native0..Native3 for the GPU backends
 }
 ```
 
@@ -464,7 +471,7 @@ private static readonly Dictionary<string, Type[]> GenericExpansion = new()
 ### Step 3: Verify
 
 ```bash
-dotnet test --filter "CpuBackendTests.SourceGeneration"
+dotnet test --filter "CpuBackendTests+Debug"
 ```
 
 The new kernel will automatically appear in all 5 backend test runs.

@@ -45,6 +45,13 @@ sealed class CompilationHelper : DisposeBase
     /// <summary>Flag used to ensure intrinsics are only initialized once.</summary>
     private static int s_intrinsicsInitialized;
 
+    /// <summary>
+    /// Disassembly and debug-symbol cache shared by all compilations that do not
+    /// pass their own cache. Test kernels live in assemblies that are never
+    /// unloaded, so sharing the cache across tests is safe.
+    /// </summary>
+    private static readonly ILFrontendCache s_frontendCache = new();
+
     /// <summary>The backend type used when no explicit backend is specified.</summary>
     private readonly BackendType _defaultBackendType;
 
@@ -79,7 +86,8 @@ sealed class CompilationHelper : DisposeBase
     }
 
     /// <summary>
-    /// Stage 0: IL -> sealed Module (unoptimized).
+    /// Stage 0: IL -> sealed Module (unoptimized). Uses the shared frontend cache
+    /// unless <paramref name="frontendCache"/> is given.
     /// </summary>
     public IRModule CompileToModule(
         MethodInfo method,
@@ -90,7 +98,10 @@ sealed class CompilationHelper : DisposeBase
         var properties = props ?? new CompilationProperties();
         var bt = backendType ?? _defaultBackendType;
 
-        var frontend = new ILFrontend(bt, frontendCache, GetAssemblyDir(method));
+        var frontend = new ILFrontend(
+            bt,
+            frontendCache ?? s_frontendCache,
+            GetAssemblyDir(method));
         frontend.LoadMethods([method]);
 
         var moduleBuilder = new ModuleBuilder(

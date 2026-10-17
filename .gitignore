@@ -314,6 +314,7 @@ Src/ILGPUC/Static/ValueKinds.cs
 # Override build-output rules for test program source directories
 !Src/ILGPUC.Tests/TestPrograms/Debug/
 Src/ILGPUC.Tests/ExecutionTests/Backends.Generated.cs
+Src/ILGPUC.Tests/BackendTests/BackendTests.Generated.cs
 
 # Planning notes stay local and are never committed
 Src/plans/

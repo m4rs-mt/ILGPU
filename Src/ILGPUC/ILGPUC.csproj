@@ -31,6 +31,15 @@
     <Configurations>Debug;Release</Configurations>
   </PropertyGroup>
 
+  <!--
+    CI builds and tests everything in Debug: optimize the compiler there while keeping
+    the DEBUG constant and its checks. Override with -p:ILGPUCOptimize=true or false.
+  -->
+  <PropertyGroup>
+    <ILGPUCOptimize Condition="'$(ILGPUCOptimize)' == '' AND '$(CI)' == 'true'">true</ILGPUCOptimize>
+    <Optimize Condition="'$(ILGPUCOptimize)' == 'true'">true</Optimize>
+  </PropertyGroup>
+
   <PropertyGroup>
     <EnableNETAnalyzers>true</EnableNETAnalyzers>
     <AnalysisMode>AllEnabledByDefault</AnalysisMode>
