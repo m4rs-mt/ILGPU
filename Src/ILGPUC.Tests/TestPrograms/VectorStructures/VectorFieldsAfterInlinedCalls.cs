@@ -14,13 +14,16 @@
 // A vector passed by value to a helper inside a loop keeps its fields for a
 // struct-returning helper after the loop: the vector's load is created in
 // the block of its inlined constructor, not in the first block that uses it.
-// Each lane prints pair.X and pair.Y, followed by the loop's results.
-// Expected output: 0 40 5 80 9 120 13 160 (pair.X and pair.Y per lane), then the
-// loop's results 0 0 0 0 -0 -0 -0 -0 10 12 14 16 -5 -6 -7 -8 18 20 22 24 -9 -10 -11 -12
-// 26 28 30 32 -13 -14 -15 -16
+// IsZero on Float32x4, Int32x4, FixedInt2DPx4 and FixedLong4DPx2 compares every
+// element with zero. Each lane prints pair.X, pair.Y and the IsZero bit mask,
+// followed by the loop's results.
+// Expected output: 0 40 127 5 80 45 9 120 45 13 160 45 (pair.X, pair.Y and the
+// mask per lane), then the loop's results 0 0 0 0 -0 -0 -0 -0 10 12 14 16
+// -5 -6 -7 -8 18 20 22 24 -9 -10 -11 -12 26 28 30 32 -13 -14 -15 -16
 
 using System;
 using ILGPU;
+using ILGPU.FixedPrecision;
 using ILGPU.Runtime;
 using ILGPU.Vectors;
 
@@ -30,6 +33,17 @@ static class Kernels
 
     internal static Float32x2 Pair(Float32x4 a, Float32x4 b) =>
         new Float32x2(a.X, b.W);
+
+    internal static int ZeroMask(Float32x4 a) =>
+        (Float32x4.IsZero(a - a) ? 1 : 0) |
+        (Float32x4.IsZero(a) ? 2 : 0) |
+        (Float32x4.IsZero(-Float32x4.Zero) ? 4 : 0) |
+        (Int32x4.IsZero(new Int32x4((int)a.X - (int)a.X, 0, 0, 0)) ? 8 : 0) |
+        (Int32x4.IsZero(new Int32x4(0, 0, 0, (int)a.W)) ? 16 : 0) |
+        (FixedInt2DPx4.IsZero(new FixedInt2DPx4(
+            new FixedInt2DP((int)a.X - (int)a.X), default, default, default)) ? 32 : 0) |
+        (FixedLong4DPx2.IsZero(new FixedLong4DPx2(
+            default, new FixedLong4DP((long)a.Z))) ? 64 : 0);
 
     public static void VectorFieldsAfterInlinedCallsKernel(
         Index1D index,
@@ -43,8 +57,9 @@ static class Kernels
         for (int k = 0; k < 2; ++k)
             Result(x, k).ToElementView(results, (index * 2 + k) * 4);
         var pair = Pair(x, y);
-        output[index * 2] = pair.X;
-        output[index * 2 + 1] = pair.Y;
+        output[index * 3] = pair.X;
+        output[index * 3 + 1] = pair.Y;
+        output[index * 3 + 2] = ZeroMask(x);
     }
 }
 
@@ -67,7 +82,7 @@ static class Program
         using var a = stream.Allocate1D(av);
         using var b = stream.Allocate1D(bv);
         using var results = stream.Allocate1D<float>(32);
-        using var output = stream.Allocate1D<float>(8);
+        using var output = stream.Allocate1D<float>(12);
         stream.Launch((Index1D)4, index => Kernels.VectorFieldsAfterInlinedCallsKernel(index, a.View, b.View, results.View, output.View));
         stream.Synchronize();
 
