@@ -1,0 +1,18 @@
+// CrossAssemblyLambdaError: a library launches an inline lambda kernel from a
+// public generic method. Applications could call it with their own type
+// arguments, for which they cannot compile the lambda, so ilgpuc must reject it
+// with an ILGPU1012 error at the lambda, and the build must fail.
+
+using ILGPU;
+using ILGPU.Runtime;
+
+namespace CrossAssemblyLambdaError;
+
+public static class Filler
+{
+    public static void Fill<T>(AcceleratorStream stream, ArrayView<T> data, T value)
+        where T : unmanaged
+    {
+        stream.Launch(data.IntExtent, index => data[index] = value);
+    }
+}

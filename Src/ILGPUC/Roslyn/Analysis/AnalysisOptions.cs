@@ -30,14 +30,20 @@ namespace ILGPUC.Roslyn.Analysis;
 /// The syntax trees produced by source generators. They take part in the
 /// analysis, but launch sites in them cannot be rewritten.
 /// </param>
+/// <param name="AssemblyName">
+/// The name of the assembly being built. When set, dispatch code looks up kernels
+/// compiled by the builds of other assemblies, and the launches of public generic
+/// methods are summarized for them.
+/// </param>
 /// <param name="IsLibrary">
 /// True if the compilation builds a library, whose methods other assemblies can
-/// call; false for an executable.
+/// call; false for an executable, whose launches are not summarized.
 /// </param>
 sealed record AnalysisOptions(
     GenericInstantiationLimits? Limits = null,
     bool WarnOnOpenPublicEntryPoints = false,
     IReadOnlySet<SyntaxTree>? GeneratedTrees = null,
+    string? AssemblyName = null,
     bool IsLibrary = true)
 {
     /// <summary>The default options.</summary>

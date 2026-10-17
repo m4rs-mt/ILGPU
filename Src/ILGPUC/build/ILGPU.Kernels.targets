@@ -164,6 +164,8 @@
                       Condition="'$(ILGPUMaxGenericInstantiations)' != ''" />
       <_ILGPURspLines Include="$(ILGPUMaxGenericInstantiations)"
                       Condition="'$(ILGPUMaxGenericInstantiations)' != ''" />
+      <_ILGPURspLines Include="--assembly-name" />
+      <_ILGPURspLines Include="$(AssemblyName)" />
       <_ILGPURspLines Include="--warn-open-public-entry-points"
                       Condition="'$(ILGPUWarnOnOpenPublicEntryPoints)' == 'true'" />
       <!-- Source generators run in ILGPUC too, so that it sees the same code

@@ -105,6 +105,33 @@ static class DispatchStubGenerator
         foreach (var specialization in stub.Specializations)
             AppendDispatchCase(sb, stub, specialization, typeParameters, names, Format);
 
+        // Kernels compiled by the builds of other assemblies that call this one
+        if (stub.DispatchKey is { } dispatchKey)
+        {
+            var launcherTypes = GetLauncherTypeArguments(
+                stub.Variant,
+                parameters.Select(p => Format(p.Type)));
+            if (launcherTypes.Count <= MaxLauncherTypeArguments)
+            {
+                sb.AppendLine(
+                    "        if (global::ILGPU.Runtime.KernelDispatchRegistry" +
+                    ".TryGetLauncher<global::System.Action<" +
+                    $"{string.Join(", ", launcherTypes)}>>(");
+                sb.AppendLine(
+                    $"            {SymbolDisplay.FormatLiteral(dispatchKey, true)}, " +
+                    "out var launcher))");
+                sb.AppendLine("        {");
+                var arguments = new List<string> { "stream", "config", "userExtent" };
+                int dimensions = GetIndexDimensions(stub.Variant);
+                for (int d = 0; d < dimensions && dimensions > 1; d++)
+                    arguments.Add(GetDimensionName(d));
+                arguments.AddRange(parameters.Select(p => GetParameterName(p.Name)));
+                sb.AppendLine($"            launcher({string.Join(", ", arguments)});");
+                sb.AppendLine("            return;");
+                sb.AppendLine("        }");
+            }
+        }
+
         // Fallback: throw for type arguments without a compiled kernel
         var typeArgNames = string.Join(
             ", ",
@@ -281,7 +308,34 @@ static class DispatchStubGenerator
     /// <summary>
     /// Returns the number of index dimensions passed separately for a variant.
     /// </summary>
-    private static int GetIndexDimensions(LaunchVariant variant) =>
+    /// <summary>
+    /// The maximum number of type arguments of <see cref="System.Action"/>.
+    /// </summary>
+    internal const int MaxLauncherTypeArguments = 16;
+
+    /// <summary>
+    /// Returns the type arguments of the <see cref="System.Action"/> that launches a
+    /// kernel compiled by another assembly's build: the stream, the configuration,
+    /// the extent, the dimensions of multidimensional launches, and the parameters.
+    /// </summary>
+    internal static List<string> GetLauncherTypeArguments(
+        LaunchVariant variant,
+        IEnumerable<string> parameterTypes)
+    {
+        var types = new List<string>
+        {
+            "global::ILGPU.Runtime.AcceleratorStream",
+            "global::ILGPU.KernelConfig",
+            "long",
+        };
+        int dimensions = GetIndexDimensions(variant);
+        for (int d = 0; d < dimensions && dimensions > 1; d++)
+            types.Add("int");
+        types.AddRange(parameterTypes);
+        return types;
+    }
+
+    internal static int GetIndexDimensions(LaunchVariant variant) =>
         variant switch
         {
             LaunchVariant.Auto2D or LaunchVariant.AutoLong2D

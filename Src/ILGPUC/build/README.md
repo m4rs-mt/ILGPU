@@ -86,7 +86,7 @@ All properties are optional. Set them in a `<PropertyGroup>` in your `.csproj`:
 | `ILGPUMaxGenericTypeDepth` | `8` | Maximum nesting depth of a type argument when finding the instantiations of generic kernels (`Box<Box<int>>` has depth 3) |
 | `ILGPUMaxGenericInstantiationsPerDefinition` | `256` | Maximum number of instantiations of one generic method or type when finding the instantiations of generic kernels |
 | `ILGPUMaxGenericInstantiations` | `16384` | Maximum number of generic instantiations in total when finding the instantiations of generic kernels |
-| `ILGPUWarnOnOpenPublicEntryPoints` | `false` | Warn (`ILGPU1010`) for every public or protected method whose type arguments reach a kernel launch, since other assemblies may call it with type arguments that have no compiled kernel. Meant for libraries |
+| `ILGPUWarnOnOpenPublicEntryPoints` | `false` | Warn (`ILGPU1010`) for every public or protected method whose type arguments reach a kernel launch, since other assemblies may call it with type arguments that have no compiled kernel. Meant for libraries; executables have no such methods |
 
 ### Example: Metal backend with optimization
 
@@ -186,13 +186,47 @@ The rewritten launch site calls a generated dispatch class that selects the comp
 kernel for the actual type arguments. One dispatch class serves all launch sites of
 a kernel.
 
-A launch site that no closed type argument reaches in the project, for example in a
-public library method that only other assemblies call, produces warning
-`ILGPU1001`. Launching it throws a `NotSupportedException` that names the missing
-type arguments. Callers in other assemblies and calls through reflection or
-`dynamic` are not visible to the build. Libraries can set
-`ILGPUWarnOnOpenPublicEntryPoints` to list every public method through which other
-assemblies could reach a kernel launch with their own type arguments.
+### Generic kernels across assemblies
+
+A library can launch kernels from public generic methods, and applications can call
+them with their own type arguments:
+
+```csharp
+// Library
+public static T[] Run<T>(AcceleratorStream stream, T[] values, T factor)
+    where T : unmanaged, INumber<T> { /* ... stream.Launch(..., Kernels.Scale(...)) */ }
+
+// Application
+Scaler.Run(stream, values, 2f);
+```
+
+The library's build describes, in its assembly, which kernels each public generic
+method launches with which type arguments. The build of an application that
+references it compiles the kernels for the type arguments the application passes and
+registers them; the library's dispatch code launches them. This works through chains
+of generic methods and libraries, as long as every assembly is built with ILGPU.
+Kernels that other assemblies compile must be methods: in a library, an inline lambda
+or a local function used as a kernel with the type arguments of a method that other
+assemblies can call is error `ILGPU1012`. Such methods are public methods of public
+types, protected methods of types that other assemblies can derive from, and any
+non-private method when the assembly declares `InternalsVisibleTo`.
+Only type arguments cross assembly boundaries: delegates passed by other assemblies
+cannot be traced, so in a library a launching method that captures a delegate
+parameter, or a method forwarding one to it, must not be visible to other assemblies
+(error `ILGPU1111`; see the kernel documentation on lambdas and delegates).
+Executables (an `OutputType` of `Exe` or `WinExe`) are not called by other
+assemblies: their builds describe no methods, and their public methods are treated
+like internal ones.
+
+A launch site that no closed type argument reaches and that no public method of a
+library leads to, for example in an internal method nothing calls, produces warning
+`ILGPU1001`.
+Launching it throws a `NotSupportedException` that names the missing type arguments,
+as does calling a library with type arguments from an assembly that is not built
+with ILGPU. Calls through reflection or `dynamic` are not visible to the build.
+Libraries can set `ILGPUWarnOnOpenPublicEntryPoints` to list every public method
+through which other assemblies could reach a kernel launch with their own type
+arguments.
 
 ## CLI Equivalent
 

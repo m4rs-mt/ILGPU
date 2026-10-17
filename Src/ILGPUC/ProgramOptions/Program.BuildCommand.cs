@@ -194,6 +194,17 @@ sealed partial class Program
         };
 
         /// <summary>
+        /// The name of the assembly being built, which identifies its dispatch code
+        /// for the builds of other assemblies.
+        /// </summary>
+        readonly Option<string?> _assemblyNameOption = new("--assembly-name")
+        {
+            Description =
+                "Name of the assembly being built; enables launching generic kernels " +
+                "across assemblies",
+        };
+
+        /// <summary>
         /// Analyzer assemblies of the project, whose source generators run before
         /// the analysis.
         /// </summary>
@@ -324,6 +335,7 @@ sealed partial class Program
                 _additionalFilesOption,
                 _analyzerConfigFilesOption,
                 _warnOpenPublicEntryPointsOption,
+                _assemblyNameOption,
             };
 
             _compilationPropertiesOptions = new(command);
@@ -403,13 +415,23 @@ sealed partial class Program
                 return 0;
             }
 
-            // Collect references
+            // Collect references, and load referenced assemblies from their paths
+            // when compiled kernels or their types refer to them
             var refs = new List<MetadataReference>();
+            var referencePaths = new Dictionary<string, string>(
+                StringComparer.OrdinalIgnoreCase);
             foreach (var refPath in references)
             {
-                if (File.Exists(refPath))
-                    refs.Add(MetadataReference.CreateFromFile(refPath));
+                if (!File.Exists(refPath))
+                    continue;
+                refs.Add(MetadataReference.CreateFromFile(refPath));
+                referencePaths.TryAdd(Path.GetFileNameWithoutExtension(refPath), refPath);
             }
+            System.Runtime.Loader.AssemblyLoadContext.Default.Resolving +=
+                (context, name) => name.Name is { } simpleName &&
+                    referencePaths.TryGetValue(simpleName, out var path)
+                    ? context.LoadFromAssemblyPath(Path.GetFullPath(path))
+                    : null;
 
             // If no explicit references, use trusted platform assemblies
             if (refs.Count == 0)
@@ -489,6 +511,7 @@ sealed partial class Program
                     limits,
                     parseResult.GetValue(_warnOpenPublicEntryPointsOption),
                     generatorResult.GeneratedTrees,
+                    parseResult.GetValue(_assemblyNameOption),
                     IsLibrary(parseResult.GetValue(_outputTypeOption))));
 
             // Report diagnostics in the canonical format, which MSBuild's Exec
@@ -498,7 +521,9 @@ sealed partial class Program
             if (analysis.HasErrors)
                 return 1;
 
-            if (analysis.AllKernels.Count == 0)
+            if (analysis.AllKernels.Count == 0 &&
+                analysis.UniqueKernels.Count == 0 &&
+                analysis.Summaries is not { Count: > 0 })
             {
                 // No launch sites — write empty manifest
                 Directory.CreateDirectory(outputDir);

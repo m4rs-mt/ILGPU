@@ -38,13 +38,18 @@ namespace ILGPUC.Roslyn.Analysis;
 /// The concrete kernels, one per closed instantiation found.
 /// </param>
 /// <param name="LaunchSites">The launch sites that use this stub.</param>
+/// <param name="DispatchKey">
+/// The key under which the stub looks up kernels compiled by the builds of other
+/// assemblies, or null if it does not.
+/// </param>
 sealed record DispatchStub(
     string Name,
     ISymbol KernelDefinition,
     LaunchVariant Variant,
     int SkippedParameters,
     ImmutableArray<KernelDescriptor> Specializations,
-    ImmutableArray<KernelDescriptor> LaunchSites)
+    ImmutableArray<KernelDescriptor> LaunchSites,
+    string? DispatchKey = null)
 {
     /// <summary>
     /// Returns the kernel parameters the launch site supplies, in the context of

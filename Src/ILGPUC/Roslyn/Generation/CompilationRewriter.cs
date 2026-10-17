@@ -36,6 +36,13 @@ interface ICompiledKernelProvider
 }
 
 /// <summary>
+/// A kernel compiled for the dispatch code of a referenced assembly.
+/// </summary>
+/// <param name="Key">The dispatch key of the referenced assembly's dispatch code.</param>
+/// <param name="Kernel">The kernel compiled for it.</param>
+sealed record DispatchRegistration(string Key, KernelDescriptor Kernel);
+
+/// <summary>
 /// Default provider that generates stub CompiledKernel classes.
 /// Used when ILGPUC is not available.
 /// </summary>
@@ -125,6 +132,7 @@ sealed class CompilationRewriter(ICompiledKernelProvider? kernelProvider = null)
         var delegateDiscoverer = new DelegateTargetDiscoverer(
             compilation,
             options.GeneratedTrees,
+            options.AssemblyName,
             options.IsLibrary);
         var delegateKeys = DiscoverDelegateTargets(kernels, delegateDiscoverer);
 
@@ -147,14 +155,19 @@ sealed class CompilationRewriter(ICompiledKernelProvider? kernelProvider = null)
             return new AnalysisResult(kernels, [], [], diagnostics);
 
         // Find the closed instantiations of kernels launched with open type
-        // arguments, through any depth of generic wrappers.
+        // arguments, through any depth of generic wrappers. Only libraries are
+        // called by other assemblies, so only their launches are summarized and
+        // their dispatch code looks up kernels compiled by other builds.
         var openKernels = kernels.Where(IsOpen).ToList();
+        var exportedName = options.IsLibrary ? options.AssemblyName : null;
         var closure = GenericInstantiationClosure.Compute(
             compilation,
             openKernels,
             models,
             options.Limits ?? GenericInstantiationLimits.Default,
-            options.WarnOnOpenPublicEntryPoints);
+            options.WarnOnOpenPublicEntryPoints,
+            computeSummaries: exportedName is not null,
+            isLibrary: options.IsLibrary);
         diagnostics.AddRange(closure.Diagnostics);
 
         // Assign names: one per distinct closed kernel and one per dispatch stub
@@ -225,6 +238,7 @@ sealed class CompilationRewriter(ICompiledKernelProvider? kernelProvider = null)
         }
 
         var dispatchStubs = new List<DispatchStub>(stubGroups.Count);
+        var stubsBySite = new Dictionary<KernelDescriptor, DispatchStub>();
         foreach (var group in stubGroups)
         {
             var sites = group.ToList();
@@ -235,10 +249,31 @@ sealed class CompilationRewriter(ICompiledKernelProvider? kernelProvider = null)
                 group.Key,
                 sites,
                 closure.Instantiations);
+            if (exportedName is not null)
+                stub = stub with { DispatchKey = $"{exportedName}:{stub.Name}" };
             dispatchStubs.Add(stub);
             uniqueKernels.AddRange(stub.Specializations);
             for (int i = 0; i < sites.Count; ++i)
+            {
                 renamed[sites[i]] = stub.LaunchSites[i];
+                stubsBySite[sites[i]] = stub;
+            }
+        }
+
+        // Kernels of referenced assemblies that this compilation instantiates are
+        // compiled here and registered for the dispatch code of their assembly
+        var registrations = new List<DispatchRegistration>();
+        foreach (var external in closure.ExternalInstantiations)
+        {
+            var kernel = CreateExternalKernel(compilation, names, external);
+            uniqueKernels.Add(kernel);
+            registrations.Add(
+                new DispatchRegistration(external.Launch.DispatchKey, kernel));
+            ReportInaccessibleTypes(
+                kernel,
+                kernel,
+                kernel.Parameters.Select(p => p.Type).Concat(external.TypeArguments),
+                diagnostics);
         }
 
         foreach (var kernel in kernels)
@@ -271,7 +306,9 @@ sealed class CompilationRewriter(ICompiledKernelProvider? kernelProvider = null)
             uniqueKernels,
             dispatchStubs,
             diagnostics,
-            closure.InstantiationCount)
+            closure.InstantiationCount,
+            EncodeSummaries(closure.Summaries, stubsBySite),
+            registrations)
         {
             DelegateDispatchStubs = delegateStubs,
             DelegateRegistrations = delegateDiscoverer.Registrations,
@@ -411,6 +448,125 @@ sealed class CompilationRewriter(ICompiledKernelProvider? kernelProvider = null)
             DelegateCaptures = null,
             DelegateKeys = keys,
         };
+    }
+
+    /// <summary>
+    /// Creates the descriptor of a kernel of a referenced assembly, instantiated
+    /// with closed type arguments.
+    /// </summary>
+    private static KernelDescriptor CreateExternalKernel(
+        CSharpCompilation compilation,
+        KernelNameAllocator names,
+        ExternalInstantiation external)
+    {
+        var method = GenericContext.ConstructMethod(
+            compilation,
+            external.Kernel,
+            external.TypeArguments);
+        var name = names.Allocate(
+            $"external|{external.Launch.DispatchKey}|" +
+            GenericContext.GetKey(external.TypeArguments),
+            $"{external.Kernel.Name}_" +
+            string.Join("_", external.TypeArguments.Select(GenericContext.Mangle)));
+
+        var parameters = ImmutableArray.CreateBuilder<CapturedParameterInfo>();
+        var launchParameters =
+            method.Parameters.Skip(external.Launch.SkippedParameters);
+        foreach (var parameter in launchParameters)
+        {
+            parameters.Add(new CapturedParameterInfo(
+                Name: parameter.Name,
+                SourceExpression: SyntaxFactory.IdentifierName(parameter.Name),
+                Type: parameter.Type,
+                Kind: KernelExtractor.Classify(parameter.Type)));
+        }
+
+        // There is no launch site in this compilation; diagnostics point to the
+        // call that leads to the launch
+        var invocation =
+            external.CallSite?.FirstAncestorOrSelf<InvocationExpressionSyntax>() ??
+            SyntaxFactory.InvocationExpression(SyntaxFactory.IdentifierName(name));
+        var placeholder = SyntaxFactory.IdentifierName(name);
+        var launchInfo = new KernelLaunchInfo(
+            invocation,
+            method,
+            placeholder,
+            placeholder,
+            placeholder,
+            external.Launch.Variant);
+
+        return new KernelDescriptor(
+            KernelName: name,
+            KernelMethod: method,
+            KernelBody: null,
+            Parameters: parameters.ToImmutable(),
+            Variant: external.Launch.Variant,
+            LaunchInfo: launchInfo,
+            GenericOriginName: external.Kernel.Name,
+            ConcreteTypeArgs: external.TypeArguments);
+    }
+
+    /// <summary>
+    /// Encodes type arguments as templates, or returns null if one mentions type
+    /// parameters other than <paramref name="parameters"/>.
+    /// </summary>
+    private static ImmutableArray<string>? EncodeTemplates(
+        ImmutableArray<ITypeSymbol> typeArguments,
+        ImmutableArray<ITypeParameterSymbol> parameters)
+    {
+        var templates = ImmutableArray.CreateBuilder<string>(typeArguments.Length);
+        foreach (var argument in typeArguments)
+        {
+            if (KernelDispatchSummary.Encode(argument, parameters) is not { } template)
+                return null;
+            templates.Add(template);
+        }
+        return templates.MoveToImmutable();
+    }
+
+    /// <summary>
+    /// Encodes the launches of externally visible methods for the builds of other
+    /// assemblies.
+    /// </summary>
+    private static List<DispatchEntry> EncodeSummaries(
+        IReadOnlyList<EntrySummary> summaries,
+        Dictionary<KernelDescriptor, DispatchStub> stubsBySite)
+    {
+        var entries = new List<DispatchEntry>();
+        foreach (var summary in summaries)
+        {
+            var parameters = GenericContext.GetTypeParameters(summary.Entry);
+            var launches = ImmutableArray.CreateBuilder<DispatchLaunch>();
+            foreach (var launch in summary.Launches)
+            {
+                var templates = EncodeTemplates(launch.TypeArguments, parameters);
+                if (templates is null)
+                    continue;
+                if (launch.External is { } external)
+                {
+                    launches.Add(external with { TypeArguments = templates.Value });
+                }
+                else if (launch.Site is { } site &&
+                    stubsBySite.TryGetValue(site, out var stub) &&
+                    stub.DispatchKey is { } key &&
+                    DocumentationCommentId.CreateDeclarationId(stub.KernelDefinition)
+                        is { } kernel)
+                {
+                    launches.Add(new DispatchLaunch(
+                        key,
+                        kernel,
+                        stub.Variant,
+                        stub.SkippedParameters,
+                        templates.Value));
+                }
+            }
+            if (launches.Count > 0 &&
+                DocumentationCommentId.CreateDeclarationId(summary.Entry) is { } entry)
+            {
+                entries.Add(new DispatchEntry(entry, launches.ToImmutable()));
+            }
+        }
+        return entries;
     }
 
     /// <summary>
@@ -728,6 +884,10 @@ sealed class CompilationRewriter(ICompiledKernelProvider? kernelProvider = null)
                 DispatchStubGenerator.GenerateDelegateDispatchStub(stub));
         }
 
+        // Connect generic kernel launches with other assemblies
+        foreach (var (_, source) in DispatchRegistryGenerator.Generate(analysis))
+            generatedSources.Add(source);
+
         // Inject generated sources into compilation
         var updatedCompilation = compilation;
         foreach (var src in generatedSources)
@@ -775,7 +935,9 @@ sealed class CompilationRewriter(ICompiledKernelProvider? kernelProvider = null)
         string? projectDir = null)
     {
 
-        if (analysis.AllKernels.Count == 0)
+        if (analysis.AllKernels.Count == 0 &&
+            analysis.UniqueKernels.Count == 0 &&
+            analysis.Summaries is not { Count: > 0 })
         {
             // No launch sites — write empty manifest
             Directory.CreateDirectory(outputDir);
@@ -806,6 +968,9 @@ sealed class CompilationRewriter(ICompiledKernelProvider? kernelProvider = null)
                 $"{stub.Name}_CompiledKernel.cs",
                 DispatchStubGenerator.GenerateDelegateDispatchStub(stub)));
         }
+
+        // Connect generic kernel launches with other assemblies
+        generatedSources.AddRange(DispatchRegistryGenerator.Generate(analysis));
 
         // Rewrite call sites with #line directives enabled
         var rewriter = new CallSiteRewriter(
@@ -869,12 +1034,20 @@ sealed class CompilationRewriter(ICompiledKernelProvider? kernelProvider = null)
 /// The number of generic instantiations visited to find the type arguments of
 /// kernels launched with open type arguments.
 /// </param>
+/// <param name="Summaries">
+/// The launches of externally visible methods, for the builds of other assemblies.
+/// </param>
+/// <param name="DispatchRegistrations">
+/// Kernels compiled for the dispatch code of referenced assemblies.
+/// </param>
 record AnalysisResult(
     List<KernelDescriptor> AllKernels,
     List<KernelDescriptor> UniqueKernels,
     List<DispatchStub> DispatchStubs,
     List<BuildDiagnostic> Diagnostics,
-    int InstantiationCount = 0)
+    int InstantiationCount = 0,
+    IReadOnlyList<DispatchEntry>? Summaries = null,
+    IReadOnlyList<DispatchRegistration>? DispatchRegistrations = null)
 {
     /// <summary>
     /// Returns the dispatch stubs for inline kernels capturing delegate
@@ -914,6 +1087,11 @@ record AnalysisResult(
         return this with
         {
             UniqueKernels = [.. UniqueKernels.Where(k => !names.Contains(k.KernelName))],
+            DispatchRegistrations =
+            [
+                .. (DispatchRegistrations ?? [])
+                    .Where(r => !names.Contains(r.Kernel.KernelName)),
+            ],
             DispatchStubs =
             [
                 .. DispatchStubs.Select(s => s with

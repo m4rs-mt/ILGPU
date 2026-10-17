@@ -67,11 +67,55 @@ sealed record GenericInstantiationLimits(
 /// <param name="InstantiationCount">
 /// The number of generic instantiations the closure visited.
 /// </param>
+/// <param name="ExternalInstantiations">
+/// Kernels of referenced assemblies that this compilation instantiates through their
+/// public generic methods, with closed type arguments.
+/// </param>
+/// <param name="Summaries">
+/// For every externally visible method of this compilation whose type arguments
+/// reach kernel launches, those launches with type arguments in terms of the
+/// method's type parameters.
+/// </param>
 sealed record GenericInstantiationResult(
     IReadOnlyDictionary<KernelDescriptor, IReadOnlyList<ImmutableArray<ITypeSymbol>>>
         Instantiations,
     IReadOnlyList<BuildDiagnostic> Diagnostics,
-    int InstantiationCount);
+    int InstantiationCount,
+    IReadOnlyList<ExternalInstantiation> ExternalInstantiations,
+    IReadOnlyList<EntrySummary> Summaries);
+
+/// <summary>
+/// A kernel of a referenced assembly instantiated with closed type arguments.
+/// </summary>
+/// <param name="Launch">The launch from the referenced assembly's summary.</param>
+/// <param name="Kernel">The kernel definition.</param>
+/// <param name="TypeArguments">The kernel's closed type arguments.</param>
+/// <param name="CallSite">The code in this compilation that leads to the launch.</param>
+sealed record ExternalInstantiation(
+    DispatchLaunch Launch,
+    IMethodSymbol Kernel,
+    ImmutableArray<ITypeSymbol> TypeArguments,
+    SyntaxNode? CallSite);
+
+/// <summary>
+/// A kernel launch reached from an externally visible method.
+/// </summary>
+/// <param name="Site">The launch site in this compilation, if any.</param>
+/// <param name="External">The launch in a referenced assembly, if any.</param>
+/// <param name="TypeArguments">
+/// The kernel's type arguments in terms of the method's type parameters.
+/// </param>
+sealed record SummaryLaunch(
+    KernelDescriptor? Site,
+    DispatchLaunch? External,
+    ImmutableArray<ITypeSymbol> TypeArguments);
+
+/// <summary>
+/// The kernel launches that an externally visible method performs.
+/// </summary>
+/// <param name="Entry">The method definition.</param>
+/// <param name="Launches">The launches.</param>
+sealed record EntrySummary(IMethodSymbol Entry, IReadOnlyList<SummaryLaunch> Launches);
 
 /// <summary>
 /// Finds the closed type arguments that reach kernel launch sites whose kernel
@@ -126,6 +170,12 @@ sealed class GenericInstantiationClosure
 
         /// <summary>The creation of an object or a box of a type.</summary>
         Instantiate,
+
+        /// <summary>
+        /// A call of a method of a referenced assembly whose kernel launches are
+        /// described by a summary.
+        /// </summary>
+        External,
     }
 
     /// <summary>
@@ -187,6 +237,7 @@ sealed class GenericInstantiationClosure
     private readonly SemanticModelCache _models;
     private readonly GenericInstantiationLimits _limits;
     private readonly bool _warnOnOpenPublicEntryPoints;
+    private readonly bool _isLibrary;
     private readonly Dictionary<ISymbol, int> _definitionIndices =
         new(GenericContext.DefinitionComparer);
     private readonly List<ISymbol> _definitions = [];
@@ -199,7 +250,33 @@ sealed class GenericInstantiationClosure
     private readonly Dictionary<string, List<int>> _potentialImplementations = [];
     private readonly Dictionary<ISymbol, bool> _staticInitialization =
         new(SymbolEqualityComparer.Default);
+
+    // Summaries of referenced assemblies
+    private readonly IReadOnlyDictionary<string, DispatchEntry> _summaries;
+    private readonly List<DispatchEntry> _externalEntries = [];
+    private readonly Dictionary<string, int> _externalIndices = [];
+    private readonly HashSet<string> _summarizedNames = [];
+    private readonly List<ExternalInstantiation> _externalInstantiations = [];
+    private readonly HashSet<string> _externalKeys = [];
+
+    // Summaries of this compilation: type parameters treated as closed while the
+    // launches of an externally visible method are collected
+    private readonly bool _computeSummaries;
+    private readonly HashSet<ISymbol> _symbolic = new(GenericContext.DefinitionComparer);
+    private List<SummaryLaunch>? _currentSummary;
+    private readonly HashSet<string> _currentSummaryKeys = [];
+    private readonly HashSet<KernelDescriptor> _summarizedSites = [];
+    private int _currentEntry = -1;
+
+    // Local kernels that externally visible methods launch with their type
+    // arguments, with those methods
+    private readonly Dictionary<KernelDescriptor, List<int>> _localEntrySites = [];
     private readonly List<BuildDiagnostic> _diagnostics = [];
+
+    // Results per open launch site
+    private readonly Dictionary<KernelDescriptor, List<ImmutableArray<ITypeSymbol>>>
+        _results = [];
+    private readonly Dictionary<KernelDescriptor, HashSet<string>> _resultKeys = [];
 
     // Worklist state
     private readonly Queue<Item> _worklist = new();
@@ -219,12 +296,25 @@ sealed class GenericInstantiationClosure
         CSharpCompilation compilation,
         SemanticModelCache models,
         GenericInstantiationLimits limits,
-        bool warnOnOpenPublicEntryPoints)
+        bool warnOnOpenPublicEntryPoints,
+        bool computeSummaries,
+        bool isLibrary)
     {
         _compilation = compilation;
         _models = models;
         _limits = limits;
         _warnOnOpenPublicEntryPoints = warnOnOpenPublicEntryPoints;
+        _computeSummaries = computeSummaries;
+        _isLibrary = isLibrary;
+        _summaries = KernelDispatchSummary.Read(compilation);
+        foreach (var method in _summaries.Keys
+            .Select(id => DocumentationCommentId.GetFirstSymbolForDeclarationId(
+                id,
+                compilation))
+            .OfType<IMethodSymbol>())
+        {
+            _summarizedNames.Add($"{method.Name}`{method.Arity}");
+        }
     }
 
     #endregion
@@ -244,18 +334,31 @@ sealed class GenericInstantiationClosure
     /// True to warn for externally visible methods whose type arguments reach a
     /// launch site, even if the compilation also has closed callers.
     /// </param>
+    /// <param name="computeSummaries">
+    /// True to describe the kernel launches of externally visible methods for the
+    /// builds of other assemblies.
+    /// </param>
+    /// <param name="isLibrary">
+    /// True if the compilation builds a library, whose methods other assemblies
+    /// can call; false for an executable, none of whose methods is externally
+    /// visible.
+    /// </param>
     public static GenericInstantiationResult Compute(
         CSharpCompilation compilation,
         IReadOnlyList<KernelDescriptor> openSites,
         SemanticModelCache models,
         GenericInstantiationLimits limits,
-        bool warnOnOpenPublicEntryPoints = false)
+        bool warnOnOpenPublicEntryPoints = false,
+        bool computeSummaries = false,
+        bool isLibrary = true)
     {
         var closure = new GenericInstantiationClosure(
             compilation,
             models,
             limits,
-            warnOnOpenPublicEntryPoints);
+            warnOnOpenPublicEntryPoints,
+            computeSummaries,
+            isLibrary);
         return closure.Run(openSites);
     }
 
@@ -268,17 +371,14 @@ sealed class GenericInstantiationClosure
             new Dictionary<
                 KernelDescriptor,
                 IReadOnlyList<ImmutableArray<ITypeSymbol>>>();
-        if (kernels.Count == 0)
-            return new(instantiations, _diagnostics, 0);
+        if (kernels.Count == 0 && _summaries.Count == 0)
+            return new(instantiations, _diagnostics, 0, [], []);
 
         // Register the open launch sites with their enclosing definitions
-        var results =
-            new Dictionary<KernelDescriptor, List<ImmutableArray<ITypeSymbol>>>();
-        var resultKeys = new Dictionary<KernelDescriptor, HashSet<string>>();
         foreach (var kernel in kernels)
         {
-            results[kernel] = [];
-            resultKeys[kernel] = [];
+            _results[kernel] = [];
+            _resultKeys[kernel] = [];
 
             var invocation = kernel.LaunchInfo.Invocation;
             var model = _models[invocation.SyntaxTree];
@@ -312,6 +412,36 @@ sealed class GenericInstantiationClosure
         }
 
         // Propagate closed type arguments
+        Drain();
+
+        // Describe the launches of externally visible methods for other builds
+        var summaries = _computeSummaries ? ComputeSummaries() : [];
+
+        var reportedEntryPoints = new HashSet<int>();
+        foreach (var (kernel, list) in _results)
+        {
+            instantiations[kernel] = list;
+            if (_localEntrySites.TryGetValue(kernel, out var entries))
+                ReportLocalKernelInEntryPoint(kernel, entries);
+            else if (list.Count == 0 && !_summarizedSites.Contains(kernel))
+                ReportOpenLaunchSite(kernel);
+            else if (_warnOnOpenPublicEntryPoints)
+                ReportOpenPublicEntryPoints(kernel, reportedEntryPoints);
+        }
+
+        return new(
+            instantiations,
+            _diagnostics,
+            _visited.Count,
+            _externalInstantiations,
+            summaries);
+    }
+
+    /// <summary>
+    /// Processes the worklist until it is empty.
+    /// </summary>
+    private void Drain()
+    {
         while (_worklist.Count > 0)
         {
             var item = _worklist.Dequeue();
@@ -322,26 +452,147 @@ sealed class GenericInstantiationClosure
             foreach (var site in _openSites[item.Definition])
             {
                 var arguments = Substitute(site.Arguments, substitution);
-                if (GenericContext.ContainsTypeParameter(arguments))
+                if (arguments.Any(IsOpenType))
                     continue;
-                if (resultKeys[site.Kernel].Add(GenericContext.GetKey(arguments)))
-                    results[site.Kernel].Add(arguments);
+                if (_currentSummary is not null &&
+                    GenericContext.ContainsTypeParameter(arguments))
+                {
+                    // Instantiated by the builds of the method's callers. Local
+                    // functions and inline lambdas have no definition that other
+                    // assemblies can compile, so their sites are reported.
+                    if (site.Kernel.IsLocalKernel)
+                    {
+                        if (!_localEntrySites.TryGetValue(site.Kernel, out var list))
+                            _localEntrySites.Add(site.Kernel, list = []);
+                        if (!list.Contains(_currentEntry))
+                            list.Add(_currentEntry);
+                        continue;
+                    }
+                    AddToSummary(new SummaryLaunch(site.Kernel, null, arguments));
+                    _summarizedSites.Add(site.Kernel);
+                    continue;
+                }
+                if (_resultKeys[site.Kernel].Add(GenericContext.GetKey(arguments)))
+                    _results[site.Kernel].Add(arguments);
             }
 
             ProcessEdges(item, substitution, closedOnly: false);
         }
+    }
 
-        var reportedEntryPoints = new HashSet<int>();
-        foreach (var (kernel, list) in results)
+    /// <summary>
+    /// Computes the launches of every externally visible method whose type
+    /// parameters reach a kernel launch, by running the closure once more from the
+    /// method with its own type parameters treated as closed.
+    /// </summary>
+    private List<EntrySummary> ComputeSummaries()
+    {
+        var summaries = new List<EntrySummary>();
+        for (int definition = 0; definition < _definitions.Count; ++definition)
         {
-            instantiations[kernel] = list;
-            if (list.Count == 0)
-                ReportOpenLaunchSite(kernel);
-            else if (_warnOnOpenPublicEntryPoints)
-                ReportOpenPublicEntryPoints(kernel, reportedEntryPoints);
-        }
+            if (_definitions[definition] is not IMethodSymbol method ||
+                !_relevant[definition] ||
+                _trackedPositions[definition].Count == 0 ||
+                !IsExternallyVisible(method))
+            {
+                continue;
+            }
+            _currentEntry = definition;
 
-        return new(instantiations, _diagnostics, _visited.Count);
+            var parameters = GenericContext.GetTypeParameters(method);
+            foreach (var parameter in parameters)
+                _symbolic.Add(parameter);
+            _currentSummary = [];
+            _currentSummaryKeys.Clear();
+
+            TryEnqueue(new Item(definition, Canonicalize(definition, []), null), null);
+            Drain();
+
+            if (_currentSummary.Count > 0)
+                summaries.Add(new EntrySummary(method, _currentSummary));
+            _currentSummary = null;
+            _currentEntry = -1;
+            _symbolic.Clear();
+        }
+        return summaries;
+    }
+
+    /// <summary>
+    /// Adds a launch to the summary being computed, once.
+    /// </summary>
+    private void AddToSummary(SummaryLaunch launch)
+    {
+        var key = $"{launch.Site?.GetHashCode()}|{launch.External?.DispatchKey}|" +
+            GenericContext.GetKey(launch.TypeArguments);
+        if (_currentSummaryKeys.Add(key))
+            _currentSummary!.Add(launch);
+    }
+
+    /// <summary>
+    /// Returns true if <paramref name="type"/> mentions a type parameter that is
+    /// not treated as closed.
+    /// </summary>
+    private bool IsOpenType(ITypeSymbol type) =>
+        _symbolic.Count == 0
+            ? GenericContext.ContainsTypeParameter(type)
+            : type switch
+            {
+                ITypeParameterSymbol parameter => !_symbolic.Contains(parameter),
+                IArrayTypeSymbol array => IsOpenType(array.ElementType),
+                IPointerTypeSymbol pointer => IsOpenType(pointer.PointedAtType),
+                INamedTypeSymbol named =>
+                    named.TypeArguments.Any(IsOpenType) ||
+                    named.ContainingType is { } container && IsOpenType(container),
+                _ => GenericContext.ContainsTypeParameter(type),
+            };
+
+    /// <summary>
+    /// Instantiates the launches of a summarized method of a referenced assembly
+    /// with the type arguments of a call.
+    /// </summary>
+    private void ApplyExternal(
+        DispatchEntry entry,
+        ImmutableArray<ITypeSymbol> arguments,
+        Location location)
+    {
+        foreach (var launch in entry.Launches)
+        {
+            var kernelArguments = ImmutableArray.CreateBuilder<ITypeSymbol>();
+            foreach (var template in launch.TypeArguments)
+            {
+                if (KernelDispatchSummary.Decode(template, _compilation, arguments) is not
+                    { } argument)
+                {
+                    break;
+                }
+                kernelArguments.Add(argument);
+            }
+            if (kernelArguments.Count != launch.TypeArguments.Length)
+                continue;
+            var typeArguments = kernelArguments.ToImmutable();
+
+            if (_currentSummary is not null &&
+                GenericContext.ContainsTypeParameter(typeArguments))
+            {
+                // Passed on to the builds of this method's callers
+                AddToSummary(new SummaryLaunch(null, launch, typeArguments));
+                continue;
+            }
+
+            if (!_externalKeys.Add(
+                    $"{launch.DispatchKey}|{GenericContext.GetKey(typeArguments)}") ||
+                DocumentationCommentId.GetFirstSymbolForDeclarationId(
+                    launch.Kernel,
+                    _compilation) is not IMethodSymbol kernel)
+            {
+                continue;
+            }
+            _externalInstantiations.Add(new ExternalInstantiation(
+                launch,
+                kernel,
+                typeArguments,
+                location.SourceTree?.GetRoot().FindNode(location.SourceSpan)));
+        }
     }
 
     /// <summary>
@@ -387,7 +638,7 @@ sealed class GenericInstantiationClosure
                                     _compilation,
                                     constrainedType,
                                     substitution) is INamedTypeSymbol receiver &&
-                                !GenericContext.ContainsTypeParameter(receiver))
+                                !IsOpenType(receiver))
                             {
                                 EnqueueImplementation(
                                     receiver,
@@ -396,9 +647,22 @@ sealed class GenericInstantiationClosure
                                     edge.Location);
                             }
                         }
-                        else if (!closedOnly || !GenericContext.IsOpen(slot))
+                        else if (!closedOnly ||
+                            !GenericContext.GetTypeArguments(slot).Any(IsOpenType))
                         {
                             AddCalledSlot(slot, item, edge.Location);
+                        }
+                    }
+                    break;
+                case EdgeKind.External:
+                    {
+                        var arguments = Substitute(edge.Arguments, substitution);
+                        if (!arguments.Any(IsOpenType))
+                        {
+                            ApplyExternal(
+                                _externalEntries[edge.Callee],
+                                arguments,
+                                edge.Location);
                         }
                     }
                     break;
@@ -408,7 +672,7 @@ sealed class GenericInstantiationClosure
                                 _compilation,
                                 edge.Type!,
                                 substitution) is INamedTypeSymbol type &&
-                            (!closedOnly || !GenericContext.ContainsTypeParameter(type)))
+                            (!closedOnly || !IsOpenType(type)))
                         {
                             AddInstantiatedType(
                                 type,
@@ -479,9 +743,14 @@ sealed class GenericInstantiationClosure
     private void EnqueueMethod(IMethodSymbol method, Item item, Location location)
     {
         var definition = Normalize(method);
-        if (definition is null ||
-            !_definitionIndices.TryGetValue(definition, out int index))
+        if (definition is null)
+            return;
+        if (!_definitionIndices.TryGetValue(definition, out int index))
         {
+            // An implementation in a referenced assembly
+            var typeArguments = GenericContext.GetTypeArguments(method);
+            if (GetSummary(definition) is { } entry && !typeArguments.Any(IsOpenType))
+                ApplyExternal(entry, typeArguments, location);
             return;
         }
         var arguments = Canonicalize(index, GenericContext.GetTypeArguments(method));
@@ -650,8 +919,7 @@ sealed class GenericInstantiationClosure
         var tracked = _trackedPositions[definition];
         for (int i = 0; i < arguments.Length; ++i)
         {
-            if (tracked.Contains(i) &&
-                GenericContext.ContainsTypeParameter(arguments[i]))
+            if (tracked.Contains(i) && IsOpenType(arguments[i]))
             {
                 return false;
             }
@@ -1217,6 +1485,31 @@ sealed class GenericInstantiationClosure
         }
 
         var definition = Normalize(target);
+        if (definition is not null &&
+            !IsInSource(definition) &&
+            GetSummary(definition) is { } entry)
+        {
+            if (!_externalIndices.TryGetValue(entry.Method, out int external))
+            {
+                external = _externalEntries.Count;
+                _externalIndices[entry.Method] = external;
+                _externalEntries.Add(entry);
+            }
+            foreach (int caller in GetCallers(model, operation))
+            {
+                AddEdge(
+                    caller,
+                    new Edge(
+                        EdgeKind.External,
+                        external,
+                        GenericContext.GetTypeArguments(target),
+                        null,
+                        null,
+                        false,
+                        operation.Syntax.GetLocation()));
+            }
+            return;
+        }
         if (definition is null ||
             !IsInSource(definition) ||
             GenericContext.GetTypeParameters(definition).Length == 0)
@@ -1238,6 +1531,16 @@ sealed class GenericInstantiationClosure
                     operation.Syntax.GetLocation()));
         }
     }
+
+    /// <summary>
+    /// Returns the summary of a method of a referenced assembly, if any.
+    /// </summary>
+    private DispatchEntry? GetSummary(ISymbol definition) =>
+        _summaries.Count > 0 &&
+        DocumentationCommentId.CreateDeclarationId(definition) is { } id &&
+        _summaries.TryGetValue(id, out var entry)
+            ? entry
+            : null;
 
     /// <summary>
     /// Records an edge for the instantiation of <paramref name="type"/>.
@@ -1305,6 +1608,8 @@ sealed class GenericInstantiationClosure
             EdgeKind.Dispatch =>
                 $"v|{edge.Slot!.ToDisplayString(GenericContext.KeyFormat)}|" +
                 $"{edge.Type?.ToDisplayString(GenericContext.KeyFormat)}",
+            EdgeKind.External =>
+                $"e|{edge.Callee}|{GenericContext.GetKey(edge.Arguments)}",
             _ => $"i|{edge.Type!.ToDisplayString(GenericContext.KeyFormat)}|" +
                 $"{edge.IsDefaultConstruction}",
         };
@@ -1380,9 +1685,17 @@ sealed class GenericInstantiationClosure
                                     changed |= Track(caller, edge.Arguments[position]);
                             }
                             break;
+                        case EdgeKind.External:
+                            foreach (var argument in edge.Arguments)
+                                changed |= Track(caller, argument);
+                            break;
                         case EdgeKind.Dispatch:
-                            if (!GetPotentialCallees(edge).Any(IsTracking))
+                            if (!GetPotentialCallees(edge).Any(IsTracking) &&
+                                !_summarizedNames.Contains(
+                                    $"{edge.Slot!.Name}`{edge.Slot.Arity}"))
+                            {
                                 break;
+                            }
                             foreach (var argument in GenericContext.GetTypeArguments(
                                 edge.Slot!))
                             {
@@ -1414,7 +1727,13 @@ sealed class GenericInstantiationClosure
         {
             bool createsTrackingObjects = _edges[definition].Any(edge =>
                 edge.Kind == EdgeKind.Instantiate && HasTrackingMembers(edge.Type!));
-            if (_openSites[definition].Count > 0 || createsTrackingObjects)
+            bool callsSummarizedCode = _edges[definition].Any(edge =>
+                edge.Kind == EdgeKind.External ||
+                edge.Kind == EdgeKind.Dispatch &&
+                _summarizedNames.Contains($"{edge.Slot!.Name}`{edge.Slot.Arity}"));
+            if (_openSites[definition].Count > 0 ||
+                createsTrackingObjects ||
+                callsSummarizedCode)
             {
                 _relevant[definition] = true;
                 worklist.Push(definition);
@@ -1544,6 +1863,46 @@ sealed class GenericInstantiationClosure
     }
 
     /// <summary>
+    /// Reports a lambda expression or local function used as a kernel that
+    /// externally visible methods launch with their own type arguments: other
+    /// assemblies calling them cannot compile the kernel for theirs.
+    /// </summary>
+    private void ReportLocalKernelInEntryPoint(
+        KernelDescriptor kernel,
+        List<int> entries)
+    {
+        var invocation = kernel.LaunchInfo.Invocation;
+        var model = _models[invocation.SyntaxTree];
+        var enclosing = Normalize(model.GetEnclosingSymbol(invocation.SpanStart));
+        var launching = enclosing is not null &&
+            _definitionIndices.TryGetValue(enclosing, out int index)
+            ? Describe(index)
+            : null;
+
+        // The lambda expression or the local function declaration
+        var location =
+            (kernel.InlineKernelSymbol ?? kernel.KernelMethod)?.Locations
+                .FirstOrDefault(l => l.IsInSource) ??
+            invocation.GetLocation();
+
+        foreach (int entry in entries)
+        {
+            var method = Describe(entry);
+            var reach = launching is null || launching == method
+                ? $"The kernel launched in '{method}'"
+                : $"The kernel launched in '{launching}', which '{method}' " +
+                  $"passes its type arguments to,";
+            _diagnostics.Add(BuildDiagnostic.Error(
+                BuildDiagnosticCodes.LocalKernelInPublicEntryPoint,
+                location,
+                $"{reach} is a lambda expression or local function, which other " +
+                $"assemblies cannot compile for their own type arguments, but " +
+                $"'{method}' is visible to them. Make the kernel a method, or " +
+                $"make '{method}' internal."));
+        }
+    }
+
+    /// <summary>
     /// Reports every externally visible method whose type arguments reach the
     /// launch site of <paramref name="kernel"/>: other assemblies may call it with
     /// type arguments that have no compiled kernel.
@@ -1593,21 +1952,8 @@ sealed class GenericInstantiationClosure
     /// <summary>
     /// Returns true if other assemblies can call <paramref name="method"/>.
     /// </summary>
-    private static bool IsExternallyVisible(IMethodSymbol method)
-    {
-        for (ISymbol? symbol = method; symbol is IMethodSymbol or INamedTypeSymbol;
-             symbol = symbol.ContainingSymbol)
-        {
-            if (symbol.DeclaredAccessibility is not (
-                Accessibility.Public or
-                Accessibility.Protected or
-                Accessibility.ProtectedOrInternal))
-            {
-                return false;
-            }
-        }
-        return true;
-    }
+    private bool IsExternallyVisible(IMethodSymbol method) =>
+        AssemblyVisibility.IsVisibleOutsideAssembly(method, _compilation, _isLibrary);
 
     /// <summary>
     /// Describes a definition for diagnostics.
