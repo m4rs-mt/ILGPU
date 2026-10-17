@@ -24,15 +24,6 @@ public abstract class DivergentControlFlowExecutionTests : ExecutionTestBase
         : base(output, backend) { }
 
     /// <summary>
-    /// Skips tests whose control flow the structured reconstruction used by
-    /// the GPU backends does not translate correctly yet.
-    /// </summary>
-    private void SkipOnStructuredBackends() =>
-        Skip.If(
-            Backend != BackendType.CPU,
-            "Not yet supported by the structured control flow reconstruction");
-
-    /// <summary>
     /// A view merged after divergent branches with side effects is written by every lane
     /// that reaches the merge.
     /// </summary>
@@ -66,7 +57,6 @@ public abstract class DivergentControlFlowExecutionTests : ExecutionTestBase
     [SkippableFact]
     public async Task LoopEarlyReturn_ProducesCorrectOutput()
     {
-        SkipOnStructuredBackends();
         await VerifyProgramOutputAsync(
             "TestPrograms/DivergentControlFlow/LoopEarlyReturn.cs",
             ["Kernels.LoopEarlyReturnKernel"],
@@ -97,11 +87,22 @@ public abstract class DivergentControlFlowExecutionTests : ExecutionTestBase
     [SkippableFact]
     public async Task NestedLoopGotoOut_ProducesCorrectOutput()
     {
-        SkipOnStructuredBackends();
         await VerifyProgramOutputAsync(
             "TestPrograms/DivergentControlFlow/NestedLoopGotoOut.cs",
             ["Kernels.NestedLoopGotoOutKernel"],
             ["6", "7", "8", "9", "13", "13", "14", "14", "18", "6", "7", "8"]);
+    }
+
+    [SkippableFact]
+    public async Task NestedLoopGotoTargets_ProducesCorrectOutput()
+    {
+        await VerifyProgramOutputAsync(
+            "TestPrograms/DivergentControlFlow/NestedLoopGotoTargets.cs",
+            ["Kernels.NestedLoopGotoTargetsKernel"],
+            [
+                "21236", "21457", "28423", "14473", "14133", "28231", "27898", "7216",
+                "7170", "28377", "68", "-167"
+            ]);
     }
 
     [SkippableFact]
@@ -119,7 +120,6 @@ public abstract class DivergentControlFlowExecutionTests : ExecutionTestBase
     [SkippableFact]
     public async Task SwitchGotoCase_ProducesCorrectOutput()
     {
-        SkipOnStructuredBackends();
         await VerifyProgramOutputAsync(
             "TestPrograms/DivergentControlFlow/SwitchGotoCase.cs",
             ["Kernels.SwitchGotoCaseKernel"],
@@ -132,7 +132,6 @@ public abstract class DivergentControlFlowExecutionTests : ExecutionTestBase
     [SkippableFact]
     public async Task DoWhileValueAfterLoop_ProducesCorrectOutput()
     {
-        SkipOnStructuredBackends();
         await VerifyProgramOutputAsync(
             "TestPrograms/DivergentControlFlow/DoWhileValueAfterLoop.cs",
             ["Kernels.DoWhileValueAfterLoopKernel"],
@@ -145,7 +144,6 @@ public abstract class DivergentControlFlowExecutionTests : ExecutionTestBase
     [SkippableFact]
     public async Task DoWhileContinue_ProducesCorrectOutput()
     {
-        SkipOnStructuredBackends();
         await VerifyProgramOutputAsync(
             "TestPrograms/DivergentControlFlow/DoWhileContinue.cs",
             ["Kernels.DoWhileContinueKernel"],
@@ -155,7 +153,6 @@ public abstract class DivergentControlFlowExecutionTests : ExecutionTestBase
     [SkippableFact]
     public async Task DoWhileBreak_ProducesCorrectOutput()
     {
-        SkipOnStructuredBackends();
         await VerifyProgramOutputAsync(
             "TestPrograms/DivergentControlFlow/DoWhileBreak.cs",
             ["Kernels.DoWhileBreakKernel"],
@@ -195,7 +192,6 @@ public abstract class DivergentControlFlowExecutionTests : ExecutionTestBase
     [SkippableFact]
     public async Task HelperLoopEarlyReturn_ProducesCorrectOutput()
     {
-        SkipOnStructuredBackends();
         await VerifyProgramOutputAsync(
             "TestPrograms/DivergentControlFlow/HelperLoopEarlyReturn.cs",
             ["Kernels.HelperLoopEarlyReturnKernel"],
@@ -203,9 +199,32 @@ public abstract class DivergentControlFlowExecutionTests : ExecutionTestBase
     }
 
     [SkippableFact]
+    public async Task LoopPhiSwap_ProducesCorrectOutput()
+    {
+        await VerifyProgramOutputAsync(
+            "TestPrograms/DivergentControlFlow/LoopPhiSwap.cs",
+            ["Kernels.LoopPhiSwapKernel"],
+            [
+                "1", "1001", "1002", "2003", "3005", "5008", "8013", "13021", "21034",
+                "1", "1001", "1002"
+            ]);
+    }
+
+    [SkippableFact]
+    public async Task NestedLoopContinueOuter_ProducesCorrectOutput()
+    {
+        await VerifyProgramOutputAsync(
+            "TestPrograms/DivergentControlFlow/NestedLoopContinueOuter.cs",
+            ["Kernels.NestedLoopContinueOuterKernel"],
+            [
+                "10001", "10004", "10010", "10120", "10229", "10336", "10440", "10440",
+                "10440", "10001", "10004", "10010"
+            ]);
+    }
+
+    [SkippableFact]
     public async Task IrreducibleLoop_ProducesCorrectOutput()
     {
-        SkipOnStructuredBackends();
         await VerifyProgramOutputAsync(
             "TestPrograms/DivergentControlFlow/IrreducibleLoop.cs",
             ["Kernels.IrreducibleLoopKernel"],
@@ -215,7 +234,6 @@ public abstract class DivergentControlFlowExecutionTests : ExecutionTestBase
     [SkippableFact]
     public async Task IrreducibleLoopEntryValues_ProducesCorrectOutput()
     {
-        SkipOnStructuredBackends();
         await VerifyProgramOutputAsync(
             "TestPrograms/DivergentControlFlow/IrreducibleLoopEntryValues.cs",
             ["Kernels.IrreducibleLoopEntryValuesKernel"],
@@ -228,7 +246,6 @@ public abstract class DivergentControlFlowExecutionTests : ExecutionTestBase
     [SkippableFact]
     public async Task IrreducibleLoopInOuterLoop_ProducesCorrectOutput()
     {
-        SkipOnStructuredBackends();
         await VerifyProgramOutputAsync(
             "TestPrograms/DivergentControlFlow/IrreducibleLoopInOuterLoop.cs",
             ["Kernels.IrreducibleLoopInOuterLoopKernel"],
@@ -239,15 +256,50 @@ public abstract class DivergentControlFlowExecutionTests : ExecutionTestBase
     }
 
     [SkippableFact]
+    public async Task IrreducibleGotoInKernel_ProducesCorrectOutput()
+    {
+        await VerifyProgramOutputAsync(
+            "TestPrograms/DivergentControlFlow/IrreducibleGotoInKernel.cs",
+            ["Kernels.IrreducibleGotoInKernelKernel"],
+            [
+                "5114", "701", "5112", "703", "2804", "6412", "6614", "7512", "2801",
+                "7009", "9112", "9612"
+            ]);
+    }
+
+    [SkippableFact]
     public async Task LoopSwitchContinueView_ProducesCorrectOutput()
     {
-        SkipOnStructuredBackends();
         await VerifyProgramOutputAsync(
             "TestPrograms/DivergentControlFlow/LoopSwitchContinueView.cs",
             ["Kernels.LoopSwitchContinueViewKernel"],
             [
                 "458", "634", "977", "980", "807", "957", "745", "400", "401", "402",
                 "802", "36"
+            ]);
+    }
+
+    [SkippableFact]
+    public async Task FixedBufferAfterRegion_ProducesCorrectOutput()
+    {
+        await VerifyProgramOutputAsync(
+            "TestPrograms/DivergentControlFlow/FixedBufferAfterRegion.cs",
+            ["Kernels.FixedBufferAfterRegionKernel"],
+            [
+                "100", "302", "303", "104", "304", "310", "103", "304", "308", "118",
+                "303", "304"
+            ]);
+    }
+
+    [SkippableFact]
+    public async Task IrreducibleLoopFixedBuffer_ProducesCorrectOutput()
+    {
+        await VerifyProgramOutputAsync(
+            "TestPrograms/DivergentControlFlow/IrreducibleLoopFixedBuffer.cs",
+            ["Kernels.IrreducibleLoopFixedBufferKernel"],
+            [
+                "11", "43", "125", "117", "239", "411", "493", "585", "837", "139",
+                "31", "163"
             ]);
     }
 }

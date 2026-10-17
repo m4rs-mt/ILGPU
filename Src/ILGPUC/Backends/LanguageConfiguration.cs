@@ -365,13 +365,4 @@ enum LanguageFeature
     /// Support for broadcast operations on the group level.
     /// </summary>
     BroadcastGroupLevel,
-
-    /// <summary>
-    /// Support for C-style labeled statements (label:) used with goto.
-    /// CUDA/HIP/OpenCL support this; Metal MSL does not.
-    /// Note: the compiler currently never emits goto, so labels in structured
-    /// control flow are dead code. This flag gates their emission so Metal is
-    /// not broken by unreachable labels.
-    /// </summary>
-    LabeledStatements,
 }
