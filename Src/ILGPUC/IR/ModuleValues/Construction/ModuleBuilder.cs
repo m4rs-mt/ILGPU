@@ -146,6 +146,10 @@ partial class ModuleBuilder : IGenerationObject
             _typeMapping.Add((typeof(RuntimeFieldHandle), space), HandleType);
             _typeMapping.Add((typeof(RuntimeMethodHandle), space), HandleType);
             _typeMapping.Add((typeof(RuntimeTypeHandle), space), HandleType);
+
+            // typeof(T) values are folded at compile time, so the frontend only
+            // needs to carry them through locals and the evaluation stack
+            _typeMapping.Add((typeof(Type), space), HandleType);
         }
 
         // Populate unified types

@@ -182,7 +182,7 @@
     <comment/>
   </data>
   <data name="NotSupportedIsInstance" xml:space="preserve">
-    <value>IsInstance is currently not supported</value>
+    <value>Type tests ('is', 'as' or 'isinst') against '{0}' are not supported in kernels; compare types with typeof(T) == typeof({0}) instead</value>
     <comment/>
   </data>
   <data name="NotSupportedKernelParameterType" xml:space="preserve">
@@ -579,6 +579,34 @@
   </data>
   <data name="NotSupportedKernelDelegateBind" xml:space="preserve">
     <value>Delegates bound with KernelDelegates.Bind can only be used in kernels compiled by ILGPUC.</value>
+    <comment/>
+  </data>
+  <data name="NotSupportedExceptionThrow" xml:space="preserve">
+    <value>Exceptions are not supported in kernels: '{1}' throws '{0}' in code that is reachable for these type arguments. Exceptions may only be thrown in branches that are removed at compile time, for example by a typeof(T) test</value>
+    <comment/>
+  </data>
+  <data name="NotSupportedCallToFailedMethod" xml:space="preserve">
+    <value>'{0}' calls '{1}', which could not be compiled: {2}</value>
+    <comment/>
+  </data>
+  <data name="NotSupportedReflectionMember" xml:space="preserve">
+    <value>'{0}' is not supported in kernels; only typeof(T) comparisons and the type properties IsValueType, IsPrimitive, IsEnum, IsGenericType, IsAssignableFrom and IsAssignableTo are evaluated at compile time</value>
+    <comment/>
+  </data>
+  <data name="NotSupportedNonConstantType" xml:space="preserve">
+    <value>'{0}' requires a type that is known at compile time, such as typeof(T), but its operand is computed at run time</value>
+    <comment/>
+  </data>
+  <data name="NotSupportedRuntimeTypeValue" xml:space="preserve">
+    <value>A System.Type value is used at run time in '{0}'; typeof(T) values may only be compared and queried, so that the result is known at compile time</value>
+    <comment/>
+  </data>
+  <data name="NotSupportedBitCast" xml:space="preserve">
+    <value>Unsafe.BitCast&lt;{0}, {1}&gt; is not supported in kernels: {2}</value>
+    <comment/>
+  </data>
+  <data name="NotSupportedBoxing" xml:space="preserve">
+    <value>Boxing a value of type '{0}' is not supported in kernels. This includes calling GetType() on it and type tests with 'is' or 'as'; compare typeof(T) with the type instead</value>
     <comment/>
   </data>
 </root>

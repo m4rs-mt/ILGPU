@@ -28,6 +28,7 @@ using ILGPUC.IR;
 using ILGPUC.IR.ModuleValues.Construction;
 using ILGPUC.IR.Transformations;
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
 using System.Threading;
@@ -93,7 +94,19 @@ sealed class CompilationHelper : DisposeBase
         MethodInfo method,
         CompilationProperties? props = null,
         BackendType? backendType = null,
-        ILFrontendCache? frontendCache = null)
+        ILFrontendCache? frontendCache = null) =>
+        CompileToModule(method, props, backendType, frontendCache, out _);
+
+    /// <summary>
+    /// Stage 0: IL -> sealed Module (unoptimized), also returning the helper
+    /// methods whose code generation failed.
+    /// </summary>
+    public IRModule CompileToModule(
+        MethodInfo method,
+        CompilationProperties? props,
+        BackendType? backendType,
+        ILFrontendCache? frontendCache,
+        out IReadOnlyDictionary<MethodBase, Exception> failedMethods)
     {
         var properties = props ?? new CompilationProperties();
         var bt = backendType ?? _defaultBackendType;
@@ -102,6 +115,7 @@ sealed class CompilationHelper : DisposeBase
             bt,
             frontendCache ?? s_frontendCache,
             GetAssemblyDir(method));
+        failedMethods = frontend.FailedMethods;
         frontend.LoadMethods([method]);
 
         var moduleBuilder = new ModuleBuilder(
@@ -149,11 +163,13 @@ sealed class CompilationHelper : DisposeBase
         CompilationProperties? props = null)
     {
         var properties = props ?? new CompilationProperties();
-        var rawModule = CompileToModule(method, properties, backend);
+        var rawModule = CompileToModule(
+            method, properties, backend, null, out var failedMethods);
 
         // Apply global optimizations
         var optTransformer = properties.OptimizationLevel.CreateTransformer();
         var optimizedModule = optTransformer.Apply(properties, _typeManager, rawModule);
+        FailedMethodVerifier.Verify(optimizedModule, failedMethods);
 
         // Generate code
         var backendInstance = CreateBackend(backend);
@@ -201,10 +217,12 @@ sealed class CompilationHelper : DisposeBase
         CancellationToken ct = default)
     {
         var properties = props ?? new CompilationProperties();
-        var rawModule = CompileToModule(method, properties, backend);
+        var rawModule = CompileToModule(
+            method, properties, backend, null, out var failedMethods);
 
         var optTransformer = properties.OptimizationLevel.CreateTransformer();
         var optimizedModule = optTransformer.Apply(properties, _typeManager, rawModule);
+        FailedMethodVerifier.Verify(optimizedModule, failedMethods);
 
         var backendInstance = CreateBackend(backend);
         var codeGenResult = backendInstance.GenerateCode(

@@ -1,0 +1,51 @@
+// TypeSpecializationError: Kernel2<int> is launched directly, and the helper
+// throws for int, so the build must fail with an error that names the helper,
+// the thrown exception and the source location.
+
+using System;
+using System.Runtime.CompilerServices;
+using ILGPU;
+using ILGPU.Runtime;
+
+namespace TypeSpecializationError;
+
+public static class Kernels
+{
+    public static void Kernel2<T>(
+        Index1D index,
+        ArrayView1D<T, Stride1D.Dense> x,
+        ArrayView1D<T, Stride1D.Dense> ans)
+        where T : unmanaged
+    {
+        ans[index] = GenericSin(x[index]);
+    }
+
+    static T GenericSin<T>(T x) where T : unmanaged
+    {
+        if (typeof(T) == typeof(float))
+            return Unsafe.BitCast<float, T>(MathF.Sin(Unsafe.BitCast<T, float>(x)));
+        else if (typeof(T) == typeof(double))
+            return Unsafe.BitCast<double, T>(Math.Cos(Unsafe.BitCast<T, double>(x)));
+        else
+            throw new NotSupportedException();
+    }
+}
+
+static class Program
+{
+    static void Main()
+    {
+        using var context = Context.Create(b => b.Default());
+        using var accelerator = context.GetPreferredDevice(preferCPU: $(PREFER_CPU))
+            .CreateAccelerator(context);
+        var stream = accelerator.DefaultStream;
+
+        int[] values = [1, 2];
+        using var x = stream.Allocate1D(values);
+        using var ans = stream.Allocate1D<int>(values.Length);
+        var xView = x.View;
+        var ansView = ans.View;
+        stream.Launch((Index1D)values.Length, i => Kernels.Kernel2(i, xView, ansView));
+        stream.Synchronize();
+    }
+}

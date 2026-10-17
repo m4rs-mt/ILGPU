@@ -27,7 +27,8 @@ partial class CodeGenerator
     /// <summary>
     /// Realizes a boxing operation that boxes a value.
     /// </summary>
-    private void MakeBox()
+    /// <param name="type">The type of the boxed value.</param>
+    private void MakeBox(Type type)
     {
         // Delegates created from instance methods of structs box the instance
         int nextIndex = CurrentInstructionIndex + 1;
@@ -41,7 +42,11 @@ partial class CodeGenerator
 
         var value = Block.Pop();
         if (value.Type is not ObjectType)
-            throw Location.GetInvalidOperationException();
+        {
+            throw Location.GetNotSupportedException(
+                ErrorMessages.NotSupportedBoxing,
+                FrontendDisplay.Format(type));
+        }
         var alloca = CreateTempAlloca(value.Type);
         CreateStore(alloca, value);
 
@@ -86,6 +91,20 @@ partial class CodeGenerator
             throw Location.GetInvalidOperationException();
 
         var type = constructor.DeclaringType.AsNotNull();
+
+        // Creating an exception means the code throws, which kernels cannot do.
+        // Report it here, before the class-type check below would reject the
+        // exception type with a less helpful message.
+        if (typeof(Exception).IsAssignableFrom(type))
+        {
+            // Code generation continues, so that other errors in the method are
+            // found; the exception object is never used for anything but a throw
+            DeferThrow(GetReachableThrowException(FrontendDisplay.Format(type)));
+            for (int i = 0; i < constructor.GetParameters().Length; ++i)
+                Block.Pop();
+            Block.Push(Builder.UndefinedValue);
+            return;
+        }
 
         // Dispatch class types to specialized handlers
         if (type.IsClass && !type.IsValueType)
@@ -205,7 +224,8 @@ partial class CodeGenerator
     {
         VerifyNoDelegateCast(type, "is");
         throw Location.GetNotSupportedException(
-            ErrorMessages.NotSupportedIsInstance);
+            ErrorMessages.NotSupportedIsInstance,
+            FrontendDisplay.Format(type));
     }
 
     /// <summary>
@@ -219,6 +239,41 @@ partial class CodeGenerator
             ErrorMessages.NotSupportedInstruction,
             $"castclass {type}",
             Method.Name);
+    }
+
+    /// <summary>
+    /// Realizes a throw or rethrow instruction. Both are only supported in code
+    /// that is removed at compile time, so reaching one is an error.
+    /// </summary>
+    /// <param name="isRethrow">True for a rethrow, which has no operand.</param>
+    private void MakeThrow(bool isRethrow)
+    {
+        DeferThrow(GetReachableThrowException(
+            isRethrow ? "the current exception" : "an exception"));
+        if (!isRethrow)
+            Block.Pop();
+    }
+
+    /// <summary>
+    /// Creates the error for a throw that is reachable in the current method.
+    /// </summary>
+    /// <param name="exceptionType">Describes the thrown exception.</param>
+    private InternalCompilerException GetReachableThrowException(
+        string exceptionType)
+    {
+        var message = string.Format(
+            ErrorMessages.NotSupportedExceptionThrow,
+            exceptionType,
+            FrontendDisplay.Format(Method));
+
+        // A throw often stays reachable because a type test could not be decided
+        // at compile time; name the calls that could not be evaluated, and why
+        foreach (var (method, reason) in EvaluationFailures)
+        {
+            message += $". '{FrontendDisplay.Format(method)}' was not evaluated " +
+                $"at compile time: {reason}";
+        }
+        return Location.GetException(new ReachableThrowException(message));
     }
 
     /// <summary>

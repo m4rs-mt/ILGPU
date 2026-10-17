@@ -71,6 +71,7 @@ var testClasses = new[]
     "AddressSpaceExecutionTests",
     "Vector3ExecutionTests",
     "Matrix4x4ExecutionTests",
+    "TypeSpecializationExecutionTests",
 };
 
 var backends = new[] { "CPU", "Metal", "Cuda", "ROCm", "OpenCL" };

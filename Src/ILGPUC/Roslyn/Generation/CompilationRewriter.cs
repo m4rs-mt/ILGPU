@@ -899,6 +899,33 @@ record AnalysisResult(
     /// Returns <see langword="true"/> if the analysis found an error.
     /// </summary>
     public bool HasErrors => Diagnostics.Any(d => d.IsError);
+
+    /// <summary>
+    /// Returns a copy of this analysis without the given concrete kernels, which
+    /// are also removed from the dispatch stubs, so launches with their type
+    /// arguments throw at run time.
+    /// </summary>
+    /// <param name="kernelNames">The names of the kernels to remove.</param>
+    public AnalysisResult WithoutKernels(IReadOnlyCollection<string> kernelNames)
+    {
+        if (kernelNames.Count == 0)
+            return this;
+        var names = new HashSet<string>(kernelNames);
+        return this with
+        {
+            UniqueKernels = [.. UniqueKernels.Where(k => !names.Contains(k.KernelName))],
+            DispatchStubs =
+            [
+                .. DispatchStubs.Select(s => s with
+                {
+                    Specializations =
+                    [
+                        .. s.Specializations.Where(k => !names.Contains(k.KernelName)),
+                    ],
+                }),
+            ],
+        };
+    }
 }
 
 /// <summary>

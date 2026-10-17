@@ -13,8 +13,10 @@ using ILGPU.Resources;
 using ILGPUC.IR;
 using ILGPUC.IR.BasicBlockValues;
 using ILGPUC.IR.ModuleValues;
+using ILGPUC.IR.PureValues;
 using ILGPUC.Roslyn.Analysis;
 using ILGPUC.Util;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
@@ -34,8 +36,14 @@ partial class CodeGenerator
             var.RefType == VariableRefType.Argument ||
             var.RefType == VariableRefType.Local);
         VerifyNoAddressTakenDelegate(var);
-        var addressOrValue = Block.GetValue(var);
         var (type, flags) = _variableTypes[var];
+        if (_constantLocals.TryGetValue(var, out var constant))
+        {
+            Block.Push(LoadOntoEvaluationStack(constant, flags));
+            return;
+        }
+
+        var addressOrValue = Block.GetValue(var);
         if (_variables.Contains(var))
             Block.Push(CreateLoad(addressOrValue, type, flags));
         else
@@ -152,6 +160,19 @@ partial class CodeGenerator
                 _delegateTable[storeValue] = delegateMethod;
             else if (rawValue is not null && rawValue != storeValue)
                 _delegateAliases[storeValue] = rawValue;
+
+            // A local that is stored exactly once and never has its address
+            // taken holds this value at every read: C#'s definite assignment
+            // makes the only store dominate all reads, and reads before it in
+            // processing order still go through SSA. Reading the constant
+            // directly lets a type test hoisted out of a loop fold inside the
+            // loop, where SSA would only see an incomplete header phi.
+            if (var.RefType == VariableRefType.Local &&
+                _localStoreCounts.GetValueOrDefault(var.Index) == 1 &&
+                storeValue is PrimitiveValue or HandleValue { Handle: Type })
+            {
+                _constantLocals[var] = storeValue;
+            }
         }
     }
 }

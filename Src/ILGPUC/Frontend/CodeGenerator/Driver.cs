@@ -155,7 +155,7 @@ partial class CodeGenerator
                 return true;
 
             case ILInstructionType.Box:
-                MakeBox();
+                MakeBox(instruction.GetArgumentAs<Type>());
                 return true;
             case ILInstructionType.Unbox:
                 MakeUnbox(instruction.GetArgumentAs<Type>());
@@ -313,6 +313,13 @@ partial class CodeGenerator
 
             case ILInstructionType.SizeOf:
                 LoadSizeOf(instruction.GetArgumentAs<Type>());
+                return true;
+
+            case ILInstructionType.Throw:
+                MakeThrow(isRethrow: false);
+                return true;
+            case ILInstructionType.Rethrow:
+                MakeThrow(isRethrow: true);
                 return true;
 
             default:

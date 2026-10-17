@@ -84,7 +84,9 @@ sealed class ProgramBuilder : DisposeBase
     public string BuildExecutable(
         string[] programSourceFiles,
         string[] kernelMethodFullNames,
-        CompilationProperties? props = null)
+        CompilationProperties? props = null,
+        Microsoft.CodeAnalysis.OptimizationLevel programOptimization =
+            Microsoft.CodeAnalysis.OptimizationLevel.Release)
     {
         var properties = props ?? new CompilationProperties();
 
@@ -118,7 +120,9 @@ sealed class ProgramBuilder : DisposeBase
 
         // Step 1: Create a CSharpCompilation (no emit yet)
         var compilation = RoslynCompiler.CreateCompilation(
-            sources, "program");
+            sources,
+            "program",
+            optimizationLevel: programOptimization);
 
         // Step 2: Analyze launch sites and extract kernel descriptors
         var analysis = CompilationRewriter.Analyze(compilation);
@@ -165,6 +169,7 @@ sealed class ProgramBuilder : DisposeBase
             var assembly = alc.LoadFromAssemblyPath(stubDll);
             var typeManager = new TypeInformationManager();
             var compiledSources = new Dictionary<string, string>();
+            var skippedKernels = new List<string>();
             var classNamesByAccel =
                 new Dictionary<AcceleratorType, List<string>>();
 
@@ -200,10 +205,26 @@ sealed class ProgramBuilder : DisposeBase
                         LauncherStubGenerator.ExtractFieldAccessors(p.Type) ?? [])
                     .ToArray();
 
-                var result = GenerateWrapper(
-                    method, properties, typeManager, kernel.KernelName,
-                    paramTypeNames, fieldAccessors,
-                    kernel.GetEntryPointLaunch());
+                CompiledKernelGenerationResult result;
+                try
+                {
+                    result = GenerateWrapper(
+                        method, properties, typeManager, kernel.KernelName,
+                        paramTypeNames, fieldAccessors,
+                        kernel.GetEntryPointLaunch());
+                }
+                catch (Exception e) when (
+                    kernel.GenericOriginName is not null &&
+                    ReachableThrowException.IsCausedBy(e))
+                {
+                    // Like the build command: an instantiation found through a
+                    // generic wrapper that throws for its type arguments is left
+                    // out, so launching it throws at run time
+                    _output?.WriteLine(
+                        $"Skipped kernel '{kernel.KernelName}': {e.Message}");
+                    skippedKernels.Add(kernel.KernelName);
+                    continue;
+                }
                 compiledSources[kernel.KernelName] = result.SourceCode;
                 _output?.WriteLine(
                     $"Compiled kernel: {kernel.KernelName} → {result.ClassName}");
@@ -220,7 +241,9 @@ sealed class ProgramBuilder : DisposeBase
             // references must match for CallSiteRewriter to find them.
             var provider = new PrecompiledKernelProvider(compiledSources);
             var rewriter = new CompilationRewriter(provider);
-            var rewriteResult = rewriter.Rewrite(compilation, analysis);
+            var rewriteResult = rewriter.Rewrite(
+                compilation,
+                analysis.WithoutKernels(skippedKernels));
 
             // Step 4b: Generate kernel registrar(s) — [ModuleInitializer]
             // that registers compiled kernels with the ILGPU context so
@@ -353,6 +376,7 @@ sealed class ProgramBuilder : DisposeBase
         // Optimize (pre-backend-transform module)
         var optTransformer = properties.OptimizationLevel.CreateTransformer();
         var optimizedModule = optTransformer.Apply(properties, typeManager, module);
+        FailedMethodVerifier.Verify(optimizedModule, frontend.FailedMethods);
 
         // Backend codegen (applies backend transforms internally)
         var backend = CompilationHelper.CreateBackend(_backend);

@@ -82,22 +82,18 @@ partial class CodeGenerator
             bool isTrue = kind != CompareKind.NotEqual;
             var liveTarget = isTrue ? successors[0] : successors[1];
             var deadTarget = isTrue ? successors[1] : successors[0];
-            if (IsIrreducible)
+
+            // The CFGBuilder's SetupPredecessors wired edges based on the
+            // pending termination which included both targets. Now that the
+            // branch is folded, remove the dead edge and every block that
+            // becomes unreachable.
+            if (!TryFoldBranch(liveTarget, deadTarget))
             {
                 Builder.CreateUnfoldedConditionalTermination(
                     Builder.CreatePrimitiveValue(Location, isTrue),
                     successors[0],
                     successors[1]);
-                return;
             }
-
-            Builder.CreateUnconditionalTermination(liveTarget);
-
-            // The CFGBuilder's SetupPredecessors wired edges based on the
-            // pending termination which included both targets. Now that the
-            // branch is folded, remove the dead edge and propagate to any
-            // blocks that become unreachable.
-            CleanupDeadPredecessorEdge(Block.BasicBlock, deadTarget);
             return;
         }
 
@@ -126,13 +122,6 @@ partial class CodeGenerator
     /// Otherwise SSA construction would still feed phis from the unreachable
     /// block, which is never sealed.
     /// </summary>
-    /// <remarks>
-    /// In methods with irreducible control flow (C# <c>goto</c> into a loop),
-    /// reverse post order does not process all predecessors of a block first,
-    /// so a fold could leave a reachable block whose only remaining predecessor
-    /// has not been processed, or make an already processed block unreachable.
-    /// There the conditional branch is kept, and later passes fold it.
-    /// </remarks>
     /// <param name="condition">The branch condition.</param>
     /// <param name="trueTarget">The target if the condition holds.</param>
     /// <param name="falseTarget">The target otherwise.</param>
@@ -143,23 +132,45 @@ partial class CodeGenerator
     {
         if (condition is PrimitiveValue primitive && trueTarget != falseTarget)
         {
-            if (IsIrreducible)
-            {
-                Builder.CreateUnfoldedConditionalTermination(
-                    condition,
-                    trueTarget,
-                    falseTarget);
-                return;
-            }
             bool isTrue = primitive.Int1Value;
             var liveTarget = isTrue ? trueTarget : falseTarget;
             var deadTarget = isTrue ? falseTarget : trueTarget;
-            Builder.CreateUnconditionalTermination(liveTarget);
-            CleanupDeadPredecessorEdge(Block.BasicBlock, deadTarget);
+            if (TryFoldBranch(liveTarget, deadTarget))
+                return;
+            Builder.CreateUnfoldedConditionalTermination(
+                condition,
+                trueTarget,
+                falseTarget);
             return;
         }
 
         Builder.CreateConditionalTermination(condition, trueTarget, falseTarget);
+    }
+
+    /// <summary>
+    /// Replaces the pending branch of the current block by an unconditional
+    /// branch to <paramref name="liveTarget"/>, removes the edge to
+    /// <paramref name="deadTarget"/> and prunes every block that becomes
+    /// unreachable.
+    /// </summary>
+    /// <param name="liveTarget">The target that is still branched to.</param>
+    /// <param name="deadTarget">The target that is no longer branched to.</param>
+    /// <returns>
+    /// False if the branch was not folded because the method has irreducible
+    /// control flow (C# <c>goto</c> into a loop). There, reverse post order does
+    /// not process all predecessors of a block first, so a fold could leave a
+    /// reachable block whose only remaining predecessor has not been processed,
+    /// or make an already processed block unreachable. The caller then emits the
+    /// conditional branch, which later passes fold.
+    /// </returns>
+    private bool TryFoldBranch(BasicBlock liveTarget, BasicBlock deadTarget)
+    {
+        if (IsIrreducible)
+            return false;
+        Builder.CreateUnconditionalTermination(liveTarget);
+        deadTarget.RemovePredecessor(Block.BasicBlock);
+        PruneUnreachableBlocks();
+        return true;
     }
 
     /// <summary>
@@ -241,43 +252,42 @@ partial class CodeGenerator
         return false;
     }
 
-
     /// <summary>
-    /// Cleans up predecessor edges after a branch is folded to unconditional.
-    /// Removes <paramref name="source"/> from <paramref name="deadTarget"/>'s
-    /// predecessors, then propagates: if a block becomes unreachable (zero
-    /// predecessors and not the method entry), its own successor edges are
-    /// also removed.
+    /// Finds the blocks that can no longer be reached from the entry block and
+    /// removes them as predecessors of their successors, so that SSA
+    /// construction neither waits for them nor feeds phis from them, and code
+    /// generation skips them before anything they contain is rejected.
     /// </summary>
-    /// <param name="source">The block whose branch was folded.</param>
-    /// <param name="deadTarget">The target that is no longer branched to.</param>
-    private static void CleanupDeadPredecessorEdge(
-        BasicBlock source,
-        BasicBlock deadTarget)
+    /// <remarks>
+    /// Reachability is computed by a forward walk from the entry block, because
+    /// counting predecessors misses dead cycles: the latch of an unreachable loop
+    /// keeps its header alive. Processed blocks contribute the successors of
+    /// their emitted terminator, the others those of their pending terminator.
+    /// Blocks that were already processed are always reachable, since the
+    /// blocks are processed in reverse post order.
+    /// </remarks>
+    private void PruneUnreachableBlocks()
     {
-        // Iterative worklist with a visited set: cycles of dead blocks
-        // (e.g. an unreachable loop) would otherwise recurse without bound.
-        var visited = new HashSet<BasicBlock>(ReferenceEqualityComparer.Instance);
-        var workList = new Stack<(BasicBlock Source, BasicBlock Target)>();
-        workList.Push((source, deadTarget));
-
+        var reachable = new HashSet<BasicBlock>(ReferenceEqualityComparer.Instance);
+        var workList = new Stack<BasicBlock>();
+        reachable.Add(EntryBlock.BasicBlock);
+        workList.Push(EntryBlock.BasicBlock);
         while (workList.Count > 0)
         {
-            var (currentSource, target) = workList.Pop();
-            target.RemovePredecessor(currentSource);
+            var current = workList.Pop();
+            foreach (var successor in current.Successors)
+            {
+                if (reachable.Add(successor))
+                    workList.Push(successor);
+            }
+        }
 
-            // If the dead target still has other predecessors it's reachable
-            // through another path — nothing more to do.
-            if (target.Predecessors.Length > 0)
+        foreach (BasicBlock block in _cfgBuilder.Blocks)
+        {
+            if (reachable.Contains(block) || !_unreachableBlocks.Add(block))
                 continue;
-
-            // The block is now unreachable. Remove it as a predecessor from
-            // all of its successors (propagate transitively), expanding each
-            // dead block at most once.
-            if (!visited.Add(target))
-                continue;
-            foreach (var successor in target.Successors)
-                workList.Push((target, successor));
+            foreach (var successor in block.Successors)
+                successor.RemovePredecessor(block);
         }
     }
 
@@ -301,6 +311,31 @@ partial class CodeGenerator
 
         var switchValue = Block.PopInt(Location, ConvertFlags.TargetUnsigned);
 
+        // A constant selector (e.g. a folded type test) has a single live target
+        if (switchValue is PrimitiveValue constant)
+        {
+            // IL compares the selector as an unsigned integer
+            ulong index = constant.BasicValueType == BasicValueType.Int64
+                ? (ulong)constant.Int64Value
+                : (uint)constant.Int32Value;
+            int liveIndex = index < (ulong)(successors.Length - 1)
+                ? (int)index + 1
+                : 0;
+            var liveTarget = successors[liveIndex];
+            var current = Block.BasicBlock;
+            if (IsIrreducible)
+                goto EmitSwitch;
+            Builder.CreateUnconditionalTermination(liveTarget);
+            for (int i = 0; i < successors.Length; ++i)
+            {
+                if (i != liveIndex)
+                    successors[i].RemovePredecessor(current);
+            }
+            PruneUnreachableBlocks();
+            return;
+        }
+
+    EmitSwitch:
         // Create switch termination with default (first) and cases (rest)
         var switchBuilder = Builder.CreateSwitchTermination(
             switchValue,

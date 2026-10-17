@@ -41,11 +41,20 @@ sealed class MainKernelProvider : ICompiledKernelProvider
 
     private MainKernelProvider(
         Dictionary<string, string> compiledSources,
-        List<BuildDiagnostic> diagnostics)
+        List<BuildDiagnostic> diagnostics,
+        List<string> skippedKernels)
     {
         _compiledSources = compiledSources;
         Diagnostics = diagnostics;
+        SkippedKernels = skippedKernels;
     }
+
+    /// <summary>
+    /// Returns the names of the kernel instantiations that were skipped because
+    /// they throw for their type arguments. They must be removed from the
+    /// analysis (<see cref="AnalysisResult.WithoutKernels"/>) before rewriting.
+    /// </summary>
+    public IReadOnlyList<string> SkippedKernels { get; }
 
     /// <summary>
     /// Returns the warnings found while resolving and compiling kernels.
@@ -159,30 +168,42 @@ sealed class MainKernelProvider : ICompiledKernelProvider
             // rewritten call site.
             kernelsToCompile.Add(new KernelCompileJob(
                 kernel.KernelName, method, paramTypeNames, fieldAccessors,
-                kernel.GetEntryPointLaunch(),
-                kernel.LaunchInfo.Invocation.GetLocation()));
+                kernel.GetEntryPointLaunch(), kernel));
+        }
+
+        var skippedKernels = new List<string>();
+        void AddResult(KernelCompileJob job, string? source, Exception? skipReason)
+        {
+            if (source is not null)
+            {
+                compiledSources[job.Name] = source;
+                return;
+            }
+            skippedKernels.Add(job.Name);
+            diagnostics.Add(CreateSkippedDiagnostic(job, skipReason!));
         }
 
         if (parallel)
         {
             var tasks =
                 from k in kernelsToCompile
-                select CompileAllBackendsAsync(
+                select CompileOrSkipAsync(
                     k, backends, compiler, compilerManager, dump, ct);
-            foreach (var (name, source) in await Task.WhenAll(tasks).ConfigureAwait(false))
-                compiledSources[name] = source;
+            var results = await Task.WhenAll(tasks).ConfigureAwait(false);
+            for (int i = 0; i < results.Length; ++i)
+                AddResult(kernelsToCompile[i], results[i].Source, results[i].Skip);
         }
         else
         {
             foreach (var job in kernelsToCompile)
             {
-                var (_, source) = await CompileAllBackendsAsync(
+                var (source, skip) = await CompileOrSkipAsync(
                     job, backends, compiler, compilerManager, dump, ct);
-                compiledSources[job.Name] = source;
+                AddResult(job, source, skip);
             }
         }
 
-        return new MainKernelProvider(compiledSources, diagnostics);
+        return new MainKernelProvider(compiledSources, diagnostics, skippedKernels);
     }
 
     /// <summary>
@@ -196,7 +217,7 @@ sealed class MainKernelProvider : ICompiledKernelProvider
         string[]? LaunchParamTypeNames,
         string[]?[]? LaunchParamFieldAccessors,
         EntryPointLaunch Launch,
-        Location LaunchSite);
+        KernelDescriptor Kernel);
 
     /// <summary>
     /// Returns the pre-compiled C# source for <paramref name="kernel"/>.
@@ -213,6 +234,57 @@ sealed class MainKernelProvider : ICompiledKernelProvider
 
         // Fallback to stub if somehow missing
         return LauncherStubGenerator.GenerateStub(kernel);
+    }
+
+    /// <summary>
+    /// Compiles a kernel, or reports that it is skipped: a kernel instantiation
+    /// that was only found through a generic wrapper and fails because an
+    /// exception is reachable for its type arguments is not compiled. Launching it
+    /// with these type arguments throws at run time, as the same code would on
+    /// the CPU. Direct launches and all other errors still fail the build.
+    /// </summary>
+    private static async Task<(string? Source, Exception? Skip)> CompileOrSkipAsync(
+        KernelCompileJob job,
+        Backend[] backends,
+        KernelCompiler compiler,
+        ICompilerManager? compilerManager,
+        IRDumpSettings dump,
+        CancellationToken ct)
+    {
+        try
+        {
+            var (_, source) = await CompileAllBackendsAsync(
+                job, backends, compiler, compilerManager, dump, ct)
+                .ConfigureAwait(false);
+            return (source, null);
+        }
+        catch (Exception e) when (
+            job.Kernel.ConcreteTypeArgs is not null &&
+            Frontend.ReachableThrowException.IsCausedBy(e))
+        {
+            return (null, e);
+        }
+    }
+
+    /// <summary>
+    /// Creates the warning for a skipped kernel instantiation.
+    /// </summary>
+    private static BuildDiagnostic CreateSkippedDiagnostic(
+        KernelCompileJob job,
+        Exception reason)
+    {
+        var innermost = reason;
+        while (innermost.InnerException is not null)
+            innermost = innermost.InnerException;
+        return BuildDiagnostic.Warning(
+            BuildDiagnosticCodes.SkippedThrowingInstantiation,
+            job.Kernel.LaunchInfo.Invocation.GetLocation(),
+            $"The kernel instantiation " +
+            $"'{job.Kernel.KernelMethod?.ToDisplayString() ?? job.Name}' is " +
+            $"reached through " +
+            $"generic code, but throws an exception for these type arguments, so it " +
+            $"is not compiled and launching it with them throws a " +
+            $"NotSupportedException. {innermost.Message}");
     }
 
     /// <summary>
@@ -249,7 +321,7 @@ sealed class MainKernelProvider : ICompiledKernelProvider
             catch (Exception exception) when (
                 KernelCompilationErrors.TryCreateDiagnostic(
                     exception,
-                    job.LaunchSite,
+                    job.Kernel.LaunchInfo.Invocation.GetLocation(),
                     out var diagnostic))
             {
                 // Reported as a build error at the offending source location

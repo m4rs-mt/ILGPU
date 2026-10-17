@@ -113,7 +113,9 @@ static class RoslynCompiler
         string[] sources,
         string assemblyName,
         OutputKind outputKind = OutputKind.ConsoleApplication,
-        MetadataReference[]? additionalReferences = null)
+        MetadataReference[]? additionalReferences = null,
+        Microsoft.CodeAnalysis.OptimizationLevel optimizationLevel =
+            Microsoft.CodeAnalysis.OptimizationLevel.Release)
     {
         var parseOptions = CSharpParseOptions.Default
             .WithLanguageVersion(LanguageVersion.CSharp13);
@@ -129,7 +131,7 @@ static class RoslynCompiler
             references = [.. references, .. additionalReferences];
 
         var options = new CSharpCompilationOptions(outputKind)
-            .WithOptimizationLevel(Microsoft.CodeAnalysis.OptimizationLevel.Release)
+            .WithOptimizationLevel(optimizationLevel)
             .WithAllowUnsafe(true)
             .WithNullableContextOptions(NullableContextOptions.Enable);
 
