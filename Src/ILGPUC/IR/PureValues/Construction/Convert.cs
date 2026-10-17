@@ -123,6 +123,38 @@ partial class PureValueBuilder
             var sourceBasicType = convert.BasicValueType;
             var targetBasicType = targetPrimitiveType.BasicValueType;
 
+            // Zero-extending a signed integer extends it from 32 bits, as the
+            // evaluation stack holds integers of 8 and 16 bits as sign-extended
+            // 32-bit integers, such as in (ulong)(uint) of a short: neither a
+            // single sign nor zero extension of the inner value does this
+            if (isSourceUnsigned &&
+                targetBasicType.IsInt() &&
+                sourceBasicType.IsInt() &&
+                convert.Value.BasicValueType.IsInt() &&
+                sourceBasicType < targetBasicType)
+            {
+                if (sourceBasicType < BasicValueType.Int32 &&
+                    targetBasicType > BasicValueType.Int32 &&
+                    !convert.IsResultUnsigned)
+                {
+                    var wideValue = CreateConvert(
+                        location,
+                        node,
+                        ModuleBuilder.GetPrimitiveType(BasicValueType.Int32),
+                        ConvertFlags.None);
+                    return CreateConvert(location, wideValue, targetType, flags);
+                }
+                if (!convert.IsSourceUnsigned &&
+                    convert.Value.BasicValueType < sourceBasicType)
+                {
+                    return Append(new ConvertValue(
+                        GetInitializer(location),
+                        node,
+                        targetType,
+                        flags));
+                }
+            }
+
             if (sourceBasicType == targetBasicType)
             {
                 // The target conversion is the same basic type as the existing

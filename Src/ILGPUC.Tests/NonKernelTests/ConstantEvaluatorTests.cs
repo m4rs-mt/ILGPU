@@ -381,6 +381,7 @@ public sealed class ConstantEvaluatorTests
         long result = (byte)value + (sbyte)value + (short)value + (ushort)value;
         result += (long)(ulong)(uint)value;
         result += (long)(ulong)(nuint)(uint)value;
+        result += (long)(ulong)(uint)(short)value + (long)(ulong)(uint)(sbyte)value;
         result += (long)(uint)value;
         result += (long)value;
         result += (long)(double)(uint)value;
