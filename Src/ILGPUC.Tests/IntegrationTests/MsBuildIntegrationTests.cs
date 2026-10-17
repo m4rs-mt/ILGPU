@@ -35,80 +35,72 @@ namespace ILGPUC.Tests.IntegrationTests;
 /// Backend coverage: CPU runs everywhere; Metal is gated by both the
 /// compiler and runtime availability checks (so it runs on macOS dev
 /// machines and skips on Linux CI).
+///
+/// Every scenario is a nested class of its own, since xUnit runs the tests of a
+/// class one after another and different classes in parallel. Each test builds a
+/// fresh project in its own temporary directory, and <see cref="MsBuildRunner"/>
+/// disables MSBuild node reuse and the shared compiler server, so concurrent
+/// builds share no state.
 /// </summary>
-public sealed class MsBuildIntegrationTests
+public static class MsBuildIntegrationTests
 {
-    private readonly ITestOutputHelper _output;
-
-    public MsBuildIntegrationTests(ITestOutputHelper output)
-    {
-        _output = output;
-    }
-
-    private static async Task RequireBackendAsync(BackendType backend)
-    {
-        Skip.IfNot(
-            await Availability.IsCompilerAvailableAsync(backend).ConfigureAwait(false),
-            $"Native compiler for {backend} is not available on this machine");
-        Skip.IfNot(
-            Availability.IsRuntimeAvailable(backend),
-            $"No {backend} runtime device available on this machine");
-    }
-
     // -----------------------------------------------------------------------
     // Test 1: HelloKernel — happy path. Build produces all expected artifacts
     // AND the resulting binary runs and prints the expected output.
     // -----------------------------------------------------------------------
 
-    [SkippableTheory]
-    [InlineData(BackendType.CPU)]
-    [InlineData(BackendType.Metal)]
-    public async Task Build_HelloKernel_ProducesArtifactsAndRuns(BackendType backend)
+    public sealed class HelloKernel(ITestOutputHelper output)
     {
-        await RequireBackendAsync(backend);
-
-        using var project = new IntegrationProjectFixture(
-            "HelloKernel", backend, _output);
-        try
+        [SkippableTheory]
+        [InlineData(BackendType.CPU)]
+        [InlineData(BackendType.Metal)]
+        public async Task Build_HelloKernel_ProducesArtifactsAndRuns(BackendType backend)
         {
-            var build = await project.BuildAsync();
-            Assert.True(build.Succeeded,
-                $"dotnet build failed (exit {build.ExitCode}). " +
-                $"Stderr: {build.StdErr}");
+            await RequireBackendAsync(backend);
 
-            // .targets must have produced manifest, rewritten, generated.
-            Assert.True(File.Exists(project.ManifestPath),
-                $"manifest.txt not found at {project.ManifestPath}");
-            Assert.True(File.Exists(project.ResponseFilePath),
-                $"args.rsp not found at {project.ResponseFilePath}");
+            using var project = new IntegrationProjectFixture(
+                "HelloKernel", backend, output);
+            try
+            {
+                var build = await project.BuildAsync();
+                Assert.True(build.Succeeded,
+                    $"dotnet build failed (exit {build.ExitCode}). " +
+                    $"Stderr: {build.StdErr}");
 
-            var manifest = project.ReadManifest();
-            Assert.Contains("Program.cs", manifest);
+                // .targets must have produced manifest, rewritten, generated.
+                Assert.True(File.Exists(project.ManifestPath),
+                    $"manifest.txt not found at {project.ManifestPath}");
+                Assert.True(File.Exists(project.ResponseFilePath),
+                    $"args.rsp not found at {project.ResponseFilePath}");
 
-            var rewritten = project.ListRewritten();
-            Assert.Contains(rewritten,
-                p => p.EndsWith("Program.cs", StringComparison.Ordinal));
+                var manifest = project.ReadManifest();
+                Assert.Contains("Program.cs", manifest);
 
-            var generated = project.ListGenerated();
-            Assert.Contains(generated,
-                p => p.EndsWith("_CompiledKernel.cs", StringComparison.Ordinal));
-            Assert.Contains(generated,
-                p => p.Equals(
-                    $"{ExpectedAcceleratorTypeName(backend)}KernelRegistrar.cs",
-                    StringComparison.Ordinal));
+                var rewritten = project.ListRewritten();
+                Assert.Contains(rewritten,
+                    p => p.EndsWith("Program.cs", StringComparison.Ordinal));
 
-            // Run the resulting binary and verify stdout.
-            var run = await project.RunAsync();
-            Assert.False(run.TimedOut, "Binary timed out");
-            Assert.Equal(0, run.ExitCode);
-            OutputVerifier.Verify(
-                run.StdOutLines,
-                expected: ["0", "2", "4", "6"]);
-        }
-        catch
-        {
-            project.MarkFailed();
-            throw;
+                var generated = project.ListGenerated();
+                Assert.Contains(generated,
+                    p => p.EndsWith("_CompiledKernel.cs", StringComparison.Ordinal));
+                Assert.Contains(generated,
+                    p => p.Equals(
+                        $"{ExpectedAcceleratorTypeName(backend)}KernelRegistrar.cs",
+                        StringComparison.Ordinal));
+
+                // Run the resulting binary and verify stdout.
+                var run = await project.RunAsync();
+                Assert.False(run.TimedOut, "Binary timed out");
+                Assert.Equal(0, run.ExitCode);
+                OutputVerifier.Verify(
+                    run.StdOutLines,
+                    expected: ["0", "2", "4", "6"]);
+            }
+            catch
+            {
+                project.MarkFailed();
+                throw;
+            }
         }
     }
 
@@ -118,40 +110,43 @@ public sealed class MsBuildIntegrationTests
     // should be swapped.
     // -----------------------------------------------------------------------
 
-    [SkippableFact]
-    public async Task Build_NoKernels_ProducesEmptyManifestAndRuns()
+    public sealed class NoKernels(ITestOutputHelper output)
     {
-        await RequireBackendAsync(BackendType.CPU);
-
-        using var project = new IntegrationProjectFixture(
-            "NoKernels", BackendType.CPU, _output);
-        try
+        [SkippableFact]
+        public async Task Build_NoKernels_ProducesEmptyManifestAndRuns()
         {
-            var build = await project.BuildAsync();
-            Assert.True(build.Succeeded,
-                $"dotnet build failed (exit {build.ExitCode}). " +
-                $"Stderr: {build.StdErr}");
+            await RequireBackendAsync(BackendType.CPU);
 
-            // Manifest exists but is empty (BuildCommand.Execute writes "" when
-            // no launch sites are found).
-            Assert.True(File.Exists(project.ManifestPath));
-            Assert.True(string.IsNullOrWhiteSpace(project.ReadManifest()),
-                $"Expected empty manifest, got: {project.ReadManifest()}");
+            using var project = new IntegrationProjectFixture(
+                "NoKernels", BackendType.CPU, output);
+            try
+            {
+                var build = await project.BuildAsync();
+                Assert.True(build.Succeeded,
+                    $"dotnet build failed (exit {build.ExitCode}). " +
+                    $"Stderr: {build.StdErr}");
 
-            // No rewritten or generated files for a project with no kernels.
-            Assert.Empty(project.ListRewritten());
-            Assert.Empty(project.ListGenerated());
+                // Manifest exists but is empty (BuildCommand.Execute writes "" when
+                // no launch sites are found).
+                Assert.True(File.Exists(project.ManifestPath));
+                Assert.True(string.IsNullOrWhiteSpace(project.ReadManifest()),
+                    $"Expected empty manifest, got: {project.ReadManifest()}");
 
-            var run = await project.RunAsync();
-            Assert.Equal(0, run.ExitCode);
-            OutputVerifier.Verify(
-                run.StdOutLines,
-                expected: ["hello no kernels"]);
-        }
-        catch
-        {
-            project.MarkFailed();
-            throw;
+                // No rewritten or generated files for a project with no kernels.
+                Assert.Empty(project.ListRewritten());
+                Assert.Empty(project.ListGenerated());
+
+                var run = await project.RunAsync();
+                Assert.Equal(0, run.ExitCode);
+                OutputVerifier.Verify(
+                    run.StdOutLines,
+                    expected: ["hello no kernels"]);
+            }
+            catch
+            {
+                project.MarkFailed();
+                throw;
+            }
         }
     }
 
@@ -159,51 +154,54 @@ public sealed class MsBuildIntegrationTests
     // Test 3: MultiKernel — two distinct kernels in one project.
     // -----------------------------------------------------------------------
 
-    [SkippableTheory]
-    [InlineData(BackendType.CPU)]
-    [InlineData(BackendType.Metal)]
-    public async Task Build_MultiKernel_GeneratesAllKernelsAndRuns(
-        BackendType backend)
+    public sealed class MultiKernel(ITestOutputHelper output)
     {
-        await RequireBackendAsync(backend);
-
-        using var project = new IntegrationProjectFixture(
-            "MultiKernel", backend, _output);
-        try
+        [SkippableTheory]
+        [InlineData(BackendType.CPU)]
+        [InlineData(BackendType.Metal)]
+        public async Task Build_MultiKernel_GeneratesAllKernelsAndRuns(
+            BackendType backend)
         {
-            var build = await project.BuildAsync();
-            Assert.True(build.Succeeded,
-                $"dotnet build failed (exit {build.ExitCode}). " +
-                $"Stderr: {build.StdErr}");
+            await RequireBackendAsync(backend);
 
-            var generated = project.ListGenerated();
-            var compiledKernelFiles = generated
-                .Where(p => p.EndsWith(
-                    "_CompiledKernel.cs", StringComparison.Ordinal))
-                .ToArray();
+            using var project = new IntegrationProjectFixture(
+                "MultiKernel", backend, output);
+            try
+            {
+                var build = await project.BuildAsync();
+                Assert.True(build.Succeeded,
+                    $"dotnet build failed (exit {build.ExitCode}). " +
+                    $"Stderr: {build.StdErr}");
 
-            // Both kernels must produce a CompiledKernel class file.
-            Assert.True(compiledKernelFiles.Length >= 2,
-                $"Expected >=2 _CompiledKernel.cs files, got " +
-                $"{compiledKernelFiles.Length}: " +
-                $"{string.Join(", ", compiledKernelFiles)}");
+                var generated = project.ListGenerated();
+                var compiledKernelFiles = generated
+                    .Where(p => p.EndsWith(
+                        "_CompiledKernel.cs", StringComparison.Ordinal))
+                    .ToArray();
 
-            // Both kernel names should appear among the generated files.
-            Assert.Contains(compiledKernelFiles,
-                p => p.Contains("TenXKernel", StringComparison.Ordinal));
-            Assert.Contains(compiledKernelFiles,
-                p => p.Contains("PlusOneKernel", StringComparison.Ordinal));
+                // Both kernels must produce a CompiledKernel class file.
+                Assert.True(compiledKernelFiles.Length >= 2,
+                    $"Expected >=2 _CompiledKernel.cs files, got " +
+                    $"{compiledKernelFiles.Length}: " +
+                    $"{string.Join(", ", compiledKernelFiles)}");
 
-            var run = await project.RunAsync();
-            Assert.Equal(0, run.ExitCode);
-            OutputVerifier.Verify(
-                run.StdOutLines,
-                expected: ["A: 0 10 20 30", "B: 1 2 3 4"]);
-        }
-        catch
-        {
-            project.MarkFailed();
-            throw;
+                // Both kernel names should appear among the generated files.
+                Assert.Contains(compiledKernelFiles,
+                    p => p.Contains("TenXKernel", StringComparison.Ordinal));
+                Assert.Contains(compiledKernelFiles,
+                    p => p.Contains("PlusOneKernel", StringComparison.Ordinal));
+
+                var run = await project.RunAsync();
+                Assert.Equal(0, run.ExitCode);
+                OutputVerifier.Verify(
+                    run.StdOutLines,
+                    expected: ["A: 0 10 20 30", "B: 1 2 3 4"]);
+            }
+            catch
+            {
+                project.MarkFailed();
+                throw;
+            }
         }
     }
 
@@ -219,49 +217,52 @@ public sealed class MsBuildIntegrationTests
     // file, not the runtime — that's covered by tests 1 and 3.
     // -----------------------------------------------------------------------
 
-    [SkippableTheory]
-    [InlineData(BackendType.CPU)]
-    [InlineData(BackendType.Metal)]
-    public async Task Build_BackendPropertyOverride_HonoredInArgsRspAndRegistrar(
-        BackendType backend)
+    public sealed class BackendPropertyOverride(ITestOutputHelper output)
     {
-        await RequireBackendAsync(backend);
-
-        // Materialize the project with a *different* default backend than
-        // what we override on the command line, to prove the -p override is
-        // what's honored.
-        var defaultBackend = backend == BackendType.CPU
-            ? BackendType.Metal
-            : BackendType.CPU;
-        using var project = new IntegrationProjectFixture(
-            "HelloKernel", defaultBackend, _output);
-        try
+        [SkippableTheory]
+        [InlineData(BackendType.CPU)]
+        [InlineData(BackendType.Metal)]
+        public async Task Build_BackendPropertyOverride_HonoredInArgsRspAndRegistrar(
+            BackendType backend)
         {
-            var build = await project.BuildAsync(
-                new Dictionary<string, string>
-                {
-                    ["ILGPUBackend"] = backend.ToString(),
-                });
-            Assert.True(build.Succeeded,
-                $"dotnet build failed (exit {build.ExitCode}). " +
-                $"Stderr: {build.StdErr}");
+            await RequireBackendAsync(backend);
 
-            // Response file must reflect the overridden backend.
-            var rsp = project.ReadResponseFile();
-            Assert.Contains("-b", rsp);
-            Assert.Contains(backend.ToString(), rsp);
+            // Materialize the project with a *different* default backend than
+            // what we override on the command line, to prove the -p override is
+            // what's honored.
+            var defaultBackend = backend == BackendType.CPU
+                ? BackendType.Metal
+                : BackendType.CPU;
+            using var project = new IntegrationProjectFixture(
+                "HelloKernel", defaultBackend, output);
+            try
+            {
+                var build = await project.BuildAsync(
+                    new Dictionary<string, string>
+                    {
+                        ["ILGPUBackend"] = backend.ToString(),
+                    });
+                Assert.True(build.Succeeded,
+                    $"dotnet build failed (exit {build.ExitCode}). " +
+                    $"Stderr: {build.StdErr}");
 
-            // Generated registrar must match the overridden backend.
-            var generated = project.ListGenerated();
-            var expectedRegistrar =
-                $"{ExpectedAcceleratorTypeName(backend)}KernelRegistrar.cs";
-            Assert.Contains(generated,
-                p => p.Equals(expectedRegistrar, StringComparison.Ordinal));
-        }
-        catch
-        {
-            project.MarkFailed();
-            throw;
+                // Response file must reflect the overridden backend.
+                var rsp = project.ReadResponseFile();
+                Assert.Contains("-b", rsp);
+                Assert.Contains(backend.ToString(), rsp);
+
+                // Generated registrar must match the overridden backend.
+                var generated = project.ListGenerated();
+                var expectedRegistrar =
+                    $"{ExpectedAcceleratorTypeName(backend)}KernelRegistrar.cs";
+                Assert.Contains(generated,
+                    p => p.Equals(expectedRegistrar, StringComparison.Ordinal));
+            }
+            catch
+            {
+                project.MarkFailed();
+                throw;
+            }
         }
     }
 
@@ -270,39 +271,42 @@ public sealed class MsBuildIntegrationTests
     // must fail with a non-zero exit code and surface the diagnostic.
     // -----------------------------------------------------------------------
 
-    [SkippableFact]
-    public async Task Build_CompileError_FailsWithDiagnostic()
+    public sealed class CompileError(ITestOutputHelper output)
     {
-        await RequireBackendAsync(BackendType.CPU);
-
-        using var project = new IntegrationProjectFixture(
-            "CompileError", BackendType.CPU, _output);
-        try
+        [SkippableFact]
+        public async Task Build_CompileError_FailsWithDiagnostic()
         {
-            var build = await project.BuildAsync();
+            await RequireBackendAsync(BackendType.CPU);
 
-            Assert.False(build.Succeeded,
-                "Expected dotnet build to FAIL for the unsupported kernel " +
-                "pattern, but it succeeded.");
-            Assert.NotEqual(0, build.ExitCode);
+            using var project = new IntegrationProjectFixture(
+                "CompileError", BackendType.CPU, output);
+            try
+            {
+                var build = await project.BuildAsync();
 
-            // The rejection from LowerGCInit is reported in the canonical
-            // error format at the loop, without an unhandled exception
-            var combined = build.FullStdOut + "\n" + build.StdErr;
-            Assert.True(
-                combined.Contains(
-                    "Program.cs(21,14): error ILGPU1208: A lambda or local " +
-                    "function in method 'LambdaInLoopKernel' allocates its " +
-                    "closure inside a loop",
-                    StringComparison.Ordinal),
-                $"Expected an ILGPU1208 error at Program.cs(21,14), " +
-                $"got:\n{combined}");
-            Assert.DoesNotContain("Unhandled exception", combined);
-        }
-        catch
-        {
-            project.MarkFailed();
-            throw;
+                Assert.False(build.Succeeded,
+                    "Expected dotnet build to FAIL for the unsupported kernel " +
+                    "pattern, but it succeeded.");
+                Assert.NotEqual(0, build.ExitCode);
+
+                // The rejection from LowerGCInit is reported in the canonical
+                // error format at the loop, without an unhandled exception
+                var combined = build.FullStdOut + "\n" + build.StdErr;
+                Assert.True(
+                    combined.Contains(
+                        "Program.cs(21,14): error ILGPU1208: A lambda or local " +
+                        "function in method 'LambdaInLoopKernel' allocates its " +
+                        "closure inside a loop",
+                        StringComparison.Ordinal),
+                    $"Expected an ILGPU1208 error at Program.cs(21,14), " +
+                    $"got:\n{combined}");
+                Assert.DoesNotContain("Unhandled exception", combined);
+            }
+            catch
+            {
+                project.MarkFailed();
+                throw;
+            }
         }
     }
 
@@ -312,30 +316,33 @@ public sealed class MsBuildIntegrationTests
     // a skipped target leaves the file untouched.
     // -----------------------------------------------------------------------
 
-    [SkippableFact]
-    public async Task Build_Incremental_SkipsWhenSourcesUnchanged()
+    public sealed class IncrementalSkip(ITestOutputHelper output)
     {
-        await RequireBackendAsync(BackendType.CPU);
-
-        using var project = new IntegrationProjectFixture(
-            "HelloKernel", BackendType.CPU, _output);
-        try
+        [SkippableFact]
+        public async Task Build_Incremental_SkipsWhenSourcesUnchanged()
         {
-            var firstBuild = await project.BuildAsync();
-            Assert.True(firstBuild.Succeeded);
-            var firstMtime = File.GetLastWriteTimeUtc(project.ManifestPath);
+            await RequireBackendAsync(BackendType.CPU);
 
-            // Build again with no source changes.
-            var secondBuild = await project.BuildAsync();
-            Assert.True(secondBuild.Succeeded);
-            var secondMtime = File.GetLastWriteTimeUtc(project.ManifestPath);
+            using var project = new IntegrationProjectFixture(
+                "HelloKernel", BackendType.CPU, output);
+            try
+            {
+                var firstBuild = await project.BuildAsync();
+                Assert.True(firstBuild.Succeeded);
+                var firstMtime = File.GetLastWriteTimeUtc(project.ManifestPath);
 
-            Assert.Equal(firstMtime, secondMtime);
-        }
-        catch
-        {
-            project.MarkFailed();
-            throw;
+                // Build again with no source changes.
+                var secondBuild = await project.BuildAsync();
+                Assert.True(secondBuild.Succeeded);
+                var secondMtime = File.GetLastWriteTimeUtc(project.ManifestPath);
+
+                Assert.Equal(firstMtime, secondMtime);
+            }
+            catch
+            {
+                project.MarkFailed();
+                throw;
+            }
         }
     }
 
@@ -345,43 +352,46 @@ public sealed class MsBuildIntegrationTests
     // expected output after the second build.
     // -----------------------------------------------------------------------
 
-    [SkippableFact]
-    public async Task Build_Incremental_RebuildsWhenSourceChanges()
+    public sealed class IncrementalRebuild(ITestOutputHelper output)
     {
-        await RequireBackendAsync(BackendType.CPU);
-
-        using var project = new IntegrationProjectFixture(
-            "HelloKernel", BackendType.CPU, _output);
-        try
+        [SkippableFact]
+        public async Task Build_Incremental_RebuildsWhenSourceChanges()
         {
-            var firstBuild = await project.BuildAsync();
-            Assert.True(firstBuild.Succeeded);
-            var firstMtime = File.GetLastWriteTimeUtc(project.ManifestPath);
+            await RequireBackendAsync(BackendType.CPU);
 
-            // Touch Program.cs forward in time. Use +5s to clear FS mtime
-            // resolution on common filesystems (HFS+, FAT, etc.).
-            var programCs = Path.Combine(project.WorkingDir, "Program.cs");
-            Assert.True(File.Exists(programCs));
-            File.SetLastWriteTimeUtc(programCs, DateTime.UtcNow.AddSeconds(5));
+            using var project = new IntegrationProjectFixture(
+                "HelloKernel", BackendType.CPU, output);
+            try
+            {
+                var firstBuild = await project.BuildAsync();
+                Assert.True(firstBuild.Succeeded);
+                var firstMtime = File.GetLastWriteTimeUtc(project.ManifestPath);
 
-            var secondBuild = await project.BuildAsync();
-            Assert.True(secondBuild.Succeeded);
-            var secondMtime = File.GetLastWriteTimeUtc(project.ManifestPath);
+                // Touch Program.cs forward in time. Use +5s to clear FS mtime
+                // resolution on common filesystems (HFS+, FAT, etc.).
+                var programCs = Path.Combine(project.WorkingDir, "Program.cs");
+                Assert.True(File.Exists(programCs));
+                File.SetLastWriteTimeUtc(programCs, DateTime.UtcNow.AddSeconds(5));
 
-            Assert.True(secondMtime > firstMtime,
-                $"Expected manifest mtime to advance after touching " +
-                $"Program.cs. First={firstMtime:O}, Second={secondMtime:O}");
+                var secondBuild = await project.BuildAsync();
+                Assert.True(secondBuild.Succeeded);
+                var secondMtime = File.GetLastWriteTimeUtc(project.ManifestPath);
 
-            var run = await project.RunAsync();
-            Assert.Equal(0, run.ExitCode);
-            OutputVerifier.Verify(
-                run.StdOutLines,
-                expected: ["0", "2", "4", "6"]);
-        }
-        catch
-        {
-            project.MarkFailed();
-            throw;
+                Assert.True(secondMtime > firstMtime,
+                    $"Expected manifest mtime to advance after touching " +
+                    $"Program.cs. First={firstMtime:O}, Second={secondMtime:O}");
+
+                var run = await project.RunAsync();
+                Assert.Equal(0, run.ExitCode);
+                OutputVerifier.Verify(
+                    run.StdOutLines,
+                    expected: ["0", "2", "4", "6"]);
+            }
+            catch
+            {
+                project.MarkFailed();
+                throw;
+            }
         }
     }
 
@@ -390,33 +400,36 @@ public sealed class MsBuildIntegrationTests
     // the ILGPUClean target.
     // -----------------------------------------------------------------------
 
-    [SkippableFact]
-    public async Task Clean_RemovesIlgpuOutputDir()
+    public sealed class Clean(ITestOutputHelper output)
     {
-        await RequireBackendAsync(BackendType.CPU);
-
-        using var project = new IntegrationProjectFixture(
-            "HelloKernel", BackendType.CPU, _output);
-        try
+        [SkippableFact]
+        public async Task Clean_RemovesIlgpuOutputDir()
         {
-            var build = await project.BuildAsync();
-            Assert.True(build.Succeeded);
-            Assert.True(Directory.Exists(project.GetIlgpuOutputDir()),
-                $"Expected {project.GetIlgpuOutputDir()} to exist after build");
+            await RequireBackendAsync(BackendType.CPU);
 
-            var clean = await project.CleanAsync();
-            Assert.True(clean.Succeeded,
-                $"dotnet clean failed (exit {clean.ExitCode}). " +
-                $"Stderr: {clean.StdErr}");
+            using var project = new IntegrationProjectFixture(
+                "HelloKernel", BackendType.CPU, output);
+            try
+            {
+                var build = await project.BuildAsync();
+                Assert.True(build.Succeeded);
+                Assert.True(Directory.Exists(project.GetIlgpuOutputDir()),
+                    $"Expected {project.GetIlgpuOutputDir()} to exist after build");
 
-            Assert.False(Directory.Exists(project.GetIlgpuOutputDir()),
-                $"Expected {project.GetIlgpuOutputDir()} to be removed by " +
-                $"the ILGPUClean target, but it still exists");
-        }
-        catch
-        {
-            project.MarkFailed();
-            throw;
+                var clean = await project.CleanAsync();
+                Assert.True(clean.Succeeded,
+                    $"dotnet clean failed (exit {clean.ExitCode}). " +
+                    $"Stderr: {clean.StdErr}");
+
+                Assert.False(Directory.Exists(project.GetIlgpuOutputDir()),
+                    $"Expected {project.GetIlgpuOutputDir()} to be removed by " +
+                    $"the ILGPUClean target, but it still exists");
+            }
+            catch
+            {
+                project.MarkFailed();
+                throw;
+            }
         }
     }
 
@@ -428,68 +441,71 @@ public sealed class MsBuildIntegrationTests
     // including a delegate parameter bound to the targets of its callers.
     // -----------------------------------------------------------------------
 
-    [SkippableTheory]
-    [InlineData(BackendType.CPU)]
-    [InlineData(BackendType.Metal)]
-    public async Task Build_InlineLambdaKernels_CompilesAndRuns(BackendType backend)
+    public sealed class InlineLambdaKernels(ITestOutputHelper output)
     {
-        await RequireBackendAsync(backend);
-
-        using var project = new IntegrationProjectFixture(
-            "InlineLambdaKernels", backend, _output);
-        try
+        [SkippableTheory]
+        [InlineData(BackendType.CPU)]
+        [InlineData(BackendType.Metal)]
+        public async Task Build_InlineLambdaKernels_CompilesAndRuns(BackendType backend)
         {
-            var build = await project.BuildAsync();
-            Assert.True(build.Succeeded,
-                $"dotnet build failed (exit {build.ExitCode}). " +
-                $"Stdout: {build.FullStdOut}\nStderr: {build.StdErr}");
+            await RequireBackendAsync(backend);
 
-            // Comments in front of a launch stay in front of the rewritten
-            // launch and are not repeated inside its argument list.
-            var rewrittenProgram = File.ReadAllText(
-                Path.Combine(project.RewrittenDir, "Program.cs"));
-            Assert.Single(
-                rewrittenProgram.Split('\n'),
-                line => line.Contains(
-                    "// A single captured view.", StringComparison.Ordinal));
-
-            // Every inline kernel must be compiled, none may fall back to a
-            // launcher stub that throws at runtime.
-            foreach (var file in Directory.GetFiles(
-                project.GeneratedDir, "*_CompiledKernel.cs"))
+            using var project = new IntegrationProjectFixture(
+                "InlineLambdaKernels", backend, output);
+            try
             {
-                Assert.DoesNotContain(
-                    "No Kernel", File.ReadAllText(file), StringComparison.Ordinal);
-            }
+                var build = await project.BuildAsync();
+                Assert.True(build.Succeeded,
+                    $"dotnet build failed (exit {build.ExitCode}). " +
+                    $"Stdout: {build.FullStdOut}\nStderr: {build.StdErr}");
 
-            var run = await project.RunAsync();
-            Assert.False(run.TimedOut, "Binary timed out");
-            Assert.True(run.ExitCode == 0,
-                $"Binary failed (exit {run.ExitCode}). Stderr: {run.StdErr}");
-            OutputVerifier.Verify(
-                run.StdOutLines,
-                expected:
-                [
-                    "A: done",
-                    "B: 0 3 6 9",
-                    "C: 10 11 12 13",
-                    "D: 0 1 4 9",
-                    "E: 5 6 7 8",
-                    "F: 1 3 5 7",
-                    "G: 10 110 210 310",
-                    "H: 0 7 14 21",
-                    "I: 0 1 10 11",
-                    "J: 10 12 14 16",
-                    "K: -1 2 5 8",
-                    "L: 0 1 8 27",
-                    "M: -20 -19 -12 7",
-                    "N: 400 361 144 49",
-                ]);
-        }
-        catch
-        {
-            project.MarkFailed();
-            throw;
+                // Comments in front of a launch stay in front of the rewritten
+                // launch and are not repeated inside its argument list.
+                var rewrittenProgram = File.ReadAllText(
+                    Path.Combine(project.RewrittenDir, "Program.cs"));
+                Assert.Single(
+                    rewrittenProgram.Split('\n'),
+                    line => line.Contains(
+                        "// A single captured view.", StringComparison.Ordinal));
+
+                // Every inline kernel must be compiled, none may fall back to a
+                // launcher stub that throws at runtime.
+                foreach (var file in Directory.GetFiles(
+                    project.GeneratedDir, "*_CompiledKernel.cs"))
+                {
+                    Assert.DoesNotContain(
+                        "No Kernel", File.ReadAllText(file), StringComparison.Ordinal);
+                }
+
+                var run = await project.RunAsync();
+                Assert.False(run.TimedOut, "Binary timed out");
+                Assert.True(run.ExitCode == 0,
+                    $"Binary failed (exit {run.ExitCode}). Stderr: {run.StdErr}");
+                OutputVerifier.Verify(
+                    run.StdOutLines,
+                    expected:
+                    [
+                        "A: done",
+                        "B: 0 3 6 9",
+                        "C: 10 11 12 13",
+                        "D: 0 1 4 9",
+                        "E: 5 6 7 8",
+                        "F: 1 3 5 7",
+                        "G: 10 110 210 310",
+                        "H: 0 7 14 21",
+                        "I: 0 1 10 11",
+                        "J: 10 12 14 16",
+                        "K: -1 2 5 8",
+                        "L: 0 1 8 27",
+                        "M: -20 -19 -12 7",
+                        "N: 400 361 144 49",
+                    ]);
+            }
+            catch
+            {
+                project.MarkFailed();
+                throw;
+            }
         }
     }
 
@@ -499,33 +515,36 @@ public sealed class MsBuildIntegrationTests
     // offending source location instead of producing a binary.
     // -----------------------------------------------------------------------
 
-    [SkippableFact]
-    public async Task Build_InlineLambdaCaptureError_FailsWithDiagnostic()
+    public sealed class InlineLambdaCaptureError(ITestOutputHelper output)
     {
-        await RequireBackendAsync(BackendType.CPU);
-
-        using var project = new IntegrationProjectFixture(
-            "InlineLambdaCaptureError", BackendType.CPU, _output);
-        try
+        [SkippableFact]
+        public async Task Build_InlineLambdaCaptureError_FailsWithDiagnostic()
         {
-            var build = await project.BuildAsync();
+            await RequireBackendAsync(BackendType.CPU);
 
-            Assert.False(build.Succeeded,
-                "Expected dotnet build to FAIL for the inline kernel capturing " +
-                "'this', but it succeeded.");
-            Assert.NotEqual(0, build.ExitCode);
+            using var project = new IntegrationProjectFixture(
+                "InlineLambdaCaptureError", BackendType.CPU, output);
+            try
+            {
+                var build = await project.BuildAsync();
 
-            var combined = build.FullStdOut + "\n" + build.StdErr;
-            Assert.True(
-                combined.Contains(
-                    "Program.cs(18,70): error ILGPU1101", StringComparison.Ordinal),
-                $"Expected an ILGPU1101 error at Program.cs(18,70), " +
-                $"got:\n{combined}");
-        }
-        catch
-        {
-            project.MarkFailed();
-            throw;
+                Assert.False(build.Succeeded,
+                    "Expected dotnet build to FAIL for the inline kernel capturing " +
+                    "'this', but it succeeded.");
+                Assert.NotEqual(0, build.ExitCode);
+
+                var combined = build.FullStdOut + "\n" + build.StdErr;
+                Assert.True(
+                    combined.Contains(
+                        "Program.cs(18,70): error ILGPU1101", StringComparison.Ordinal),
+                    $"Expected an ILGPU1101 error at Program.cs(18,70), " +
+                    $"got:\n{combined}");
+            }
+            catch
+            {
+                project.MarkFailed();
+                throw;
+            }
         }
     }
 
@@ -537,39 +556,42 @@ public sealed class MsBuildIntegrationTests
     // from its index runs correctly.
     // -----------------------------------------------------------------------
 
-    [SkippableTheory]
-    [InlineData(BackendType.CPU)]
-    [InlineData(BackendType.Metal)]
-    public async Task Build_LaunchSiteShapes_CompilesAndRuns(BackendType backend)
+    public sealed class LaunchSiteShapes(ITestOutputHelper output)
     {
-        await RequireBackendAsync(backend);
-
-        using var project = new IntegrationProjectFixture(
-            "LaunchSiteShapes", backend, _output);
-        try
+        [SkippableTheory]
+        [InlineData(BackendType.CPU)]
+        [InlineData(BackendType.Metal)]
+        public async Task Build_LaunchSiteShapes_CompilesAndRuns(BackendType backend)
         {
-            var build = await project.BuildAsync();
-            Assert.True(build.Succeeded,
-                $"dotnet build failed (exit {build.ExitCode}). " +
-                $"Stdout: {build.FullStdOut}\nStderr: {build.StdErr}");
+            await RequireBackendAsync(backend);
 
-            var run = await project.RunAsync();
-            Assert.False(run.TimedOut, "Binary timed out");
-            Assert.True(run.ExitCode == 0,
-                $"Binary failed (exit {run.ExitCode}). Stderr: {run.StdErr}");
-            OutputVerifier.Verify(
-                run.StdOutLines,
-                expected:
-                [
-                    "A: 5 6 7 8 9 10 11 12",
-                    "B: 9 11 13 15 17 19 21 23",
-                    "C: 0 1 2 3 10 11 12 13",
-                ]);
-        }
-        catch
-        {
-            project.MarkFailed();
-            throw;
+            using var project = new IntegrationProjectFixture(
+                "LaunchSiteShapes", backend, output);
+            try
+            {
+                var build = await project.BuildAsync();
+                Assert.True(build.Succeeded,
+                    $"dotnet build failed (exit {build.ExitCode}). " +
+                    $"Stdout: {build.FullStdOut}\nStderr: {build.StdErr}");
+
+                var run = await project.RunAsync();
+                Assert.False(run.TimedOut, "Binary timed out");
+                Assert.True(run.ExitCode == 0,
+                    $"Binary failed (exit {run.ExitCode}). Stderr: {run.StdErr}");
+                OutputVerifier.Verify(
+                    run.StdOutLines,
+                    expected:
+                    [
+                        "A: 5 6 7 8 9 10 11 12",
+                        "B: 9 11 13 15 17 19 21 23",
+                        "C: 0 1 2 3 10 11 12 13",
+                    ]);
+            }
+            catch
+            {
+                project.MarkFailed();
+                throw;
+            }
         }
     }
 
@@ -579,48 +601,61 @@ public sealed class MsBuildIntegrationTests
     // kernel was not compiled for the accelerator.
     // -----------------------------------------------------------------------
 
-    [SkippableTheory]
-    [InlineData(BackendType.CPU)]
-    [InlineData(BackendType.Metal)]
-    public async Task Build_LibraryAlgorithms_ReportsNotCompiledKernel(
-        BackendType backend)
+    public sealed class LibraryAlgorithms(ITestOutputHelper output)
     {
-        await RequireBackendAsync(backend);
-
-        using var project = new IntegrationProjectFixture(
-            "LibraryAlgorithms", backend, _output);
-        try
+        [SkippableTheory]
+        [InlineData(BackendType.CPU)]
+        [InlineData(BackendType.Metal)]
+        public async Task Build_LibraryAlgorithms_ReportsNotCompiledKernel(
+            BackendType backend)
         {
-            var build = await project.BuildAsync();
-            Assert.True(build.Succeeded,
-                $"dotnet build failed (exit {build.ExitCode}). " +
-                $"Stderr: {build.StdErr}");
+            await RequireBackendAsync(backend);
 
-            var run = await project.RunAsync();
-            Assert.False(run.TimedOut, "Binary timed out");
-            Assert.Equal(0, run.ExitCode);
+            using var project = new IntegrationProjectFixture(
+                "LibraryAlgorithms", backend, output);
+            try
+            {
+                var build = await project.BuildAsync();
+                Assert.True(build.Succeeded,
+                    $"dotnet build failed (exit {build.ExitCode}). " +
+                    $"Stderr: {build.StdErr}");
 
-            var lines = run.StdOutLines;
-            Assert.Equal(3, lines.Length);
-            Assert.Equal("0 2 4 6", lines[0]);
-            Assert.Equal("KernelNotCompiledException", lines[1]);
-            Assert.StartsWith(
-                "Kernel 'ILGPU.Initialization.Initializer.Initialize' was not " +
-                $"compiled for {ExpectedAcceleratorTypeName(backend)}: ILGPUC " +
-                "did not compile its launch site.",
-                lines[2],
-                StringComparison.Ordinal);
-        }
-        catch
-        {
-            project.MarkFailed();
-            throw;
+                var run = await project.RunAsync();
+                Assert.False(run.TimedOut, "Binary timed out");
+                Assert.Equal(0, run.ExitCode);
+
+                var lines = run.StdOutLines;
+                Assert.Equal(3, lines.Length);
+                Assert.Equal("0 2 4 6", lines[0]);
+                Assert.Equal("KernelNotCompiledException", lines[1]);
+                Assert.StartsWith(
+                    "Kernel 'ILGPU.Initialization.Initializer.Initialize' was not " +
+                    $"compiled for {ExpectedAcceleratorTypeName(backend)}: ILGPUC " +
+                    "did not compile its launch site.",
+                    lines[2],
+                    StringComparison.Ordinal);
+            }
+            catch
+            {
+                project.MarkFailed();
+                throw;
+            }
         }
     }
 
     // -----------------------------------------------------------------------
     // Helpers
     // -----------------------------------------------------------------------
+
+    private static async Task RequireBackendAsync(BackendType backend)
+    {
+        Skip.IfNot(
+            await Availability.IsCompilerAvailableAsync(backend).ConfigureAwait(false),
+            $"Native compiler for {backend} is not available on this machine");
+        Skip.IfNot(
+            Availability.IsRuntimeAvailable(backend),
+            $"No {backend} runtime device available on this machine");
+    }
 
     /// <summary>
     /// Maps a <see cref="BackendType"/> to the AcceleratorType name used by

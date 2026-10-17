@@ -63,6 +63,8 @@ ILGPUC.Tests/
 │   │   └── ForLoop.cs
 │   └── ...
 │
+├── IntegrationTests/       # MSBuild integration tests (dotnet build subprocesses)
+├── IntegrationProjects/    # Template projects the integration tests build
 ├── NonKernelTests/         # Tests for non-kernel compiler components
 ├── Snapshots/              # IR snapshot reference files (.il)
 │   ├── AfterFrontend/
@@ -317,6 +319,26 @@ after 30 seconds and the test reports a timeout failure.
 | SharedMemoryExecutionTests | 1 | Shared memory allocation |
 
 **Total: 26 test classes, 39 test methods, 38 test programs.**
+
+---
+
+## Integration Tests
+
+**Purpose:** Verify the MSBuild glue end to end: `IntegrationTests/` materialize a template
+from `IntegrationProjects/` into a fresh temporary directory, run `dotnet build` on it as a
+subprocess, inspect the `obj/.../ilgpu/` artifacts and run the resulting binary.
+
+`MsBuildIntegrationTests` and `SampleFamilyIntegrationTests` are static classes whose nested
+classes hold one scenario each (`MsBuildIntegrationTests+HelloKernel`,
+`SampleFamilyIntegrationTests+AdvancedViews`, ...). xUnit runs the tests of a class one after
+another and different classes in parallel, so the `dotnet build` subprocesses of different
+scenarios run concurrently. They share no state: every test builds in its own temporary
+directory and `MsBuildRunner` disables MSBuild node reuse, the MSBuild server and the shared
+compiler server. Add a new scenario as a new nested class.
+
+```bash
+dotnet test --filter "FullyQualifiedName~IntegrationTests"
+```
 
 ---
 
