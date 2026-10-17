@@ -84,6 +84,14 @@ sealed class VectorizationAnalysis
             UnaryArithmeticValue un => IsScalar(un.Value),
             CompareValue cmp => IsScalar(cmp.Left) && IsScalar(cmp.Right),
             GetField gf => IsScalar(gf.Source),
+            // Address space casts keep the address (or view) of their source
+            AddressSpaceCast cast => IsScalar(cast.Source),
+            // An element address with a uniform offset into a uniform pointer
+            // or view is uniform, unless it addresses a local array that every
+            // lane owns privately
+            LoadElementAddress lea => IsScalar(lea.Source)
+                && IsScalar(lea.Offset)
+                && CPUExpressionEmitter.GetLaneArrayLength(lea.Source) is null,
             StructureValue sv => AreAllScalar(sv),
             Predicate pred => IsScalar(pred.Condition)
                 && IsScalar(pred.TrueValue)
@@ -103,8 +111,6 @@ sealed class VectorizationAnalysis
                 && IsScalar(sub.Offset)
                 && IsScalar(sub.Length),
             ViewCast cast => IsScalar(cast.Source),
-            AddressSpaceCast { Source.Type: ViewType } cast =>
-                IsScalar(cast.Source),
             // Views of shared memory are the same for all lanes, whereas
             // every lane owns a private copy of a local array
             NewView { Pointer: Global global } =>
@@ -216,27 +222,12 @@ sealed class VectorizationAnalysis
         _loops ??= _method.CreateLoops();
         if (!_loops.TryGetLoop(header, out var loop))
             return false;
-        while (loop.Parent is not null && !IsHeaderOf(loop, header))
+        while (loop.Parent is not null && !CPUBlockSchedule.IsHeaderOf(loop, header))
             loop = loop.Parent;
         foreach (var breaker in loop.Breakers)
         {
             var condition = breaker.TerminationCondition;
             if (condition is not null && !IsScalar(condition))
-                return true;
-        }
-        return false;
-    }
-
-    /// <summary>
-    /// Returns true if the block is a header of the loop.
-    /// </summary>
-    private static bool IsHeaderOf(
-        Loops<ReversePostOrder<BasicBlock>, Forwards>.Node loop,
-        BasicBlock block)
-    {
-        foreach (var header in loop.Headers)
-        {
-            if (header == block)
                 return true;
         }
         return false;
@@ -442,12 +433,13 @@ sealed class VectorizationAnalysis
         {
             if (_vectorizeFirstParam && param.Index == 0)
                 continue;
-            // Pointers and structures holding pointers are passed as they
-            // are; they cannot be split into per-lane arrays. Views and
-            // structures holding views are passed as one value per lane if
-            // a caller passes one that differs per lane.
-            bool perLaneType = param.Type is not PointerType
-                && !param.Type.HasFlags(TypeFlags.PointerDependent);
+            // Structures holding pointers are passed as they are; they
+            // cannot be split into per-lane arrays. Pointers are passed as
+            // per-lane addresses (nint[]), and views and structures holding
+            // views as one value per lane if a caller passes one that
+            // differs per lane.
+            bool perLaneType = param.Type is PointerType
+                || !param.Type.HasFlags(TypeFlags.PointerDependent);
             if (perLaneType && vectorizedParams is not null
                 && vectorizedParams.Contains(param.Index))
             {

@@ -58,176 +58,35 @@ sealed class VectorBufferAllocator
     private readonly CodePlacement _codePlacement;
     private readonly VectorizationAnalysis _analysis;
     private readonly CPULanguageConfiguration _config;
-    private readonly Dictionary<Value, BasicBlock> _valueBlocks = [];
-    private readonly List<LoopRange> _loops = [];
-
-    /// <summary>
-    /// The blocks of a loop and the range of positions its values occupy.
-    /// </summary>
-    private sealed record LoopRange(HashSet<BasicBlock> Blocks, int End);
+    private readonly CPUBlockSchedule _schedule;
 
     /// <summary>
     /// Constructs a new vector buffer allocator.
     /// </summary>
+    /// <param name="method">The method to allocate buffers for.</param>
+    /// <param name="codePlacement">The placement of values in blocks.</param>
+    /// <param name="analysis">The vectorization analysis.</param>
+    /// <param name="config">The language configuration.</param>
+    /// <param name="schedule">The block schedule of the method.</param>
     public VectorBufferAllocator(
         Method method,
         CodePlacement codePlacement,
         VectorizationAnalysis analysis,
-        CPULanguageConfiguration config)
+        CPULanguageConfiguration config,
+        CPUBlockSchedule schedule)
     {
         _method = method;
         _codePlacement = codePlacement;
         _analysis = analysis;
         _config = config;
+        _schedule = schedule;
     }
 
     /// <summary>
     /// Runs liveness analysis and linear-scan allocation, returning pool metadata.
     /// </summary>
-    public BufferPoolMetadata Allocate()
-    {
-        // Step 1: Build a linear position map for all values
-        var positionMap = BuildPositionMap();
-        FindLoops(positionMap);
-
-        // Step 2: Compute live intervals for vector buffer values
-        int maxPosition = positionMap.Count > 0
-            ? positionMap.Values.Max() : 0;
-        var intervals = ComputeLiveIntervals(positionMap, maxPosition);
-
-        // Step 3: Group by element type and run linear-scan allocation
-        return LinearScanAllocate(intervals);
-    }
-
-    /// <summary>
-    /// Assigns a sequential position number to every value by iterating blocks
-    /// in reverse post order.
-    /// </summary>
-    private Dictionary<Value, int> BuildPositionMap()
-    {
-        var map = new Dictionary<Value, int>();
-        int pos = 0;
-
-        foreach (var block in _method.Blocks)
-        {
-            if (!_codePlacement.TryGetPlacedBlock(block, out var placedBlock))
-                continue;
-
-            for (int j = 0; j < placedBlock.Count; j++)
-            {
-                var value = placedBlock[j];
-                map[value] = pos++;
-                _valueBlocks[value] = block;
-            }
-        }
-
-        return map;
-    }
-
-    /// <summary>
-    /// Finds the natural loops of the method and the last position of the
-    /// values placed in each of them.
-    /// </summary>
-    private void FindLoops(Dictionary<Value, int> positionMap)
-    {
-        var dominators = _codePlacement.Dominators;
-        var lastPositions = new Dictionary<BasicBlock, int>();
-        foreach (var (value, position) in positionMap)
-        {
-            var block = _valueBlocks[value];
-            if (!lastPositions.TryGetValue(block, out int last) || position > last)
-                lastPositions[block] = position;
-        }
-
-        foreach (var block in _method.Blocks)
-        {
-            foreach (var header in block.Successors)
-            {
-                if (!dominators.Dominates(header, block))
-                    continue;
-
-                // The loop of the back edge block -> header: all blocks that
-                // reach the back edge without passing through the header
-                var blocks = new HashSet<BasicBlock> { header };
-                var stack = new Stack<BasicBlock>();
-                stack.Push(block);
-                while (stack.Count > 0)
-                {
-                    var current = stack.Pop();
-                    if (!blocks.Add(current))
-                        continue;
-                    foreach (var pred in current.Predecessors)
-                        stack.Push(pred);
-                }
-
-                int end = -1;
-                foreach (var loopBlock in blocks)
-                {
-                    if (lastPositions.TryGetValue(loopBlock, out int last))
-                        end = System.Math.Max(end, last);
-                }
-                _loops.Add(new LoopRange(blocks, end));
-            }
-        }
-    }
-
-    /// <summary>
-    /// Returns the end of the outermost loop that contains the use block but
-    /// not the definition block, or -1. Loops re-execute their values on
-    /// every iteration, so a value defined before a loop and used inside it
-    /// must stay alive until the end of the loop.
-    /// </summary>
-    private int GetEnclosingLoopEnd(BasicBlock defBlock, BasicBlock useBlock)
-    {
-        int end = -1;
-        foreach (var loop in _loops)
-        {
-            if (loop.Blocks.Contains(useBlock) && !loop.Blocks.Contains(defBlock))
-                end = System.Math.Max(end, loop.End);
-        }
-        return end;
-    }
-
-    /// <summary>
-    /// Collects the blocks using a value: the placed blocks of its users, the
-    /// blocks whose terminators use it, and the blocks using the values of
-    /// unplaced users (inlined scalar values and fused addresses).
-    /// </summary>
-    private void CollectUseBlocks(
-        Value value,
-        HashSet<BasicBlock> useBlocks,
-        int depth = 8)
-    {
-        if (depth <= 0)
-            return;
-        foreach (var use in value.Uses)
-        {
-            var target = use.Target;
-            if (_valueBlocks.TryGetValue(target, out var block))
-                useBlocks.Add(block);
-            else if (target is BasicBlock useBlock)
-                useBlocks.Add(useBlock);
-            else if (target is BasicBlockValue bbv)
-                useBlocks.Add(bbv.BasicBlock);
-            else
-                CollectUseBlocks(target, useBlocks, depth - 1);
-        }
-    }
-
-    /// <summary>
-    /// Extends the last use of a value to the end of every loop it is used
-    /// in but defined outside of.
-    /// </summary>
-    private int ExtendToEnclosingLoops(Value value, int lastUse)
-    {
-        if (_loops.Count < 1 || !_valueBlocks.TryGetValue(value, out var defBlock))
-            return lastUse;
-        var useBlocks = new HashSet<BasicBlock>();
-        CollectUseBlocks(value, useBlocks);
-        foreach (var useBlock in useBlocks)
-            lastUse = System.Math.Max(lastUse, GetEnclosingLoopEnd(defBlock, useBlock));
-        return lastUse;
-    }
+    public BufferPoolMetadata Allocate() =>
+        LinearScanAllocate(ComputeScheduledIntervals(_schedule));
 
     /// <summary>
     /// Represents a live interval for a buffer value or broadcast temporary.
@@ -240,71 +99,156 @@ sealed class VectorBufferAllocator
         string? BroadcastName);
 
     /// <summary>
-    /// Computes live intervals for all non-scalar vector values that would
-    /// normally be allocated as <c>new T[SIMDWidth]</c>.
+    /// Computes live intervals over the linear emission order of a block
+    /// schedule. Every block of the schedule runs once per iteration of its
+    /// enclosing loops, so an interval that is live across the boundary of a
+    /// loop is extended to cover the whole loop. Phis are written on the
+    /// edges into their block (at the terminators of the predecessors) and
+    /// phi arguments are read there.
     /// </summary>
-    private List<LiveInterval> ComputeLiveIntervals(
-        Dictionary<Value, int> positionMap,
-        int maxPosition)
+    private List<LiveInterval> ComputeScheduledIntervals(CPUBlockSchedule schedule)
     {
-        var intervals = new List<LiveInterval>();
+        // Positions of values and block terminators in emission order
+        var positions = new Dictionary<Value, int>();
+        var terminators = new Dictionary<BasicBlock, int>();
+        var blockStarts = new Dictionary<BasicBlock, int>();
+        int pos = 0;
+        foreach (var block in schedule.LinearOrder)
+        {
+            blockStarts[block] = pos;
+            if (_codePlacement.TryGetPlacedBlock(block, out var placedBlock))
+            {
+                foreach (var value in placedBlock)
+                    positions[value] = pos++;
+            }
+            terminators[block] = pos++;
+        }
 
-        foreach (var block in _method.Blocks)
+        // Ranges of all loops, innermost loops first
+        var loopRanges = new List<(int Start, int End)>();
+        schedule.Loops.ProcessLoops(loop =>
+        {
+            int start = int.MaxValue, end = -1;
+            foreach (var member in loop.AllMembers)
+            {
+                if (!blockStarts.TryGetValue(member, out int memberStart))
+                    continue;
+                start = System.Math.Min(start, memberStart);
+                end = System.Math.Max(end, terminators[member]);
+            }
+            if (end >= 0)
+                loopRanges.Add((start, end));
+        });
+
+        var intervals = new List<LiveInterval>();
+        foreach (var block in schedule.LinearOrder)
         {
             if (!_codePlacement.TryGetPlacedBlock(block, out var placedBlock))
                 continue;
-
-            for (int j = 0; j < placedBlock.Count; j++)
+            foreach (var value in placedBlock)
             {
-                var value = placedBlock[j];
-
-                // Apply the same skip logic as EmitVariableDeclarations
                 if (!NeedsVectorBuffer(value))
                     continue;
-
                 var elemType = GetElementType(value);
                 if (elemType == null)
                     continue;
 
-                int defPos = positionMap[value];
-                int lastUse = ComputeLastUse(
-                    value, positionMap, defPos, maxPosition);
-                lastUse = ExtendToEnclosingLoops(value, lastUse);
-
-                // For loop-carried phi values (multi-argument phis): extend
-                // both start and end to cover the entire method. The
-                // linear-scan allocator treats code as a single linear
-                // sequence but loops re-execute header block values on
-                // every iteration. Without extending the phi's range to
-                // [0, maxPosition], header intermediates can reuse the
-                // phi's buffer and clobber it mid-iteration.
-                int effectiveStart = defPos;
-                if (value is PhiValue phi2 && phi2.NumArguments > 1)
+                int start = positions[value];
+                int end = start;
+                if (value is PhiValue phi)
                 {
-                    effectiveStart = 0;
-                    lastUse = maxPosition;
+                    // Written on every incoming edge
+                    start = int.MaxValue;
+                    for (int i = 0; i < phi.NumArguments; i++)
+                    {
+                        if (!terminators.TryGetValue(phi.Sources[i], out int t))
+                            continue;
+                        start = System.Math.Min(start, t);
+                        end = System.Math.Max(end, t);
+                    }
+                    if (start == int.MaxValue)
+                        start = positions[value];
+                }
+                end = System.Math.Max(
+                    end, GetLastScheduledUse(value, positions, terminators, 0));
+
+                foreach (var (loopStart, loopEnd) in loopRanges)
+                {
+                    bool overlaps = start <= loopEnd && end >= loopStart;
+                    if (overlaps && (start < loopStart || end > loopEnd))
+                    {
+                        start = System.Math.Min(start, loopStart);
+                        end = System.Math.Max(end, loopEnd);
+                    }
                 }
 
-                intervals.Add(new LiveInterval(
-                    elemType, effectiveStart, lastUse, value, null));
+                intervals.Add(new LiveInterval(elemType, start, end, value, null));
 
-                // Check for broadcast temporaries
                 var bcastName = GetBroadcastTempName(value);
-                if (bcastName != null)
+                var bcastElemType = bcastName != null
+                    ? GetBroadcastElementType(value)
+                    : null;
+                if (bcastName != null && bcastElemType != null)
                 {
-                    var bcastElemType = GetBroadcastElementType(value);
-                    if (bcastElemType != null)
-                    {
-                        // Broadcast temp is only used at the definition point
-                        // (filled then immediately consumed by the operation)
-                        intervals.Add(new LiveInterval(
-                            bcastElemType, defPos, defPos, null, bcastName));
-                    }
+                    int defPos = positions[value];
+                    intervals.Add(new LiveInterval(
+                        bcastElemType, defPos, defPos, null, bcastName));
                 }
             }
         }
-
         return intervals;
+    }
+
+    /// <summary>
+    /// Returns the last position in emission order at which a value is read.
+    /// Operands of values that are inlined into their consumers (fused
+    /// element addresses and single-use scalar values) are read wherever
+    /// those consumers are read.
+    /// </summary>
+    private int GetLastScheduledUse(
+        Value value,
+        Dictionary<Value, int> positions,
+        Dictionary<BasicBlock, int> terminators,
+        int depth)
+    {
+        int last = -1;
+        foreach (var use in value.Uses)
+        {
+            var target = use.Target;
+            switch (target)
+            {
+                case PhiValue phi:
+                    for (int i = 0; i < phi.NumArguments; i++)
+                    {
+                        if (phi.Arguments[i] == value &&
+                            terminators.TryGetValue(phi.Sources[i], out int t))
+                        {
+                            last = System.Math.Max(last, t);
+                        }
+                    }
+                    break;
+                case BasicBlock block:
+                    if (terminators.TryGetValue(block, out int term))
+                        last = System.Math.Max(last, term);
+                    break;
+                default:
+                    if (positions.TryGetValue(target, out int usePos))
+                        last = System.Math.Max(last, usePos);
+                    bool inlined = target is LoadElementAddress lea
+                        ? IsLeaFusable(lea)
+                        : target is PureValue && target.Uses.HasExactlyOne
+                            && _analysis.IsScalar(target);
+                    if (inlined && depth < 16)
+                    {
+                        last = System.Math.Max(
+                            last,
+                            GetLastScheduledUse(
+                                target, positions, terminators, depth + 1));
+                    }
+                    break;
+            }
+        }
+        return last;
     }
 
     /// <summary>
@@ -408,193 +352,6 @@ sealed class VectorBufferAllocator
     /// </summary>
     private static string GetVarNameForValue(Value value) =>
         $"tmp_{value.Id}";
-
-    /// <summary>
-    /// Computes the last use position for a value by scanning its uses.
-    /// For phi values (loop-carried variables), also includes the positions
-    /// of the phi's source values so the live range covers the full loop body
-    /// including back-edge updates.
-    /// </summary>
-    private static int ComputeLastUse(
-        Value value,
-        Dictionary<Value, int> positionMap,
-        int defPos,
-        int maxPosition)
-    {
-        int lastUse = defPos;
-
-        foreach (var use in value.Uses)
-        {
-            if (positionMap.TryGetValue(use.Target, out int usePos))
-            {
-                if (usePos > lastUse)
-                    lastUse = usePos;
-            }
-
-            // Fusable LEAs are inlined into their consuming Load/Store.
-            // The value feeding into the LEA is needed until that
-            // Load/Store executes — follow through to LEA consumers.
-            if (use.Target is LoadElementAddress lea)
-            {
-                foreach (var leaUse in lea.Uses)
-                {
-                    if (positionMap.TryGetValue(leaUse.Target, out int leaUsePos)
-                        && leaUsePos > lastUse)
-                    {
-                        lastUse = leaUsePos;
-                    }
-                }
-            }
-
-            // PureValues that are not in the position map (scalar single-use
-            // values skipped by NeedsVectorBuffer) still consume their operands.
-            // Follow through transitive PureValue uses to find the ultimate
-            // positioned consumer so the operand's pool slot isn't freed early.
-            if (!positionMap.ContainsKey(use.Target) && use.Target is PureValue pv)
-            {
-                int transitive = ComputeTransitiveLastUse(
-                    pv, positionMap, lastUse);
-                if (transitive > lastUse)
-                    lastUse = transitive;
-            }
-
-            // BasicBlock termination values (branch conditions, return values)
-            // are children of the BasicBlock, which isn't in the position map.
-            // Extend the live range to the block's maximum positioned value.
-            if (use.Target is BasicBlock bb)
-            {
-                // Find the last positioned value in this block
-                foreach (var bbUse in bb.Uses)
-                {
-                    if (positionMap.TryGetValue(bbUse.Target, out int bbUsePos)
-                        && bbUsePos > lastUse)
-                    {
-                        lastUse = bbUsePos;
-                    }
-                }
-                // If no positioned uses found but the block has values,
-                // use maxPosition as a safe upper bound
-                if (lastUse == defPos)
-                    lastUse = maxPosition;
-            }
-        }
-
-        // For PhiValue: extend the live range to include the positions of
-        // all phi source values. In loops, the back-edge source (e.g.
-        // i+step) is at a later position in the loop body. Without this,
-        // the allocator may reuse the phi's buffer for intermediate header
-        // values that execute before the back-edge update.
-        if (value is PhiValue phi)
-        {
-            for (int i = 0; i < phi.NumArguments; i++)
-            {
-                var src = phi.Arguments[i];
-                if (positionMap.TryGetValue(src, out int srcPos))
-                {
-                    if (srcPos > lastUse)
-                        lastUse = srcPos;
-                }
-            }
-        }
-
-        // If this value is a source argument of a multi-argument phi
-        // (loop-carried), extend the live range to the maximum position.
-        // The loop handler emits back-edge Selects that read this value
-        // AFTER all header block values have been emitted, but those
-        // Selects are not in the position map. Extending to maxPosition
-        // ensures the buffer isn't reused by later header values (like
-        // comparison broadcasts) before the Select consumes it.
-        foreach (var use in value.Uses)
-        {
-            if (use.Target is PhiValue usePhi && usePhi.NumArguments > 1)
-            {
-                lastUse = maxPosition;
-                break;
-            }
-        }
-
-        // If this value is used by a value in a loop header block
-        // (a block that has a back-edge: one of its successors'
-        // successors points back to itself), the header is re-emitted
-        // on each loop iteration. The value must survive the entire
-        // loop to remain valid across re-emissions.
-        if (lastUse < maxPosition)
-        {
-            foreach (var use in value.Uses)
-            {
-                // Find the block containing the use by walking
-                // transitive users until we find a BasicBlockValue.
-                BasicBlock? useBlock = FindUseBlock(use.Target, 4);
-                if (useBlock is null) continue;
-
-                // Check if useBlock is a loop header (has back-edge)
-                foreach (var succ in useBlock.Successors)
-                {
-                    foreach (var succSucc in succ.Successors)
-                    {
-                        if (succSucc == useBlock)
-                        {
-                            lastUse = maxPosition;
-                            goto doneLoopCheck;
-                        }
-                    }
-                }
-            }
-            doneLoopCheck:;
-        }
-
-        return lastUse;
-    }
-
-    /// <summary>
-    /// Follows PureValue use chains to find the maximum position of the
-    /// ultimate positioned consumer. PureValues that are not in the position
-    /// map (e.g., scalar single-use values) create invisible gaps in the use
-    /// chain — without this follow-through, the operand's live range ends
-    /// too early and its pool slot is reused prematurely.
-    /// </summary>
-    private static int ComputeTransitiveLastUse(
-        PureValue pv,
-        Dictionary<Value, int> positionMap,
-        int fallback,
-        int depth = 8)
-    {
-        if (depth <= 0)
-            return fallback;
-
-        int result = fallback;
-        foreach (var use in pv.Uses)
-        {
-            if (positionMap.TryGetValue(use.Target, out int pos))
-            {
-                if (pos > result)
-                    result = pos;
-            }
-            else if (use.Target is PureValue childPv)
-            {
-                int childPos = ComputeTransitiveLastUse(
-                    childPv, positionMap, fallback, depth - 1);
-                if (childPos > result)
-                    result = childPos;
-            }
-        }
-        return result;
-    }
-
-    /// <summary>
-    /// Walks transitive users to find the BasicBlock containing a value.
-    /// </summary>
-    private static BasicBlock? FindUseBlock(Value value, int depth)
-    {
-        if (depth <= 0) return null;
-        if (value is BasicBlockValue bbv) return bbv.BasicBlock;
-        foreach (var u in value.Uses)
-        {
-            var block = FindUseBlock(u.Target, depth - 1);
-            if (block != null) return block;
-        }
-        return null;
-    }
 
     /// <summary>
     /// Runs linear-scan allocation: groups intervals by element type,

@@ -87,11 +87,6 @@ public abstract class BasicPhiExecutionTests : ExecutionTestBase
     [SkippableFact]
     public async Task DoWhileRotateLoad_ProducesCorrectOutput()
     {
-        // The inlined load splits the loop body into a header and a latch
-        // block, a loop shape the CPU backend does not emit correctly yet
-        Skip.If(
-            Backend == BackendType.CPU,
-            "The CPU backend does not emit a do-while loop with a split body yet");
         // input = [1, 2, 3, 4, 5, 6]; thread t rotates a, b, c for t + 3 iterations
         await VerifyProgramOutputAsync(
             "TestPrograms/BasicPhi/DoWhileRotateLoad.cs",
