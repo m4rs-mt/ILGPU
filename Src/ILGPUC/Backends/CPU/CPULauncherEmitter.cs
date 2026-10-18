@@ -70,29 +70,61 @@ sealed class CPULauncherEmitter : LauncherEmitter
             ctx.WriteLine("");
         }
 
-        // CPU uses a flat loop over user-specified work items, processing
-        // simdWidth lanes per iteration with bounds masking for the last batch.
-        // userExtent is the original number of data elements requested by the
-        // user, which may be less than gridSize * groupSize.
-        //
-        // Grouped kernels that take a KernelIndex step one thread at a time:
-        // the vectorized kernel body treats KernelIndex fields as scalars
-        // broadcast to every lane, so stepping by simdWidth would skip
-        // simdWidth-1 of every simdWidth threads. We pay the full SIMD
-        // redundancy for correctness here; proper per-lane KernelIndex
-        // vectorization is a larger backend change.
-        var stepExpr = ctx.KernelIndexTypeName is not null
-            ? "1"
-            : "simdWidth";
-        var activeLanesExpr = ctx.KernelIndexTypeName is not null
-            ? "1"
-            : "(int)Math.Min(simdWidth, userExtent - _i)";
-        ctx.WriteLine(
-            $"for (long _i = 0; _i < userExtent; _i += {stepExpr})");
-        ctx.OpenScope();
-        ctx.WriteLine("int baseIndex = (int)_i;");
-        ctx.WriteLine(
-            $"int activeLanes = {activeLanesExpr};");
+        // Every call of the vectorized kernel runs up to simdWidth threads of
+        // one group as its SIMD lanes. Implicitly grouped launches run the
+        // user's extent in groups of simdWidth lanes with bounds masking for
+        // the last group (userExtent may be less than gridSize * groupSize).
+        // Explicitly grouped launches run each group of the KernelConfig in
+        // calls of up to simdWidth threads. Barriers and shared memory only
+        // span the threads of one call, so kernels that synchronize their
+        // group need groups that fit into the SIMD lanes.
+        var gridIndex = $"{className}.{CPUIntrinsicEmitter.GridIndexName}";
+        var gridDimension = $"{className}.{CPUIntrinsicEmitter.GridDimensionName}";
+        var groupDimension =
+            $"{className}.{CPUIntrinsicEmitter.GroupDimensionName}";
+        var groupOffset = $"{className}.{CPUIntrinsicEmitter.GroupOffsetName}";
+        if (ctx.Launch.IsGrouped)
+        {
+            ctx.WriteLine(
+                "int maxGroupSize = stream.Accelerator?.MaxNumThreadsPerGroup " +
+                "?? groupSize;");
+            ctx.WriteLine(
+                $"if ({className}.{CPUCodeGenerator.SynchronizesGroupsName})");
+            ctx.WriteLine("    maxGroupSize = Math.Min(maxGroupSize, simdWidth);");
+            ctx.WriteLine("if (groupSize < 1 || groupSize > maxGroupSize)");
+            ctx.WriteLine(
+                "    throw new System.InvalidOperationException(" +
+                "$\"Invalid group dimensions {groupSize} " +
+                "(exceeds maximum {maxGroupSize})\");");
+            ctx.WriteLine($"{gridDimension} = (int)gridSize;");
+            ctx.WriteLine($"{groupDimension} = groupSize;");
+            ctx.WriteLine(
+                "long chunksPerGroup = (groupSize + simdWidth - 1) / simdWidth;");
+            ctx.WriteLine(
+                "for (long _i = 0; _i < gridSize * chunksPerGroup; ++_i)");
+            ctx.OpenScope();
+            ctx.WriteLine("long _group = _i / chunksPerGroup;");
+            ctx.WriteLine("int _offset = (int)(_i % chunksPerGroup) * simdWidth;");
+            ctx.WriteLine("int baseIndex = (int)(_group * groupSize) + _offset;");
+            ctx.WriteLine(
+                "int activeLanes = Math.Min(simdWidth, groupSize - _offset);");
+            ctx.WriteLine($"{gridIndex} = (int)_group;");
+            ctx.WriteLine($"{groupOffset} = _offset;");
+        }
+        else
+        {
+            ctx.WriteLine(
+                $"{gridDimension} = " +
+                "(int)((userExtent + simdWidth - 1) / simdWidth);");
+            ctx.WriteLine($"{groupDimension} = simdWidth;");
+            ctx.WriteLine($"{groupOffset} = 0;");
+            ctx.WriteLine("for (long _i = 0; _i < userExtent; _i += simdWidth)");
+            ctx.OpenScope();
+            ctx.WriteLine("int baseIndex = (int)_i;");
+            ctx.WriteLine(
+                "int activeLanes = (int)Math.Min(simdWidth, userExtent - _i);");
+            ctx.WriteLine($"{gridIndex} = (int)(_i / simdWidth);");
+        }
 
         // Clear pooled buffers, re-init lane indices, and set active mask
         if (pool != null)
@@ -101,19 +133,16 @@ sealed class CPULauncherEmitter : LauncherEmitter
             ctx.WriteLine("");
         }
 
-        // Construct a KernelIndex struct from (baseIndex, groupSize) for
-        // grouped launches whose entry point takes a KernelIndex. Fields
-        // are laid out as { long Field0 = GridIndex, int Field1 = GroupIndex }
-        // — matching the frontend's flat struct layout for
-        // ILGPU.KernelIndex.
+        // Construct the KernelIndex struct of the group for grouped launches
+        // whose entry point takes a KernelIndex. Fields are laid out as
+        // { long Field0 = GridIndex, int Field1 = GroupIndex } — matching the
+        // frontend's flat struct layout for ILGPU.KernelIndex. The entry point
+        // numbers the lanes of the group itself.
         if (ctx.KernelIndexTypeName is not null)
         {
             var kidxType = ctx.KernelIndexTypeName;
             ctx.WriteLine($"var _m_kernelIndex = default({kidxType});");
-            ctx.WriteLine(
-                "_m_kernelIndex.Field0 = (long)(baseIndex / groupSize);");
-            ctx.WriteLine(
-                "_m_kernelIndex.Field1 = baseIndex % groupSize;");
+            ctx.WriteLine("_m_kernelIndex.Field0 = _group;");
             ctx.WriteLine("");
         }
 

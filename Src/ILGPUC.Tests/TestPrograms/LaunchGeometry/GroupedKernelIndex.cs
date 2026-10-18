@@ -13,8 +13,9 @@
 // Explicitly grouped launch of a kernel that takes a KernelIndex. The kernel
 // writes a value encoding index.GridIndex / index.GroupIndex plus a scalar
 // argument, and flags any thread whose KernelIndex disagrees with the
-// Grid.Index / Group.Index intrinsics. Runs a small configuration (total
-// threads below the group-size limit) and a large one (above it).
+// Grid.Index / Group.Index intrinsics. Runs a small and a large
+// configuration, with group sizes clamped to the maximum group size of the
+// device.
 
 using System;
 using ILGPU;
@@ -38,8 +39,12 @@ static class Kernels
 
 static class Program
 {
-    static void Run(AcceleratorStream stream, int gridDim, int groupDim)
+    static void Run(AcceleratorStream stream, int gridDim, int requestedGroupDim)
     {
+        // Groups never exceed the device's maximum group size
+        int groupDim = Math.Min(
+            requestedGroupDim,
+            stream.Accelerator!.MaxNumThreadsPerGroup);
         const int Constant = 7;
         var config = new KernelConfig(gridDim, groupDim);
         int total = gridDim * groupDim;
@@ -66,7 +71,7 @@ static class Program
             }
         }
 
-        Console.WriteLine($"config {gridDim}x{groupDim}");
+        Console.WriteLine($"config {gridDim}x{requestedGroupDim}");
         Console.WriteLine($"mismatches {mismatches}");
         Console.WriteLine($"disagreements {disagreeing}");
     }

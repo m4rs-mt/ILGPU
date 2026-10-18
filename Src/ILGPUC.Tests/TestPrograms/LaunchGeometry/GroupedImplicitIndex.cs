@@ -14,8 +14,8 @@
 // thread derives its position from Grid.Index / Group.Index and writes a value
 // that encodes both, plus a scalar argument, so a collapsed grid, wrong
 // dimensions or a shifted argument list all show up as mismatches. Runs a
-// small configuration (total threads below the group-size limit) and a large
-// one (above it).
+// small and a large configuration, with group sizes clamped to the maximum
+// group size of the device.
 
 using System;
 using ILGPU;
@@ -41,8 +41,12 @@ static class Kernels
 
 static class Program
 {
-    static void Run(AcceleratorStream stream, int gridDim, int groupDim)
+    static void Run(AcceleratorStream stream, int gridDim, int requestedGroupDim)
     {
+        // Groups never exceed the device's maximum group size
+        int groupDim = Math.Min(
+            requestedGroupDim,
+            stream.Accelerator!.MaxNumThreadsPerGroup);
         const int Constant = 7;
         var config = new KernelConfig(gridDim, groupDim);
         int total = gridDim * groupDim;
@@ -65,8 +69,10 @@ static class Program
         }
 
         var dimValues = dims.GetAsArray1D();
-        Console.WriteLine($"config {gridDim}x{groupDim}");
-        Console.WriteLine($"grid {dimValues[0]} group {dimValues[1]}");
+        Console.WriteLine($"config {gridDim}x{requestedGroupDim}");
+        int reportedGroupDim =
+            dimValues[1] == groupDim ? requestedGroupDim : dimValues[1];
+        Console.WriteLine($"grid {dimValues[0]} group {reportedGroupDim}");
         Console.WriteLine($"mismatches {mismatches}");
     }
 

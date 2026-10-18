@@ -361,6 +361,9 @@
             <Remap Name="Atan2" Target="XMath.Atan2">
                 <Specialization Type="float,float" />
             </Remap>
+            <Remap Name="Pow" Target="XMath.Pow">
+                <Specialization Type="float,float" />
+            </Remap>
 
             <!-- Ternary -->
             <Remap Name="FusedMultiplyAdd" Target="XMath.FMA">
