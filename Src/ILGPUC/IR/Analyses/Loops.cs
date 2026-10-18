@@ -120,7 +120,7 @@ sealed class Loops<TOrder, TDirection>
     /// </summary>
     /// <remarks>
     /// Each Node represents one loop in the program, containing information about:
-    /// - Loop structure (headers, entries, exits, breakers, back edges)
+    /// - Loop structure (headers, entries, exits, breakers)
     /// - Loop members (all blocks belonging to this loop)
     /// - Loop hierarchy (parent, children, nesting level)
     /// - Query methods for block membership and traversal
@@ -129,7 +129,6 @@ sealed class Loops<TOrder, TDirection>
     {
         private InlineList<BasicBlock> headers;
         private InlineList<BasicBlock> breakers;
-        private InlineList<BasicBlock> backEdges;
         private InlineList<Node> children;
 
         /// <summary>
@@ -138,7 +137,6 @@ sealed class Loops<TOrder, TDirection>
         /// <param name="parent">The parent loop.</param>
         /// <param name="headerBlocks">All loop headers.</param>
         /// <param name="breakerBlocks">All blocks that can break the loop.</param>
-        /// <param name="backEdgeBlocks">All blocks with back edges.</param>
         /// <param name="members">All blocks in the scope of this loop.</param>
         /// <param name="entries">All entry block that jump into this loop.</param>
         /// <param name="exits">All exit block that this loop can jump to.</param>
@@ -146,7 +144,6 @@ sealed class Loops<TOrder, TDirection>
             Node? parent,
             ref InlineList<BasicBlock> headerBlocks,
             ref InlineList<BasicBlock> breakerBlocks,
-            ref InlineList<BasicBlock> backEdgeBlocks,
             in ValueSetList<Method, BasicBlock> members,
             HashSet<BasicBlock> entries,
             HashSet<BasicBlock> exits)
@@ -157,7 +154,6 @@ sealed class Loops<TOrder, TDirection>
 
             headerBlocks.MoveTo(ref headers);
             breakerBlocks.MoveTo(ref breakers);
-            backEdgeBlocks.MoveTo(ref backEdges);
             AllMembers = members;
             children = InlineList<Node>.Create(8);
             Entries = [.. entries];
@@ -198,15 +194,6 @@ sealed class Loops<TOrder, TDirection>
         /// Exit blocks are successors of breaker blocks that are not part of the loop.
         /// </remarks>
         public ImmutableArray<BasicBlock> Exits { get; }
-
-        /// <summary>
-        /// Returns all blocks with back edges to the loop header.
-        /// </summary>
-        /// <remarks>
-        /// Back edge blocks are blocks inside the loop that jump back to a header block,
-        /// forming the actual loop cycle.
-        /// </remarks>
-        public ReadOnlySpan<BasicBlock> BackEdges => backEdges;
 
         /// <summary>
         /// Returns all blocks that are part of this loop.
@@ -623,7 +610,6 @@ sealed class Loops<TOrder, TDirection>
             parent,
             ref headers,
             ref breakers,
-            ref backEdges,
             members,
             entryBlocks,
             exitBlocks);

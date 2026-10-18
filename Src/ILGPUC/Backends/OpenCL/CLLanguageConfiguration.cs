@@ -112,14 +112,6 @@ sealed class CLLanguageConfiguration(CLVendor vendor = CLVendor.Intel) : Languag
             LanguageFeature.Barriers => true,
             LanguageFeature.InlineFunctions => true,
             LanguageFeature.BroadcastGroupLevel => true,
-            // OpenCL C is C99-based, and C99 forbids a label at the end
-            // of a compound statement (the label must be followed by an
-            // actual statement). The IR's basic-block labels are dead
-            // code anyway — the codegen never emits a `goto` — so
-            // suppressing them entirely matches what Metal does and
-            // unblocks every kernel with nested control flow that ends
-            // a block on a label.
-            LanguageFeature.LabeledStatements => false,
             _ => false
         };
 

@@ -143,7 +143,6 @@ class CudaLanguageConfiguration : LanguageConfiguration
             LanguageFeature.Atomics => true,
             LanguageFeature.Barriers => true,
             LanguageFeature.InlineFunctions => true,
-            LanguageFeature.LabeledStatements => true, // nvcc/hipcc are C++ compilers
             _ => false
         };
 

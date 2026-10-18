@@ -156,10 +156,6 @@ public abstract class ArrayViewExecutionTests : ExecutionTestBase
     [SkippableFact]
     public async Task PerLaneViewLoop_ProducesCorrectOutput()
     {
-        Skip.If(
-            Backend != BackendType.CPU,
-            "GPU backends read stale lengths of views that are shrunk in a " +
-            "loop which the lanes leave in different iterations.");
         await VerifyProgramOutputAsync(
             "TestPrograms/ArrayView/PerLaneViewLoop.cs",
             ["Kernels.PerLaneViewLoopKernel"],
