@@ -187,6 +187,13 @@ abstract class LanguageConfiguration
     public virtual string? BoolStorageTypeName => null;
 
     /// <summary>
+    /// Returns the type name used to store pointers in views and arrays, or
+    /// null to use the regular pointer type name. C# cannot use pointer types
+    /// as type arguments, and the CPU backend stores pointers as addresses.
+    /// </summary>
+    public virtual string? PointerStorageTypeName => null;
+
+    /// <summary>
     /// Formats a default-initialized value for the given type name.
     /// C/C++/Metal: <c>(TypeName){}</c>, C#: <c>default(TypeName)</c>.
     /// </summary>

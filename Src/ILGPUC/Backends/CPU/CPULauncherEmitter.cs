@@ -191,7 +191,7 @@ sealed class CPULauncherEmitter : LauncherEmitter
         {
             case ParameterKind.View:
                 // ArrayView<TUser> → CPURuntimeView<TIR>
-                var elemType = ctx.GetElementTypeName((ViewType)param.Type);
+                var elemType = GetElementTypeName(ctx, (ViewType)param.Type);
                 var viewVar = $"_m_{param.Name}";
                 if (((ViewType)param.Type).ElementType is StructureType)
                 {
@@ -301,7 +301,7 @@ sealed class CPULauncherEmitter : LauncherEmitter
             if (fieldType is ViewType vt)
             {
                 // ArrayView<TUser> → CPURuntimeView<TIR>
-                var elemName = ctx.GetElementTypeName(vt);
+                var elemName = GetElementTypeName(ctx, vt);
                 if (vt.ElementType is StructureType)
                 {
                     // Struct-element views: user and IR struct types differ
@@ -371,6 +371,17 @@ sealed class CPULauncherEmitter : LauncherEmitter
 
         return marshaledVar;
     }
+
+    /// <summary>
+    /// Returns the C# element type name of the runtime view of a view type:
+    /// pointers are stored as addresses.
+    /// </summary>
+    private static string GetElementTypeName(
+        LauncherEmissionContext ctx,
+        ViewType viewType) =>
+        viewType.ElementType is PointerType
+            ? "nint"
+            : ctx.GetElementTypeName(viewType);
 
     /// <summary>
     /// Returns the C# type name for a primitive IR type.

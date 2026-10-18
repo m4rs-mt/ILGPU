@@ -121,6 +121,18 @@ public abstract class AddressSpaceExecutionTests : ExecutionTestBase
     }
 
     [SkippableFact]
+    public async Task LocalPointerAddress_ProducesCorrectOutput()
+    {
+        // A local pointer into global memory is changed and read through a
+        // pointer to it, directly and in a helper; a helper reads through a
+        // local array of pointers
+        await VerifyProgramOutputAsync(
+            "TestPrograms/AddressSpace/LocalPointerAddress.cs",
+            ["Kernels.DirectKernel", "Kernels.HelperKernel", "Kernels.ArrayKernel"],
+            ["22 8 8 22", "1 8 15 22", "1 8 15 22"]);
+    }
+
+    [SkippableFact]
     public async Task MixedSpaceRef_ProducesCorrectOutput()
     {
         // Even threads increment shared[t] = 10 * (t + 1), odd threads data[t] = t;

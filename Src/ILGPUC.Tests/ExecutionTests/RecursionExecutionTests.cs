@@ -129,15 +129,10 @@ public abstract class RecursionExecutionTests : ExecutionTestBase
             "0 0 2 2 5 5 9 9 14 14 20 20 27 27 35 35");
 
     [SkippableFact]
-    public Task TailRecursionStoringAddresses_ProducesCorrectOutput()
-    {
-        Skip.If(
-            Backend is BackendType.CPU,
-            "The CPU backend does not support views of nint");
-        return VerifyAsync(
+    public Task TailRecursionStoringAddresses_ProducesCorrectOutput() =>
+        VerifyAsync(
             "TailRecursionStoredAddresses",
             "0 0 2 2 5 5 9 9 14 14 20 20 27 27 35 35");
-    }
 
     [SkippableFact]
     public Task TailRecursionPassingPointerFields_ProducesCorrectOutput() =>
