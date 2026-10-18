@@ -86,6 +86,12 @@ partial class MethodEmitter
     private bool _materialized;
     private bool _usesJumpVariable;
     private IfNode? _latchTest;
+    private readonly List<JumpNode> _indirectJumps = [];
+    private readonly List<BasicBlock> _interveningBlocks = [];
+    private int _jumpStatements;
+    private int _regions;
+    private bool _resolving;
+    private bool _unreachable;
 
     #endregion
 
@@ -105,18 +111,11 @@ partial class MethodEmitter
         StructuredControlFlow controlFlow,
         CodePlacement placement)
     {
-        var tree = controlFlow.BuildTree();
         _placement = placement;
         _jumpIds.Clear();
-
         _printing = false;
-        do
-        {
-            _materialized = false;
-            _usesJumpVariable = false;
-            WalkTree(tree);
-        }
-        while (_materialized);
+
+        var tree = BuildTree(controlFlow);
 
         if (_usesJumpVariable)
         {
@@ -128,6 +127,422 @@ partial class MethodEmitter
         WalkTree(tree);
         _printing = false;
         _placement = null;
+    }
+
+    /// <summary>
+    /// The maximum number of statements of a block that is duplicated.
+    /// </summary>
+    private const int MaxDuplicatedBlockSize = 4;
+
+    /// <summary>
+    /// The maximum number of statements added by duplicating one block.
+    /// </summary>
+    private const int MaxDuplicatedStatements = 16;
+
+    /// <summary>
+    /// The maximum number of duplication trials of one search.
+    /// </summary>
+    private const int MaxDuplicationTrials = 32;
+
+    /// <summary>
+    /// The maximum number of times the jumps added by duplicated code are
+    /// replaced by duplicated blocks in turn.
+    /// </summary>
+    private const int MaxDuplicationDepth = 4;
+
+    /// <summary>
+    /// The cost of the jumps of a statement tree: the number of statements
+    /// using the jump variable, and the number of regions.
+    /// </summary>
+    private readonly record struct JumpCost(int JumpStatements, int Regions)
+        : IComparable<JumpCost>
+    {
+        public int CompareTo(JumpCost other) =>
+            JumpStatements != other.JumpStatements
+                ? JumpStatements.CompareTo(other.JumpStatements)
+                : Regions.CompareTo(other.Regions);
+    }
+
+    /// <summary>
+    /// Builds the statement tree of a method and resolves its regions.
+    /// </summary>
+    /// <remarks>
+    /// A jump that needs a region or the jump variable is removed by
+    /// duplicating small blocks: either its target is inlined at the edge of
+    /// the jump, or a follow block whose code lies between the jump and its
+    /// target is inlined at all of its edges, so that the jump reaches its
+    /// target by falling through. The tree is rebuilt with the inlined blocks,
+    /// and with the jumps their code adds removed in the same way. A change is
+    /// kept only if it lowers the jump cost of the tree, so blocks are only
+    /// duplicated where this removes jumps. Duplicating a block is bounded by
+    /// <see cref="MaxDuplicatedStatements"/>.
+    ///
+    /// The first search keeps the first change that lowers the jump cost. If
+    /// it leaves jumps or duplicates code, a second search compares all
+    /// changes and keeps the one with the lowest jump cost that duplicates the
+    /// least code (see <see cref="GetDuplicationWeight"/>), so that a store
+    /// in a merge block is shared if duplicating the smaller blocks in front
+    /// of it removes the same jumps. The second result is used only if it has
+    /// a lower jump cost, or the same cost and less duplicated code.
+    /// </remarks>
+    private Node BuildTree(StructuredControlFlow controlFlow)
+    {
+        var inlined = controlFlow.InlinedEdges;
+        var sizes = new Dictionary<BasicBlock, int>();
+        bool CanDuplicate(BasicBlock block)
+        {
+            if (!controlFlow.IsDuplicable(block))
+                return false;
+            if (!sizes.TryGetValue(block, out int size))
+            {
+                size = CountStatements(controlFlow, block);
+                sizes.Add(block, size);
+            }
+            return size <= MaxDuplicatedBlockSize;
+        }
+
+        // Each candidate is identified by an edge (or by (block, block) for
+        // all edges of a block) and lists the edges to inline
+        List<((BasicBlock, BasicBlock) Key, List<(BasicBlock, BasicBlock)> Edges)>
+            GetCandidates()
+        {
+            var candidates =
+                new List<((BasicBlock, BasicBlock), List<(BasicBlock, BasicBlock)>)>();
+            void Add((BasicBlock, BasicBlock) key, List<(BasicBlock, BasicBlock)> edges)
+            {
+                edges.RemoveAll(inlined.Contains);
+                if (edges.Count > 0
+                    && !candidates.Exists(c => c.Item1 == key))
+                {
+                    candidates.Add((key, edges));
+                }
+            }
+            foreach (var jump in _indirectJumps)
+            {
+                var target = jump.Target.Block;
+                if (!jump.Target.IsContinue && CanDuplicate(target))
+                    Add((jump.Source, target), [(jump.Source, target)]);
+            }
+            foreach (var block in _interveningBlocks)
+            {
+                if (CanDuplicate(block))
+                    Add((block, block), controlFlow.GetEntryEdges(block));
+            }
+            return candidates;
+        }
+
+        // Evaluates one candidate: inlines its edges and, for the jumps the
+        // inlined code adds, either their targets or (preferFollows) the
+        // follow blocks between jumps and their targets. Every edge of the
+        // trial is checked in a resolved tree, and all edges are removed again
+        bool TryTrial(
+            List<(BasicBlock Source, BasicBlock Target)> edges,
+            bool preferFollows,
+            HashSet<(BasicBlock, BasicBlock)> startKeys,
+            out List<(BasicBlock Source, BasicBlock Target)> trial,
+            out JumpCost trialCost,
+            out int trialWeight)
+        {
+            trial = new List<(BasicBlock Source, BasicBlock Target)>(edges);
+            trialCost = default;
+            trialWeight = 0;
+            inlined.UnionWith(edges);
+            try
+            {
+                for (int depth = 0; depth < MaxDuplicationDepth; ++depth)
+                {
+                    var tree = controlFlow.BuildTree();
+                    var counts = CountBlocks(tree);
+                    foreach (var e in trial)
+                    {
+                        if ((counts.GetValueOrDefault(e.Target) - 1) * sizes[e.Target]
+                            > MaxDuplicatedStatements)
+                        {
+                            return false;
+                        }
+                    }
+                    if (!TryResolveTree(tree, out trialCost))
+                        return false;
+                    trialWeight = GetDuplicationWeight(controlFlow, counts);
+                    if (depth + 1 >= MaxDuplicationDepth)
+                        break;
+                    var targets = new List<(BasicBlock Source, BasicBlock Target)>();
+                    var follows = new List<(BasicBlock Source, BasicBlock Target)>();
+                    foreach (var (other, otherEdges) in GetCandidates())
+                    {
+                        if (other.Item1 == other.Item2)
+                            follows.AddRange(otherEdges);
+                        else if (!startKeys.Contains(other))
+                            targets.AddRange(otherEdges);
+                    }
+                    var added = preferFollows && follows.Count > 0 ? follows : targets;
+                    if (added.Count < 1)
+                        break;
+                    trial.AddRange(added);
+                    inlined.UnionWith(added);
+                }
+                return true;
+            }
+            finally
+            {
+                foreach (var edge in trial)
+                    inlined.Remove(edge);
+            }
+        }
+
+        // A greedy search from the tree without inlined edges. Without
+        // compareAll, it keeps the first trial that lowers the jump cost, with
+        // the targets of added jumps inlined. With compareAll, it tries every
+        // candidate with both ways of removing added jumps, and keeps the
+        // trial with the lowest jump cost and then the least duplicated code
+        (HashSet<(BasicBlock, BasicBlock)> Edges, JumpCost Cost, int Weight)
+            Search(bool compareAll)
+        {
+            inlined.Clear();
+            ResolveTree(controlFlow.BuildTree(), out var cost);
+            int weight = 0;
+            var failed = new HashSet<(BasicBlock, BasicBlock)>();
+            for (int trials = 0; trials < MaxDuplicationTrials;)
+            {
+                var candidates = GetCandidates();
+                candidates.RemoveAll(c => failed.Contains(c.Key));
+                if (candidates.Count < 1)
+                    break;
+                var startKeys = new HashSet<(BasicBlock, BasicBlock)>();
+                foreach (var (key, _) in candidates)
+                    startKeys.Add(key);
+
+                List<(BasicBlock Source, BasicBlock Target)>? best = null;
+                var bestCost = cost;
+                int bestWeight = 0;
+                foreach (var (key, edges) in candidates)
+                {
+                    foreach (bool preferFollows in compareAll
+                        ? new[] { false, true }
+                        : new[] { false })
+                    {
+                        if (trials >= MaxDuplicationTrials)
+                            break;
+                        ++trials;
+                        if (!TryTrial(edges, preferFollows, startKeys,
+                                out var trial, out var trialCost, out int trialWeight)
+                            || trialCost.CompareTo(cost) >= 0)
+                        {
+                            if (!compareAll)
+                                failed.Add(key);
+                            continue;
+                        }
+                        int byCost = trialCost.CompareTo(bestCost);
+                        if (best is null
+                            || byCost < 0
+                            || byCost == 0 && trialWeight < bestWeight)
+                        {
+                            best = trial;
+                            bestCost = trialCost;
+                            bestWeight = trialWeight;
+                        }
+                    }
+                    if (!compareAll && best is not null)
+                        break;
+                }
+                if (best is null)
+                    break;
+                inlined.UnionWith(best);
+                cost = bestCost;
+                weight = bestWeight;
+            }
+            return ([.. inlined], cost, weight);
+        }
+
+        // Keep the result with the lowest jump cost, then the least
+        // duplicated code, then the first search
+        var first = Search(compareAll: false);
+        var chosen = first;
+        if (first.Cost.JumpStatements > 0
+            || first.Cost.Regions > 0
+            || first.Weight > 0)
+        {
+            var second = Search(compareAll: true);
+            int byCost = second.Cost.CompareTo(first.Cost);
+            if (byCost < 0 || byCost == 0 && second.Weight < first.Weight)
+                chosen = second;
+        }
+        inlined.Clear();
+        inlined.UnionWith(chosen.Edges);
+
+        // Number the jump targets of the final tree only
+        _jumpIds.Clear();
+        var result = controlFlow.BuildTree();
+        ResolveTree(result, out _);
+        return result;
+    }
+
+    /// <summary>
+    /// Walks the given statement tree until the set of regions that need a
+    /// breakable construct is stable, or returns false if a jump in the tree
+    /// cannot reach its target.
+    /// </summary>
+    private bool TryResolveTree(Node tree, out JumpCost cost)
+    {
+        _resolving = true;
+        try
+        {
+            ResolveTree(tree, out cost);
+            return !_unreachable;
+        }
+        finally
+        {
+            _resolving = false;
+            _unreachable = false;
+        }
+    }
+
+    /// <summary>
+    /// Walks the given statement tree until the set of regions that need a
+    /// breakable construct is stable.
+    /// </summary>
+    /// <param name="tree">The statement tree.</param>
+    /// <param name="cost">The jump cost of the resolved tree.</param>
+    /// <returns>The given tree.</returns>
+    private Node ResolveTree(Node tree, out JumpCost cost)
+    {
+        do
+        {
+            if (_unreachable)
+                break;
+            _materialized = false;
+            _usesJumpVariable = false;
+            _indirectJumps.Clear();
+            _interveningBlocks.Clear();
+            _jumpStatements = 0;
+            _regions = 0;
+            WalkTree(tree);
+        }
+        while (_materialized);
+        cost = new JumpCost(_jumpStatements, _regions);
+        return tree;
+    }
+
+    /// <summary>
+    /// Returns the number of times each block occurs in the given tree.
+    /// </summary>
+    private static Dictionary<BasicBlock, int> CountBlocks(Node tree)
+    {
+        var counts = new Dictionary<BasicBlock, int>();
+        void Count(Node node)
+        {
+            switch (node)
+            {
+                case SequenceNode sequence:
+                    foreach (var child in sequence.Nodes)
+                        Count(child);
+                    break;
+                case BlockNode block:
+                    counts.TryGetValue(block.Block, out int count);
+                    counts[block.Block] = count + 1;
+                    break;
+                case IfNode ifNode:
+                    Count(ifNode.TrueNode);
+                    Count(ifNode.FalseNode);
+                    break;
+                case SwitchNode switchNode:
+                    foreach (var (_, body) in switchNode.Cases)
+                        Count(body);
+                    Count(switchNode.DefaultNode);
+                    break;
+                case LoopNode loop:
+                    Count(loop.Body);
+                    break;
+                case LabeledNode labeled:
+                    Count(labeled.Body);
+                    break;
+            }
+        }
+        Count(tree);
+        return counts;
+    }
+
+    /// <summary>
+    /// Returns the weighted size of the code duplicated in a tree with the
+    /// given block counts: stores and atomics weigh most, as backend compilers
+    /// do not merge their copies again, then other statements, then phi copies
+    /// (more if their argument is computed inline).
+    /// </summary>
+    private int GetDuplicationWeight(
+        StructuredControlFlow controlFlow,
+        Dictionary<BasicBlock, int> counts)
+    {
+        int weight = 0;
+        foreach (var (block, count) in counts)
+        {
+            if (count < 2)
+                continue;
+            int size = 0;
+            foreach (var value in _placement.AsNotNull().GetPlacedBlock(block))
+            {
+                switch (value)
+                {
+                    case PhiValue:
+                        break;
+                    case PureValue:
+                        if (context.NeedsVariable(value))
+                            size += 2;
+                        break;
+                    case Store:
+                    case AtomicValue:
+                        size += 4;
+                        break;
+                    default:
+                        size += 2;
+                        break;
+                }
+            }
+            foreach (var (source, target) in controlFlow.GetOutgoingEdges(block))
+            {
+                foreach (var (_, argument) in GetEdgeCopies(source, target))
+                {
+                    size += argument is PureValue and not PrimitiveValue
+                        && !context.NeedsVariable(argument) ? 2 : 1;
+                }
+            }
+            weight += (count - 1) * size;
+        }
+        return weight;
+    }
+
+    /// <summary>
+    /// Returns the number of statements <see cref="EmitBasicBlock"/> and the
+    /// phi copies of its outgoing edges emit for the given block, not
+    /// counting its return statement.
+    /// </summary>
+    private int CountStatements(
+        StructuredControlFlow controlFlow,
+        BasicBlock block)
+    {
+        int count = 0;
+        foreach (var value in _placement.AsNotNull().GetPlacedBlock(block))
+        {
+            switch (value)
+            {
+                case PhiValue:
+                    break;
+                case PureValue:
+                    if (context.NeedsVariable(value))
+                        ++count;
+                    break;
+                case BasicBlockValue bbv when bbv.Type is VoidType
+                    || !context.NeedsVariable(bbv):
+                    if (!string.IsNullOrEmpty(expressionEmitter.EmitStatement(bbv)))
+                        ++count;
+                    break;
+                default:
+                    ++count;
+                    break;
+            }
+        }
+        foreach (var (source, target) in controlFlow.GetOutgoingEdges(block))
+            count += GetEdgeCopies(source, target).Count;
+        return count;
     }
 
     /// <summary>
@@ -183,7 +598,7 @@ partial class MethodEmitter
                 break;
             case JumpNode jump:
                 if (jump.Target != fallthrough)
-                    EmitJump(jump.Target);
+                    EmitJump(jump);
                 break;
         }
     }
@@ -371,7 +786,7 @@ partial class MethodEmitter
         // value they read, as those still hold the previous iteration. The
         // header stores nothing, so loads read the same memory again
         var exitJump = GetExitJump(test);
-        var exitCopies = GetEdgeCopies(header, exitJump.Block);
+        var exitCopies = GetExitCopies(test);
         var exits = new HashSet<Value>(ReferenceEqualityComparer.Instance);
         for (int i = values.Count - 1; i >= 0; --i)
         {
@@ -402,7 +817,9 @@ partial class MethodEmitter
 
         // A break lands in front of the exit code, which may only be skipped
         // if it consists of the exit jump alone
-        bool exitHasCode = exitValues.Count > 0 || exitCopies.Count > 0;
+        bool exitHasCode = exitValues.Count > 0
+            || exitCopies.Count > 0
+            || HasInlinedExit(test);
         JumpTarget? after = exitHasCode ? null : exitJump;
 
         if (_printing)
@@ -452,7 +869,7 @@ partial class MethodEmitter
     {
         var latch = test.Branch.Block;
         var exitJump = GetExitJump(test);
-        JumpTarget? after = GetEdgeCopies(latch, exitJump.Block).Count > 0
+        JumpTarget? after = GetExitCopies(test).Count > 0 || HasInlinedExit(test)
             ? null
             : exitJump;
 
@@ -506,7 +923,7 @@ partial class MethodEmitter
     private bool HasExitCode(LoopNode loop, LoopTest test)
     {
         var block = test.Branch.Block;
-        if (GetEdgeCopies(block, GetExitJump(test).Block).Count > 0)
+        if (GetExitCopies(test).Count > 0 || HasInlinedExit(test))
             return true;
         if (block != loop.Header || !IsTestOnly(block))
             return false;
@@ -519,10 +936,32 @@ partial class MethodEmitter
     }
 
     /// <summary>
-    /// Returns the jump target of the exit side of a loop test.
+    /// Returns the jump target of the exit side of a loop test, or null if
+    /// the exit block is inlined.
     /// </summary>
-    private static JumpTarget GetExitJump(LoopTest test) =>
-        ((JumpNode)((SequenceNode)test.ExitNode).Nodes[^1]).Target;
+    private static JumpTarget? GetExitJump(LoopTest test) =>
+        (((SequenceNode)test.ExitNode).Nodes[^1] as JumpNode)?.Target;
+
+    /// <summary>
+    /// Returns true if the exit block of a loop test is inlined at the exit.
+    /// </summary>
+    private static bool HasInlinedExit(LoopTest test) =>
+        GetExitJump(test) is null;
+
+    /// <summary>
+    /// Returns the phi assignments of all edges on the exit side of a loop
+    /// test, including the edges through forwarding blocks.
+    /// </summary>
+    private static List<(PhiValue Phi, Value Argument)> GetExitCopies(LoopTest test)
+    {
+        var copies = new List<(PhiValue Phi, Value Argument)>();
+        foreach (var node in ((SequenceNode)test.ExitNode).Nodes)
+        {
+            if (node is EdgeNode edge)
+                copies.AddRange(GetEdgeCopies(edge.Source, edge.Target));
+        }
+        return copies;
+    }
 
     /// <summary>
     /// Returns true if the emitted code of the given block consists of
@@ -633,6 +1072,7 @@ partial class MethodEmitter
             context.WriteLine("do");
             context.OpenScope();
         }
+        ++_regions;
 
         var construct = new Construct(ConstructKind.Region, exit);
         _constructs.Add(construct);
@@ -649,24 +1089,58 @@ partial class MethodEmitter
     }
 
     /// <summary>
-    /// Emits a jump to the given target that is not reached by falling through.
+    /// Emits a jump that is not reached by falling through. Jumps that leave
+    /// a region or use the jump variable are recorded as indirect jumps.
     /// </summary>
-    private void EmitJump(JumpTarget target)
+    private void EmitJump(JumpNode jump)
     {
+        var target = jump.Target;
         if (TryEmitDirectJump(target))
+        {
+            if (_constructs[^1].Kind == ConstructKind.Region
+                && _constructs[^1].BreakTarget == target)
+            {
+                AddIndirectJump(jump);
+            }
             return;
+        }
 
+        AddIndirectJump(jump);
         EnsureReachable(target);
         if (_constructs.Count < 1)
             return;
 
         _usesJumpVariable = true;
+        ++_jumpStatements;
         if (_printing)
         {
             context.WriteLine($"{_jumpVariable} = {GetJumpId(target)};");
             context.WriteLine("break;");
         }
         AddPending(_constructs[^1], target);
+    }
+
+    /// <summary>
+    /// Records a jump that needs a region or the jump variable, and the
+    /// follow blocks whose code lies between the jump and its target.
+    /// </summary>
+    private void AddIndirectJump(JumpNode jump)
+    {
+        if (_printing)
+            return;
+        _indirectJumps.Add(jump);
+        if (jump.Target.IsContinue)
+            return;
+        int index = _labeledNodes.FindLastIndex(
+            labeled => labeled.Follow == jump.Target.Block);
+        if (index < 0)
+            return;
+        for (int i = index + 1; i < _labeledNodes.Count; ++i)
+        {
+            var follow = _labeledNodes[i].Follow;
+            if (!_interveningBlocks.Contains(follow))
+                _interveningBlocks.Add(follow);
+        }
     }
 
     /// <summary>
@@ -743,6 +1217,13 @@ partial class MethodEmitter
         if (_materialized && !_printing)
             return;
 
+        // Trees with duplicated blocks are rejected if a jump is unreachable
+        if (_resolving)
+        {
+            _unreachable = true;
+            return;
+        }
+
         throw new InvalidOperationException(
             $"Jump target {target.Block.ToReferenceString()} is not reachable");
     }
@@ -760,6 +1241,7 @@ partial class MethodEmitter
         foreach (var target in construct.Pending)
         {
             var id = GetJumpId(target);
+            ++_jumpStatements;
             if (target == fallthrough)
             {
                 if (_printing)
