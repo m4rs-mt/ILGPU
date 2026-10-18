@@ -79,4 +79,25 @@ public abstract class StructureExecutionTests : ExecutionTestBase
             ["Kernels.NestedStructLayoutKernel"],
             ["7", "1", "2", "3", "9", "7", "2", "4", "6", "9"]);
     }
+
+    /// <summary>
+    /// Instance methods on a readonly record struct in a kernel local receive
+    /// their receiver by reference from local memory.
+    /// </summary>
+    [SkippableTheory]
+    [InlineData(OptimizationLevel.O0)]
+    [InlineData(OptimizationLevel.O1)]
+    [InlineData(OptimizationLevel.O2)]
+    public async Task RecordStructInstanceCall_ProducesCorrectOutput(
+        OptimizationLevel level)
+    {
+        await VerifyProgramOutputAsync(
+            "TestPrograms/Structure/RecordStructInstanceCall.cs",
+            ["Kernels.PackKernel", "Kernels.DistanceKernel"],
+            [
+                "16909060", "33752069", "50595078", "67438087",
+                "16909060", "84281112", "16909060", "84281112",
+            ],
+            new CompilationProperties { OptimizationLevel = level });
+    }
 }
