@@ -199,6 +199,11 @@ public static unsafe partial class MetalAPI
     internal static partial MTLSize ObjcMsgSendMTLSize(
         IntPtr receiver, IntPtr selector);
 
+    // bool return, no args (for bool property getters)
+    [LibraryImport(ObjCLib, EntryPoint = "objc_msgSend")]
+    internal static partial byte ObjcMsgSendBool(
+        IntPtr receiver, IntPtr selector);
+
     // bool return, ulong arg (supportsFamily:)
     [LibraryImport(ObjCLib, EntryPoint = "objc_msgSend")]
     internal static partial byte ObjcMsgSendBool(
@@ -308,6 +313,10 @@ public static unsafe partial class MetalAPI
         SelRegisterName("maxThreadgroupMemoryLength");
     private static readonly IntPtr SelRecommendedMaxWorkingSetSize =
         SelRegisterName("recommendedMaxWorkingSetSize");
+    private static readonly IntPtr SelMaxBufferLength =
+        SelRegisterName("maxBufferLength");
+    private static readonly IntPtr SelHasUnifiedMemory =
+        SelRegisterName("hasUnifiedMemory");
     private static readonly IntPtr SelSupportsFamily =
         SelRegisterName("supportsFamily:");
 
@@ -450,6 +459,20 @@ public static unsafe partial class MetalAPI
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static ulong GetRecommendedMaxWorkingSetSize(IntPtr device) =>
         ObjcMsgSendUlong(device, SelRecommendedMaxWorkingSetSize);
+
+    /// <summary>
+    /// Gets the maximum length of a single buffer in bytes.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static ulong GetMaxBufferLength(IntPtr device) =>
+        ObjcMsgSendUlong(device, SelMaxBufferLength);
+
+    /// <summary>
+    /// Queries whether the device shares its memory with the CPU.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool HasUnifiedMemory(IntPtr device) =>
+        ObjcMsgSendBool(device, SelHasUnifiedMemory) != 0;
 
     /// <summary>
     /// Gets the maximum threads per threadgroup as an MTLSize.

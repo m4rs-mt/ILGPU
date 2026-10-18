@@ -168,6 +168,13 @@ public sealed class MetalDevice : Device, IDeviceAcceleratorTypeInfo
         var memSize = MetalAPI.GetRecommendedMaxWorkingSetSize(DeviceHandle);
         MemorySize = (long)Math.Min(memSize, long.MaxValue);
 
+        // Maximum size of a single buffer.
+        var maxBufferLength = MetalAPI.GetMaxBufferLength(DeviceHandle);
+        MaxBufferSize = (long)Math.Min(maxBufferLength, long.MaxValue);
+
+        // Apple Silicon and Intel GPUs share their memory with the host.
+        IsIntegrated = MetalAPI.HasUnifiedMemory(DeviceHandle);
+
         // Apple Silicon doesn't expose multiprocessor count directly.
         // Use heuristic: Apple GPUs have 4-10 GPU cores depending on model.
         // Default to 8 as a reasonable mid-range estimate.

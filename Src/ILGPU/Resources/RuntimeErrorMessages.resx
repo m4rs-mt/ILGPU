@@ -141,6 +141,10 @@
     <value>Cuda accelerator requires 64-bit application ({0} not supported). Ensure Prefer32Bit is set to 'false'.</value>
     <comment/>
   </data>
+  <data name="InvalidBufferSize" xml:space="preserve">
+    <value>Cannot allocate {0} elements of {1} bytes on '{2}': the buffer exceeds the maximum buffer size of {3} bytes</value>
+    <comment/>
+  </data>
   <data name="InvalidCodeGenerationOperation0" xml:space="preserve">
     <value>Invalid code generation operation</value>
     <comment/>

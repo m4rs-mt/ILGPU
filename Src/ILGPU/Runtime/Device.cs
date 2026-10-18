@@ -40,6 +40,11 @@ public interface IDevice
     long MemorySize { get; }
 
     /// <summary>
+    /// Returns the maximum size in bytes of a single memory buffer.
+    /// </summary>
+    long MaxBufferSize { get; }
+
+    /// <summary>
     /// Returns the maximum number of threads of this accelerator.
     /// </summary>
     int MaxNumThreads { get; }
@@ -132,6 +137,18 @@ public abstract class Device(AcceleratorType type) : IDevice, IAcceleratorBuilde
     /// Returns the memory size in bytes.
     /// </summary>
     public long MemorySize { get; protected set; }
+
+    /// <summary>
+    /// Returns the maximum size in bytes of a single memory buffer. Devices
+    /// without a dedicated per-buffer limit report their memory size.
+    /// </summary>
+    public long MaxBufferSize { get; protected set; }
+
+    /// <summary>
+    /// Returns true if this is an integrated device that shares its physical memory
+    /// with the host. Always false for CPU devices.
+    /// </summary>
+    public bool IsIntegrated { get; protected set; }
 
     /// <summary>
     /// Returns the maximum number of threads of this accelerator.
@@ -250,11 +267,20 @@ public abstract class Device(AcceleratorType type) : IDevice, IAcceleratorBuilde
         writer.Write("  Optimal kernel size to target all threads: ");
         writer.WriteLine(OptimalKernelSize);
 
+        writer.Write("  Integrated device:                         ");
+        writer.WriteLine(IsIntegrated);
+
         writer.Write("  Total amount of global memory:             ");
         writer.WriteLine(
             "{0} bytes, {1} MB",
             MemorySize,
             MemorySize / (1024 * 1024));
+
+        writer.Write("  Max size of a single buffer:               ");
+        writer.WriteLine(
+            "{0} bytes, {1} MB",
+            MaxBufferSize,
+            MaxBufferSize / (1024 * 1024));
 
         writer.Write("  Total amount of constant memory:           ");
         writer.WriteLine(
@@ -299,7 +325,8 @@ public abstract class Device(AcceleratorType type) : IDevice, IAcceleratorBuilde
         $"{Name} [Type: {AcceleratorType}, WarpSize: {WarpSize}, " +
         $"MaxNumThreads: {MaxNumThreads}, " +
         $"MaxNumThreadsPerGroup: {MaxNumThreadsPerGroup}, " +
-        $"MemorySize: {MemorySize}]";
+        $"MemorySize: {MemorySize}, " +
+        $"MaxBufferSize: {MaxBufferSize}]";
 
     #endregion
 }

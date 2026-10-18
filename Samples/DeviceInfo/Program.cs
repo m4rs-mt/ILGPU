@@ -23,6 +23,7 @@ static class Program
     {
         Console.WriteLine($"Name: {accelerator.Name}");
         Console.WriteLine($"MemorySize: {accelerator.MemorySize}");
+        Console.WriteLine($"MaxBufferSize: {accelerator.MaxBufferSize}");
         Console.WriteLine($"MaxThreadsPerGroup: {accelerator.MaxNumThreadsPerGroup}");
         Console.WriteLine($"MaxSharedMemoryPerGroup: {accelerator.MaxSharedMemoryPerGroup}");
         Console.WriteLine($"MaxConstantMemory: {accelerator.MaxConstantMemory}");

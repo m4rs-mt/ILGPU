@@ -174,6 +174,12 @@ public sealed class ROCmDevice : Device, IDeviceAcceleratorTypeInfo
             CurrentAPI.GetDeviceTotalMem(out long totalMem, DeviceId));
         MemorySize = totalMem;
 
+        // HIP has no per-buffer limit beyond the device memory
+        MaxBufferSize = totalMem;
+
+        IsIntegrated = CurrentAPI.GetDeviceAttributeValue(
+            HipDeviceAttributeKind.Integrated, DeviceId) != 0;
+
         NumMultiprocessors = CurrentAPI.GetDeviceAttributeValue(
             HipDeviceAttributeKind.MultiprocessorCount, DeviceId);
 
