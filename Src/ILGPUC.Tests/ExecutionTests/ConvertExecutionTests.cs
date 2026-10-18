@@ -258,7 +258,8 @@ public abstract class ConvertExecutionTests : ExecutionTestBase
     }
 
     /// <summary>
-    /// Pointers convert to integers and back, and the difference of two pointers
+    /// Pointers convert to integers and back, also addresses that differ per
+    /// lane and integers read from memory, and the difference of two pointers
     /// counts their elements.
     /// </summary>
     [SkippableTheory]
@@ -267,13 +268,10 @@ public abstract class ConvertExecutionTests : ExecutionTestBase
     [InlineData(OptimizationLevel.O2)]
     public async Task PointerInt_ProducesCorrectOutput(OptimizationLevel level)
     {
-        Skip.If(
-            Backend is BackendType.CPU,
-            "The CPU backend does not convert per-lane addresses to integers");
         await VerifyProgramOutputAsync(
             "TestPrograms/ConvertInt/PointerInt.cs",
             ["Kernels.PointerIntKernel"],
-            ["1 3 4 3", "1 13 14 3", "1 23 24 3", "1 33 34 3"],
+            ["1 3 4 5 4", "1 13 14 15 4", "1 23 24 25 4", "1 33 34 35 4"],
             new CompilationProperties { OptimizationLevel = level });
     }
 }

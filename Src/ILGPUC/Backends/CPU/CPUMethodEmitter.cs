@@ -1196,7 +1196,7 @@ sealed partial class CPUMethodEmitter(
                             $"{castResult} = ({castType})(nint)" +
                             $"{sourceExpr};");
                     }
-                    else
+                    else if (analysis.IsScalar(ptrCast.Source))
                     {
                         // Vectorized: broadcast the scalar pointer to
                         // all lanes (the view pointer is shared).
@@ -1205,6 +1205,29 @@ sealed partial class CPUMethodEmitter(
                             $"{castResult}, ({castType})(nint)" +
                             $"{sourceExpr});");
                     }
+                    else
+                    {
+                        // Every lane converts its own address
+                        var addresses = expressionEmitter.ResolvePointers(
+                            ptrCast.Source,
+                            ptrCast);
+                        context.WriteLine(
+                            $"CPUMathIntrinsics.Convert<nint, {castType}>(" +
+                            $"{castResult}, {addresses});");
+                    }
+                }
+                break;
+
+            case IntAsPointerCast intCast when !analysis.IsScalar(intCast):
+                // Every lane converts its own integer to an address
+                {
+                    var config = (CPULanguageConfiguration)context.LanguageConfig;
+                    var sourceType = config.GetPrimitiveTypeName(
+                        intCast.Source.BasicValueType);
+                    context.WriteLine(
+                        $"CPUMathIntrinsics.Convert<{sourceType}, nint>(" +
+                        $"{context.GetValueName(intCast)}, " +
+                        $"{GetLaneOperand(intCast.Source, analysis)});");
                 }
                 break;
 
