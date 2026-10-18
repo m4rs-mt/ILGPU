@@ -115,4 +115,38 @@ public abstract class BasicPhiExecutionTests : ExecutionTestBase
             ["Kernels.ViewShrinkLoopKernel"],
             ["5", "12", "22", "35"]);
     }
+
+    private static readonly string[] NestedConditionalBoolArmKernels =
+    [
+        "Kernels.SelectKernel",
+        "Kernels.NestedArmsKernel",
+        "Kernels.ConstArmsKernel",
+        "Kernels.FloatTargetKernel",
+        "Kernels.BoolToFloatKernel",
+    ];
+
+    private static readonly string[] NestedConditionalBoolArmOutput =
+    [
+        "2", "2", "1", "0",
+        "9", "8", "0", "1",
+        "42", "17", "0", "1",
+        "2", "2", "1", "0",
+        "0", "1", "0", "1",
+    ];
+
+    [SkippableTheory]
+    [InlineData(OptimizationLevel.O0)]
+    [InlineData(OptimizationLevel.O1)]
+    [InlineData(OptimizationLevel.O2)]
+    public async Task NestedConditionalBoolArm_ProducesCorrectOutput(
+        OptimizationLevel level)
+    {
+        // Release IL emits the inner 0/1 selection as a comparison, so one
+        // predecessor of the integer join pushes a bool
+        await VerifyProgramOutputAsync(
+            "TestPrograms/BasicPhi/NestedConditionalBoolArm.cs",
+            NestedConditionalBoolArmKernels,
+            NestedConditionalBoolArmOutput,
+            new CompilationProperties { OptimizationLevel = level });
+    }
 }

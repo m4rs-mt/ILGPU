@@ -17,6 +17,8 @@ using ILGPUC.IR.BasicBlockValues.Construction;
 using ILGPUC.IR.MethodValues;
 using ILGPUC.IR.ModuleValues;
 using ILGPUC.IR.ModuleValues.Construction;
+using ILGPUC.IR.PureValues;
+using ILGPUC.Util;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -256,6 +258,42 @@ sealed class SSABuilder<TVariable> where TVariable : notnull
             return null;
         }
 
+        /// <summary>
+        /// Returns the type of a new phi for the given variable: the type of the
+        /// first value found in a predecessor. If that first value is a bool, the
+        /// type is widened to the widest integer type of the other predecessor
+        /// values that are not the constants 0 or 1. IL stack slots hold
+        /// comparison results as bools, and joining them with integers must not
+        /// narrow the integers to bools.
+        /// </summary>
+        /// <param name="var">The variable reference.</param>
+        /// <param name="markerProvider">A provider of new marker values.</param>
+        /// <returns>The phi type.</returns>
+        private TypeValue GetPhiType(TVariable var, ref MarkerProvider markerProvider)
+        {
+            var type = PeekValue(var, markerProvider.CreateMarker()).AsNotNull().Type;
+            if (type.BasicValueType != BasicValueType.Int1)
+                return type;
+            foreach (var predecessor in Block.Predecessors)
+            {
+                var value = Parent[predecessor].PeekValue(
+                    var,
+                    markerProvider.CreateMarker());
+
+                // Constants 0 and 1 convert to bools without loss, which keeps
+                // short-circuit joins on bools
+                if (value is PrimitiveValue { Int64Value: 0 or 1 })
+                    continue;
+                if (value?.Type is PrimitiveType primitiveType &&
+                    primitiveType.BasicValueType.IsInt() &&
+                    primitiveType.BasicValueType > type.BasicValueType)
+                {
+                    type = primitiveType;
+                }
+            }
+            return type;
+        }
+
         //
         // Implements an adapted version of the SSA-construction algorithm from the
         // paper: Simple and Efficient Construction of Static Single Assignment Form
@@ -291,12 +329,11 @@ sealed class SSABuilder<TVariable> where TVariable : notnull
             else
             {
                 // Insert the actual phi value
-                var peekedValue =
-                    PeekValue(var, markerProvider.CreateMarker()).AsNotNull();
+                var phiType = GetPhiType(var, ref markerProvider);
                 // Let the phi point to the beginning of the current block
                 var phiBuilder = Builder.CreatePhi(
                     Builder.BasicBlock.Location,
-                    peekedValue.Type);
+                    phiType);
                 value = phiBuilder.PhiValue;
 
                 var incompletePhi = new IncompletePhi(var, phiBuilder);
