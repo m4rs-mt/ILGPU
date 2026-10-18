@@ -72,7 +72,8 @@ public sealed class LauncherAlignmentTests(ITestOutputHelper output)
 
     /// <summary>
     /// Implicitly grouped kernels covering the marshaling matrix: 1D to 3D indices,
-    /// a view with trailing scalars, a sub-view and a structure parameter.
+    /// a view with trailing scalars, a sub-view, a structure parameter and views of
+    /// pointers.
     /// </summary>
     private static readonly Dictionary<string, (Type Class, int Dimensions)>
         ImplicitKernelTable = new()
@@ -87,6 +88,8 @@ public sealed class LauncherAlignmentTests(ITestOutputHelper output)
                 (typeof(ArrayViewKernels), 1),
             [nameof(StructureKernels.StructFieldAccessKernel)] =
                 (typeof(StructureKernels), 1),
+            [nameof(AddressSpaceKernels.PointerViewKernel)] =
+                (typeof(AddressSpaceKernels), 1),
         };
 
     /// <summary>

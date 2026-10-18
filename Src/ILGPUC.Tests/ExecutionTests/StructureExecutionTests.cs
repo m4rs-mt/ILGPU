@@ -194,6 +194,24 @@ public abstract class StructureExecutionTests : ExecutionTestBase
     }
 
     /// <summary>
+    /// Views of structs holding a pointer and views of nint addresses: every thread
+    /// stores the address of an input element into the view and reads the element
+    /// back through it.
+    /// </summary>
+    [SkippableFact]
+    public async Task PointerStructView_ProducesCorrectOutput()
+    {
+        await VerifyProgramOutputAsync(
+            "TestPrograms/Structure/PointerStructView.cs",
+            [
+                "Kernels.HolderKernel",
+                "Kernels.TaggedHolderKernel",
+                "Kernels.AddressKernel",
+            ],
+            ["8 15 22 1", "8 16 24 4", "8 15 22 1"]);
+    }
+
+    /// <summary>
     /// A struct holds the address of a local or of a field of a local struct, and
     /// the kernel reads the local through it: the stored address keeps the local in
     /// memory, also when the pointer or reference is the only field of the struct.

@@ -142,16 +142,35 @@ sealed class MetalLanguageConfiguration : LanguageConfiguration
     /// All entry-point parameters need a <c>[[buffer(n)]]</c> attribute in Metal.
     /// Pointer types (device/constant T*) are passed directly; scalar types must be
     /// wrapped as <c>constant T&amp;</c> because Metal does not allow <c>[[buffer]]</c>
-    /// on plain scalar parameters.
+    /// on plain scalar parameters. Buffers of pointers are passed as byte
+    /// pointers, as a buffer cannot point to pointers.
     /// </remarks>
     public override string EmitNonFlattenedKernelParam(
         TypeValue type,
         string typeName,
         string paramName,
         int bufferIndex) =>
-        type is AddressSpaceType
-            ? $"{typeName} {paramName} [[buffer({bufferIndex})]]"
-            : $"constant {typeName}& {paramName} [[buffer({bufferIndex})]]";
+        type switch
+        {
+            AddressSpaceType { ElementType: AddressSpaceType } addressType =>
+                $"{GetAddressSpaceKeyword(addressType.AddressSpace)} char* " +
+                $"{paramName}{PointerBufferSuffix} [[buffer({bufferIndex})]]",
+            AddressSpaceType => $"{typeName} {paramName} [[buffer({bufferIndex})]]",
+            _ => $"constant {typeName}& {paramName} [[buffer({bufferIndex})]]",
+        };
+
+    /// <inheritdoc/>
+    /// <remarks>
+    /// Converts a buffer of pointers into the parameter of its pointer type.
+    /// </remarks>
+    public override string? EmitKernelParamPrologue(
+        TypeValue type,
+        string typeName,
+        string paramName) =>
+        type is AddressSpaceType { ElementType: AddressSpaceType }
+            ? $"  {typeName} {paramName} = " +
+                $"({typeName}){paramName}{PointerBufferSuffix};"
+            : null;
 
     /// <inheritdoc/>
     /// <remarks>

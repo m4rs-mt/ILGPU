@@ -282,6 +282,14 @@ abstract class LanguageConfiguration
         null;
 
     /// <summary>
+    /// The suffix of a kernel parameter that receives a buffer of pointers
+    /// as a byte pointer, for languages that reject pointers to pointers as
+    /// kernel parameter types (Metal, OpenCL C). The prologue converts it
+    /// into the parameter of the pointer type.
+    /// </summary>
+    public const string PointerBufferSuffix = "_buffer";
+
+    /// <summary>
     /// Returns true if the kernel entry point's first parameter (the thread index)
     /// should NOT be emitted as a buffer parameter. GPU backends return true and
     /// compute the index from built-in thread attributes instead.

@@ -17,6 +17,14 @@ using System.Runtime.CompilerServices;
 namespace ILGPUC.Tests.Kernels;
 
 /// <summary>
+/// A struct whose only field is a pointer: the IR represents it as a pointer.
+/// </summary>
+unsafe struct PointerHolder
+{
+    public int* P;
+}
+
+/// <summary>
 /// Kernel definitions for address space inference: references into shared,
 /// local and global memory that flow through phis and helper methods.
 /// </summary>
@@ -223,5 +231,25 @@ static class AddressSpaceKernels
             data[index] = ReadThroughLocalArray(element, index % 2) +
                 *(int*)addresses[index % 2];
         }
+    }
+
+    /// <summary>
+    /// Stores the address of an input element into a view of structs holding
+    /// a pointer and into a view of nint addresses, and reads the element back
+    /// through both views.
+    /// </summary>
+    public static unsafe void PointerViewKernel(
+        Index1D index,
+        ArrayView1D<int, Stride1D.Dense> input,
+        ArrayView1D<PointerHolder, Stride1D.Dense> holders,
+        ArrayView1D<nint, Stride1D.Dense> addresses,
+        ArrayView1D<int, Stride1D.Dense> data)
+    {
+        fixed (int* p = &input[index])
+        {
+            holders[index] = new PointerHolder { P = p };
+            addresses[index] = (nint)p;
+        }
+        data[index] = *holders[index].P + *(int*)addresses[index];
     }
 }

@@ -83,4 +83,29 @@ public sealed class OpenCLSourceTests
             @"\(global int\* \w+, int \w+, global void\* private\* \w+\)",
             source);
     }
+
+    /// <summary>
+    /// OpenCL C forbids kernel arguments pointing to pointers: views of
+    /// pointers are passed as byte pointers and converted in the kernel.
+    /// </summary>
+    [Fact]
+    public void PointerViewArguments_DoNotPointToPointers()
+    {
+        var kernel = typeof(AddressSpaceKernels)
+            .GetMethod(nameof(AddressSpaceKernels.PointerViewKernel))!;
+        using var helper = new CompilationHelper(BackendType.OpenCL);
+        var source = helper.GenerateBackendCode(kernel, BackendType.OpenCL).SourceCode;
+
+        var signature = Regex.Match(source, @"kernel\s+void\s+\w+\s*\(([^)]*)\)");
+        Assert.True(signature.Success, "Kernel signature not found");
+        Assert.DoesNotMatch(@"\*\s*(global\s*)?\*", signature.Groups[1].Value);
+        Assert.Matches(
+            @"global int\* global\* (\w+) = \(global int\* global\*\)" +
+            @"\(\1_buffer \+ \1_offset\);",
+            source);
+        Assert.Matches(
+            @"global void\* global\* (\w+) = \(global void\* global\*\)" +
+            @"\(\1_buffer \+ \1_offset\);",
+            source);
+    }
 }
