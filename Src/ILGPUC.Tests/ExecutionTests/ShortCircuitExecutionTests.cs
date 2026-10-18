@@ -156,6 +156,31 @@ public abstract class ShortCircuitExecutionTests : ExecutionTestBase
             ["-10", "0", "10", "5"]);
     }
 
+    /// <summary>
+    /// Signed divisions and remainders by -1 behind a guard that excludes the
+    /// minimum value, for which they overflow.
+    /// </summary>
+    [SkippableFact]
+    public async Task DivGuardMinusOne_ProducesCorrectOutput()
+    {
+        await VerifyProgramOutputAsync(
+            "TestPrograms/ShortCircuit/DivGuardMinusOne.cs",
+            [
+                "Kernels.DivMinusOneKernel",
+                "Kernels.RemMinusOneKernel",
+                "Kernels.DivMinusOneLongKernel",
+                "Kernels.RemMinusOneLongKernel",
+                "Kernels.DivInlinedMinusOneKernel",
+            ],
+            [
+                "-2147483648 -2147483648 -6 -8",
+                "-2147483648 -2147483648 0 0",
+                "-9223372036854775808 -9223372036854775808 -6 -8",
+                "-9223372036854775808 -9223372036854775808 0 0",
+                "-2147483648 -2147483648 -6 -8",
+            ]);
+    }
+
     [SkippableFact]
     public async Task GuardedLoad_ProducesCorrectOutput()
     {

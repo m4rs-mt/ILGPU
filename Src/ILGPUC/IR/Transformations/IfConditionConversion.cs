@@ -42,10 +42,9 @@ namespace ILGPUC.IR.Transformations;
 /// </para>
 /// <para>
 /// Legality: inner blocks are empty (side-effect freedom), the region is acyclic, and
-/// no newly speculated pure DAG may contain an integer div/rem whose divisor is not a
-/// non-zero constant (speculating a division above its zero-guard would fault on the
-/// CPU backend). The block and node budgets are compile-time/codegen-size safety
-/// valves, not a cost model.
+/// no newly speculated pure DAG may contain an integer div/rem that can fault
+/// (speculating a division above its guard would fault on the CPU backend). The block
+/// and node budgets are compile-time/codegen-size safety valves, not a cost model.
 /// </para>
 /// <para>
 /// Must run before <see cref="IfConversion"/>: folding produces the single-branch
@@ -330,10 +329,9 @@ sealed class IfConditionConversion(
     /// Walks every newly unconditionally evaluated pure DAG — non-entry branch
     /// conditions, inner-phi arguments, and exit-phi region arguments — with one
     /// memoized DFS. Rejects the region if the walk finds an integer div/rem
-    /// whose divisor is not a non-zero constant (hard legality rule) or if
-    /// the total number of speculated nodes exceeds the budget. Values
-    /// reachable from the entry's own condition were already unconditional and
-    /// are skipped.
+    /// that can fault (hard legality rule) or if the total number of
+    /// speculated nodes exceeds the budget. Values reachable from the entry's
+    /// own condition were already unconditional and are skipped.
     /// </summary>
     private static bool CheckSpeculationSafety(
         RegionInfo region,
@@ -366,12 +364,7 @@ sealed class IfConditionConversion(
                     continue;
                 }
 
-                if (pureValue is BinaryArithmeticValue binary &&
-                    (binary.Kind == BinaryArithmeticKind.Div ||
-                     binary.Kind == BinaryArithmeticKind.Rem) &&
-                    binary.BasicValueType.IsInt() &&
-                    !(binary.Right is PrimitiveValue divisor &&
-                      divisor.RawValue != 0))
+                if (pureValue is BinaryArithmeticValue { CanFault: true })
                 {
                     // Speculating a potentially faulting integer division above
                     // its guard is a miscompile — never a budget question.

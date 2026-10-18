@@ -221,6 +221,30 @@ sealed partial class BinaryArithmeticValue : ArithmeticValue
     /// </summary>
     public Value Right => GetValue<Value>(1);
 
+    /// <summary>
+    /// Returns true if evaluating this operation can fault at runtime: an integer
+    /// div/rem whose divisor is not a non-zero constant, or a signed one whose
+    /// divisor is the constant -1, which overflows for the minimum value.
+    /// </summary>
+    public bool CanFault =>
+        (Kind == BinaryArithmeticKind.Div || Kind == BinaryArithmeticKind.Rem) &&
+        BasicValueType.IsInt() &&
+        (Right is not PrimitiveValue divisor ||
+            divisor.RawValue == 0 ||
+            !IsUnsigned && IsMinusOne(divisor));
+
+    /// <summary>
+    /// Returns true if the given constant has all bits of its type set.
+    /// </summary>
+    private static bool IsMinusOne(PrimitiveValue value) =>
+        value.BasicValueType switch
+        {
+            BasicValueType.Int8 => value.Int8Value == -1,
+            BasicValueType.Int16 => value.Int16Value == -1,
+            BasicValueType.Int32 => value.Int32Value == -1,
+            _ => value.Int64Value == -1,
+        };
+
     /// <inheritdoc/>
     public override Value? Rewrite<TRewriter>(in TRewriter rewriter) =>
         rewriter.Builder.CreateArithmetic(

@@ -58,6 +58,8 @@ public sealed class IfConditionConversionIRTests : DisposeBase
 
         public static int DivGuardPhi(int a, int b) => b != 0 ? a / b : 0;
 
+        public static int DivMinusOnePhi(int a, int b) => b > 0 ? a / -1 : a;
+
         public static int Tautology(int a)
         {
             bool p = a > 0;
@@ -372,6 +374,17 @@ public sealed class IfConditionConversionIRTests : DisposeBase
         // Same legality rule, but the division occurs as a phi ARGUMENT of the
         // guarded merge — exercises the phi-argument speculation check.
         var method = PrepareMethod(GetSnippet(nameof(Snippets.DivGuardPhi)));
+        var regions = IfConditionConversion.FindRegions(method, 64, 256);
+        AssertNoSpeculatedDivision(regions);
+        Assert.Empty(regions);
+    }
+
+    [Fact]
+    public void DivMinusOnePhi_NeverSpeculatesTheDivision()
+    {
+        // A signed division by -1 overflows for the minimum value, so it must
+        // stay behind its guard like a division by zero.
+        var method = PrepareMethod(GetSnippet(nameof(Snippets.DivMinusOnePhi)));
         var regions = IfConditionConversion.FindRegions(method, 64, 256);
         AssertNoSpeculatedDivision(regions);
         Assert.Empty(regions);

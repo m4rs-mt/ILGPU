@@ -307,11 +307,10 @@ sealed class IfConversion(
 
     /// <summary>
     /// Rejects the conversion if predicating the phis would make an integer
-    /// div/rem with a divisor that is not a non-zero constant unconditionally
-    /// evaluated (speculating a division above its zero-guard faults on the
-    /// CPU backend — a miscompile, never a budget question). Pure values
-    /// reachable from the branch condition itself were already unconditional
-    /// and are exempt.
+    /// div/rem that can fault unconditionally evaluated (speculating a division
+    /// above its guard faults on the CPU backend — a miscompile, never a budget
+    /// question). Pure values reachable from the branch condition itself were
+    /// already unconditional and are exempt.
     /// </summary>
     private static bool CheckSpeculationSafety(
         BasicBlock branchBlock,
@@ -337,7 +336,7 @@ sealed class IfConversion(
 
     /// <summary>
     /// Walks the pure DAG rooted at the given value and returns false iff it
-    /// contains an integer div/rem whose divisor is not a non-zero constant.
+    /// contains an integer div/rem that can fault.
     /// Iterative (deep pure DAGs must not overflow the thread stack).
     /// </summary>
     private static bool IsSpeculationSafe(
@@ -355,14 +354,8 @@ sealed class IfConversion(
             if (alreadyUnconditional.Contains(pureValue) || !visited.Add(pureValue))
                 continue;
 
-            if (pureValue is BinaryArithmeticValue binary &&
-                (binary.Kind == BinaryArithmeticKind.Div ||
-                 binary.Kind == BinaryArithmeticKind.Rem) &&
-                binary.BasicValueType.IsInt() &&
-                !(binary.Right is PrimitiveValue divisor && divisor.RawValue != 0))
-            {
+            if (pureValue is BinaryArithmeticValue { CanFault: true })
                 return false;
-            }
 
             foreach (var operand in pureValue.Values)
                 pending.Push(operand);
