@@ -233,4 +233,47 @@ public abstract class ConvertExecutionTests : ExecutionTestBase
                 "65535 4095 1 21845 32768 65535",
             ]);
     }
+
+    /// <summary>
+    /// Native integers, which are pointers in the IR, compute with their integer
+    /// values, also when they are parameters of helpers, and unsigned integers
+    /// extend to them with zeros.
+    /// </summary>
+    [SkippableTheory]
+    [InlineData(OptimizationLevel.O0)]
+    [InlineData(OptimizationLevel.O1)]
+    [InlineData(OptimizationLevel.O2)]
+    public async Task NativeInt_ProducesCorrectOutput(OptimizationLevel level)
+    {
+        await VerifyProgramOutputAsync(
+            "TestPrograms/ConvertInt/NativeInt.cs",
+            ["Kernels.NativeIntKernel"],
+            [
+                "-1 0 2 -1 4 -1 4294967295",
+                "0 2 8 -1 0 -205 4294967294",
+                "1 3 14 0 4 -7 4294967293",
+                "1 5 20 1 0 -211 4294967292",
+            ],
+            new CompilationProperties { OptimizationLevel = level });
+    }
+
+    /// <summary>
+    /// Pointers convert to integers and back, and the difference of two pointers
+    /// counts their elements.
+    /// </summary>
+    [SkippableTheory]
+    [InlineData(OptimizationLevel.O0)]
+    [InlineData(OptimizationLevel.O1)]
+    [InlineData(OptimizationLevel.O2)]
+    public async Task PointerInt_ProducesCorrectOutput(OptimizationLevel level)
+    {
+        Skip.If(
+            Backend is BackendType.CPU,
+            "The CPU backend does not convert per-lane addresses to integers");
+        await VerifyProgramOutputAsync(
+            "TestPrograms/ConvertInt/PointerInt.cs",
+            ["Kernels.PointerIntKernel"],
+            ["1 3 4 3", "1 13 14 3", "1 23 24 3", "1 33 34 3"],
+            new CompilationProperties { OptimizationLevel = level });
+    }
 }

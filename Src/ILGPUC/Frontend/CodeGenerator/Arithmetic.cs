@@ -92,6 +92,27 @@ partial class CodeGenerator
     }
 
     /// <summary>
+    /// Returns true if the given operation computes the stride of an address
+    /// computation: an integer extended to a native integer, multiplied or
+    /// shifted by a constant, which keeps the pointer type of native integers
+    /// until it is added to a pointer (see
+    /// <see cref="TryConvertIntoLoadElementAddress"/>).
+    /// </summary>
+    /// <param name="kind">The kind of the arithmetic operation.</param>
+    /// <param name="left">The left operand.</param>
+    /// <param name="right">The right operand.</param>
+    /// <returns>True if the operation computes the stride of an address.</returns>
+    private bool IsAddressStride(
+        BinaryArithmeticKind kind,
+        Value left,
+        Value right) =>
+        (kind == BinaryArithmeticKind.Mul || kind == BinaryArithmeticKind.Shl) &&
+        left is IntAsPointerCast index &&
+        (index.Source is ConvertValue ||
+        index.Source.BasicValueType != ModuleBuilder.IntPointerType.BasicValueType) &&
+        right is PrimitiveValue;
+
+    /// <summary>
     /// Realizes an arithmetic operation.
     /// </summary>
     /// <param name="kind">The kind of the arithmetic operation.</param>
@@ -111,6 +132,7 @@ partial class CodeGenerator
         }
 
         Value? result = null;
+        bool isNativeInteger = false;
         if (Block.PopArithmeticArgs(
             Location,
             convertFlags,
@@ -118,9 +140,10 @@ partial class CodeGenerator
             out var right) == Block.ArithmeticOperandKind.Pointer)
         {
             // This is a pointer access
-            bool isLeftPointer = left.Type is PointerType;
-            if (!isLeftPointer)
-                Utilities.Swap(ref left, ref right);
+            bool swapped = Utilities.Swap(
+                left.Type is not PointerType,
+                ref left,
+                ref right);
 
             // Check for raw combinations of two pointer values
             if (
@@ -149,10 +172,26 @@ partial class CodeGenerator
             // FIXME: remove this code once we add additional LEA nodes
             else if (
                 kind == BinaryArithmeticKind.Add &&
-                right is BinaryArithmeticValue baseAddress &&
+                (right is IntAsPointerCast stride ? stride.Source : right)
+                    is BinaryArithmeticValue baseAddress &&
                 TryConvertIntoLoadElementAddress(left, baseAddress, out var lea))
             {
                 result = lea;
+            }
+            // Native integers are pointers: all other operations on them
+            // compute on their integer values, except for the strides of
+            // address computations, which are added to pointers
+            else if (!IsAddressStride(kind, left, right))
+            {
+                Utilities.Swap(swapped, ref left, ref right);
+                var nativeIntType = ModuleBuilder.IntPointerType;
+                left = CreateConversion(left, nativeIntType, convertFlags);
+                if (kind != BinaryArithmeticKind.Shl &&
+                    kind != BinaryArithmeticKind.Shr)
+                {
+                    right = CreateConversion(right, nativeIntType, convertFlags);
+                }
+                isNativeInteger = true;
             }
         }
 
@@ -204,6 +243,8 @@ partial class CodeGenerator
                 right,
                 kind,
                 arithmeticFlags);
+            if (isNativeInteger)
+                result = Builder.CreateIntAsPointerCast(Location, result);
         }
         Block.Push(result.AsNotNull());
     }
@@ -217,10 +258,23 @@ partial class CodeGenerator
         var value = Block.PopCompareOrArithmeticValue(
             Location,
             ConvertFlags.None);
+
+        // Native integers are pointers: operations on them compute on their
+        // integer values
+        bool isNativeInteger = value.Type is PointerType;
+        if (isNativeInteger)
+        {
+            value = CreateConversion(
+                value,
+                ModuleBuilder.IntPointerType,
+                ConvertFlags.None);
+        }
         var arithmetic = Builder.CreateArithmetic(
             Location,
             value,
             kind);
+        if (isNativeInteger)
+            arithmetic = Builder.CreateIntAsPointerCast(Location, arithmetic);
         Block.Push(arithmetic.AsNotNull());
     }
 }

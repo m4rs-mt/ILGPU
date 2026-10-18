@@ -53,6 +53,19 @@ partial class PureValueBuilder
     {
         if (left is null || right is null) return null;
 
+        // Compare integers cast to pointers by their native integer values
+        if (left is IntAsPointerCast or NullValue { Type: PointerType } &&
+            right is IntAsPointerCast or NullValue { Type: PointerType } &&
+            (left is IntAsPointerCast || right is IntAsPointerCast))
+        {
+            return CreateCompare(
+                location,
+                CreateNativeInteger(location, left),
+                CreateNativeInteger(location, right),
+                kind,
+                flags);
+        }
+
         var leftValue = left as PrimitiveValue;
         var rightValue = right as PrimitiveValue;
         if (leftValue is not null && rightValue is not null)
@@ -112,5 +125,24 @@ partial class PureValueBuilder
             right,
             kind,
             flags));
+    }
+
+    /// <summary>
+    /// Converts a native integer, which is a pointer or an integer, or a null
+    /// pointer to the integer value of the native integer.
+    /// </summary>
+    /// <param name="location">The current location.</param>
+    /// <param name="value">The native integer or null pointer.</param>
+    /// <returns>The integer value.</returns>
+    private Value CreateNativeInteger(Location location, Value value)
+    {
+        var nativeIntType = ModuleBuilder.IntPointerType.BasicValueType;
+        return value switch
+        {
+            NullValue => CreatePrimitiveValue(location, nativeIntType, 0),
+            { Type: PointerType } =>
+                CreatePointerAsIntCast(location, value, nativeIntType),
+            _ => CreateConvert(location, value, nativeIntType),
+        };
     }
 }

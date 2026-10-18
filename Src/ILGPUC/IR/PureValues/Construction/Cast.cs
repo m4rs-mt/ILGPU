@@ -11,6 +11,7 @@
 
 using ILGPU;
 using ILGPU.Resources;
+using ILGPU.Util;
 using ILGPUC.IR.ModuleValues;
 using ILGPUC.Util;
 using System.Collections.Generic;
@@ -41,6 +42,19 @@ partial class PureValueBuilder
     {
         if (node is null) return null;
 
+        // Fold casts of pointers to native integers back to pointers
+        if (node is PointerAsIntCast cast &&
+            cast.BasicValueType == ModuleBuilder.IntPointerType.BasicValueType)
+        {
+            return CreatePointerCast(
+                location,
+                CreateAddressSpaceCast(
+                    location,
+                    cast.Source,
+                    MemoryAddressSpace.Generic),
+                ModuleBuilder.VoidType);
+        }
+
         location.Assert(node.BasicValueType.IsInt());
         return Append(new IntAsPointerCast(
             GetInitializer(location),
@@ -61,6 +75,27 @@ partial class PureValueBuilder
         BasicValueType targetType)
     {
         if (node is null) return null;
+
+        // Fold casts of integers to pointers, which extend the integers to
+        // native integers
+        if (node is IntAsPointerCast cast)
+            return CreateConvert(location, cast.Source, targetType);
+
+        // Compute arithmetic on native integers, such as the strides of
+        // address computations, on the integer values of its operands
+        if (node is BinaryArithmeticValue { Type: PointerType } arithmetic)
+        {
+            var integer = CreateArithmetic(
+                location,
+                CreateNativeInteger(location, arithmetic.Left),
+                arithmetic.Kind is BinaryArithmeticKind.Shl or
+                    BinaryArithmeticKind.Shr
+                    ? arithmetic.Right
+                    : CreateNativeInteger(location, arithmetic.Right),
+                arithmetic.Kind,
+                arithmetic.Flags).AsNotNull();
+            return CreateConvert(location, integer, targetType);
+        }
 
         location.Assert(node.Type is PointerType && targetType.IsInt());
         return Append(new PointerAsIntCast(
