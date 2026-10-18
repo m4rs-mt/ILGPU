@@ -73,6 +73,7 @@ public sealed class CPUDevice : Device, IDeviceAcceleratorTypeInfo
         MaxSharedMemoryPerGroup = int.MaxValue;
         MaxConstantMemory = int.MaxValue;
         MemorySize = long.MaxValue;
+        MaxBufferSize = long.MaxValue;
         // GroupSize = vectorWidth so that ComputeKernelConfig(n) returns
         // (ceil(n/vectorWidth), vectorWidth). The CPU launcher bounds its
         // loop on userExtent (the original n), not gridSize * groupSize,

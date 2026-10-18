@@ -377,6 +377,19 @@ public sealed unsafe class CLDevice : Device, IDeviceAcceleratorTypeInfo
             DeviceId,
             CLDeviceInfoType.CL_DEVICE_GLOBAL_MEM_SIZE);
 
+        // Resolve the maximum size of a single buffer
+        MaxBufferSize = CurrentAPI.GetDeviceInfo<long>(
+            DeviceId,
+            CLDeviceInfoType.CL_DEVICE_MAX_MEM_ALLOC_SIZE);
+
+        // Resolve whether this device shares its memory with the host (deprecated
+        // since OpenCL 2.0, so a driver that does not answer counts as discrete)
+        IsIntegrated = CurrentAPI.GetDeviceInfo(
+            DeviceId,
+            CLDeviceInfoType.CL_DEVICE_HOST_UNIFIED_MEMORY,
+            out int hostUnifiedMemory) == CLError.CL_SUCCESS &&
+            hostUnifiedMemory != 0;
+
         // Resolve max shared memory per block
         MaxSharedMemoryPerGroup = (int)XMath.Min(
             CurrentAPI.GetDeviceInfo<long>(

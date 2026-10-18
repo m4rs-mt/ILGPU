@@ -255,6 +255,13 @@ public sealed class CudaDevice : Device, IDeviceAcceleratorTypeInfo
             CurrentAPI.GetTotalDeviceMemory(out long total, DeviceId));
         MemorySize = total;
 
+        // CUDA has no per-buffer limit beyond the device memory
+        MaxBufferSize = total;
+
+        // Resolve whether this device is integrated with the host
+        IsIntegrated = CurrentAPI.GetDeviceAttribute(
+            DeviceAttributeKind.CU_DEVICE_ATTRIBUTE_INTEGRATED, DeviceId) != 0;
+
         // Resolve max shared memory per block
         MaxSharedMemoryPerGroup = CurrentAPI.GetDeviceAttribute(
             DeviceAttributeKind.CU_DEVICE_ATTRIBUTE_MAX_SHARED_MEMORY_PER_BLOCK,

@@ -9,9 +9,11 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
+using ILGPU.Resources;
 using ILGPU.Util;
 using System;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Threading;
 
@@ -220,12 +222,29 @@ public abstract partial class Accelerator : DisposeBase, IDevice
     /// <param name="length">The number of elements to allocate.</param>
     /// <param name="elementSize">The size of a single element in bytes.</param>
     /// <returns>An allocated buffer on this accelerator.</returns>
+    /// <exception cref="ArgumentOutOfRangeException">
+    /// The buffer exceeds <see cref="MaxBufferSize"/>.
+    /// </exception>
     public MemoryBuffer AllocateRaw(long length, int elementSize)
     {
         if (length < 0)
             throw new ArgumentOutOfRangeException(nameof(length));
         if (elementSize < 1)
             throw new ArgumentOutOfRangeException(nameof(elementSize));
+
+        // Divide instead of multiplying to avoid overflows
+        if (length > MaxBufferSize / elementSize)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(length),
+                string.Format(
+                    CultureInfo.CurrentCulture,
+                    RuntimeErrorMessages.InvalidBufferSize,
+                    length,
+                    elementSize,
+                    Name,
+                    MaxBufferSize));
+        }
 
         Bind();
         return AllocateRawInternal(length, elementSize);
@@ -596,6 +615,11 @@ public abstract partial class Accelerator : DisposeBase, IDevice
     /// Returns the memory size in bytes.
     /// </summary>
     public long MemorySize => Device.MemorySize;
+
+    /// <summary>
+    /// Returns the maximum size in bytes of a single memory buffer.
+    /// </summary>
+    public long MaxBufferSize => Device.MaxBufferSize;
 
     /// <summary>
     /// Returns the maximum number of threads of this accelerator.

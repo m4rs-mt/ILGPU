@@ -216,9 +216,10 @@ public sealed partial class Context : DisposeBase
         : new DeviceCollection<TDevice>([]);
 
     /// <summary>
-    /// Attempts to return the most optimal single device. Devices of accelerator
-    /// types without compiled kernels are skipped when kernels have been compiled
-    /// for other accelerator types.
+    /// Attempts to return the most optimal single device. Discrete devices are
+    /// preferred over integrated ones, then devices with more memory. Devices of
+    /// accelerator types without compiled kernels are skipped when kernels have
+    /// been compiled for other accelerator types.
     /// </summary>
     /// <param name="preferCPU">Always returns CPU device 0.</param>
     /// <returns>Selected device.</returns>
@@ -226,9 +227,10 @@ public sealed partial class Context : DisposeBase
         GetPreferredDevices(preferCPU, matchingDevicesOnly: false).First();
 
     /// <summary>
-    /// Attempts to return the most optimal set of devices. Devices of accelerator
-    /// types without compiled kernels are skipped when kernels have been compiled
-    /// for other accelerator types.
+    /// Attempts to return the most optimal set of devices. Discrete devices come
+    /// before integrated ones, then devices with more memory. Devices of
+    /// accelerator types without compiled kernels are skipped when kernels have
+    /// been compiled for other accelerator types.
     /// </summary>
     /// <param name="preferCPU">Always returns first CPU device.</param>
     /// <param name="matchingDevicesOnly">Only returns matching devices.</param>
@@ -245,9 +247,9 @@ public sealed partial class Context : DisposeBase
                         RuntimeErrorMessages.NotSupportedTargetAccelerator);
         }
 
-        var sorted = Devices
-            .OrderByDescending(d => d.MemorySize)
-            .Where(d => d.AcceleratorType != AcceleratorType.CPU && HasKernels(d))
+        var sorted = OrderByPreference(
+            Devices.Where(d =>
+                d.AcceleratorType != AcceleratorType.CPU && HasKernels(d)))
             .ToList();
 
         if (sorted.Count > 0)
@@ -258,6 +260,7 @@ public sealed partial class Context : DisposeBase
                 return sorted.Where(
                     d =>
                     d.AcceleratorType == toMatch.AcceleratorType &&
+                    d.IsIntegrated == toMatch.IsIntegrated &&
                     d.MemorySize == toMatch.MemorySize);
             }
             else
@@ -273,6 +276,18 @@ public sealed partial class Context : DisposeBase
                         RuntimeErrorMessages.NotSupportedTargetAccelerator);
         }
     }
+
+    /// <summary>
+    /// Orders the given devices by preference: discrete devices before integrated
+    /// ones regardless of their memory size, then by descending memory size.
+    /// </summary>
+    /// <param name="devices">The devices to order.</param>
+    /// <returns>The ordered devices.</returns>
+    internal static IOrderedEnumerable<Device> OrderByPreference(
+        IEnumerable<Device> devices) =>
+        devices
+            .OrderBy(d => d.IsIntegrated)
+            .ThenByDescending(d => d.MemorySize);
 
     /// <summary>
     /// Returns true if kernels can run on the given device: no kernels have

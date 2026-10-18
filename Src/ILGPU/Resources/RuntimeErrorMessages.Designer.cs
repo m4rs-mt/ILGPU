@@ -133,6 +133,17 @@ namespace ILGPU.Resources
         }
 
         /// <summary>
+        ///   Looks up a localized string similar to Cannot allocate {0} elements of {1} bytes on &apos;{2}&apos;: the buffer exceeds the maximum buffer size of {3} bytes.
+        /// </summary>
+        internal static string InvalidBufferSize
+        {
+            get
+            {
+                return ResourceManager.GetString("InvalidBufferSize", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to Invalid code generation operation.
         /// </summary>
         internal static string InvalidCodeGenerationOperation0
