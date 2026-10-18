@@ -784,6 +784,7 @@ sealed class CPUExpressionEmitter(
                 UnaryArithmeticKind.Floor => $"{math}.Floor({operand})",
                 UnaryArithmeticKind.Ceiling => $"{math}.Ceiling({operand})",
                 UnaryArithmeticKind.Rcp => $"({one} / {operand})",
+                UnaryArithmeticKind.Rsqrt => $"({one} / {math}.Sqrt({operand}))",
                 _ => null
             };
             if (expr != null)
@@ -835,6 +836,8 @@ sealed class CPUExpressionEmitter(
             UnaryArithmeticKind.Log10 => "Log10",
             UnaryArithmeticKind.Floor => "Floor",
             UnaryArithmeticKind.Ceiling => "Ceiling",
+            UnaryArithmeticKind.Rcp => "Reciprocal",
+            UnaryArithmeticKind.Rsqrt => "Rsqrt",
             _ => null
         };
 

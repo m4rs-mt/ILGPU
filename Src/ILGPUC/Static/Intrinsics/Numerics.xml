@@ -1,0 +1,498 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    System.Numerics.Vector{2,3,4} / Matrix{3x2,4x4} → ILGPU.Numerics.X*
+    remappings. The BCL implementations of these methods fan out into
+    System.Runtime.Intrinsics.Vector{64,128}<T> JIT-replacement stubs
+    that ILGPU's inliner cannot consume; the targets here are managed
+    reimplementations that operate per-component and never reach
+    System.Runtime.Intrinsics.
+-->
+<Intrinsics>
+    <Type Name="System.Numerics.Matrix3x2">
+        <Remapping>
+            <Remap Name=".ctor" Target="ILGPU.Numerics.XMatrix3x2.Construct">
+                <Specialization SourceType="System.Single,System.Single,System.Single,System.Single,System.Single,System.Single"
+                                TargetType="System.Numerics.Matrix3x2*,System.Single,System.Single,System.Single,System.Single,System.Single,System.Single" />
+            </Remap>
+            <Remap Name="Identity" Kind="Property" Target="ILGPU.Numerics.XMatrix3x2.Identity" />
+
+            <Remap Name="op_Equality"      Target="ILGPU.Numerics.XMatrix3x2.op_Equality"      ReflectParamType="2" />
+            <Remap Name="op_Inequality"    Target="ILGPU.Numerics.XMatrix3x2.op_Inequality"    ReflectParamType="2" />
+            <Remap Name="op_Addition"      Target="ILGPU.Numerics.XMatrix3x2.op_Addition"      ReflectParamType="2" />
+            <Remap Name="op_Subtraction"   Target="ILGPU.Numerics.XMatrix3x2.op_Subtraction"   ReflectParamType="2" />
+            <Remap Name="op_UnaryNegation" Target="ILGPU.Numerics.XMatrix3x2.op_UnaryNegation" ReflectParamType="1" />
+            <Remap Name="op_Multiply" Target="ILGPU.Numerics.XMatrix3x2.op_Multiply">
+                <Specialization Type="System.Numerics.Matrix3x2,System.Numerics.Matrix3x2" />
+                <Specialization Type="System.Numerics.Matrix3x2,System.Single" />
+            </Remap>
+
+            <Remap Name="Add"      Target="ILGPU.Numerics.XMatrix3x2.Add"      ReflectParamType="2" />
+            <Remap Name="Subtract" Target="ILGPU.Numerics.XMatrix3x2.Subtract" ReflectParamType="2" />
+            <Remap Name="Negate"   Target="ILGPU.Numerics.XMatrix3x2.Negate"   ReflectParamType="1" />
+            <Remap Name="Multiply" Target="ILGPU.Numerics.XMatrix3x2.Multiply">
+                <Specialization Type="System.Numerics.Matrix3x2,System.Numerics.Matrix3x2" />
+                <Specialization Type="System.Numerics.Matrix3x2,System.Single" />
+            </Remap>
+
+            <Remap Name="CreateTranslation" Target="ILGPU.Numerics.XMatrix3x2.CreateTranslation">
+                <Specialization Type="System.Single,System.Single" />
+                <Specialization Type="System.Numerics.Vector2" />
+            </Remap>
+            <Remap Name="CreateScale" Target="ILGPU.Numerics.XMatrix3x2.CreateScale">
+                <Specialization Type="System.Single,System.Single" />
+                <Specialization Type="System.Single" />
+                <Specialization Type="System.Numerics.Vector2" />
+            </Remap>
+            <Remap Name="CreateRotation" Target="ILGPU.Numerics.XMatrix3x2.CreateRotation">
+                <Specialization Type="System.Single" />
+            </Remap>
+
+            <Remap Name="GetDeterminant" Target="ILGPU.Numerics.XMatrix3x2.GetDeterminant">
+                <Specialization SourceType="" TargetType="System.Numerics.Matrix3x2*" />
+            </Remap>
+            <Remap Name="Lerp" Target="ILGPU.Numerics.XMatrix3x2.Lerp">
+                <Specialization Type="System.Numerics.Matrix3x2,System.Numerics.Matrix3x2,System.Single" />
+            </Remap>
+            <Remap Name="Invert" Target="ILGPU.Numerics.XMatrix3x2.Invert">
+                <Specialization SourceType="System.Numerics.Matrix3x2,System.Numerics.Matrix3x2*"
+                                TargetType="System.Numerics.Matrix3x2,System.Numerics.Matrix3x2*" />
+            </Remap>
+        </Remapping>
+    </Type>
+
+    <Type Name="System.Numerics.Matrix4x4">
+        <Remapping>
+            <Remap Name="Identity" Kind="Property" Target="ILGPU.Numerics.XMatrix4x4.Identity" />
+
+            <Remap Name="op_Equality"      Target="ILGPU.Numerics.XMatrix4x4.op_Equality"      ReflectParamType="2" />
+            <Remap Name="op_Inequality"    Target="ILGPU.Numerics.XMatrix4x4.op_Inequality"    ReflectParamType="2" />
+            <Remap Name="op_Addition"      Target="ILGPU.Numerics.XMatrix4x4.op_Addition"      ReflectParamType="2" />
+            <Remap Name="op_Subtraction"   Target="ILGPU.Numerics.XMatrix4x4.op_Subtraction"   ReflectParamType="2" />
+            <Remap Name="op_UnaryNegation" Target="ILGPU.Numerics.XMatrix4x4.op_UnaryNegation" ReflectParamType="1" />
+            <Remap Name="op_Multiply" Target="ILGPU.Numerics.XMatrix4x4.op_Multiply">
+                <Specialization Type="System.Numerics.Matrix4x4,System.Numerics.Matrix4x4" />
+                <Specialization Type="System.Numerics.Matrix4x4,System.Single" />
+            </Remap>
+
+            <Remap Name="Add"       Target="ILGPU.Numerics.XMatrix4x4.Add"       ReflectParamType="2" />
+            <Remap Name="Subtract"  Target="ILGPU.Numerics.XMatrix4x4.Subtract"  ReflectParamType="2" />
+            <Remap Name="Negate"    Target="ILGPU.Numerics.XMatrix4x4.Negate"    ReflectParamType="1" />
+            <Remap Name="Transpose" Target="ILGPU.Numerics.XMatrix4x4.Transpose" ReflectParamType="1" />
+            <Remap Name="Multiply" Target="ILGPU.Numerics.XMatrix4x4.Multiply">
+                <Specialization Type="System.Numerics.Matrix4x4,System.Numerics.Matrix4x4" />
+                <Specialization Type="System.Numerics.Matrix4x4,System.Single" />
+            </Remap>
+
+            <Remap Name="CreateTranslation" Target="ILGPU.Numerics.XMatrix4x4.CreateTranslation">
+                <Specialization Type="System.Single,System.Single,System.Single" />
+                <Specialization Type="System.Numerics.Vector3" />
+            </Remap>
+            <Remap Name="CreateScale" Target="ILGPU.Numerics.XMatrix4x4.CreateScale">
+                <Specialization Type="System.Single,System.Single,System.Single" />
+                <Specialization Type="System.Single" />
+                <Specialization Type="System.Numerics.Vector3" />
+            </Remap>
+            <Remap Name="CreateRotationX" Target="ILGPU.Numerics.XMatrix4x4.CreateRotationX">
+                <Specialization Type="System.Single" />
+            </Remap>
+            <Remap Name="CreateRotationY" Target="ILGPU.Numerics.XMatrix4x4.CreateRotationY">
+                <Specialization Type="System.Single" />
+            </Remap>
+            <Remap Name="CreateRotationZ" Target="ILGPU.Numerics.XMatrix4x4.CreateRotationZ">
+                <Specialization Type="System.Single" />
+            </Remap>
+            <Remap Name="CreatePerspectiveFieldOfView" Target="ILGPU.Numerics.XMatrix4x4.CreatePerspectiveFieldOfView">
+                <Specialization Type="System.Single,System.Single,System.Single,System.Single" />
+            </Remap>
+            <Remap Name="CreateLookAt" Target="ILGPU.Numerics.XMatrix4x4.CreateLookAt">
+                <Specialization Type="System.Numerics.Vector3,System.Numerics.Vector3,System.Numerics.Vector3" />
+            </Remap>
+            <!-- Quaternion overloads — deferred from the Matrix4x4 PR -->
+            <Remap Name="CreateFromQuaternion" Target="ILGPU.Numerics.XMatrix4x4.CreateFromQuaternion">
+                <Specialization Type="System.Numerics.Quaternion" />
+            </Remap>
+            <Remap Name="CreateFromAxisAngle" Target="ILGPU.Numerics.XMatrix4x4.CreateFromAxisAngle">
+                <Specialization Type="System.Numerics.Vector3,System.Single" />
+            </Remap>
+            <Remap Name="CreateFromYawPitchRoll" Target="ILGPU.Numerics.XMatrix4x4.CreateFromYawPitchRoll">
+                <Specialization Type="System.Single,System.Single,System.Single" />
+            </Remap>
+            <Remap Name="Transform" Target="ILGPU.Numerics.XMatrix4x4.Transform">
+                <Specialization Type="System.Numerics.Matrix4x4,System.Numerics.Quaternion" />
+            </Remap>
+
+            <Remap Name="GetDeterminant" Target="ILGPU.Numerics.XMatrix4x4.GetDeterminant">
+                <Specialization SourceType="" TargetType="System.Numerics.Matrix4x4*" />
+            </Remap>
+            <Remap Name="Lerp" Target="ILGPU.Numerics.XMatrix4x4.Lerp">
+                <Specialization Type="System.Numerics.Matrix4x4,System.Numerics.Matrix4x4,System.Single" />
+            </Remap>
+            <Remap Name="Invert" Target="ILGPU.Numerics.XMatrix4x4.Invert">
+                <Specialization SourceType="System.Numerics.Matrix4x4,System.Numerics.Matrix4x4*"
+                                TargetType="System.Numerics.Matrix4x4,System.Numerics.Matrix4x4*" />
+            </Remap>
+            <Remap Name="Decompose" Target="ILGPU.Numerics.XMatrix4x4.Decompose">
+                <Specialization SourceType="System.Numerics.Matrix4x4,System.Numerics.Vector3*,System.Numerics.Quaternion*,System.Numerics.Vector3*"
+                                TargetType="System.Numerics.Matrix4x4,System.Numerics.Vector3*,System.Numerics.Quaternion*,System.Numerics.Vector3*" />
+            </Remap>
+        </Remapping>
+    </Type>
+
+    <Type Name="System.Numerics.Vector2">
+        <Remapping>
+            <Remap Name=".ctor" Target="ILGPU.Numerics.XVector2.Construct">
+                <Specialization SourceType="System.Single,System.Single"
+                                TargetType="System.Numerics.Vector2*,System.Single,System.Single" />
+                <Specialization SourceType="System.Single"
+                                TargetType="System.Numerics.Vector2*,System.Single" />
+            </Remap>
+            <Remap Name="Zero"  Kind="Property" Target="ILGPU.Numerics.XVector2.Zero" />
+            <Remap Name="One"   Kind="Property" Target="ILGPU.Numerics.XVector2.One" />
+            <Remap Name="UnitX" Kind="Property" Target="ILGPU.Numerics.XVector2.UnitX" />
+            <Remap Name="UnitY" Kind="Property" Target="ILGPU.Numerics.XVector2.UnitY" />
+
+            <Remap Name="Length" Target="ILGPU.Numerics.XVector2.Length">
+                <Specialization SourceType="" TargetType="System.Numerics.Vector2*" />
+            </Remap>
+            <Remap Name="LengthSquared" Target="ILGPU.Numerics.XVector2.LengthSquared">
+                <Specialization SourceType="" TargetType="System.Numerics.Vector2*" />
+            </Remap>
+
+            <Remap Name="op_Equality"      Target="ILGPU.Numerics.XVector2.op_Equality"      ReflectParamType="2" />
+            <Remap Name="op_Inequality"    Target="ILGPU.Numerics.XVector2.op_Inequality"    ReflectParamType="2" />
+            <Remap Name="op_Addition"      Target="ILGPU.Numerics.XVector2.op_Addition"      ReflectParamType="2" />
+            <Remap Name="op_Subtraction"   Target="ILGPU.Numerics.XVector2.op_Subtraction"   ReflectParamType="2" />
+            <Remap Name="op_UnaryNegation" Target="ILGPU.Numerics.XVector2.op_UnaryNegation" ReflectParamType="1" />
+            <Remap Name="op_Multiply" Target="ILGPU.Numerics.XVector2.op_Multiply">
+                <Specialization Type="System.Numerics.Vector2,System.Numerics.Vector2" />
+                <Specialization Type="System.Numerics.Vector2,System.Single" />
+                <Specialization Type="System.Single,System.Numerics.Vector2" />
+            </Remap>
+            <Remap Name="op_Division" Target="ILGPU.Numerics.XVector2.op_Division">
+                <Specialization Type="System.Numerics.Vector2,System.Numerics.Vector2" />
+                <Specialization Type="System.Numerics.Vector2,System.Single" />
+            </Remap>
+
+            <Remap Name="Add"      Target="ILGPU.Numerics.XVector2.Add"      ReflectParamType="2" />
+            <Remap Name="Subtract" Target="ILGPU.Numerics.XVector2.Subtract" ReflectParamType="2" />
+            <Remap Name="Negate"   Target="ILGPU.Numerics.XVector2.Negate"   ReflectParamType="1" />
+            <Remap Name="Multiply" Target="ILGPU.Numerics.XVector2.Multiply">
+                <Specialization Type="System.Numerics.Vector2,System.Numerics.Vector2" />
+                <Specialization Type="System.Numerics.Vector2,System.Single" />
+                <Specialization Type="System.Single,System.Numerics.Vector2" />
+            </Remap>
+            <Remap Name="Divide" Target="ILGPU.Numerics.XVector2.Divide">
+                <Specialization Type="System.Numerics.Vector2,System.Numerics.Vector2" />
+                <Specialization Type="System.Numerics.Vector2,System.Single" />
+            </Remap>
+            <Remap Name="Dot"             Target="ILGPU.Numerics.XVector2.Dot"             ReflectParamType="2" />
+            <Remap Name="Normalize"       Target="ILGPU.Numerics.XVector2.Normalize"       ReflectParamType="1" />
+            <Remap Name="Distance"        Target="ILGPU.Numerics.XVector2.Distance"        ReflectParamType="2" />
+            <Remap Name="DistanceSquared" Target="ILGPU.Numerics.XVector2.DistanceSquared" ReflectParamType="2" />
+            <Remap Name="Abs"             Target="ILGPU.Numerics.XVector2.Abs"             ReflectParamType="1" />
+            <Remap Name="SquareRoot"      Target="ILGPU.Numerics.XVector2.SquareRoot"      ReflectParamType="1" />
+            <Remap Name="Min" Target="ILGPU.Numerics.XVector2.Min">
+                <Specialization Type="System.Numerics.Vector2,System.Numerics.Vector2" />
+            </Remap>
+            <Remap Name="Max" Target="ILGPU.Numerics.XVector2.Max">
+                <Specialization Type="System.Numerics.Vector2,System.Numerics.Vector2" />
+            </Remap>
+            <Remap Name="Clamp" Target="ILGPU.Numerics.XVector2.Clamp">
+                <Specialization Type="System.Numerics.Vector2,System.Numerics.Vector2,System.Numerics.Vector2" />
+            </Remap>
+            <Remap Name="Lerp" Target="ILGPU.Numerics.XVector2.Lerp">
+                <Specialization Type="System.Numerics.Vector2,System.Numerics.Vector2,System.Single" />
+            </Remap>
+            <Remap Name="Reflect" Target="ILGPU.Numerics.XVector2.Reflect">
+                <Specialization Type="System.Numerics.Vector2,System.Numerics.Vector2" />
+            </Remap>
+            <Remap Name="Transform" Target="ILGPU.Numerics.XVector2.Transform">
+                <Specialization Type="System.Numerics.Vector2,System.Numerics.Matrix3x2" />
+                <Specialization Type="System.Numerics.Vector2,System.Numerics.Matrix4x4" />
+            </Remap>
+            <Remap Name="TransformNormal" Target="ILGPU.Numerics.XVector2.TransformNormal">
+                <Specialization Type="System.Numerics.Vector2,System.Numerics.Matrix3x2" />
+                <Specialization Type="System.Numerics.Vector2,System.Numerics.Matrix4x4" />
+            </Remap>
+            <!-- Quaternion overloads — deferred from the Vector2 PR -->
+            <Remap Name="Transform" Target="ILGPU.Numerics.XVector2.Transform">
+                <Specialization Type="System.Numerics.Vector2,System.Numerics.Quaternion" />
+            </Remap>
+        </Remapping>
+    </Type>
+
+    <Type Name="System.Numerics.Vector3">
+        <Remapping>
+            <!-- Constructors -->
+            <Remap Name=".ctor" Target="ILGPU.Numerics.XVector3.Construct">
+                <Specialization SourceType="System.Single,System.Single,System.Single"
+                                TargetType="System.Numerics.Vector3*,System.Single,System.Single,System.Single" />
+                <Specialization SourceType="System.Single"
+                                TargetType="System.Numerics.Vector3*,System.Single" />
+                <Specialization SourceType="System.Numerics.Vector2,System.Single"
+                                TargetType="System.Numerics.Vector3*,System.Numerics.Vector2,System.Single" />
+            </Remap>
+
+            <!-- Static properties -->
+            <Remap Name="Zero" Kind="Property" Target="ILGPU.Numerics.XVector3.Zero" />
+            <Remap Name="One"  Kind="Property" Target="ILGPU.Numerics.XVector3.One" />
+            <Remap Name="UnitX" Kind="Property" Target="ILGPU.Numerics.XVector3.UnitX" />
+            <Remap Name="UnitY" Kind="Property" Target="ILGPU.Numerics.XVector3.UnitY" />
+            <Remap Name="UnitZ" Kind="Property" Target="ILGPU.Numerics.XVector3.UnitZ" />
+
+            <!-- Instance methods (this passed by ref) -->
+            <Remap Name="Length" Target="ILGPU.Numerics.XVector3.Length">
+                <Specialization SourceType="" TargetType="System.Numerics.Vector3*" />
+            </Remap>
+            <Remap Name="LengthSquared" Target="ILGPU.Numerics.XVector3.LengthSquared">
+                <Specialization SourceType="" TargetType="System.Numerics.Vector3*" />
+            </Remap>
+
+            <!-- Operators -->
+            <Remap Name="op_Equality"     Target="ILGPU.Numerics.XVector3.op_Equality"     ReflectParamType="2" />
+            <Remap Name="op_Inequality"   Target="ILGPU.Numerics.XVector3.op_Inequality"   ReflectParamType="2" />
+            <Remap Name="op_Addition"     Target="ILGPU.Numerics.XVector3.op_Addition"     ReflectParamType="2" />
+            <Remap Name="op_Subtraction"  Target="ILGPU.Numerics.XVector3.op_Subtraction"  ReflectParamType="2" />
+            <Remap Name="op_UnaryNegation" Target="ILGPU.Numerics.XVector3.op_UnaryNegation"
+                   ReflectParamType="1" />
+            <Remap Name="op_Multiply" Target="ILGPU.Numerics.XVector3.op_Multiply">
+                <Specialization Type="System.Numerics.Vector3,System.Numerics.Vector3" />
+                <Specialization Type="System.Numerics.Vector3,System.Single" />
+                <Specialization Type="System.Single,System.Numerics.Vector3" />
+            </Remap>
+            <Remap Name="op_Division" Target="ILGPU.Numerics.XVector3.op_Division">
+                <Specialization Type="System.Numerics.Vector3,System.Numerics.Vector3" />
+                <Specialization Type="System.Numerics.Vector3,System.Single" />
+            </Remap>
+
+            <!-- Static math methods -->
+            <Remap Name="Add"      Target="ILGPU.Numerics.XVector3.Add"      ReflectParamType="2" />
+            <Remap Name="Subtract" Target="ILGPU.Numerics.XVector3.Subtract" ReflectParamType="2" />
+            <Remap Name="Negate"   Target="ILGPU.Numerics.XVector3.Negate"   ReflectParamType="1" />
+            <Remap Name="Multiply" Target="ILGPU.Numerics.XVector3.Multiply">
+                <Specialization Type="System.Numerics.Vector3,System.Numerics.Vector3" />
+                <Specialization Type="System.Numerics.Vector3,System.Single" />
+                <Specialization Type="System.Single,System.Numerics.Vector3" />
+            </Remap>
+            <Remap Name="Divide" Target="ILGPU.Numerics.XVector3.Divide">
+                <Specialization Type="System.Numerics.Vector3,System.Numerics.Vector3" />
+                <Specialization Type="System.Numerics.Vector3,System.Single" />
+            </Remap>
+            <Remap Name="Dot"             Target="ILGPU.Numerics.XVector3.Dot"             ReflectParamType="2" />
+            <Remap Name="Cross"           Target="ILGPU.Numerics.XVector3.Cross"           ReflectParamType="2" />
+            <Remap Name="Normalize"       Target="ILGPU.Numerics.XVector3.Normalize"       ReflectParamType="1" />
+            <Remap Name="Distance"        Target="ILGPU.Numerics.XVector3.Distance"        ReflectParamType="2" />
+            <Remap Name="DistanceSquared" Target="ILGPU.Numerics.XVector3.DistanceSquared" ReflectParamType="2" />
+            <Remap Name="Abs"             Target="ILGPU.Numerics.XVector3.Abs"             ReflectParamType="1" />
+            <Remap Name="SquareRoot"      Target="ILGPU.Numerics.XVector3.SquareRoot"      ReflectParamType="1" />
+            <Remap Name="Min" Target="ILGPU.Numerics.XVector3.Min">
+                <Specialization Type="System.Numerics.Vector3,System.Numerics.Vector3" />
+            </Remap>
+            <Remap Name="Max" Target="ILGPU.Numerics.XVector3.Max">
+                <Specialization Type="System.Numerics.Vector3,System.Numerics.Vector3" />
+            </Remap>
+            <Remap Name="Clamp" Target="ILGPU.Numerics.XVector3.Clamp">
+                <Specialization Type="System.Numerics.Vector3,System.Numerics.Vector3,System.Numerics.Vector3" />
+            </Remap>
+            <Remap Name="Lerp" Target="ILGPU.Numerics.XVector3.Lerp">
+                <Specialization Type="System.Numerics.Vector3,System.Numerics.Vector3,System.Single" />
+            </Remap>
+            <Remap Name="Reflect" Target="ILGPU.Numerics.XVector3.Reflect">
+                <Specialization Type="System.Numerics.Vector3,System.Numerics.Vector3" />
+            </Remap>
+            <Remap Name="Transform" Target="ILGPU.Numerics.XVector3.Transform">
+                <Specialization Type="System.Numerics.Vector3,System.Numerics.Matrix4x4" />
+            </Remap>
+            <Remap Name="TransformNormal" Target="ILGPU.Numerics.XVector3.TransformNormal">
+                <Specialization Type="System.Numerics.Vector3,System.Numerics.Matrix4x4" />
+            </Remap>
+            <!-- Quaternion overload — deferred from the Vector3 PR -->
+            <Remap Name="Transform" Target="ILGPU.Numerics.XVector3.Transform">
+                <Specialization Type="System.Numerics.Vector3,System.Numerics.Quaternion" />
+            </Remap>
+        </Remapping>
+    </Type>
+
+    <Type Name="System.Numerics.Vector4">
+        <Remapping>
+            <Remap Name=".ctor" Target="ILGPU.Numerics.XVector4.Construct">
+                <Specialization SourceType="System.Single,System.Single,System.Single,System.Single"
+                                TargetType="System.Numerics.Vector4*,System.Single,System.Single,System.Single,System.Single" />
+                <Specialization SourceType="System.Single"
+                                TargetType="System.Numerics.Vector4*,System.Single" />
+                <Specialization SourceType="System.Numerics.Vector2,System.Single,System.Single"
+                                TargetType="System.Numerics.Vector4*,System.Numerics.Vector2,System.Single,System.Single" />
+                <Specialization SourceType="System.Numerics.Vector3,System.Single"
+                                TargetType="System.Numerics.Vector4*,System.Numerics.Vector3,System.Single" />
+            </Remap>
+            <Remap Name="Zero"  Kind="Property" Target="ILGPU.Numerics.XVector4.Zero" />
+            <Remap Name="One"   Kind="Property" Target="ILGPU.Numerics.XVector4.One" />
+            <Remap Name="UnitX" Kind="Property" Target="ILGPU.Numerics.XVector4.UnitX" />
+            <Remap Name="UnitY" Kind="Property" Target="ILGPU.Numerics.XVector4.UnitY" />
+            <Remap Name="UnitZ" Kind="Property" Target="ILGPU.Numerics.XVector4.UnitZ" />
+            <Remap Name="UnitW" Kind="Property" Target="ILGPU.Numerics.XVector4.UnitW" />
+
+            <Remap Name="Length" Target="ILGPU.Numerics.XVector4.Length">
+                <Specialization SourceType="" TargetType="System.Numerics.Vector4*" />
+            </Remap>
+            <Remap Name="LengthSquared" Target="ILGPU.Numerics.XVector4.LengthSquared">
+                <Specialization SourceType="" TargetType="System.Numerics.Vector4*" />
+            </Remap>
+
+            <Remap Name="op_Equality"      Target="ILGPU.Numerics.XVector4.op_Equality"      ReflectParamType="2" />
+            <Remap Name="op_Inequality"    Target="ILGPU.Numerics.XVector4.op_Inequality"    ReflectParamType="2" />
+            <Remap Name="op_Addition"      Target="ILGPU.Numerics.XVector4.op_Addition"      ReflectParamType="2" />
+            <Remap Name="op_Subtraction"   Target="ILGPU.Numerics.XVector4.op_Subtraction"   ReflectParamType="2" />
+            <Remap Name="op_UnaryNegation" Target="ILGPU.Numerics.XVector4.op_UnaryNegation" ReflectParamType="1" />
+            <Remap Name="op_Multiply" Target="ILGPU.Numerics.XVector4.op_Multiply">
+                <Specialization Type="System.Numerics.Vector4,System.Numerics.Vector4" />
+                <Specialization Type="System.Numerics.Vector4,System.Single" />
+                <Specialization Type="System.Single,System.Numerics.Vector4" />
+            </Remap>
+            <Remap Name="op_Division" Target="ILGPU.Numerics.XVector4.op_Division">
+                <Specialization Type="System.Numerics.Vector4,System.Numerics.Vector4" />
+                <Specialization Type="System.Numerics.Vector4,System.Single" />
+            </Remap>
+
+            <Remap Name="Add"      Target="ILGPU.Numerics.XVector4.Add"      ReflectParamType="2" />
+            <Remap Name="Subtract" Target="ILGPU.Numerics.XVector4.Subtract" ReflectParamType="2" />
+            <Remap Name="Negate"   Target="ILGPU.Numerics.XVector4.Negate"   ReflectParamType="1" />
+            <Remap Name="Multiply" Target="ILGPU.Numerics.XVector4.Multiply">
+                <Specialization Type="System.Numerics.Vector4,System.Numerics.Vector4" />
+                <Specialization Type="System.Numerics.Vector4,System.Single" />
+                <Specialization Type="System.Single,System.Numerics.Vector4" />
+            </Remap>
+            <Remap Name="Divide" Target="ILGPU.Numerics.XVector4.Divide">
+                <Specialization Type="System.Numerics.Vector4,System.Numerics.Vector4" />
+                <Specialization Type="System.Numerics.Vector4,System.Single" />
+            </Remap>
+            <Remap Name="Dot"             Target="ILGPU.Numerics.XVector4.Dot"             ReflectParamType="2" />
+            <Remap Name="Normalize"       Target="ILGPU.Numerics.XVector4.Normalize"       ReflectParamType="1" />
+            <Remap Name="Distance"        Target="ILGPU.Numerics.XVector4.Distance"        ReflectParamType="2" />
+            <Remap Name="DistanceSquared" Target="ILGPU.Numerics.XVector4.DistanceSquared" ReflectParamType="2" />
+            <Remap Name="Abs"             Target="ILGPU.Numerics.XVector4.Abs"             ReflectParamType="1" />
+            <Remap Name="SquareRoot"      Target="ILGPU.Numerics.XVector4.SquareRoot"      ReflectParamType="1" />
+            <Remap Name="Min" Target="ILGPU.Numerics.XVector4.Min">
+                <Specialization Type="System.Numerics.Vector4,System.Numerics.Vector4" />
+            </Remap>
+            <Remap Name="Max" Target="ILGPU.Numerics.XVector4.Max">
+                <Specialization Type="System.Numerics.Vector4,System.Numerics.Vector4" />
+            </Remap>
+            <Remap Name="Clamp" Target="ILGPU.Numerics.XVector4.Clamp">
+                <Specialization Type="System.Numerics.Vector4,System.Numerics.Vector4,System.Numerics.Vector4" />
+            </Remap>
+            <Remap Name="Lerp" Target="ILGPU.Numerics.XVector4.Lerp">
+                <Specialization Type="System.Numerics.Vector4,System.Numerics.Vector4,System.Single" />
+            </Remap>
+            <Remap Name="Transform" Target="ILGPU.Numerics.XVector4.Transform">
+                <Specialization Type="System.Numerics.Vector4,System.Numerics.Matrix4x4" />
+                <Specialization Type="System.Numerics.Vector2,System.Numerics.Matrix4x4" />
+                <Specialization Type="System.Numerics.Vector3,System.Numerics.Matrix4x4" />
+                <Specialization Type="System.Numerics.Vector4,System.Numerics.Quaternion" />
+                <Specialization Type="System.Numerics.Vector3,System.Numerics.Quaternion" />
+                <Specialization Type="System.Numerics.Vector2,System.Numerics.Quaternion" />
+            </Remap>
+        </Remapping>
+    </Type>
+
+    <Type Name="System.Numerics.Quaternion">
+        <Remapping>
+            <Remap Name=".ctor" Target="ILGPU.Numerics.XQuaternion.Construct">
+                <Specialization SourceType="System.Single,System.Single,System.Single,System.Single"
+                                TargetType="System.Numerics.Quaternion*,System.Single,System.Single,System.Single,System.Single" />
+                <Specialization SourceType="System.Numerics.Vector3,System.Single"
+                                TargetType="System.Numerics.Quaternion*,System.Numerics.Vector3,System.Single" />
+            </Remap>
+
+            <Remap Name="Identity" Kind="Property" Target="ILGPU.Numerics.XQuaternion.Identity" />
+            <Remap Name="Zero"     Kind="Property" Target="ILGPU.Numerics.XQuaternion.Zero" />
+
+            <Remap Name="Length" Target="ILGPU.Numerics.XQuaternion.Length">
+                <Specialization SourceType="" TargetType="System.Numerics.Quaternion*" />
+            </Remap>
+            <Remap Name="LengthSquared" Target="ILGPU.Numerics.XQuaternion.LengthSquared">
+                <Specialization SourceType="" TargetType="System.Numerics.Quaternion*" />
+            </Remap>
+
+            <Remap Name="op_Equality"      Target="ILGPU.Numerics.XQuaternion.op_Equality"      ReflectParamType="2" />
+            <Remap Name="op_Inequality"    Target="ILGPU.Numerics.XQuaternion.op_Inequality"    ReflectParamType="2" />
+            <Remap Name="op_Addition"      Target="ILGPU.Numerics.XQuaternion.op_Addition"      ReflectParamType="2" />
+            <Remap Name="op_Subtraction"   Target="ILGPU.Numerics.XQuaternion.op_Subtraction"   ReflectParamType="2" />
+            <Remap Name="op_UnaryNegation" Target="ILGPU.Numerics.XQuaternion.op_UnaryNegation" ReflectParamType="1" />
+            <Remap Name="op_Multiply" Target="ILGPU.Numerics.XQuaternion.op_Multiply">
+                <Specialization Type="System.Numerics.Quaternion,System.Numerics.Quaternion" />
+                <Specialization Type="System.Numerics.Quaternion,System.Single" />
+            </Remap>
+            <Remap Name="op_Division" Target="ILGPU.Numerics.XQuaternion.op_Division"
+                   ReflectParamType="2" />
+
+            <Remap Name="Add"      Target="ILGPU.Numerics.XQuaternion.Add"      ReflectParamType="2" />
+            <Remap Name="Subtract" Target="ILGPU.Numerics.XQuaternion.Subtract" ReflectParamType="2" />
+            <Remap Name="Negate"   Target="ILGPU.Numerics.XQuaternion.Negate"   ReflectParamType="1" />
+            <Remap Name="Multiply" Target="ILGPU.Numerics.XQuaternion.Multiply">
+                <Specialization Type="System.Numerics.Quaternion,System.Numerics.Quaternion" />
+                <Specialization Type="System.Numerics.Quaternion,System.Single" />
+            </Remap>
+            <Remap Name="Divide" Target="ILGPU.Numerics.XQuaternion.Divide"
+                   ReflectParamType="2" />
+
+            <Remap Name="Dot"         Target="ILGPU.Numerics.XQuaternion.Dot"         ReflectParamType="2" />
+            <Remap Name="Conjugate"   Target="ILGPU.Numerics.XQuaternion.Conjugate"   ReflectParamType="1" />
+            <Remap Name="Inverse"     Target="ILGPU.Numerics.XQuaternion.Inverse"     ReflectParamType="1" />
+            <Remap Name="Normalize"   Target="ILGPU.Numerics.XQuaternion.Normalize"   ReflectParamType="1" />
+            <Remap Name="Concatenate" Target="ILGPU.Numerics.XQuaternion.Concatenate" ReflectParamType="2" />
+
+            <Remap Name="CreateFromAxisAngle" Target="ILGPU.Numerics.XQuaternion.CreateFromAxisAngle">
+                <Specialization Type="System.Numerics.Vector3,System.Single" />
+            </Remap>
+            <Remap Name="CreateFromYawPitchRoll" Target="ILGPU.Numerics.XQuaternion.CreateFromYawPitchRoll">
+                <Specialization Type="System.Single,System.Single,System.Single" />
+            </Remap>
+            <Remap Name="CreateFromRotationMatrix" Target="ILGPU.Numerics.XQuaternion.CreateFromRotationMatrix">
+                <Specialization Type="System.Numerics.Matrix4x4" />
+            </Remap>
+
+            <Remap Name="Lerp" Target="ILGPU.Numerics.XQuaternion.Lerp">
+                <Specialization Type="System.Numerics.Quaternion,System.Numerics.Quaternion,System.Single" />
+            </Remap>
+            <Remap Name="Slerp" Target="ILGPU.Numerics.XQuaternion.Slerp">
+                <Specialization Type="System.Numerics.Quaternion,System.Numerics.Quaternion,System.Single" />
+            </Remap>
+        </Remapping>
+    </Type>
+
+    <Type Name="System.Numerics.Plane">
+        <Remapping>
+            <Remap Name=".ctor" Target="ILGPU.Numerics.XPlane.Construct">
+                <Specialization SourceType="System.Single,System.Single,System.Single,System.Single"
+                                TargetType="System.Numerics.Plane*,System.Single,System.Single,System.Single,System.Single" />
+                <Specialization SourceType="System.Numerics.Vector3,System.Single"
+                                TargetType="System.Numerics.Plane*,System.Numerics.Vector3,System.Single" />
+                <Specialization SourceType="System.Numerics.Vector4"
+                                TargetType="System.Numerics.Plane*,System.Numerics.Vector4" />
+            </Remap>
+
+            <Remap Name="op_Equality"   Target="ILGPU.Numerics.XPlane.op_Equality"   ReflectParamType="2" />
+            <Remap Name="op_Inequality" Target="ILGPU.Numerics.XPlane.op_Inequality" ReflectParamType="2" />
+
+            <Remap Name="CreateFromVertices" Target="ILGPU.Numerics.XPlane.CreateFromVertices">
+                <Specialization Type="System.Numerics.Vector3,System.Numerics.Vector3,System.Numerics.Vector3" />
+            </Remap>
+            <Remap Name="Dot" Target="ILGPU.Numerics.XPlane.Dot">
+                <Specialization Type="System.Numerics.Plane,System.Numerics.Vector4" />
+            </Remap>
+            <Remap Name="DotCoordinate" Target="ILGPU.Numerics.XPlane.DotCoordinate">
+                <Specialization Type="System.Numerics.Plane,System.Numerics.Vector3" />
+            </Remap>
+            <Remap Name="DotNormal" Target="ILGPU.Numerics.XPlane.DotNormal">
+                <Specialization Type="System.Numerics.Plane,System.Numerics.Vector3" />
+            </Remap>
+            <Remap Name="Normalize" Target="ILGPU.Numerics.XPlane.Normalize"
+                   ReflectParamType="1" />
+            <Remap Name="Transform" Target="ILGPU.Numerics.XPlane.Transform">
+                <Specialization Type="System.Numerics.Plane,System.Numerics.Matrix4x4" />
+                <Specialization Type="System.Numerics.Plane,System.Numerics.Quaternion" />
+            </Remap>
+        </Remapping>
+    </Type>
+</Intrinsics>

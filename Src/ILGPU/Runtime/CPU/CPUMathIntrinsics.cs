@@ -241,6 +241,23 @@ public static class CPUMathIntrinsics
     }
 
     /// <summary>
+    /// Computes element-wise reciprocal across all lanes.
+    /// </summary>
+    /// <typeparam name="T">
+    /// The element type satisfying <see cref="IFloatingPointIeee754{T}"/>.
+    /// </typeparam>
+    /// <param name="input">The input values, one per lane.</param>
+    /// <returns>A new array containing per-lane reciprocal results.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static T[] Reciprocal<T>(ReadOnlySpan<T> input)
+        where T : IFloatingPointIeee754<T>
+    {
+        var res = new T[input.Length];
+        TensorPrimitives.Reciprocal<T>(input, res);
+        return res;
+    }
+
+    /// <summary>
     /// Computes element-wise power across all lanes.
     /// </summary>
     /// <typeparam name="T">
@@ -1033,6 +1050,20 @@ public static class CPUMathIntrinsics
     public static void Rsqrt<T>(Span<T> target, ReadOnlySpan<T> input)
         where T : IFloatingPointIeee754<T>
         => TensorPrimitives.ReciprocalSqrt<T>(input, target);
+
+    /// <summary>
+    /// Computes element-wise reciprocal across all lanes into a pre-allocated
+    /// target.
+    /// </summary>
+    /// <typeparam name="T">
+    /// The element type satisfying <see cref="IFloatingPointIeee754{T}"/>.
+    /// </typeparam>
+    /// <param name="target">The destination span to write results into.</param>
+    /// <param name="input">The input values, one per lane.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void Reciprocal<T>(Span<T> target, ReadOnlySpan<T> input)
+        where T : IFloatingPointIeee754<T>
+        => TensorPrimitives.Reciprocal<T>(input, target);
 
     /// <summary>
     /// Computes element-wise power across all lanes into a pre-allocated target.

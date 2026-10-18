@@ -538,8 +538,15 @@ abstract class Value<TScope>(in ValueInitializer initializer, TypeValue type) :
     TScope IValue<TScope>.Scope => Scope;
 
     [Conditional("DEBUG")]
-    public void VerifyScope(TScope other) =>
-        this.Assert(
-            Scope == other,
-            $"Value scope mismatch: expected '{other}', got '{Scope}'");
+    public void VerifyScope(TScope other)
+    {
+        // Format the message only on failure: this check runs on every value
+        // set operation
+        if (Scope != other)
+        {
+            this.Assert(
+                false,
+                $"Value scope mismatch: expected '{other}', got '{Scope}'");
+        }
+    }
 }

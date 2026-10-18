@@ -60,14 +60,20 @@ partial class Intrinsics
             {
                 <#= string.Join(", ", specialization.GetSourceTypesToMatch()) #>
             };
-            var source = type.GetMethod("<#= remap.Name #>", RemapBindingFlags, sourceTypes);
+<#                      if (remap.Name == ".ctor") { #>
+            var source = (MethodBase?)type.GetConstructor(RemapBindingFlags, sourceTypes);
+<#                      } else { #>
+            var source = (MethodBase?)type.GetMethod("<#= remap.Name #>", RemapBindingFlags, sourceTypes);
+<#                      } #>
 <#                  } else { #>
 <#                      if (remap.IsProperty) { #>
-            var source = type.GetProperty("<#= remap.Name #>", RemapBindingFlags)
+            var source = (MethodBase?)type.GetProperty("<#= remap.Name #>", RemapBindingFlags)
                         .ThrowIfNull()
-                        .GetGetMethod();
+                        .GetGetMethod(true);
+<#                      } else if (remap.Name == ".ctor") { #>
+            var source = (MethodBase?)type.GetConstructor(RemapBindingFlags, Type.EmptyTypes);
 <#                      } else { #>
-            var source = type.GetMethod("<#= remap.Name #>", RemapBindingFlags);
+            var source = (MethodBase?)type.GetMethod("<#= remap.Name #>", RemapBindingFlags);
 <#                      } #>
 <#                  } #>
 <#                  if (specialization.RequiresTargetTypeMatching) { #>
@@ -82,7 +88,7 @@ partial class Intrinsics
             var target = typeof(<#= targetTypeName #>)
                 .GetProperty("<#= targetName #>", RemapBindingFlags)
                 .ThrowIfNull()
-                .GetGetMethod();
+                .GetGetMethod(true);
 <#                      } else { #>
             var target = typeof(<#= targetTypeName #>)
                 .GetMethod("<#= targetName #>", RemapBindingFlags);

@@ -451,8 +451,11 @@ abstract partial class Transformation(TransformationArgs args)
 
                 // Visit children first (bottom-up) so that converters for
                 // child values have already run before a parent converter
-                // tries to rewrite them via transform.Rewrite(child).
-                pureValue.VisitDFS(MapPureValue);
+                // tries to rewrite them via transform.Rewrite(child). The
+                // recursion covers the whole tree, so each shared child is
+                // mapped once.
+                foreach (var child in pureValue.Values)
+                    MapPureValue(child);
                 Rewrite(transform, pureValue);
             }
 

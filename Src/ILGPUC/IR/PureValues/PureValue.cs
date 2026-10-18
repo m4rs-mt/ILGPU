@@ -14,6 +14,7 @@ using ILGPUC.IR.ModuleValues.Construction;
 using ILGPUC.IR.PureValues.Construction;
 using ILGPUC.IR.Rewriting;
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 
 namespace ILGPUC.IR.PureValues;
@@ -113,18 +114,24 @@ abstract class PureValue(in PureValueInitializer initializer, TypeValue type) :
         base.ComputeUses(visited);
 
     /// <summary>
-    /// Visits all child nodes using DFS.
+    /// Visits all child nodes using DFS. Pure values shared by several parents are
+    /// visited once.
     /// </summary>
     /// <param name="callback">The callback to be invoked for all child nodes.</param>
-    public void VisitDFS(Action<Value> callback)
+    public void VisitDFS(Action<Value> callback) =>
+        VisitDFS(callback, new HashSet<PureValue>());
+
+    private void VisitDFS(Action<Value> callback, HashSet<PureValue> visited)
     {
+        if (!visited.Add(this))
+            return;
         callback.Invoke(this);
         foreach (var child in Values)
         {
             if (child is PureValue pureValue)
             {
                 // Recurse as this cannot introduce a cyclic dependency
-                pureValue.VisitDFS(callback);
+                pureValue.VisitDFS(callback, visited);
             }
             else
             {
