@@ -181,6 +181,30 @@ public abstract class ShortCircuitExecutionTests : ExecutionTestBase
             ]);
     }
 
+    /// <summary>
+    /// A zero guard around a conditional division that keeps its branch.
+    /// </summary>
+    [SkippableFact]
+    public async Task NestedDivGuard_ProducesCorrectOutput()
+    {
+        await VerifyProgramOutputAsync(
+            "TestPrograms/ShortCircuit/NestedDivGuard.cs",
+            ["Kernels.NestedDivGuardKernel"],
+            ["-9", "1", "11", "6"]);
+    }
+
+    /// <summary>
+    /// A zero guard around a conditional whose condition divides.
+    /// </summary>
+    [SkippableFact]
+    public async Task NestedDivGuardCondition_ProducesCorrectOutput()
+    {
+        await VerifyProgramOutputAsync(
+            "TestPrograms/ShortCircuit/NestedDivGuardCondition.cs",
+            ["Kernels.NestedDivGuardConditionKernel"],
+            ["8", "1", "-240544589", "-240544589"]);
+    }
+
     [SkippableFact]
     public async Task GuardedLoad_ProducesCorrectOutput()
     {

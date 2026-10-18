@@ -59,6 +59,57 @@ public sealed class IfConversionIRTests : DisposeBase
 
         public static int GroupBroadcastInArm(int value) =>
             value > 0 ? Group.Broadcast(value, 0) : value;
+
+        public static int NestedDiamond(int a)
+        {
+            int result;
+            if (a > 0)
+            {
+                int inner = a > 10 ? a + 1 : a + 2;
+                result = inner * 3;
+            }
+            else
+            {
+                result = a - 1;
+            }
+            return result;
+        }
+
+        public static int SequentialDiamonds(int a, int b)
+        {
+            int first = a / b > 0 ? a + 1 : a + 2;
+            return first > 5 ? first + 3 : first - 3;
+        }
+
+        public static int NestedDivisionArgument(int a, int b)
+        {
+            int result;
+            if (b != 0)
+            {
+                int quotient = a > 3 ? a / b : 0;
+                result = quotient + 1;
+            }
+            else
+            {
+                result = 1;
+            }
+            return result;
+        }
+
+        public static int NestedDivisionCondition(int a, int b)
+        {
+            int result;
+            if (b != 0)
+            {
+                int inner = a / b > 2 ? 5 : 7;
+                result = inner + 1;
+            }
+            else
+            {
+                result = 1;
+            }
+            return result;
+        }
     }
 
     #endregion
@@ -144,6 +195,43 @@ public sealed class IfConversionIRTests : DisposeBase
         // Only the threads taking a branch may execute its collectives, which
         // determine the threads a reduction or scan combines
         var method = ApplyIfConversion(GetSnippet(snippet));
+        Assert.Equal(1, CountBranches(method));
+    }
+
+    [Fact]
+    public void NestedDiamonds_BecomePredicates()
+    {
+        var method = ApplyIfConversion(GetSnippet(nameof(Snippets.NestedDiamond)));
+        Assert.Equal(0, CountBranches(method));
+    }
+
+    [Fact]
+    public void SequentialDiamonds_BecomePredicates()
+    {
+        // The second diamond reads the phi of the first one, whose condition
+        // divides before either branch, so both become predicates
+        var method = ApplyIfConversion(
+            GetSnippet(nameof(Snippets.SequentialDiamonds)));
+        Assert.Equal(0, CountBranches(method));
+    }
+
+    [Fact]
+    public void NestedDivisionArgument_KeepsTheBranches()
+    {
+        // The inner diamond keeps its branch to guard the division, so the
+        // predicates of the outer one would read its phi, which becomes dead
+        var method = ApplyIfConversion(
+            GetSnippet(nameof(Snippets.NestedDivisionArgument)));
+        Assert.Equal(2, CountBranches(method));
+    }
+
+    [Fact]
+    public void NestedDivisionCondition_KeepsTheOuterBranch()
+    {
+        // The inner condition divides by the value the outer branch checks for
+        // zero: the inner diamond becomes a predicate, the outer one may not
+        var method = ApplyIfConversion(
+            GetSnippet(nameof(Snippets.NestedDivisionCondition)));
         Assert.Equal(1, CountBranches(method));
     }
 

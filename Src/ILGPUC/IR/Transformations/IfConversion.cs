@@ -71,13 +71,34 @@ sealed class IfConversion(
         Method method)
     {
         var postDominators = method.Blocks.CreatePostDominators();
-        var result = method.CreateMap<BasicBlock, ConversionInfo>();
+        var candidates = new List<ConversionInfo>();
         foreach (var block in method.Blocks)
         {
             var analyzed = TryAnalyzeBranch(block, postDominators);
             if (analyzed.HasValue)
-                result.Add(block, analyzed.Value);
+                candidates.Add(analyzed.Value);
         }
+
+        // Drop the branches whose phis cannot become predicates until the
+        // remaining ones agree on the phis that become predicates
+        var convertedPhis = new Dictionary<PhiValue, ConversionInfo>();
+        int numCandidates;
+        do
+        {
+            numCandidates = candidates.Count;
+            convertedPhis.Clear();
+            foreach (var info in candidates)
+            {
+                foreach (var phi in info.PhisToConvert)
+                    convertedPhis[phi] = info;
+            }
+            candidates.RemoveAll(info => !IsPredicable(info, convertedPhis));
+        }
+        while (candidates.Count != numCandidates);
+
+        var result = method.CreateMap<BasicBlock, ConversionInfo>();
+        foreach (var info in candidates)
+            result.Add(info.BranchBlock, info);
         return result;
     }
 
@@ -134,12 +155,6 @@ sealed class IfConversion(
             trueRegion,
             falseRegion);
         if (phisToConvert is null)
-            return null;
-
-        // Predication makes both phi arms unconditionally evaluated — never
-        // speculate a potentially faulting integer division above its guard
-        // (hard legality rule, same as in IfConditionConversion).
-        if (!CheckSpeculationSafety(block, phisToConvert.Value))
             return null;
 
         return new ConversionInfo(
@@ -308,59 +323,73 @@ sealed class IfConversion(
     }
 
     /// <summary>
-    /// Rejects the conversion if predicating the phis would make an integer
-    /// div/rem that can fault unconditionally evaluated (speculating a division
-    /// above its guard faults on the CPU backend — a miscompile, never a budget
-    /// question). Pure values reachable from the branch condition itself were
-    /// already unconditional and are exempt.
+    /// Returns true if the phis of the given branch can become predicates, which
+    /// evaluate their arguments unconditionally, while the regions of the branch
+    /// become dead. Every value the arguments reach must be a value defined
+    /// outside the regions, a phi of a nested branch that becomes a predicate as
+    /// well, or a pure value without an integer div/rem that can fault
+    /// (speculating a division above its guard faults on the CPU backend — a
+    /// miscompile, never a budget question). Pure values reachable from the
+    /// branch condition itself were already unconditional and are exempt.
+    /// Iterative (deep pure DAGs must not overflow the thread stack).
     /// </summary>
-    private static bool CheckSpeculationSafety(
-        BasicBlock branchBlock,
-        in InlineList<PhiValue> phisToConvert)
+    /// <remarks>
+    /// The predicate of a nested branch evaluates its condition and its
+    /// arguments, which this branch guarded, so they are checked like the
+    /// arguments of this branch.
+    /// </remarks>
+    /// <param name="info">The branch to check.</param>
+    /// <param name="convertedPhis">The phis of all branches to convert.</param>
+    private static bool IsPredicable(
+        in ConversionInfo info,
+        Dictionary<PhiValue, ConversionInfo> convertedPhis)
     {
-        if (phisToConvert.Count == 0)
+        if (info.PhisToConvert.Count == 0)
             return true;
 
         var alreadyUnconditional = new HashSet<Value>();
-        CollectPureValues(branchBlock.TerminationCondition, alreadyUnconditional);
+        CollectPureValues(info.BranchBlock.TerminationCondition, alreadyUnconditional);
 
         var visited = new HashSet<Value>();
-        foreach (var phi in phisToConvert)
+        var pending = new Stack<Value>();
+        foreach (var phi in info.PhisToConvert)
         {
             foreach (var argument in phi.Arguments)
-            {
-                if (!IsSpeculationSafe(argument, alreadyUnconditional, visited))
-                    return false;
-            }
+                pending.Push(argument);
         }
-        return true;
-    }
 
-    /// <summary>
-    /// Walks the pure DAG rooted at the given value and returns false iff it
-    /// contains an integer div/rem that can fault.
-    /// Iterative (deep pure DAGs must not overflow the thread stack).
-    /// </summary>
-    private static bool IsSpeculationSafe(
-        Value? value,
-        HashSet<Value> alreadyUnconditional,
-        HashSet<Value> visited)
-    {
-        var pending = new Stack<Value>();
-        if (value is not null)
-            pending.Push(value);
         while (pending.Count > 0)
         {
-            if (pending.Pop() is not PureValue pureValue)
-                continue;
-            if (alreadyUnconditional.Contains(pureValue) || !visited.Add(pureValue))
+            var value = pending.Pop();
+            if (!visited.Add(value))
                 continue;
 
-            if (pureValue is BinaryArithmeticValue { CanFault: true })
-                return false;
-
-            foreach (var operand in pureValue.Values)
-                pending.Push(operand);
+            switch (value)
+            {
+                case PureValue pureValue:
+                    if (alreadyUnconditional.Contains(pureValue))
+                        break;
+                    if (pureValue is BinaryArithmeticValue { CanFault: true })
+                        return false;
+                    foreach (var operand in pureValue.Values)
+                        pending.Push(operand);
+                    break;
+                case BasicBlockValue blockValue when
+                    info.TrueRegion.Contains(blockValue.BasicBlock) ||
+                    info.FalseRegion.Contains(blockValue.BasicBlock):
+                    // A value of the regions survives only as the predicate of
+                    // a nested branch
+                    if (blockValue is not PhiValue phi ||
+                        !convertedPhis.TryGetValue(phi, out var nested))
+                    {
+                        return false;
+                    }
+                    foreach (var argument in phi.Arguments)
+                        pending.Push(argument);
+                    if (nested.BranchBlock.TerminationCondition is { } condition)
+                        pending.Push(condition);
+                    break;
+            }
         }
         return true;
     }
