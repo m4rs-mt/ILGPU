@@ -34,6 +34,12 @@ partial class CodeGenerator
             throw Location.GetInvalidOperationException();
         var alloca = CreateTempAlloca(value.Type);
         CreateStore(alloca, value);
+
+        // Push the address of the boxed storage as the object reference.
+        // MakeUnbox pops this address and reinterprets it as a pointer to
+        // the target value type; the subsequent ldobj loads the value. This
+        // matches _stackBehavior[Box], which declares (pop 1, push 1).
+        Block.Push(alloca);
     }
 
     /// <summary>
@@ -45,11 +51,18 @@ partial class CodeGenerator
         if (type == null || !type.IsValueType)
             throw Location.GetInvalidOperationException();
         var address = Block.Pop();
+        if (address.Type is not PointerType)
+            throw Location.GetInvalidOperationException();
+
+        // IL unbox pushes a managed pointer to the value stored inside the
+        // box (MakeBox pushes the address of the boxed storage). The
+        // disassembler lowers unbox.any into unbox + ldobj, so the actual
+        // value load happens in MakeLoadObject.
         var typeNode = ModuleBuilder.CreateType(type);
-        Block.Push(CreateLoad(
+        Block.Push(CreateConversion(
             address,
-            typeNode,
-            type.ToTargetUnsignedFlags()));
+            ModuleBuilder.CreatePointerType(typeNode, MemoryAddressSpace.Generic),
+            ConvertFlags.None));
     }
 
     /// <summary>

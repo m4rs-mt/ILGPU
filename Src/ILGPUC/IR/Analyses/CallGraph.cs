@@ -63,43 +63,6 @@ sealed class CallGraph<TDirection>
             Method.FormatErrorMessage(message);
     }
 
-    /// <summary>
-    /// Collection of nodes, provides count, indexer and enumerator.
-    /// </summary>
-    internal readonly ref struct NodeCollection(
-        CallGraph<TDirection> graph,
-        ReadOnlySpan<Method> methods)
-    {
-        private readonly ReadOnlySpan<Method> _methods = methods;
-
-        public int Count => _methods.Length;
-
-        public Node this[int index] => new(
-            graph,
-            _methods[index],
-            graph._numbering[_methods[index]]);
-
-        public Enumerator GetEnumerator() => new(graph, _methods);
-    }
-
-    /// <summary>
-    /// Enumerator for <see cref="NodeCollection"/>.
-    /// </summary>
-    internal ref struct Enumerator(
-        CallGraph<TDirection> graph,
-        ReadOnlySpan<Method> methods)
-    {
-        private ReadOnlySpan<Method>.Enumerator _enumerator =
-            methods.GetEnumerator();
-
-        public readonly Node Current => new(
-            graph,
-            _enumerator.Current,
-            graph._numbering[_enumerator.Current]);
-
-        public bool MoveNext() => _enumerator.MoveNext();
-    }
-
     #endregion
 
     #region Call Graph
@@ -136,11 +99,6 @@ sealed class CallGraph<TDirection>
             }
         }
     }
-
-    /// <summary>
-    /// All methods in the order defined by <typeparamref name="TDirection"/>.
-    /// </summary>
-    public NodeCollection Methods => new(this, _methods);
 
     /// <summary>
     /// Retrieves the node for a specific method (O(1) via the numbering map).

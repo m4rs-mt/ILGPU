@@ -35,11 +35,6 @@ partial class BasicBlockBuilder
             InlineList<BasicBlock>.Create(capacity);
 
         /// <summary>
-        /// Gets the switch condition.
-        /// </summary>
-        public readonly Value Condition => condition;
-
-        /// <summary>
         /// Adds the default target.
         /// </summary>
         public void AddDefault(BasicBlock target) => _defaultTarget = target;

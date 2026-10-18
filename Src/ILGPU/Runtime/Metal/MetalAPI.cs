@@ -286,6 +286,11 @@ public static unsafe partial class MetalAPI
     private static readonly IntPtr SelRetain = SelRegisterName("retain");
     private static readonly IntPtr SelRelease = SelRegisterName("release");
     private static readonly IntPtr SelAlloc = SelRegisterName("alloc");
+    private static readonly IntPtr SelInit = SelRegisterName("init");
+
+    // MTLCompileOptions
+    private static readonly IntPtr SelSetFastMathEnabled =
+        SelRegisterName("setFastMathEnabled:");
 
     // NSString
     private static readonly IntPtr SelInitWithUtf8String =
@@ -518,6 +523,21 @@ public static unsafe partial class MetalAPI
     }
 
     /// <summary>
+    /// Creates <c>MTLCompileOptions</c> with fast math enabled or disabled.
+    /// The caller releases the returned object.
+    /// </summary>
+    /// <param name="fastMath">True to enable fast math.</param>
+    /// <returns>Handle to the compile options.</returns>
+    public static IntPtr CreateCompileOptions(bool fastMath)
+    {
+        var options = ObjcMsgSend(
+            ObjcMsgSend(ObjcGetClass("MTLCompileOptions"), SelAlloc),
+            SelInit);
+        ObjcMsgSendVoid(options, SelSetFastMathEnabled, fastMath ? 1 : 0);
+        return options;
+    }
+
+    /// <summary>
     /// Creates a Metal library from pre-compiled metallib binary data using
     /// <c>[MTLDevice newLibraryWithData:error:]</c>.
     /// </summary>
@@ -533,7 +553,9 @@ public static unsafe partial class MetalAPI
     {
         // Write metallib to a temp file and load via newLibraryWithURL:
         // This avoids dispatch_data_t interop complexity.
-        var tmpPath = System.IO.Path.GetTempFileName() + ".metallib";
+        var tmpPath = System.IO.Path.Combine(
+            System.IO.Path.GetTempPath(),
+            System.IO.Path.GetRandomFileName() + ".metallib");
         try
         {
             System.IO.File.WriteAllBytes(tmpPath, data.ToArray());

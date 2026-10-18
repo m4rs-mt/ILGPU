@@ -37,7 +37,15 @@ namespace ILGPUC.Backends.CPU;
 sealed record BufferPoolMetadata(
     List<(string ElementType, int SlotIndex)> Slots,
     Dictionary<Value, string> ValueAssignments,
-    Dictionary<string, string> BroadcastAssignments);
+    Dictionary<string, string> BroadcastAssignments)
+{
+    /// <summary>
+    /// Returns the field name of a pool slot. Qualified element type names
+    /// (e.g. <c>System.Half</c>) are turned into valid identifiers.
+    /// </summary>
+    public static string GetSlotName(string elementType, int slotIndex) =>
+        $"pool_{elementType.Replace('.', '_')}_{slotIndex}";
+}
 
 /// <summary>
 /// Performs SSA value liveness analysis and linear-scan register allocation
@@ -50,6 +58,13 @@ sealed class VectorBufferAllocator
     private readonly CodePlacement _codePlacement;
     private readonly VectorizationAnalysis _analysis;
     private readonly CPULanguageConfiguration _config;
+    private readonly Dictionary<Value, BasicBlock> _valueBlocks = [];
+    private readonly List<LoopRange> _loops = [];
+
+    /// <summary>
+    /// The blocks of a loop and the range of positions its values occupy.
+    /// </summary>
+    private sealed record LoopRange(HashSet<BasicBlock> Blocks, int End);
 
     /// <summary>
     /// Constructs a new vector buffer allocator.
@@ -73,6 +88,7 @@ sealed class VectorBufferAllocator
     {
         // Step 1: Build a linear position map for all values
         var positionMap = BuildPositionMap();
+        FindLoops(positionMap);
 
         // Step 2: Compute live intervals for vector buffer values
         int maxPosition = positionMap.Count > 0
@@ -101,10 +117,116 @@ sealed class VectorBufferAllocator
             {
                 var value = placedBlock[j];
                 map[value] = pos++;
+                _valueBlocks[value] = block;
             }
         }
 
         return map;
+    }
+
+    /// <summary>
+    /// Finds the natural loops of the method and the last position of the
+    /// values placed in each of them.
+    /// </summary>
+    private void FindLoops(Dictionary<Value, int> positionMap)
+    {
+        var dominators = _codePlacement.Dominators;
+        var lastPositions = new Dictionary<BasicBlock, int>();
+        foreach (var (value, position) in positionMap)
+        {
+            var block = _valueBlocks[value];
+            if (!lastPositions.TryGetValue(block, out int last) || position > last)
+                lastPositions[block] = position;
+        }
+
+        foreach (var block in _method.Blocks)
+        {
+            foreach (var header in block.Successors)
+            {
+                if (!dominators.Dominates(header, block))
+                    continue;
+
+                // The loop of the back edge block -> header: all blocks that
+                // reach the back edge without passing through the header
+                var blocks = new HashSet<BasicBlock> { header };
+                var stack = new Stack<BasicBlock>();
+                stack.Push(block);
+                while (stack.Count > 0)
+                {
+                    var current = stack.Pop();
+                    if (!blocks.Add(current))
+                        continue;
+                    foreach (var pred in current.Predecessors)
+                        stack.Push(pred);
+                }
+
+                int end = -1;
+                foreach (var loopBlock in blocks)
+                {
+                    if (lastPositions.TryGetValue(loopBlock, out int last))
+                        end = System.Math.Max(end, last);
+                }
+                _loops.Add(new LoopRange(blocks, end));
+            }
+        }
+    }
+
+    /// <summary>
+    /// Returns the end of the outermost loop that contains the use block but
+    /// not the definition block, or -1. Loops re-execute their values on
+    /// every iteration, so a value defined before a loop and used inside it
+    /// must stay alive until the end of the loop.
+    /// </summary>
+    private int GetEnclosingLoopEnd(BasicBlock defBlock, BasicBlock useBlock)
+    {
+        int end = -1;
+        foreach (var loop in _loops)
+        {
+            if (loop.Blocks.Contains(useBlock) && !loop.Blocks.Contains(defBlock))
+                end = System.Math.Max(end, loop.End);
+        }
+        return end;
+    }
+
+    /// <summary>
+    /// Collects the blocks using a value: the placed blocks of its users, the
+    /// blocks whose terminators use it, and the blocks using the values of
+    /// unplaced users (inlined scalar values and fused addresses).
+    /// </summary>
+    private void CollectUseBlocks(
+        Value value,
+        HashSet<BasicBlock> useBlocks,
+        int depth = 8)
+    {
+        if (depth <= 0)
+            return;
+        foreach (var use in value.Uses)
+        {
+            var target = use.Target;
+            if (_valueBlocks.TryGetValue(target, out var block))
+                useBlocks.Add(block);
+            else if (target is BasicBlock useBlock)
+                useBlocks.Add(useBlock);
+            else if (target is BasicBlockValue bbv)
+                useBlocks.Add(bbv.BasicBlock);
+            else
+                CollectUseBlocks(target, useBlocks, depth - 1);
+        }
+    }
+
+    /// <summary>
+    /// Extends the last use of a value to the end of every loop it is used
+    /// in but defined outside of.
+    /// </summary>
+    private int ExtendToEnclosingLoops(Value value, int lastUse)
+    {
+        if (_loops.Count < 1 || !_valueBlocks.TryGetValue(value, out var defBlock))
+            return lastUse;
+        var useBlocks = new HashSet<BasicBlock>();
+        CollectUseBlocks(value, useBlocks);
+        foreach (var useBlock in useBlocks)
+            lastUse = System.Math.Max(lastUse, GetEnclosingLoopEnd(defBlock, useBlock));
+        return lastUse;
     }
 
     /// <summary>
@@ -147,6 +269,7 @@ sealed class VectorBufferAllocator
                 int defPos = positionMap[value];
                 int lastUse = ComputeLastUse(
                     value, positionMap, defPos, maxPosition);
+                lastUse = ExtendToEnclosingLoops(value, lastUse);
 
                 // For loop-carried phi values (multi-argument phis): extend
                 // both start and end to cover the entire method. The
@@ -520,7 +643,7 @@ sealed class VectorBufferAllocator
                     slotEnds.Add(interval.End);
                 }
 
-                var poolName = $"pool_{elemType}_{assignedSlot}";
+                var poolName = BufferPoolMetadata.GetSlotName(elemType, assignedSlot);
                 slotSet.Add((elemType, assignedSlot));
 
                 if (interval.Value != null)

@@ -10,6 +10,7 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.Util;
+using ILGPUC.Util;
 using ILGPUC.IR.BasicBlockValues;
 using ILGPUC.IR.MethodValues;
 using ILGPUC.IR.ModuleValues;
@@ -79,20 +80,10 @@ sealed class PlacedBlock
     public int Count => _values.Count;
 
     /// <summary>
-    /// Returns the termination kind of this placed block.
-    /// </summary>
-    public BlockTerminationKind TerminationKind => BasicBlock.TerminationKind;
-
-    /// <summary>
     /// Gets the value at the specified index.
     /// </summary>
     /// <param name="index">The value index.</param>
     public Value<Method> this[int index] => _values[index];
-
-    /// <summary>
-    /// Returns all placed values as a read-only span.
-    /// </summary>
-    public ReadOnlySpan<Value<Method>> Values => _values.AsReadOnlySpan();
 
     #endregion
 
@@ -219,17 +210,6 @@ sealed class CodePlacement
     /// </summary>
     public PreDominators Dominators { get; }
 
-    /// <summary>
-    /// Returns the number of placed blocks.
-    /// </summary>
-    public int Count => _placedBlocks.Count;
-
-    /// <summary>
-    /// Gets the placed block at the specified index.
-    /// </summary>
-    /// <param name="index">The block index (in reverse post order).</param>
-    public PlacedBlock this[int index] => _placedBlocks[index];
-
     #endregion
 
     #region Methods
@@ -247,6 +227,18 @@ sealed class CodePlacement
         {
             foreach (BasicBlockValue bbValue in block)
             {
+                // Phi arguments are used at the end of their incoming source
+                // block, not at the position of the phi in its own block
+                if (bbValue is PhiValue phi)
+                {
+                    for (int i = 0; i < phi.NumArguments; i++)
+                    {
+                        if (phi.Arguments[i] is PureValue pureArg)
+                            ComputePureValuePlacement(pureArg, phi.Sources[i]);
+                    }
+                    continue;
+                }
+
                 // Process all operands of this basic block value
                 foreach (var operand in bbValue.Values)
                 {
@@ -387,47 +379,86 @@ sealed class CodePlacement
         PureValue pureValue,
         BasicBlock earliestBlock)
     {
-        // Get the common dominator of all use sites
-        var latestBlock = earliestBlock;
+        // General policy: hoist pure values to their earliest (deepest
+        // operand) block — cheap ALU is best hoisted (loop invariance).
+        // Potentially faulting operations must NOT be hoisted above the
+        // blocks that actually use them: hoisting a guarded integer
+        // division above its zero-check turns it into an unconditional
+        // fault on the CPU backend. Those are placed at the immediate
+        // common dominator of their (transitive) anchored uses instead.
+        if (!CanFault(pureValue))
+            return earliestBlock;
 
-        foreach (Use use in pureValue.Uses)
+        BasicBlock? latestBlock = null;
+        var visited = new HashSet<PureValue> { pureValue };
+        var pending = new Stack<PureValue>();
+        pending.Push(pureValue);
+
+        void AddUseBlock(BasicBlock useBlock)
         {
-            BasicBlock useBlock;
-            if (use.Target is BasicBlockValue bbValue)
-            {
-                // Skip uses whose block is not in this method's CFG (e.g.,
-                // references from External methods' entry blocks).
-                if (bbValue.BasicBlock.Method != Method)
-                    continue;
+            latestBlock = latestBlock is null
+                ? useBlock
+                : Dominators.GetImmediateCommonDominator(latestBlock, useBlock);
+        }
 
-                // Handle phi values specially - the use is in the predecessor block
-                if (use.Target is PhiValue phiValue)
-                    useBlock = phiValue.Sources[use.Index];
-                else
-                    useBlock = bbValue.BasicBlock;
-            }
-            else if (use.Target is PureValue pureUse)
+        // Collects the anchored (block/block-value) uses of the value,
+        // following pure-value consumer chains — consumer placements are
+        // not available yet during the operand-first recursion, but their
+        // own anchored uses determine a block that every consumer's
+        // placement will dominate. Iterative DFS: consumer chains can be
+        // deep enough to overflow the thread stack.
+        while (pending.Count > 0)
+        {
+            var value = pending.Pop();
+            foreach (Use use in value.Uses)
             {
-                // For pure value uses, get the computed placement of the user
-                if (_pureValuePlacements.TryGetValue(pureUse, out var pureUsePlacement))
-                    useBlock = pureUsePlacement;
-                else
-                    useBlock = earliestBlock;
-            }
-            else
-            {
-                continue;
-            }
+                if (use.Target is BasicBlockValue bbValue)
+                {
+                    // Skip uses whose block is not in this method's CFG
+                    // (e.g., references from External methods' entry blocks).
+                    if (bbValue.BasicBlock.Method != Method)
+                        continue;
 
-            latestBlock = Dominators.GetImmediateCommonDominator(latestBlock, useBlock);
+                    // Phi value uses live in the incoming source block.
+                    AddUseBlock(use.Target is PhiValue phiValue
+                        ? phiValue.Sources[use.Index]
+                        : bbValue.BasicBlock);
+                }
+                else if (use.Target is BasicBlock blockTarget)
+                {
+                    // Termination conditions/values are operands of the
+                    // block itself.
+                    if (blockTarget.Method != Method)
+                        continue;
+                    AddUseBlock(blockTarget);
+                }
+                else if (use.Target is PureValue pureUse && visited.Add(pureUse))
+                {
+                    pending.Push(pureUse);
+                }
+            }
         }
 
         // Ensure we don't place before the earliest valid block
-        if (!Dominators.Dominates(earliestBlock, latestBlock))
+        if (latestBlock is null ||
+            !Dominators.Dominates(earliestBlock, latestBlock))
+        {
             return earliestBlock;
+        }
 
         return latestBlock;
     }
+
+    /// <summary>
+    /// Returns true if evaluating the given pure value can fault at runtime:
+    /// an integer div/rem whose divisor is not a non-zero constant.
+    /// </summary>
+    private static bool CanFault(PureValue pureValue) =>
+        pureValue is BinaryArithmeticValue binary &&
+        (binary.Kind == BinaryArithmeticKind.Div ||
+         binary.Kind == BinaryArithmeticKind.Rem) &&
+        binary.BasicValueType.IsInt() &&
+        !(binary.Right is PrimitiveValue divisor && divisor.RawValue != 0);
 
     /// <summary>
     /// Places all values in their respective blocks in the correct order.
@@ -435,6 +466,16 @@ sealed class CodePlacement
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     private void PlaceAllValues()
     {
+        // Collect all values that are part of a block's value chain. Only
+        // values outside of all chains are orphaned and need to be placed
+        // explicitly at their use sites.
+        var chainSet = Method.CreateSet<BasicBlockValue>();
+        foreach (var block in Method.Blocks)
+        {
+            foreach (var (bbValue, _) in block.BasicBlockValues)
+                chainSet.Add(bbValue);
+        }
+
         // Process blocks in reverse post order
         var placedSet = Method.CreateSet<BasicBlockValue>();
         foreach (var block in Method.Blocks)
@@ -445,7 +486,7 @@ sealed class CodePlacement
             _blockMap.Add(block, placedBlock);
 
             // Place all values for this block
-            PlaceBlockValues(block, placedBlock, placedSet);
+            PlaceBlockValues(block, placedBlock, placedSet, chainSet);
         }
     }
 
@@ -455,16 +496,21 @@ sealed class CodePlacement
     /// <param name="block">The source basic block.</param>
     /// <param name="placedBlock">The target placed block.</param>
     /// <param name="placedSet">The set of placed basic block values.</param>
+    /// <param name="chainSet">The set of all values in any value chain.</param>
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     private void PlaceBlockValues(
         BasicBlock block,
         PlacedBlock placedBlock,
-        ValueSet<Method, BasicBlockValue> placedSet)
+        ValueSet<Method, BasicBlockValue> placedSet,
+        ValueSet<Method, BasicBlockValue> chainSet)
     {
         // Process all basic block values from the chain
-        foreach (var bbValue in block.BasicBlockValues)
+        foreach (var (bbValue, _) in block.BasicBlockValues)
         {
-            PlacePureValueDependencies(bbValue, block, placedBlock);
+            // Phi arguments are not used at the position of the phi but on
+            // the incoming edges (see the end of this method)
+            if (bbValue is not PhiValue)
+                PlacePureValueDependencies(bbValue, block, placedBlock);
             placedBlock.Add(bbValue);
             placedSet.Add(bbValue);
         }
@@ -490,14 +536,23 @@ sealed class CodePlacement
 
         // Handle orphaned phi arguments — phi values reference operands
         // that may not be in any block's value chain after transformation.
-        foreach (var phi in block.PhiValues)
+        // Phi arguments are used on the incoming edge, so they are placed at
+        // the end of this block when it is the source of a successor's phi.
+        // Values that are part of a chain are placed by their own block and
+        // must never be duplicated here.
+        foreach (var successor in block.Successors)
         {
-            for (int i = 0; i < phi.NumArguments; i++)
+            foreach (var phi in successor.PhiValues)
             {
-                if (phi.Arguments[i] is BasicBlockValue bbArg
-                    && !placedSet.Contains(bbArg))
+                for (int i = 0; i < phi.NumArguments; i++)
                 {
-                    PlaceOrphanedValue(bbArg, block, placedBlock, placedSet);
+                    if (phi.Sources[i] == block
+                        && phi.Arguments[i] is BasicBlockValue bbArg
+                        && !chainSet.Contains(bbArg)
+                        && !placedSet.Contains(bbArg))
+                    {
+                        PlaceOrphanedValue(bbArg, block, placedBlock, placedSet);
+                    }
                 }
             }
         }
@@ -631,13 +686,4 @@ static class CodePlacementExtensions
         this Method method,
         CFG<DominanceOrder, Forwards>? cfg = null) =>
         CodePlacement.Create(method, cfg);
-
-    /// <summary>
-    /// Creates a new code placement analysis for the given basic block collection.
-    /// </summary>
-    /// <param name="blocks">The blocks to analyze.</param>
-    /// <returns>The created code placement analysis.</returns>
-    public static CodePlacement CreateCodePlacement(
-        this BasicBlockCollection<DominanceOrder, Forwards> blocks) =>
-        CodePlacement.Create(blocks.Method, cfg: null);
 }

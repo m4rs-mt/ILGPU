@@ -47,11 +47,6 @@ readonly struct UnconditionalView(BasicBlock Block) : ITerminationView
     public BasicBlock Target => Block.Successors[0];
 
     /// <summary>
-    /// Returns the source location for this termination.
-    /// </summary>
-    public Location Location => Block.Location;
-
-    /// <summary>
     /// Tries to create an unconditional view from a basic block.
     /// </summary>
     /// <param name="block">The block to convert.</param>
@@ -105,11 +100,6 @@ readonly struct ConditionalView(BasicBlock Block) : ITerminationView
     public BasicBlock FalseTarget => Block.Successors[1];
 
     /// <summary>
-    /// Returns the source location for this termination.
-    /// </summary>
-    public Location Location => Block.Location;
-
-    /// <summary>
     /// Tries to create a conditional view from a basic block.
     /// </summary>
     /// <param name="block">The block to convert.</param>
@@ -123,29 +113,6 @@ readonly struct ConditionalView(BasicBlock Block) : ITerminationView
             return true;
         }
         view = default;
-        return false;
-    }
-
-    /// <summary>
-    /// Returns true if the given block is one of the branch targets and outputs the other.
-    /// </summary>
-    /// <param name="block">The branch target to check.</param>
-    /// <param name="otherBlock">The other branch target (if found).</param>
-    public bool TryGetOtherTarget(
-        BasicBlock block,
-        [NotNullWhen(true)] out BasicBlock? otherBlock)
-    {
-        if (TrueTarget == block)
-        {
-            otherBlock = FalseTarget;
-            return true;
-        }
-        if (FalseTarget == block)
-        {
-            otherBlock = TrueTarget;
-            return true;
-        }
-        otherBlock = null;
         return false;
     }
 
@@ -177,16 +144,6 @@ readonly struct SwitchView(BasicBlock Block) : ITerminationView
     /// </summary>
     internal readonly struct CasesCollection(SwitchView switchView)
     {
-        /// <summary>
-        /// Returns the default case target.
-        /// </summary>
-        public BasicBlock DefaultTarget => switchView.DefaultTarget;
-
-        /// <summary>
-        /// Returns the number of cases (excluding the default case).
-        /// </summary>
-        public int Count => switchView.NumCases;
-
         /// <summary>
         /// Returns an enumerator to iterate over all cases.
         /// </summary>
@@ -225,11 +182,6 @@ readonly struct SwitchView(BasicBlock Block) : ITerminationView
     /// Returns the number of switch cases (excluding default).
     /// </summary>
     public int NumCases => Block.Successors.Length - 1;
-
-    /// <summary>
-    /// Returns the source location for this termination.
-    /// </summary>
-    public Location Location => Block.Location;
 
     /// <summary>
     /// Returns a case collection to enumerate all cases.

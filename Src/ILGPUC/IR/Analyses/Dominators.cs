@@ -216,65 +216,6 @@ sealed class Dominators<TDirection>
         return result;
     }
 
-    /// <summary>
-    /// Determines a dominator block of all phi-value uses.
-    /// </summary>
-    /// <param name="dominatorBlock">The current dominator block.</param>
-    /// <param name="uses">The collection of all uses.</param>
-    /// <returns>The dominator block given by all phi-value uses.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    private BasicBlock GetPhiParent(BasicBlock dominatorBlock, UseCollection uses)
-    {
-        // Check for phi-value references
-        BasicBlock? phiParent = null;
-        foreach (Use use in uses)
-        {
-            if (use.Target is not PhiValue phiValue)
-                continue;
-
-            // If we encounter a phi value we have to check whether our value occurs
-            // in one of the predecessors. In this case, we have to adjust our
-            // current dominator.
-            var newParent = phiValue.Sources[use.Index];
-            phiParent = phiParent == null
-                ? newParent
-                : GetImmediateCommonDominator(phiParent, newParent);
-        }
-
-        // If we have found a new parent dominator block for all phi values, use this
-        // block instead of the given dominator
-        return phiParent ?? dominatorBlock;
-    }
-
-    /// <summary>
-    /// Gets the immediate common dominator of all given uses.
-    /// </summary>
-    /// <param name="dominatorBlock">The initial dominator block.</param>
-    /// <param name="uses">The uses to get the common dominator for.</param>
-    /// <returns>The common dominator block of all uses.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    public BasicBlock GetImmediateCommonDominatorOfUses(
-        BasicBlock dominatorBlock,
-        UseCollection uses)
-    {
-        // Check for phi-value uses
-        dominatorBlock = GetPhiParent(dominatorBlock, uses);
-
-        // Initialize the parent dominator block using the given uses
-        foreach (Use use in uses)
-        {
-            Value value = use;
-            if (value is PhiValue || value is not BasicBlockValue bbValue)
-                continue;
-
-            // Get the immediate common dominator of the current dominator block and
-            // the block of the use reference
-            var valueBlock = bbValue.BasicBlock;
-            dominatorBlock = GetImmediateCommonDominator(dominatorBlock, valueBlock);
-        }
-        return dominatorBlock;
-    }
-
     #endregion
 }
 

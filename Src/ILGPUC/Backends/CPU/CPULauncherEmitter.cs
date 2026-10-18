@@ -219,6 +219,9 @@ sealed class CPULauncherEmitter : LauncherEmitter
                         return $"Unsafe.BitCast<{param.LaunchTypeName}, " +
                                $"{param.EntryPointTypeName}>({param.Name})";
                     }
+                    // ILGPU.Half converts to System.Half through float
+                    if (param.EntryPointTypeName == "System.Half")
+                        return $"(System.Half)(float){param.Name}";
                     return $"({param.EntryPointTypeName}){param.Name}";
                 }
 
@@ -344,7 +347,8 @@ sealed class CPULauncherEmitter : LauncherEmitter
         typeName is "bool" or "byte" or "sbyte"
             or "short" or "ushort" or "int" or "uint"
             or "long" or "ulong" or "float" or "double"
-            or "Half" or "nint" or "nuint" or "char" or "decimal";
+            or "Half" or "System.Half" or "nint" or "nuint" or "char"
+            or "decimal";
 }
 
 #pragma warning restore CA1508 // Avoid dead conditional code

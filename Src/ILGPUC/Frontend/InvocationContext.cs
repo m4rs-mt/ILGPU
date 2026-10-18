@@ -74,11 +74,6 @@ ref struct InvocationContext
     public CodeGenerator CodeGenerator { get; }
 
     /// <summary>
-    /// Returns compilation properties.
-    /// </summary>
-    public readonly CompilationProperties Properties => CodeGenerator.Properties;
-
-    /// <summary>
     /// Returns the current location.
     /// </summary>
     public Location Location { get; }
@@ -92,13 +87,6 @@ ref struct InvocationContext
     /// Returns the current IR module builder.
     /// </summary>
     public readonly ModuleBuilder ModuleBuilder => CodeGenerator.ModuleBuilder;
-
-    /// <summary>
-    /// Returns the backend type the IR is being generated for. Used by
-    /// <see cref="Intrinsic.Intrinsics.TryGenerateCode"/> to resolve
-    /// backend-specific Implemented intrinsics at codegen time.
-    /// </summary>
-    public readonly Backends.BackendType BackendType => CodeGenerator.BackendType;
 
     /// <summary>
     /// Returns the current IR builder.
@@ -135,12 +123,6 @@ ref struct InvocationContext
     #endregion
 
     #region Methods
-
-    /// <summary>
-    /// Formats an error message to include specific exception information.
-    /// </summary>
-    public readonly string FormatErrorMessage(string message) =>
-        Location.FormatErrorMessage(message);
 
     /// <summary>
     /// Returns the generic arguments of the used method.

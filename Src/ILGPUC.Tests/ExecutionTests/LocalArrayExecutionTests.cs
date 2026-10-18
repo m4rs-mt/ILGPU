@@ -66,4 +66,24 @@ public abstract class LocalArrayExecutionTests : ExecutionTestBase
             ["Kernels.FloatArrayKernel"],
             ["1.5", "2.5", "3.5", "4.5"]);
     }
+
+    [SkippableFact]
+    public async Task AllocateInLoop_ProducesCorrectOutput()
+    {
+        // A fresh zeroed array per iteration: the elements sum up to i + 3
+        await VerifyProgramOutputAsync(
+            "TestPrograms/LocalArray/AllocateInLoop.cs",
+            ["Kernels.AllocateInLoopKernel"],
+            ["1271", "1271", "1271", "1271"]);
+    }
+
+    [SkippableFact]
+    public async Task AllocateInHelperInLoop_ProducesCorrectOutput()
+    {
+        // A fresh zeroed array per helper call, also when inlined into a loop
+        await VerifyProgramOutputAsync(
+            "TestPrograms/LocalArray/AllocateInHelperInLoop.cs",
+            ["Kernels.AllocateInHelperInLoopKernel"],
+            ["1271", "1271", "1271", "1271"]);
+    }
 }

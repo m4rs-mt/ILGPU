@@ -32,6 +32,73 @@ public abstract class GroupExecutionTests : ExecutionTestBase
             ["1", "2", "3", "4"]);
     }
 
+    /// <summary>
+    /// Group and warp predicate barriers, warp barriers and scoped memory
+    /// fences.
+    /// </summary>
+    [SkippableFact]
+    public async Task PredicateBarriers_ProducesCorrectOutput()
+    {
+        RequireCapability(Backend, BackendCapability.PredicateBarriers);
+        await VerifyProgramOutputAsync(
+            "TestPrograms/Group/PredicateBarriers.cs",
+            ["Kernels.PredicateBarriersKernel"],
+            ["301301", "301301", "301301", "301301"]);
+    }
+
+    /// <summary>
+    /// Loops bounded by the group index, which GPU backends read from
+    /// unsigned built-ins: one with two exit conditions, one starting at a
+    /// negative value.
+    /// </summary>
+    [SkippableFact]
+    public async Task GroupIdxLoopBound_ProducesCorrectOutput()
+    {
+        // first[t] = sum of (i + 1) for i in 0..t,
+        // second[t] = sum of (i + 3) for i in -2..t
+        await VerifyProgramOutputAsync(
+            "TestPrograms/Group/GroupIdxLoopBound.cs",
+            [
+                "Kernels.GroupIdxLoopBoundKernel",
+                "Kernels.GroupIdxNegativeStartKernel"
+            ],
+            ["1", "3", "6", "10", "6", "10", "15", "21"]);
+    }
+
+    /// <summary>
+    /// Group and warp predicate barriers over many groups with divergent and
+    /// uniform predicates, including a partially filled last group.
+    /// </summary>
+    [SkippableFact]
+    public async Task PredicateBarrierGroups_ProducesCorrectOutput()
+    {
+        RequireCapability(Backend, BackendCapability.PredicateBarriers);
+        await VerifyProgramOutputAsync(
+            "TestPrograms/Group/PredicateBarrierGroups.cs",
+            ["Kernels.PredicateBarrierGroupsKernel"],
+            [
+                "group mismatches 0", "warp mismatches 0", "uniform mismatches 0",
+                "partial True", "groups True",
+            ]);
+    }
+
+    /// <summary>
+    /// Predicate barriers that only some threads of a group reach. Barriers in
+    /// divergent control flow are undefined on the GPU backends; the CPU
+    /// backend combines the predicate across the lanes that reach them.
+    /// </summary>
+    [SkippableFact]
+    public async Task PredicateBarrierInactiveLanes_ProducesCorrectOutput()
+    {
+        Skip.If(
+            Backend != BackendType.CPU,
+            "Barriers in divergent control flow are undefined on GPUs");
+        await VerifyProgramOutputAsync(
+            "TestPrograms/Group/PredicateBarrierInactiveLanes.cs",
+            ["Kernels.PredicateBarrierInactiveLanesKernel"],
+            ["mismatches 0"]);
+    }
+
     [SkippableFact]
     public async Task GroupDimension_ProducesOutput()
     {

@@ -312,17 +312,6 @@ class MethodBuilder : PureValueBuilder
     }
 
     /// <summary>
-    /// Tries to get a basic block builder for the given basic block.
-    /// </summary>
-    /// <param name="basicBlock">The given basic block.</param>
-    /// <param name="builder">The basic block builder (if any).</param>
-    /// <returns>True if a basic block builder could be determined.</returns>
-    public bool TryGetBasicBlockBuilder(
-        BasicBlock basicBlock,
-        [NotNullWhen(true)] out BasicBlockBuilder? builder) =>
-        _blocks.TryGetValue(basicBlock, out builder);
-
-    /// <summary>
     /// Traverses the current state of the control flow and returns an updated basic
     /// block collection.
     /// </summary>
@@ -424,8 +413,19 @@ class MethodBuilder : PureValueBuilder
         var exitBlock = allBlocks.FindExitBlock();
 
         // Seal all reachable blocks
+        var reachableBlocks = new HashSet<BasicBlock>(allBlocks.Count);
         foreach (var block in allBlocks)
+        {
             this[block].Seal();
+            reachableBlocks.Add(block);
+        }
+
+        // Drop phi arguments of unreachable predecessors (implicit UCE above)
+        foreach (var block in allBlocks)
+        {
+            foreach (PhiValue phi in block.PhiValues)
+                phi.RemoveUnreachableSources(reachableBlocks);
+        }
 
         // Build final value list
         var values = ValueBuilderList.Create(Generation, _parameters.Count + 1);

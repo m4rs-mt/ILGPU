@@ -78,28 +78,6 @@ sealed record class SSAAllocationInfo(
     /// Returns true if this allocation should be converted to a structure.
     /// </summary>
     public bool IsArrayToStructure => ArrayLength > 0;
-
-    /// <summary>
-    /// The structure type for array-to-structure conversions.
-    /// Set during transformation.
-    /// </summary>
-    public StructureType? StructureType { get; private set; }
-
-    public TypeValue GetInitializedType(ModuleBuilder moduleBuilder)
-    {
-        if (!IsArrayToStructure)
-            return AllocType;
-        if (StructureType is not null)
-            return StructureType;
-
-        var structTypeBuilder = moduleBuilder.CreateStructureType(TotalStructFields);
-        for (int i = 0; i < ArrayLength; ++i)
-            structTypeBuilder.Add(AllocType);
-
-        return StructureType = structTypeBuilder
-            .Seal()
-            .AsNotNullCast<StructureType>();
-    }
 }
 
 /// <summary>
@@ -116,11 +94,6 @@ readonly record struct SSAValueFieldRef(
 /// </summary>
 interface ISSAAllocations
 {
-    /// <summary>
-    /// Returns true if there are any convertible allocations for the given method.
-    /// </summary>
-    bool HasAllocationsForMethod(Method method);
-
     /// <summary>
     /// Tries to return allocation info for the given value.
     /// </summary>
@@ -306,11 +279,6 @@ abstract class SSAAllocations(GlobalValueMap<SSAValueFieldRef>? valueRefs) :
     #region Instance
 
     /// <summary>
-    /// Returns true if there are any convertible allocations for the given method.
-    /// </summary>
-    public abstract bool HasAllocationsForMethod(Method method);
-
-    /// <summary>
     /// Tries to return allocation info for the given value.
     /// </summary>
     /// <param name="value">The value to get allocation info for.</param>
@@ -470,9 +438,6 @@ sealed class SSALocalAllocations : SSAAllocations
     /// Returns the method this analysis was run on.
     /// </summary>
     public Method Method { get; }
-
-    /// <inheritdoc/>
-    public override bool HasAllocationsForMethod(Method method) => Method == method;
 
     /// <inheritdoc/>
     public override bool TryGetValue<TValue>(
@@ -649,17 +614,6 @@ sealed class SSAGlobalAllocations : SSAAllocations
     }
 
     /// <inheritdoc/>
-    public override bool HasAllocationsForMethod(Method method)
-    {
-        foreach (var entry in _allocations)
-        {
-            if (entry.Value.UsedInMethod == method)
-                return true;
-        }
-        return false;
-    }
-
-    /// <inheritdoc/>
     public override bool TryGetValue<TValue>(
         TValue value,
         [NotNullWhen(true)] out SSAAllocationInfo? allocationInfo)
@@ -677,11 +631,6 @@ readonly record struct SSAAllocations<T1, T2>(
     where T1 : ISSAAllocations
     where T2 : ISSAAllocations
 {
-    /// <inheritdoc/>
-    public bool HasAllocationsForMethod(Method method) =>
-        allocations1.HasAllocationsForMethod(method) ||
-        allocations2.HasAllocationsForMethod(method);
-
     /// <inheritdoc/>
     public bool TryGetRef(Value value, out SSAValueFieldRef fieldRef) =>
         allocations1.TryGetRef(value, out fieldRef) ||

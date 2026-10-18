@@ -139,23 +139,6 @@ sealed class TypeInformationManager
             Parent.GetTypeInfo(FieldTypes[index]);
 
         /// <summary>
-        /// Tries to resolve the field of the given field.
-        /// </summary>
-        /// <param name="index">The target index.</param>
-        /// <param name="field">The resolved field.</param>
-        /// <returns>True, if the field could be resolved.</returns>
-        public bool TryResolveField(
-            int index,
-            [NotNullWhen(true)] out FieldInfo? field)
-        {
-            field = default;
-            if (index < 0 || index >= NumFields)
-                return false;
-            field = Fields[index];
-            return true;
-        }
-
-        /// <summary>
         /// Gets the absolute index of the given field.
         /// </summary>
         /// <param name="info">The field to get.</param>

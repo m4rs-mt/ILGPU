@@ -148,7 +148,13 @@ sealed class IterativeInliner(TransformationArgs args) : Transformation(args)
             bool hasCalls = false;
             method.ForEachValue<MethodCall>(call =>
             {
-                hasCalls |= call.Target.IsInline;
+                // Mirror the Inliner's actual criteria (see Inliner.OnTransform):
+                // the target must be marked inline AND have a loaded body.
+                // Otherwise a bodyless inline target keeps reporting pending
+                // work and spins the loop until MaxIterations.
+                hasCalls |= call.Target.IsInline
+                    && call.Target.Count > 0
+                    && call.Target.EntryBlock is not null;
             });
             if (hasCalls) return true;
         }

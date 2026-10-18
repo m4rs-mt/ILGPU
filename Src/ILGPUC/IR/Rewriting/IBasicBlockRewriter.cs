@@ -105,7 +105,7 @@ sealed class BasicBlockRewriter(BasicBlockBuilder target, BasicBlock oldBlock) :
             return newValue;
 
         // Check whether this value type is out of scope
-        if (oldValue is not BasicBlockValue or PureValue)
+        if (oldValue is not (BasicBlockValue or PureValue))
             return oldValue;
 
         // Check whether we can rewrite a pure value
@@ -121,17 +121,6 @@ sealed class BasicBlockRewriter(BasicBlockBuilder target, BasicBlock oldBlock) :
         newValue = bbValue.Rewrite(this);
         _replaced.Add(bbValue, newValue);
         return newValue;
-    }
-
-    /// <summary>
-    /// Replaces the specified value with the given value during rewriting.
-    /// </summary>
-    /// <param name="oldValue">The old value to replace.</param>
-    /// <param name="value">The new value to replace it with.</param>
-    public void Replace(Value? oldValue, Value? value)
-    {
-        if (oldValue is null) return;
-        _replaced[oldValue] = value;
     }
 
     /// <inheritdoc/>

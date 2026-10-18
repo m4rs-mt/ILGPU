@@ -69,6 +69,7 @@ public sealed class MetalCompiler(
 
             var airFile = Path.Combine(tempDir, "output.air");
             var optFlag = $"-O{(int)request.OptimizationLevel}";
+            var extraFlags = SanitizeCompilerFlags(request.ExtraFlags);
             var includes = BuildIncludeArgs(request);
             var directives = BuildDirectiveArgs(request);
 
@@ -77,7 +78,7 @@ public sealed class MetalCompiler(
             // the standard -O<N> flag spelling.
             var compileArgs =
                 $"-sdk {sdk} metal -c \"{inputFile}\" -o \"{airFile}\"" +
-                $" {optFlag}{includes}{directives}";
+                $" {optFlag} {extraFlags}{includes}{directives}";
             var (exitCode, stdout, stderr) = await RunProcessAsync(
                 ExecutablePath,
                 compileArgs,

@@ -103,6 +103,11 @@ sealed class SSAVariableAllocator(GenerationContext context, Method method)
         if (value is BasicBlockValue)
             return true;
 
+        // Field insertions are emitted as a copy of the source followed by a
+        // field assignment, which needs a variable to assign the field to
+        if (value is SetField)
+            return true;
+
         // Values with multiple uses need variables to avoid recomputation
         if (value.Uses.Count > 1)
             return true;

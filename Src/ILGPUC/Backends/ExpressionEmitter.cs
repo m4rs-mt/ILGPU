@@ -133,10 +133,13 @@ sealed class ExpressionEmitter(GenerationContext context, TypeEmitter typeEmitte
         return value switch
         {
             Store store => EmitStore(store),
-            Barrier => $"{IntrinsicEmitter.EmitBarrier()};",
-            MemoryBarrier => $"{IntrinsicEmitter.EmitMemoryFence()};",
-            MethodCall call when call.Type is VoidType =>
-                $"{EmitMethodCall(call).Text};",
+            Barrier barrier => $"{IntrinsicEmitter.EmitBarrier(barrier.Kind)};",
+            MemoryBarrier fence => $"{IntrinsicEmitter.EmitMemoryFence(fence.Kind)};",
+            PredicateBarrier barrier => $"{EmitPredicateBarrier(barrier).Text};",
+            // Calls can have side effects and must be emitted as statements
+            // even when a non-void result is unused (the result is simply
+            // discarded, which is valid in all C-family target languages).
+            MethodCall call => $"{EmitMethodCall(call).Text};",
             // Atomic operations have side effects and must be emitted even
             // when their return value (the old value) is unused.
             GenericAtomic atomic => $"{EmitAtomicOperation(atomic).Text};",
@@ -165,6 +168,16 @@ sealed class ExpressionEmitter(GenerationContext context, TypeEmitter typeEmitte
     }
 
     /// <summary>
+    /// Emits a thread index or dimension built-in, cast to its IR type if the
+    /// built-in is unsigned (see
+    /// <see cref="LanguageConfiguration.HasUnsignedThreadBuiltIns"/>).
+    /// </summary>
+    private Emitted EmitBuiltIn(Value value, string builtIn) =>
+        context.LanguageConfig.HasUnsignedThreadBuiltIns
+            ? new($"({typeEmitter.GetTypeName(value.Type)}){builtIn}", Prec.Unary)
+            : new(builtIn, Prec.Atom);
+
+    /// <summary>
     /// Emits the actual expression for a value, without checking for variable names.
     /// Used when generating the definition (RHS) of a variable assignment.
     /// </summary>
@@ -180,20 +193,20 @@ sealed class ExpressionEmitter(GenerationContext context, TypeEmitter typeEmitte
             UndefinedValue undef => EmitUndefined(undef),
 
             // Device constants
-            SubGroupIndexValue => new Emitted(
-                IntrinsicEmitter.EmitWarpIdx(0), Prec.Atom),
-            SubGroupLaneIndexValue => new Emitted(
-                IntrinsicEmitter.EmitLaneIdx(0), Prec.Atom),
-            GroupIndexValue => new Emitted(
-                IntrinsicEmitter.EmitThreadIdx(0), Prec.Atom),
-            GridIndexValue => new Emitted(
-                IntrinsicEmitter.EmitBlockIdx(0), Prec.Atom),
-            SubGroupDimensionValue => new Emitted(
-                IntrinsicEmitter.EmitWarpDim(0), Prec.Atom),
-            GroupDimensionValue => new Emitted(
-                IntrinsicEmitter.EmitBlockDim(0), Prec.Atom),
-            GridDimensionValue => new Emitted(
-                IntrinsicEmitter.EmitGridDim(0), Prec.Atom),
+            SubGroupIndexValue => EmitBuiltIn(
+                value, IntrinsicEmitter.EmitWarpIdx(0)),
+            SubGroupLaneIndexValue => EmitBuiltIn(
+                value, IntrinsicEmitter.EmitLaneIdx(0)),
+            GroupIndexValue => EmitBuiltIn(
+                value, IntrinsicEmitter.EmitThreadIdx(0)),
+            GridIndexValue => EmitBuiltIn(
+                value, IntrinsicEmitter.EmitBlockIdx(0)),
+            SubGroupDimensionValue => EmitBuiltIn(
+                value, IntrinsicEmitter.EmitWarpDim(0)),
+            GroupDimensionValue => EmitBuiltIn(
+                value, IntrinsicEmitter.EmitBlockDim(0)),
+            GridDimensionValue => EmitBuiltIn(
+                value, IntrinsicEmitter.EmitGridDim(0)),
 
             // Parameters and globals
             Parameter param => new Emitted(
@@ -227,7 +240,8 @@ sealed class ExpressionEmitter(GenerationContext context, TypeEmitter typeEmitte
             GetViewLength viewLen => EmitGetViewLength(viewLen),
             SubView subView => EmitSubView(subView),
             GetField getField => EmitGetField(getField),
-            SetField setField => Emit(setField.Source),
+            SetField => throw new InvalidOperationException(
+                "Field insertions are emitted as statements by the method emitter"),
             StructureValue structure => EmitStructure(structure),
             LoadElementAddress lea => EmitLoadElementAddress(lea),
             LoadFieldAddress lfa => EmitLoadFieldAddress(lfa),
@@ -250,6 +264,7 @@ sealed class ExpressionEmitter(GenerationContext context, TypeEmitter typeEmitte
             Broadcast broadcast => EmitBroadcast(broadcast),
             WarpReduce reduce => EmitWarpReduce(reduce),
             WarpScan scan => EmitWarpScan(scan),
+            PredicateBarrier barrier => EmitPredicateBarrier(barrier),
             GroupReduce => throw new NotSupportedException(
                 "GroupReduce must be lowered before codegen"),
             GroupScan => throw new NotSupportedException(
@@ -331,7 +346,11 @@ sealed class ExpressionEmitter(GenerationContext context, TypeEmitter typeEmitte
         // Emit the storage array
         if (!string.IsNullOrEmpty(addrSpace))
             sb.Append($"{addrSpace} ");
-        sb.Append($"{elemTypeName} {storageName}[{arraySize}];");
+        sb.Append($"{elemTypeName} {storageName}[{arraySize}]");
+        // Local storage starts zeroed, as .NET locals and arrays do
+        if (pointerType.AddressSpace == MemoryAddressSpace.Local)
+            sb.Append(" = {0}");
+        sb.Append(';');
 
         // Emit the pointer variable. Build the pointer type via the
         // language config so backends that don't carry an address-space
@@ -490,16 +509,25 @@ sealed class ExpressionEmitter(GenerationContext context, TypeEmitter typeEmitte
     /// </summary>
     private Emitted EmitPrimitive(PrimitiveValue primitive)
     {
+        if (context.LanguageConfig.FormatPrimitive(primitive) is string formatted)
+            return new Emitted(formatted, Prec.Atom);
         var text = primitive.BasicValueType switch
         {
             BasicValueType.Int1 => primitive.Int1Value ? "true" : "false",
             BasicValueType.Int8 => primitive.Int8Value.ToString(),
             BasicValueType.Int16 => primitive.Int16Value.ToString(),
+            // The minimum values have no literal in C: the magnitude does not
+            // fit the signed type, so the literal would be promoted to a
+            // wider type (or be ill-formed) before the negation.
+            BasicValueType.Int32 when primitive.Int32Value == int.MinValue =>
+                "(-2147483647 - 1)",
             BasicValueType.Int32 => primitive.Int32Value.ToString(),
+            BasicValueType.Int64 when primitive.Int64Value == long.MinValue =>
+                "(-9223372036854775807L - 1)",
             BasicValueType.Int64 => primitive.Int64Value.ToString() + "L",
             BasicValueType.Float16 =>
                 IntrinsicEmitter.EmitHalfConstant(primitive.Float16Value.RawValue),
-            BasicValueType.Float32 => FormatFloat(primitive.Float32Value) + "f",
+            BasicValueType.Float32 => FormatFloat(primitive.Float32Value),
             BasicValueType.Float64 => FormatFloat(primitive.Float64Value),
             _ => "0"
         };
@@ -507,14 +535,16 @@ sealed class ExpressionEmitter(GenerationContext context, TypeEmitter typeEmitte
     }
 
     /// <summary>
-    /// Formats a float constant, handling NaN and infinity special cases.
+    /// Formats a float constant, handling NaN and infinity special cases. The
+    /// NaN and infinity macros are float constants and take no suffix.
     /// </summary>
     private static string FormatFloat(float value)
     {
         if (float.IsNaN(value)) return "NAN";
         if (float.IsPositiveInfinity(value)) return "INFINITY";
         if (float.IsNegativeInfinity(value)) return "-INFINITY";
-        return value.ToString("F6", CultureInfo.InvariantCulture);
+        return EnsureFloatLiteral(
+            value.ToString("R", CultureInfo.InvariantCulture)) + "f";
     }
 
     /// <summary>
@@ -525,8 +555,16 @@ sealed class ExpressionEmitter(GenerationContext context, TypeEmitter typeEmitte
         if (double.IsNaN(value)) return "NAN";
         if (double.IsPositiveInfinity(value)) return "INFINITY";
         if (double.IsNegativeInfinity(value)) return "-INFINITY";
-        return value.ToString("F6", CultureInfo.InvariantCulture);
+        return EnsureFloatLiteral(value.ToString("R", CultureInfo.InvariantCulture));
     }
+
+    /// <summary>
+    /// C-family float literals require a decimal point or an exponent;
+    /// round-trip formatting drops both for whole numbers (e.g. "1"), and a
+    /// bare "1f" is not a valid literal.
+    /// </summary>
+    private static string EnsureFloatLiteral(string text) =>
+        text.AsSpan().IndexOfAny('.', 'E', 'e') >= 0 ? text : text + ".0";
 
     #endregion
 
@@ -544,6 +582,17 @@ sealed class ExpressionEmitter(GenerationContext context, TypeEmitter typeEmitte
         if (IsBinaryIntrinsic(binary.Kind))
             return EmitBinaryIntrinsicCall(binary.Kind, left, right,
                 binary.ArithmeticBasicValueType);
+
+        // Floating-point remainder maps to fmod on C-family languages
+        if (binary.Kind == BinaryArithmeticKind.Rem &&
+            binary.BasicValueType.IsFloat() &&
+            IntrinsicEmitter.EmitFloatRem(
+                left.Text,
+                right.Text,
+                binary.ArithmeticBasicValueType) is string rem)
+        {
+            return new Emitted(rem, Prec.Postfix);
+        }
 
         // Simple operators (+, -, *, /, etc.)
         var simpleOp = GetBinaryOperator(binary.Kind);
@@ -595,6 +644,28 @@ sealed class ExpressionEmitter(GenerationContext context, TypeEmitter typeEmitte
                 IntrinsicEmitter.EmitMin(left.Text, right.Text, basicType),
             BinaryArithmeticKind.Max =>
                 IntrinsicEmitter.EmitMax(left.Text, right.Text, basicType),
+            _ => null
+        };
+        if (text is not null)
+        {
+            // .NET's float min/max return NaN if either operand is NaN, while
+            // C's fmin/fmax return the other operand. CPU uses .NET directly.
+            if (basicType is ArithmeticBasicValueType.Float16 or
+                ArithmeticBasicValueType.Float32 or
+                ArithmeticBasicValueType.Float64 &&
+                context.LanguageConfig is not CPU.CPULanguageConfiguration)
+            {
+                text = $"(isnan({ClassifyOperand(left, basicType)}) || " +
+                    $"isnan({ClassifyOperand(right, basicType)}) " +
+                    $"? {Parenthesize(left, Prec.Additive)} + " +
+                    $"{Parenthesize(right, Prec.Additive, isRightChild: true)} " +
+                    $": {text})";
+            }
+            return new Emitted(text, Prec.Postfix);
+        }
+
+        text = kind switch
+        {
             BinaryArithmeticKind.Pow =>
                 IntrinsicEmitter.EmitPow(left.Text, right.Text, basicType),
             BinaryArithmeticKind.Atan2 =>
@@ -707,6 +778,16 @@ sealed class ExpressionEmitter(GenerationContext context, TypeEmitter typeEmitte
     private Emitted EmitUnaryArithmetic(UnaryArithmeticValue unary)
     {
         var operand = Emit(unary.Value);
+
+        // Boolean negation: `~` on a bool promotes to int and yields a
+        // non-zero value for both true and false (e.g. ~true == -2), so a
+        // logical Not on i1 must be emitted as `!`.
+        if (unary.Kind == UnaryArithmeticKind.Not &&
+            unary.BasicValueType == BasicValueType.Int1)
+        {
+            var negated = Parenthesize(operand, Prec.Unary);
+            return new Emitted($"!{negated}", Prec.Unary);
+        }
 
         // Simple operators (-, ~)
         var simpleOp = GetUnaryOperator(unary.Kind);
@@ -849,10 +930,29 @@ sealed class ExpressionEmitter(GenerationContext context, TypeEmitter typeEmitte
         };
 
         if (operation is not null)
-            return new Emitted($"{operation}({operand.Text})", Prec.Postfix);
+        {
+            var argument = kind is UnaryArithmeticKind.IsNaN
+                or UnaryArithmeticKind.IsInf or UnaryArithmeticKind.IsFin
+                ? ClassifyOperand(operand, basicType)
+                : operand.Text;
+            return new Emitted($"{operation}({argument})", Prec.Postfix);
+        }
 
         return new Emitted($"/* Unknown unary op: {kind} */", Prec.Atom);
     }
+
+    /// <summary>
+    /// Returns the argument of a floating-point classification function. Half
+    /// operands are widened to float, which is exact: the C++ half types
+    /// convert implicitly to several floating-point types, which makes
+    /// <c>isnan</c> and friends ambiguous for them under nvcc.
+    /// </summary>
+    private static string ClassifyOperand(
+        Emitted operand,
+        ArithmeticBasicValueType basicType) =>
+        basicType == ArithmeticBasicValueType.Float16
+            ? $"(float){Parenthesize(operand, Prec.Unary)}"
+            : operand.Text;
 
     #endregion
 
@@ -889,6 +989,10 @@ sealed class ExpressionEmitter(GenerationContext context, TypeEmitter typeEmitte
     {
         var left = Emit(compare.Left);
         var right = Emit(compare.Right);
+
+        if (compare.Left.BasicValueType.IsFloat())
+            return EmitFloatCompare(compare, left, right);
+
         var op = GetCompareOperator(compare.Kind);
         var prec = GetOperatorPrecedence(op);
 
@@ -903,6 +1007,63 @@ sealed class ExpressionEmitter(GenerationContext context, TypeEmitter typeEmitte
         var l = Parenthesize(left, prec);
         var r = Parenthesize(right, prec, isRightChild: true);
         return new Emitted($"{l} {op} {r}", prec);
+    }
+
+    /// <summary>
+    /// Emits a float comparison honoring its ordered/unordered semantics. The
+    /// C operators <c>==</c>, <c>&lt;</c>, <c>&lt;=</c>, <c>&gt;</c> and
+    /// <c>&gt;=</c> are ordered (false for NaN operands) and <c>!=</c> is
+    /// unordered (true for NaN operands); every other combination is emitted
+    /// as the negation of the inverse comparison.
+    /// </summary>
+    private static Emitted EmitFloatCompare(
+        CompareValue compare,
+        Emitted left,
+        Emitted right)
+    {
+        bool unordered = compare.IsUnsignedOrUnordered;
+        string Binary(string op)
+        {
+            var prec = GetOperatorPrecedence(op);
+            var l = Parenthesize(left, prec);
+            var r = Parenthesize(right, prec, isRightChild: true);
+            return $"{l} {op} {r}";
+        }
+
+        // Natively matching operators
+        switch (compare.Kind)
+        {
+            case CompareKind.Equal when !unordered:
+            case CompareKind.LessThan when !unordered:
+            case CompareKind.LessEqual when !unordered:
+            case CompareKind.GreaterThan when !unordered:
+            case CompareKind.GreaterEqual when !unordered:
+            case CompareKind.NotEqual when unordered:
+            {
+                var op = GetCompareOperator(compare.Kind);
+                return new Emitted(Binary(op), GetOperatorPrecedence(op));
+            }
+        }
+
+        // Ordered not-equal: neither less nor greater
+        if (compare.Kind == CompareKind.NotEqual)
+        {
+            return new Emitted(
+                $"({Binary("<")} || {Binary(">")})",
+                Prec.Atom);
+        }
+
+        // Unordered equal: neither less nor greater
+        // Unordered relational: negation of the inverse ordered comparison
+        var negated = compare.Kind switch
+        {
+            CompareKind.Equal => $"{Binary("<")} || {Binary(">")}",
+            CompareKind.LessThan => Binary(">="),
+            CompareKind.LessEqual => Binary(">"),
+            CompareKind.GreaterThan => Binary("<="),
+            _ => Binary("<"),
+        };
+        return new Emitted($"!({negated})", Prec.Unary);
     }
 
     /// <summary>
@@ -1115,7 +1276,8 @@ sealed class ExpressionEmitter(GenerationContext context, TypeEmitter typeEmitte
 
     /// <summary>
     /// Emits a load field address as a pointer to a struct field.
-    /// For GPU backends: <c>(addrspace FieldType*)(source) + fieldIndex</c>.
+    /// For GPU backends:
+    /// <c>(addrspace FieldType*)&amp;((addrspace StructType*)source)-&gt;FieldN</c>.
     /// Uses the source pointer's address space (not the IR result type's)
     /// to avoid cross-address-space casts that Metal rejects.
     /// For CPU: falls back to variable name (CPU handles LFA separately).
@@ -1143,11 +1305,18 @@ sealed class ExpressionEmitter(GenerationContext context, TypeEmitter typeEmitte
             ? $"{elemTypeName}*"
             : $"{addrKeyword} {elemTypeName}*";
 
+        // Take the address of the flattened field member so that the native
+        // compiler applies the real byte offset of the field. A multi-field
+        // span addresses a sub-structure starting at its first field.
+        var fieldName = StructureType.GetFieldName(lfa.FieldSpan.Index);
+        var structTypeName = typeEmitter.GetTypeName(lfa.StructureType);
+        var structPtrType = string.IsNullOrEmpty(addrKeyword)
+            ? $"{structTypeName}*"
+            : $"{addrKeyword} {structTypeName}*";
         var inner = Parenthesize(source, Prec.Unary);
-        if (lfa.FieldSpan.Index == 0)
-            return new Emitted($"({castType}){inner}", Prec.Unary);
         return new Emitted(
-            $"({castType}){inner} + {lfa.FieldSpan.Index}", Prec.Additive);
+            $"({castType})&(({structPtrType}){inner})->{fieldName}",
+            Prec.Unary);
     }
 
     /// <summary>
@@ -1380,6 +1549,19 @@ sealed class ExpressionEmitter(GenerationContext context, TypeEmitter typeEmitte
                     "Custom warp scan operations must be lowered before codegen"),
             scan.Kind,
             scan.BasicValueType.GetArithmeticBasicValueType(false));
+        return new Emitted(text, Prec.Postfix);
+    }
+
+    /// <summary>
+    /// Emits a predicate barrier via language-specific intrinsics.
+    /// </summary>
+    private Emitted EmitPredicateBarrier(PredicateBarrier barrier)
+    {
+        var predicate = Emit(barrier.Predicate).Text;
+        var text = IntrinsicEmitter.EmitPredicateBarrier(
+            predicate,
+            barrier.Kind,
+            barrier.PredicateKind);
         return new Emitted(text, Prec.Postfix);
     }
 

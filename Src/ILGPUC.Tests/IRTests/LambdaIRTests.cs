@@ -9,7 +9,6 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
-
 // disable: max_line_length
 using ILGPUC.Backends;
 using ILGPUC.Tests.Framework;
@@ -45,6 +44,16 @@ public sealed class LambdaIRTests : CompilationTestBase
         VerifyAfterFrontend(GetKernel(
             typeof(LambdaKernels), nameof(LambdaKernels.LambdaAppliedTwiceKernel)));
 
+    [Fact]
+    public void TwoLambdasCrossBlock_AfterFrontend() =>
+        VerifyAfterFrontend(GetKernel(
+            typeof(LambdaKernels), nameof(LambdaKernels.TwoLambdasCrossBlockKernel)));
+
+    [Fact]
+    public void TwoClosuresCrossBlock_AfterFrontend() =>
+        VerifyAfterFrontend(GetKernel(
+            typeof(LambdaKernels), nameof(LambdaKernels.TwoClosuresCrossBlockKernel)));
+
     // --- AfterGlobalOpt ---
 
     [Theory]
@@ -70,6 +79,18 @@ public sealed class LambdaIRTests : CompilationTestBase
     public void LambdaAppliedTwice_AfterGlobalOpt(OptimizationLevel opt, CompilationMode mode) =>
         VerifyAfterGlobalOpt(GetKernel(
             typeof(LambdaKernels), nameof(LambdaKernels.LambdaAppliedTwiceKernel)), opt, mode);
+
+    [Theory]
+    [MemberData(nameof(TestTypes.OptLevelsAndModes), MemberType = typeof(TestTypes))]
+    public void TwoLambdasCrossBlock_AfterGlobalOpt(OptimizationLevel opt, CompilationMode mode) =>
+        VerifyAfterGlobalOpt(GetKernel(
+            typeof(LambdaKernels), nameof(LambdaKernels.TwoLambdasCrossBlockKernel)), opt, mode);
+
+    [Theory]
+    [MemberData(nameof(TestTypes.OptLevelsAndModes), MemberType = typeof(TestTypes))]
+    public void TwoClosuresCrossBlock_AfterGlobalOpt(OptimizationLevel opt, CompilationMode mode) =>
+        VerifyAfterGlobalOpt(GetKernel(
+            typeof(LambdaKernels), nameof(LambdaKernels.TwoClosuresCrossBlockKernel)), opt, mode);
 
     // --- AfterBackendTransforms ---
 
@@ -99,5 +120,19 @@ public sealed class LambdaIRTests : CompilationTestBase
     public void LambdaAppliedTwice_AfterBackendTransforms(BackendType backend, OptimizationLevel opt, CompilationMode mode) =>
         VerifyAfterBackendTransforms(GetKernel(
             typeof(LambdaKernels), nameof(LambdaKernels.LambdaAppliedTwiceKernel)),
+            backend, opt, mode);
+
+    [Theory]
+    [MemberData(nameof(TestTypes.BackendTypesAndOptLevelsAndModes), MemberType = typeof(TestTypes))]
+    public void TwoLambdasCrossBlock_AfterBackendTransforms(BackendType backend, OptimizationLevel opt, CompilationMode mode) =>
+        VerifyAfterBackendTransforms(GetKernel(
+            typeof(LambdaKernels), nameof(LambdaKernels.TwoLambdasCrossBlockKernel)),
+            backend, opt, mode);
+
+    [Theory]
+    [MemberData(nameof(TestTypes.BackendTypesAndOptLevelsAndModes), MemberType = typeof(TestTypes))]
+    public void TwoClosuresCrossBlock_AfterBackendTransforms(BackendType backend, OptimizationLevel opt, CompilationMode mode) =>
+        VerifyAfterBackendTransforms(GetKernel(
+            typeof(LambdaKernels), nameof(LambdaKernels.TwoClosuresCrossBlockKernel)),
             backend, opt, mode);
 }

@@ -27,6 +27,9 @@ var testClasses = new[]
     "MemoryBufferExecutionTests",
     "AtomicExecutionTests",
     "BasicIfExecutionTests",
+    "ShortCircuitExecutionTests",
+    "FloatConstantExecutionTests",
+    "FloatSemanticsExecutionTests",
     "KernelEntryPointExecutionTests",
     "ConvertExecutionTests",
     "ReinterpretCastExecutionTests",
@@ -61,6 +64,9 @@ var testClasses = new[]
     "ArrayView2DExecutionTests",
     "ArrayView3DExecutionTests",
     "LaunchGeometryExecutionTests",
+    "DivergentMemoryExecutionTests",
+    "VectorArithmeticExecutionTests",
+    "VectorStructuresExecutionTests",
 };
 
 var backends = new[] { "CPU", "Metal", "Cuda", "ROCm", "OpenCL" };

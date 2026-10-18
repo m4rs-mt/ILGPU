@@ -40,11 +40,6 @@ sealed partial class MethodCall : MemoryValue
         public Location Location { get; } = location;
 
         /// <summary>
-        /// The number of arguments.
-        /// </summary>
-        public readonly int Count => _builder.Count;
-
-        /// <summary>
         /// Adds the given value to the call builder.
         /// </summary>
         /// <param name="value">The value to add.</param>

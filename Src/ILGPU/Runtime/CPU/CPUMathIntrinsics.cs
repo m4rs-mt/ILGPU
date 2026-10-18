@@ -1182,6 +1182,57 @@ public static class CPUMathIntrinsics
     }
 
     /// <summary>
+    /// Computes element-wise whether each lane is NaN into a pre-allocated
+    /// target.
+    /// </summary>
+    /// <typeparam name="T">
+    /// The element type satisfying <see cref="INumberBase{T}"/>.
+    /// </typeparam>
+    /// <param name="target">The destination span to write results into.</param>
+    /// <param name="input">The input values, one per lane.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void IsNaN<T>(Span<bool> target, ReadOnlySpan<T> input)
+        where T : INumberBase<T>
+    {
+        for (int i = 0; i < input.Length; ++i)
+            target[i] = T.IsNaN(input[i]);
+    }
+
+    /// <summary>
+    /// Computes element-wise whether each lane is infinite into a pre-allocated
+    /// target.
+    /// </summary>
+    /// <typeparam name="T">
+    /// The element type satisfying <see cref="INumberBase{T}"/>.
+    /// </typeparam>
+    /// <param name="target">The destination span to write results into.</param>
+    /// <param name="input">The input values, one per lane.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void IsInfinity<T>(Span<bool> target, ReadOnlySpan<T> input)
+        where T : INumberBase<T>
+    {
+        for (int i = 0; i < input.Length; ++i)
+            target[i] = T.IsInfinity(input[i]);
+    }
+
+    /// <summary>
+    /// Computes element-wise whether each lane is finite into a pre-allocated
+    /// target.
+    /// </summary>
+    /// <typeparam name="T">
+    /// The element type satisfying <see cref="INumberBase{T}"/>.
+    /// </typeparam>
+    /// <param name="target">The destination span to write results into.</param>
+    /// <param name="input">The input values, one per lane.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void IsFinite<T>(Span<bool> target, ReadOnlySpan<T> input)
+        where T : INumberBase<T>
+    {
+        for (int i = 0; i < input.Length; ++i)
+            target[i] = T.IsFinite(input[i]);
+    }
+
+    /// <summary>
     /// Computes element-wise floor across all lanes into a pre-allocated target.
     /// </summary>
     /// <typeparam name="T">
@@ -1408,6 +1459,60 @@ public static class CPUMathIntrinsics
     }
 
     /// <summary>
+    /// Computes element-wise division for the active lanes into a pre-allocated
+    /// target. Inactive lanes are neither divided (their divisors may be zero)
+    /// nor written.
+    /// </summary>
+    /// <typeparam name="T">
+    /// The element type satisfying <see cref="IDivisionOperators{T,T,T}"/>.
+    /// </typeparam>
+    /// <param name="target">The destination span to write results into.</param>
+    /// <param name="left">The dividend values, one per lane.</param>
+    /// <param name="right">The divisor values, one per lane.</param>
+    /// <param name="mask">The active lanes.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void DivideMasked<T>(
+        Span<T> target,
+        ReadOnlySpan<T> left,
+        ReadOnlySpan<T> right,
+        ReadOnlySpan<bool> mask)
+        where T : IDivisionOperators<T, T, T>
+    {
+        for (int i = 0; i < left.Length; i++)
+        {
+            if (mask[i])
+                target[i] = left[i] / right[i];
+        }
+    }
+
+    /// <summary>
+    /// Computes element-wise remainder for the active lanes into a
+    /// pre-allocated target. Inactive lanes are neither divided (their
+    /// divisors may be zero) nor written.
+    /// </summary>
+    /// <typeparam name="T">
+    /// The element type satisfying <see cref="IModulusOperators{T,T,T}"/>.
+    /// </typeparam>
+    /// <param name="target">The destination span to write results into.</param>
+    /// <param name="left">The dividend values, one per lane.</param>
+    /// <param name="right">The divisor values, one per lane.</param>
+    /// <param name="mask">The active lanes.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void RemainderMasked<T>(
+        Span<T> target,
+        ReadOnlySpan<T> left,
+        ReadOnlySpan<T> right,
+        ReadOnlySpan<bool> mask)
+        where T : IModulusOperators<T, T, T>
+    {
+        for (int i = 0; i < left.Length; i++)
+        {
+            if (mask[i])
+                target[i] = left[i] % right[i];
+        }
+    }
+
+    /// <summary>
     /// Computes element-wise negation across all lanes into a pre-allocated target.
     /// </summary>
     /// <typeparam name="T">
@@ -1559,9 +1664,131 @@ public static class CPUMathIntrinsics
             target[i] = left[i] >> (int)right[i];
     }
 
+    /// <summary>
+    /// Computes element-wise left shift by per-lane int amounts across all
+    /// lanes into a pre-allocated target.
+    /// </summary>
+    /// <typeparam name="T">The integer type of the shifted values.</typeparam>
+    /// <param name="target">The destination span to write results into.</param>
+    /// <param name="left">The values to shift, one per lane.</param>
+    /// <param name="right">The shift amounts, one per lane.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void ShiftLeft<T>(
+        Span<T> target,
+        ReadOnlySpan<T> left,
+        ReadOnlySpan<int> right)
+        where T : IShiftOperators<T, int, T>
+    {
+        for (int i = 0; i < left.Length; i++)
+            target[i] = left[i] << right[i];
+    }
+
+    /// <summary>
+    /// Computes element-wise right shift by per-lane int amounts across all
+    /// lanes into a pre-allocated target. The shift is arithmetic for signed
+    /// and logical for unsigned element types.
+    /// </summary>
+    /// <typeparam name="T">The integer type of the shifted values.</typeparam>
+    /// <param name="target">The destination span to write results into.</param>
+    /// <param name="left">The values to shift, one per lane.</param>
+    /// <param name="right">The shift amounts, one per lane.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void ShiftRight<T>(
+        Span<T> target,
+        ReadOnlySpan<T> left,
+        ReadOnlySpan<int> right)
+        where T : IShiftOperators<T, int, T>
+    {
+        for (int i = 0; i < left.Length; i++)
+            target[i] = left[i] >> right[i];
+    }
+
+    /// <summary>
+    /// Computes element-wise left shift by a uniform amount across all lanes
+    /// into a pre-allocated target.
+    /// </summary>
+    /// <typeparam name="T">The integer type of the shifted values.</typeparam>
+    /// <param name="target">The destination span to write results into.</param>
+    /// <param name="left">The values to shift, one per lane.</param>
+    /// <param name="amount">The shift amount of all lanes.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void ShiftLeft<T>(
+        Span<T> target,
+        ReadOnlySpan<T> left,
+        int amount)
+        where T : IShiftOperators<T, int, T>
+    {
+        for (int i = 0; i < left.Length; i++)
+            target[i] = left[i] << amount;
+    }
+
+    /// <summary>
+    /// Computes element-wise right shift by a uniform amount across all lanes
+    /// into a pre-allocated target. The shift is arithmetic for signed and
+    /// logical for unsigned element types.
+    /// </summary>
+    /// <typeparam name="T">The integer type of the shifted values.</typeparam>
+    /// <param name="target">The destination span to write results into.</param>
+    /// <param name="left">The values to shift, one per lane.</param>
+    /// <param name="amount">The shift amount of all lanes.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void ShiftRight<T>(
+        Span<T> target,
+        ReadOnlySpan<T> left,
+        int amount)
+        where T : IShiftOperators<T, int, T>
+    {
+        for (int i = 0; i < left.Length; i++)
+            target[i] = left[i] >> amount;
+    }
+
     #endregion
 
     #region In-place Comparison Operations
+
+    /// <summary>
+    /// Computes element-wise unordered equality (true if equal or if either
+    /// operand is NaN) across all lanes into a pre-allocated target.
+    /// </summary>
+    /// <typeparam name="T">The floating-point element type.</typeparam>
+    /// <param name="target">The destination span to write results into.</param>
+    /// <param name="left">The left operand values, one per lane.</param>
+    /// <param name="right">The right operand values, one per lane.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void EqualUnordered<T>(
+        Span<bool> target,
+        ReadOnlySpan<T> left,
+        ReadOnlySpan<T> right)
+        where T : INumberBase<T>
+    {
+        for (int i = 0; i < left.Length; i++)
+        {
+            target[i] = left[i] == right[i]
+                || T.IsNaN(left[i]) || T.IsNaN(right[i]);
+        }
+    }
+
+    /// <summary>
+    /// Computes element-wise ordered inequality (false if either operand is
+    /// NaN) across all lanes into a pre-allocated target.
+    /// </summary>
+    /// <typeparam name="T">The floating-point element type.</typeparam>
+    /// <param name="target">The destination span to write results into.</param>
+    /// <param name="left">The left operand values, one per lane.</param>
+    /// <param name="right">The right operand values, one per lane.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void NotEqualOrdered<T>(
+        Span<bool> target,
+        ReadOnlySpan<T> left,
+        ReadOnlySpan<T> right)
+        where T : INumberBase<T>
+    {
+        for (int i = 0; i < left.Length; i++)
+        {
+            target[i] = left[i] != right[i]
+                && !T.IsNaN(left[i]) && !T.IsNaN(right[i]);
+        }
+    }
 
     /// <summary>
     /// Computes element-wise equality across all lanes into a pre-allocated target.
@@ -1721,6 +1948,40 @@ public static class CPUMathIntrinsics
     {
         for (int i = 0; i < input.Length; i++)
             target[i] = TTarget.CreateTruncating(input[i]);
+    }
+
+    /// <summary>
+    /// Converts each boolean to one (true) or zero (false) of the target type
+    /// into a pre-allocated target.
+    /// </summary>
+    /// <typeparam name="TTarget">The target numeric type.</typeparam>
+    /// <param name="target">The destination span to write results into.</param>
+    /// <param name="input">The input values to convert, one per lane.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void ConvertFromBool<TTarget>(
+        Span<TTarget> target,
+        ReadOnlySpan<bool> input)
+        where TTarget : INumberBase<TTarget>
+    {
+        for (int i = 0; i < input.Length; i++)
+            target[i] = input[i] ? TTarget.One : TTarget.Zero;
+    }
+
+    /// <summary>
+    /// Converts each value to true if it is non-zero into a pre-allocated
+    /// target.
+    /// </summary>
+    /// <typeparam name="TSource">The source numeric type.</typeparam>
+    /// <param name="target">The destination span to write results into.</param>
+    /// <param name="input">The input values to convert, one per lane.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void ConvertToBool<TSource>(
+        Span<bool> target,
+        ReadOnlySpan<TSource> input)
+        where TSource : INumberBase<TSource>
+    {
+        for (int i = 0; i < input.Length; i++)
+            target[i] = !TSource.IsZero(input[i]);
     }
 
     #endregion

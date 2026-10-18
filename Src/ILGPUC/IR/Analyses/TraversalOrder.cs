@@ -128,16 +128,6 @@ interface ITraversalOrder<T> where T : Value
 }
 
 /// <summary>
-/// Another view that is compatible with the current type without requiring a new
-/// computation.
-/// </summary>
-/// <typeparam name="T">The value type.</typeparam>
-/// <typeparam name="TOther">The other view.</typeparam>
-interface ICompatibleTraversalOrder<T, TOther>
-    where T : Value
-    where TOther : struct, ITraversalOrder<T>;
-
-/// <summary>
 /// A helper class for traversal.
 /// </summary>
 /// <typeparam name="T">The value type</typeparam>
@@ -261,8 +251,7 @@ static class TraversalOrder
 /// </summary>
 /// <typeparam name="T">The value type.</typeparam>
 readonly struct PreOrder<T> :
-    ITraversalOrder<T>,
-    ICompatibleTraversalOrder<T, ReversePreOrder<T>>
+    ITraversalOrder<T>
     where T : Value
 {
     /// <summary>
@@ -340,8 +329,7 @@ readonly struct PreOrder<T> :
 /// </summary>
 /// <typeparam name="T">The value type.</typeparam>
 readonly struct ReversePreOrder<T> :
-    ITraversalOrder<T>,
-    ICompatibleTraversalOrder<T, PreOrder<T>>
+    ITraversalOrder<T>
     where T : Value
 {
     /// <summary>
@@ -398,8 +386,7 @@ readonly struct ReversePreOrder<T> :
 /// </summary>
 /// <typeparam name="T">The value type.</typeparam>
 readonly struct PostOrder<T> :
-    ITraversalOrder<T>,
-    ICompatibleTraversalOrder<T, ReversePostOrder<T>>
+    ITraversalOrder<T>
     where T : Value
 {
     /// <summary>
@@ -486,8 +473,7 @@ readonly struct PostOrder<T> :
 /// </summary>
 /// <typeparam name="T">The value type.</typeparam>
 readonly struct ReversePostOrder<T> :
-    ITraversalOrder<T>,
-    ICompatibleTraversalOrder<T, PostOrder<T>>
+    ITraversalOrder<T>
     where T : Value
 {
     /// <summary>

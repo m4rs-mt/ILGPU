@@ -52,11 +52,6 @@ sealed class MethodTransform :
         BasicBlockBuilder ExitBlock)
     {
         /// <summary>
-        /// Returns the parent basic block.
-        /// </summary>
-        public BasicBlock BasicBlock => Call.BasicBlock;
-
-        /// <summary>
         /// Returns all call argument values.
         /// </summary>
         public ReadOnlySpan<Value> Arguments => Call.Arguments;
@@ -187,19 +182,6 @@ sealed class MethodTransform :
     PureValueBuilder IRewriter<PureValueBuilder>.Builder => this;
 
     /// <summary>
-    /// Returns the CFG of the old source method.
-    /// </summary>
-    public CFG<ReversePostOrder<BasicBlock>, Forwards> CFG => _cfg.Value;
-
-    /// <summary>
-    /// Returns true if the given basic block value has been remapped.
-    /// </summary>
-    /// <param name="basicBlockValue">The basic block value to test.</param>
-    /// <returns>True if the given value has been remapped.</returns>
-    public bool IsRemapped(BasicBlockValue basicBlockValue) =>
-        _prevMapping.ContainsKey(basicBlockValue);
-
-    /// <summary>
     /// Creates a new block transform.
     /// </summary>
     protected override BasicBlockBuilder CreateBasicBlockBuilder(
@@ -286,17 +268,11 @@ sealed class MethodTransform :
             {
                 return cached is null ? null : Rewrite(cached);
             }
-            // Step 2: Identity cache — already confirmed up-to-date.
-            // Guard with generation check: TypeValue.Equals uses structural
-            // equality (same fields/offsets), so a Gen_N type can match a
-            // Gen_N+1 type in the set. Only trust the cache for current-gen.
-            if (oldValue.Generation == Generation
-                && _resolvedIdentity.Contains(oldValue))
-            {
-                return oldValue;
-            }
-
-            // Step 3: BasicBlock (phi source) — check split redirect, else as-is
+            // Step 2: BasicBlock (phi source) — check split redirect, else as-is.
+            // This must precede the identity cache: a block can be cached as
+            // an identity while redirects are disabled (successor resolution)
+            // and must still follow its redirect when resolving phi sources,
+            // e.g. for the back edge of a split single-block loop.
             if (oldValue is BasicBlock bb)
             {
                 // When a block has been split by SpecializeMethodCall, phi sources
@@ -313,6 +289,16 @@ sealed class MethodTransform :
                 }
 
                 _resolvedIdentity.Add(oldValue);
+                return oldValue;
+            }
+
+            // Step 3: Identity cache — already confirmed up-to-date.
+            // Guard with generation check: TypeValue.Equals uses structural
+            // equality (same fields/offsets), so a Gen_N type can match a
+            // Gen_N+1 type in the set. Only trust the cache for current-gen.
+            if (oldValue.Generation == Generation
+                && _resolvedIdentity.Contains(oldValue))
+            {
                 return oldValue;
             }
 
@@ -465,11 +451,12 @@ sealed class MethodTransform :
                     .AsNotNullCast<BasicBlockTransform>();
             }
 
-            // PhiValues need special rebuild: resolved arguments may have
-            // different types than the phi's declared type (e.g., after
-            // InferAddressSpaces changes address spaces). Standard
-            // PhiValue.Rewrite asserts type equality via Equals. We
-            // rebuild manually and skip arguments whose types diverge.
+            // PhiValues need a special rebuild: the replacement has to be
+            // registered before the arguments are resolved (see below).
+            // Every argument must keep the type of the phi. Transformations
+            // that change the type of a value must convert it back for all
+            // phis that keep their type (see InferAddressSpaces), as dropping
+            // the argument would silently change the program.
             if (bbv is PhiValue phiV)
             {
                 var scope = blockTransform.PushLastValue(null);
@@ -492,12 +479,13 @@ sealed class MethodTransform :
                     var argument = Rewrite(phiV.Arguments[i]);
                     if (argument is null) continue;
 
-                    // Only add arguments whose type matches the phi type
-                    // (structural equality via Equals). Arguments with
-                    // divergent types are dropped — the phi may end up
-                    // with fewer arguments, which is valid.
-                    if (argument.Type.Equals(newPhiType))
-                        phiBuilder.AddArgument(newSource, argument);
+                    if (!argument.Type.Equals(newPhiType))
+                    {
+                        throw phiV.Location.GetInvalidOperationException(
+                            $"Phi argument {argument} does not have the " +
+                            $"phi type {newPhiType}");
+                    }
+                    phiBuilder.AddArgument(newSource, argument);
                 }
 
                 newValue = phiBuilder.Seal();

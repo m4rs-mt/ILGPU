@@ -914,8 +914,8 @@ sealed class CompiledKernelGenerator : DisposeBase
                     // matched types.
                     //
                     // User struct flattened to a primitive by IR transforms
-                    // (e.g. ClosureElimination collapses a single-long
-                    // closure into a long) needs a bitwise reinterpret —
+                    // (e.g. a single-long closure collapses into a long)
+                    // needs a bitwise reinterpret —
                     // a plain `(long)closure` cast does not compile because
                     // there is no user-defined conversion. Detect this by
                     // checking whether the launch type name is a C#
@@ -1050,6 +1050,7 @@ sealed class CompiledKernelGenerator : DisposeBase
             SimdWidth = _simdWidth,
             BufferPool = _compiled.BufferPool,
             ActiveEmbedMode = _effectiveEmbedMode,
+            MathMode = _module.MathMode,
             KernelSourceCode = _compiled.SourceCode,
         };
 

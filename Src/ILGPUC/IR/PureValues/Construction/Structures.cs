@@ -205,17 +205,6 @@ partial class PureValueBuilder
     /// Creates a new dynamic structure instance.
     /// </summary>
     /// <param name="location">The current location.</param>
-    /// <param name="values">The initial values.</param>
-    /// <returns>The created structure instance.</returns>
-    public Value CreateDynamicStructure(
-        Location location,
-        ref ValueBuilderList values) =>
-        new StructureValue.DynamicBuilder(this, location, ref values).Seal();
-
-    /// <summary>
-    /// Creates a new dynamic structure instance.
-    /// </summary>
-    /// <param name="location">The current location.</param>
     /// <param name="item1">The first item.</param>
     /// <param name="item2">The second item.</param>
     /// <returns>The created structure instance value.</returns>
@@ -224,27 +213,6 @@ partial class PureValueBuilder
         var builder = CreateDynamicStructure(location, 2);
         builder.Add(item1);
         builder.Add(item2);
-        return builder.Seal();
-    }
-
-    /// <summary>
-    /// Creates a new dynamic structure instance.
-    /// </summary>
-    /// <param name="location">The current location.</param>
-    /// <param name="item1">The first item.</param>
-    /// <param name="item2">The second item.</param>
-    /// <param name="item3">The third item.</param>
-    /// <returns>The created structure instance value.</returns>
-    public Value CreateDynamicStructure(
-        Location location,
-        Value item1,
-        Value item2,
-        Value item3)
-    {
-        var builder = CreateDynamicStructure(location, 3);
-        builder.Add(item1);
-        builder.Add(item2);
-        builder.Add(item3);
         return builder.Seal();
     }
 
@@ -449,97 +417,6 @@ partial class PureValueBuilder
                 objectValue,
                 fieldSpan,
                 value));
-    }
-
-    /// <summary>
-    /// Assembles a structure value using the lowering provided.
-    /// </summary>
-    /// <typeparam name="TValue">The value type.</typeparam>
-    /// <param name="structureType">The structure type to use.</param>
-    /// <param name="value">The source value.</param>
-    /// <param name="lowering">The lowering functionality.</param>
-    /// <returns>The assembled structure value.</returns>
-    public Value AssembleStructure<TValue>(
-        StructureType structureType,
-        TValue value,
-        Func<TValue, FieldAccess, Value> lowering)
-        where TValue : Value
-    {
-        var instance = CreateStructure(value.Location, structureType);
-
-        // Invoke the lowering implementation for all fields
-        for (int i = 0, e = structureType.NumFields; i < e; ++i)
-        {
-            // Invoke lowering implementation
-            instance.Add(lowering(value, new FieldAccess(i)));
-        }
-
-        // Create new structure instance
-        return instance.Seal();
-    }
-    /// <summary>
-    /// Disassembled a structure value using the lowering provided.
-    /// </summary>
-    /// <typeparam name="TValue">The value type.</typeparam>
-    /// <param name="structureType">The structure type to use.</param>
-    /// <param name="value">The source value.</param>
-    /// <param name="lowering">The lowering functionality.</param>
-    public void DisassembleStructure<TValue>(
-        StructureType structureType,
-        TValue value,
-        Action<TValue, Value, FieldAccess> lowering)
-        where TValue : Value
-    {
-        // Invoke the lowering implementation for all fields
-        for (int i = 0, e = structureType.NumFields; i < e; ++i)
-        {
-            var access = new FieldAccess(i);
-            var getField = CreateGetField(
-                value.Location,
-                value,
-                new FieldSpan(access)).AsNotNull();
-
-            // Invoke lowering implementation
-            lowering(value, getField, new FieldAccess(i));
-        }
-    }
-
-    /// <summary>
-    /// Lowers the given value by applying the lowering provided to each field value.
-    /// Primitive values will be lowered once.
-    /// </summary>
-    /// <typeparam name="TValue">The value type.</typeparam>
-    /// <param name="source">The source value.</param>
-    /// <param name="variable">The variable value.</param>
-    /// <param name="lowering">The lowering functionality.</param>
-    /// <returns>The assembled structure value holding the result value.</returns>
-    public Value LowerValue<TValue>(
-        TValue source,
-        Value variable,
-        Func<TValue, Value, Value> lowering)
-        where TValue : Value
-    {
-        if (source.Type is PrimitiveType)
-        {
-            return lowering(source, source);
-        }
-        else
-        {
-            var structureType = source.Type.As<StructureType>();
-            return AssembleStructure(
-                structureType,
-                source,
-                (_, access) =>
-                {
-                    // Extract field information
-                    var getField = CreateGetField(
-                        source.Location,
-                        variable,
-                        new FieldSpan(access)).AsNotNull();
-                    var result = lowering(source, getField);
-                    return result;
-                });
-        }
     }
 
     /// <summary>

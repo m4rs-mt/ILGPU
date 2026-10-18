@@ -67,10 +67,4 @@ sealed partial class Parameter(
 
     /// <inheritdoc cref="Value.ToArgString()"/>
     protected override string ToArgString() => $"{Type} @ {Method.ToReferenceString()}";
-
-    /// <summary>
-    /// Return the parameter string.
-    /// </summary>
-    /// <returns>The parameter string.</returns>
-    internal string ToParameterString() => $"{Type} {ToReferenceString()}";
 }

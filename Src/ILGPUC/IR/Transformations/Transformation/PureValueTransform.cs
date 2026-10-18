@@ -55,17 +55,6 @@ sealed class PureValueTransform(MethodTransform transform) :
     public Value? Rewrite(Value oldValue) =>
         transform.Rewrite(oldValue);
 
-    /// <summary>
-    /// Replaces the specified value with the given value during rewriting.
-    /// </summary>
-    /// <param name="oldValue">The old value to replace.</param>
-    /// <param name="value">The new value to replace it with.</param>
-    public void Replace(Value<Method>? oldValue, Value? value)
-    {
-        if (oldValue is not null)
-            transform.Replace(oldValue, value);
-    }
-
     /// <inheritdoc/>
     public bool TryGetReplaced(Value? oldValue, out Value? newValue) =>
         transform.TryGetReplaced(oldValue, out newValue);

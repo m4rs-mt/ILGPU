@@ -58,33 +58,6 @@ enum AddressSpaceFlags : int
 readonly struct AddressSpaceInfo(AddressSpaceFlags flags) : IEquatable<AddressSpaceInfo>
 {
     /// <summary>
-    /// Iterates over all internally stored address spaces.
-    /// </summary>
-    internal struct Enumerator(AddressSpaceInfo info)
-    {
-        private int index = -1;
-
-        /// <summary>
-        /// Returns the current address space.
-        /// </summary>
-        public MemoryAddressSpace Current { get; private set; } =
-            MemoryAddressSpace.Generic;
-
-        /// <summary cref="IEnumerator.MoveNext"/>
-        public bool MoveNext()
-        {
-            do
-            {
-                Current = (MemoryAddressSpace)(++index);
-                if (info.HasAddressSpace(Current))
-                    return true;
-            }
-            while (index <= (int)MemoryAddressSpace.Local);
-            return false;
-        }
-    }
-
-    /// <summary>
     /// Determines an address-space information instance based on type
     /// information.
     /// </summary>
@@ -202,12 +175,6 @@ readonly struct AddressSpaceInfo(AddressSpaceFlags flags) : IEquatable<AddressSp
         Flags == other.Flags;
 
     /// <summary>
-    /// Returns an enumerator to iterate over all address spaces.
-    /// </summary>
-    /// <returns>The enumerator instance.</returns>
-    public readonly Enumerator GetEnumerator() => new(this);
-
-    /// <summary>
     /// Returns true if the given object is equal to the current instance.
     /// </summary>
     /// <param name="obj">The other object.</param>
@@ -292,11 +259,6 @@ readonly struct AddressSpaceResults(FixPointAnalysisResult<AddressSpaceInfo>? re
     public AddressSpaceInfo this[Value value] => result?.GetResult(value).Data ?? default;
 
     /// <summary>
-    /// Returns true if this address space information object is empty.
-    /// </summary>
-    public bool IsEmpty => !result.HasValue;
-
-    /// <summary>
     /// Returns the unified address space for the given value.
     /// </summary>
     /// <param name="value">The value to get the unified address space for.</param>
@@ -342,33 +304,11 @@ sealed class PointerAddressSpaces(PointerAddressSpaces.AnalysisFlags flags) :
     }
 
     /// <summary>
-    /// Creates a new pointer analysis instance using the default analysis flags.
-    /// </summary>
-    /// <returns>The created analysis instance.</returns>
-    public static PointerAddressSpaces Create() =>
-        Create(AnalysisFlags.None);
-
-    /// <summary>
     /// Creates a new pointer analysis instance.
     /// </summary>
     /// <param name="flags">The analysis flags.</param>
     /// <returns>The created analysis instance.</returns>
     public static PointerAddressSpaces Create(AnalysisFlags flags) => new(flags);
-
-    /// <summary>
-    /// Applies address space analysis to a single method.
-    /// </summary>
-    /// <param name="method">The method to analyze.</param>
-    /// <param name="flags">The analysis flags.</param>
-    /// <returns>Address space analysis results.</returns>
-    public static AddressSpaceResults AnalyzeMethod(
-        Method method,
-        AnalysisFlags flags = AnalysisFlags.None)
-    {
-        var analysis = Create(flags);
-        var result = analysis.AnalyzeMethod(method.Blocks);
-        return new AddressSpaceResults(result);
-    }
 
     /// <summary>
     /// Applies address space analysis to an entire module starting from an entry point.

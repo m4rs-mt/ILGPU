@@ -702,10 +702,10 @@ namespace ILGPUC.Frontend
                     AppendInstruction(ILInstructionType.Rethrow);
                     return true;
                 case ILOpCode.Leave_S:
-                    AppendInstruction(ILInstructionType.Leave, new ILInstructionBranchTargets(ReadShortBranchTarget(), _ilOffset));
+                    AppendInstruction(ILInstructionType.Leave, new ILInstructionBranchTargets(ReadShortBranchTarget()));
                     return true;
                 case ILOpCode.Leave:
-                    AppendInstruction(ILInstructionType.Leave, new ILInstructionBranchTargets(ReadBranchTarget(), _ilOffset));
+                    AppendInstruction(ILInstructionType.Leave, new ILInstructionBranchTargets(ReadBranchTarget()));
                     return true;
                 case ILOpCode.Endfinally:
                     AppendInstruction(ILInstructionType.EndFinally);

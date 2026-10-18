@@ -89,8 +89,8 @@ sealed partial class CompareValue : PureValue
         BasicValueType rightType,
         ref CompareFlags flags)
     {
-        // If the comparison was swapped or inverted, and we are comparing floats,
-        // toggle between ordered/unordered float comparisons
+        // If the comparison was inverted, and we are comparing floats, toggle
+        // between ordered/unordered float comparisons
         if (kind != newKind && leftType.IsFloat() && rightType.IsFloat())
             flags ^= CompareFlags.UnsignedOrUnordered;
         return newKind;
@@ -125,25 +125,17 @@ sealed partial class CompareValue : PureValue
     /// <param name="rightType">The basic value type of the right operand.</param>
     /// <param name="flags">The compare flags that might be adjusted.</param>
     /// <returns>The adjusted compare kind.</returns>
+    /// <remarks>
+    /// Swapping the operands preserves the ordered/unordered semantics of float
+    /// comparisons (a &lt; b is equivalent to b &gt; a), so the flags remain
+    /// unchanged.
+    /// </remarks>
     public static CompareKind SwapOperands(
         CompareKind kind,
         BasicValueType leftType,
         BasicValueType rightType,
         ref CompareFlags flags) =>
-        UpdateFlags(
-            kind,
-            Swapped[(int)kind],
-            leftType,
-            rightType,
-            ref flags);
-
-    /// <summary>
-    /// Returns true if the given kind is commutative.
-    /// </summary>
-    /// <param name="kind">The compare kind.</param>
-    /// <returns>True, if the given kind is commutative.</returns>
-    public static bool IsCommutative(CompareKind kind) =>
-        kind <= CompareKind.NotEqual;
+        Swapped[(int)kind];
 
     #endregion
 

@@ -11,6 +11,7 @@
 
 using ILGPUC.IR;
 using ILGPUC.IR.ModuleValues;
+using System;
 using System.Collections.Generic;
 using System.Text;
 
@@ -44,7 +45,7 @@ sealed class MetalLanguageConfiguration : LanguageConfiguration
             BasicValueType.Int64 => "long",
             BasicValueType.Float16 => "half",
             BasicValueType.Float32 => "float",
-            BasicValueType.Float64 => "double",
+            BasicValueType.Float64 => throw DoubleNotSupported(),
             _ => "void"
         };
 
@@ -59,16 +60,13 @@ sealed class MetalLanguageConfiguration : LanguageConfiguration
             ArithmeticBasicValueType.Int64 => "long",
             ArithmeticBasicValueType.Float16 => "half",
             ArithmeticBasicValueType.Float32 => "float",
-            ArithmeticBasicValueType.Float64 => "double",
+            ArithmeticBasicValueType.Float64 => throw DoubleNotSupported(),
             ArithmeticBasicValueType.UInt8 => "uchar",
             ArithmeticBasicValueType.UInt16 => "ushort",
             ArithmeticBasicValueType.UInt32 => "uint",
             ArithmeticBasicValueType.UInt64 => "ulong",
             _ => "void"
         };
-
-    /// <inheritdoc/>
-    public override string PointerSyntax => "*";
 
     /// <inheritdoc/>
     public override bool SupportsFeature(LanguageFeature feature) =>
@@ -88,7 +86,44 @@ sealed class MetalLanguageConfiguration : LanguageConfiguration
     {
         yield return "#include <metal_stdlib>";
         yield return "using namespace metal;";
+
+        // Scoped memory fences require Metal 3.2; older language versions
+        // fall back to a threadgroup barrier with device and threadgroup
+        // memory ordering.
+        yield return "#if __METAL_VERSION__ >= 320";
+        yield return "#define ILGPU_THREAD_FENCE(scope) atomic_thread_fence(" +
+            "mem_flags::mem_device | mem_flags::mem_threadgroup, " +
+            "memory_order_seq_cst, scope)";
+        yield return "#else";
+        yield return "#define ILGPU_THREAD_FENCE(scope) threadgroup_barrier(" +
+            "mem_flags::mem_device | mem_flags::mem_threadgroup)";
+        yield return "#endif";
+
+        // Strong compare-and-swap returning the previous value. Metal only
+        // provides the weak variant, which may fail spuriously and reports
+        // success as a bool; retry until the comparison genuinely fails or
+        // the exchange succeeds.
+        foreach (var space in new[] { "device", "threadgroup" })
+        {
+            yield return
+                $"inline int ilgpu_atomic_cas({space} atomic_int* ptr, " +
+                "int compare, int value) {";
+            yield return "    int expected = compare;";
+            yield return "    while (!atomic_compare_exchange_weak_explicit(" +
+                "ptr, &expected, value, memory_order_relaxed, " +
+                "memory_order_relaxed) && expected == compare) { }";
+            yield return "    return expected;";
+            yield return "}";
+        }
     }
+
+    /// <summary>
+    /// Creates the compile-time error for 64-bit floats, which Metal does not
+    /// support.
+    /// </summary>
+    private static NotSupportedException DoubleNotSupported() =>
+        new("Metal does not support 64-bit floating-point values (double); " +
+            "use float instead.");
 
     /// <inheritdoc/>
     public override string KernelAttribute => "kernel";
@@ -128,6 +163,14 @@ sealed class MetalLanguageConfiguration : LanguageConfiguration
     /// </remarks>
     /// <inheritdoc/>
     public override bool UsesCStyleStructLiterals => true;
+
+    /// <inheritdoc/>
+    /// <remarks>The thread position attributes are uint.</remarks>
+    public override bool HasUnsignedThreadBuiltIns => true;
+
+    /// <inheritdoc/>
+    public override string? FormatFieldAlignment(int alignment) =>
+        $" __attribute__((aligned({alignment})))";
 
     /// <inheritdoc/>
     public override bool SkipsIndexParameter => true;

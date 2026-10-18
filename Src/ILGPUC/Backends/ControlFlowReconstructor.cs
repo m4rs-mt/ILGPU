@@ -241,6 +241,22 @@ sealed class ControlFlowReconstructor(Method method)
         }
 
         var header = loop.Headers[0];
+
+        // A loop whose header does not end in a conditional branch has no
+        // condition value that while/do-while/for classification could use.
+        // ClassifyLoop would fall back to a boolean `true` literal from the
+        // entry block as a placeholder condition — but when no such literal
+        // exists, it used to hand a null condition to WhileLoop, which NREs
+        // in the emitters. Classify such loops as an unstructured region
+        // instead: the state machine handles arbitrary exits without
+        // needing a condition value and is supported by every emitter.
+        if (header.TerminationKind != BlockTerminationKind.Conditional
+            && FindTrueLiteral() is null)
+        {
+            ReconstructIrreducibleRegion(loop, structure);
+            return;
+        }
+
         _processedBlocks.Add(header);
 
         // Get loop body blocks. Process from the header's non-exit
@@ -277,9 +293,16 @@ sealed class ControlFlowReconstructor(Method method)
     {
         // Extract the loop condition from the header terminator
         Value? condition = null;
+        bool isConditionInverted = false;
         if (header.TerminationKind == BlockTerminationKind.Conditional)
         {
             condition = header.TerminationCondition;
+
+            // The header may leave the loop on true and stay on false; the
+            // continue condition is then the negated branch condition.
+            var view = header.AsConditionalView();
+            isConditionInverted = !loop.Contains(view.TrueTarget)
+                && loop.Contains(view.FalseTarget);
         }
 
         // Check if this is a do-while loop (back edge directly to header
@@ -310,7 +333,10 @@ sealed class ControlFlowReconstructor(Method method)
             if (inductionVar.HasValue
                 && IsConditionDefinedOutsideBody(condition, loop, header))
                 return new ForLoop(loop, body, inductionVar.Value, condition,
-                    isSelfLoop);
+                    isSelfLoop)
+                {
+                    IsConditionInverted = isConditionInverted
+                };
         }
 
         if (condition != null)
@@ -320,24 +346,46 @@ sealed class ControlFlowReconstructor(Method method)
             // checked). Emitting them as `while (cond) { body }` is wrong
             // because `cond` references SSA values defined inside the body.
             if (isDoWhile || isSelfLoop)
-                return new DoWhileLoop(loop, body, condition, isSelfLoop);
+                return new DoWhileLoop(loop, body, condition, isSelfLoop)
+                {
+                    IsConditionInverted = isConditionInverted
+                };
             else
-                return new WhileLoop(loop, body, condition);
+                return new WhileLoop(loop, body, condition)
+                {
+                    IsConditionInverted = isConditionInverted
+                };
         }
 
-        // Default to while loop if no specific pattern is detected
-        // Use a constant true condition as a placeholder
-        Value? trueCondition = null;
+        // Default to while loop if no specific pattern is detected, using a
+        // constant true literal as a placeholder condition. This point is
+        // only reached with condition == null (a non-null condition always
+        // returns above), and ReconstructLoop lowers loops without a
+        // conditional header terminator to an unstructured region when no
+        // true literal exists — so the literal is guaranteed to be found.
+        var trueCondition = FindTrueLiteral();
+        return new WhileLoop(loop, body, trueCondition!);
+    }
+
+    /// <summary>
+    /// Finds a boolean <c>true</c> literal in the method's entry block that
+    /// can serve as a placeholder loop condition, or <see langword="null"/>
+    /// when none exists. Kept in sync between <see cref="ReconstructLoop"/>
+    /// (which uses it to decide whether classification is possible at all)
+    /// and <see cref="ClassifyLoop"/> (which uses the found literal).
+    /// </summary>
+    private PrimitiveValue? FindTrueLiteral()
+    {
         foreach (var value in method.EntryBlock.Values)
         {
-            if (value is PrimitiveValue prim && prim.Int1Value)
+            if (value is PrimitiveValue prim
+                && prim.BasicValueType == BasicValueType.Int1
+                && prim.Int1Value)
             {
-                trueCondition = prim;
-                break;
+                return prim;
             }
         }
-
-        return new WhileLoop(loop, body, trueCondition ?? condition!);
+        return null;
     }
 
     /// <summary>
@@ -671,6 +719,13 @@ abstract class LoopStatement(
     /// Returns the body.
     /// </summary>
     public ControlFlowStructure Body { get; } = body;
+
+    /// <summary>
+    /// Returns true if the loop condition holds when the loop exits rather than
+    /// when it continues (the header branches to the exit on true). Emitters
+    /// must negate the condition to obtain the continue condition.
+    /// </summary>
+    public bool IsConditionInverted { get; init; }
 }
 
 /// <summary>

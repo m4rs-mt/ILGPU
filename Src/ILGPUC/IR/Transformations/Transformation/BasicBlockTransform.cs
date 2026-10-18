@@ -74,10 +74,6 @@ sealed class BasicBlockTransform :
     BasicBlockBuilder IRewriter<BasicBlockBuilder>.Builder => this;
 
     /// <inheritdoc/>
-    public bool IsRemapped(BasicBlockValue basicBlockValue) =>
-        _parent.IsRemapped(basicBlockValue);
-
-    /// <inheritdoc/>
     public bool IsReplacedOrRemoved(Value? oldValue) =>
         _parent.IsReplacedOrRemoved(oldValue);
 

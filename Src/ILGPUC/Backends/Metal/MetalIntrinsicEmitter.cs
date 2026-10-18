@@ -90,6 +90,13 @@ sealed class MetalIntrinsicEmitter : IntrinsicEmitter
         $"metal::pow({x}, {y})";
 
     /// <inheritdoc/>
+    public override string? EmitFloatRem(
+        string x,
+        string y,
+        ArithmeticBasicValueType type) =>
+        $"metal::fmod({x}, {y})";
+
+    /// <inheritdoc/>
     public override string EmitPopCount(string arg, ArithmeticBasicValueType type) =>
         $"(int)popcount({arg})";
 
@@ -117,11 +124,38 @@ sealed class MetalIntrinsicEmitter : IntrinsicEmitter
 
     /// <inheritdoc/>
     public override string EmitMin(string arg1, string arg2, ArithmeticBasicValueType type) =>
-        $"metal::min({arg1}, {arg2})";
+        EmitMinMax("min", "<", arg1, arg2, type);
 
     /// <inheritdoc/>
     public override string EmitMax(string arg1, string arg2, ArithmeticBasicValueType type) =>
-        $"metal::max({arg1}, {arg2})";
+        EmitMinMax("max", ">", arg1, arg2, type);
+
+    /// <summary>
+    /// Emits a min/max operation. Unsigned values are stored in signed
+    /// variables, so unsigned operands are cast to select the unsigned
+    /// overload. 64-bit integers use a conditional expression since the
+    /// metal::min/max overloads for them are ambiguous.
+    /// </summary>
+    private static string EmitMinMax(
+        string function,
+        string comparison,
+        string arg1,
+        string arg2,
+        ArithmeticBasicValueType type)
+    {
+        var unsignedType = type switch
+        {
+            ArithmeticBasicValueType.UInt8 => "uchar",
+            ArithmeticBasicValueType.UInt16 => "ushort",
+            ArithmeticBasicValueType.UInt32 => "uint",
+            ArithmeticBasicValueType.UInt64 => "ulong",
+            _ => null
+        };
+        var cast = unsignedType is null ? string.Empty : $"({unsignedType})";
+        if (type is ArithmeticBasicValueType.Int64 or ArithmeticBasicValueType.UInt64)
+            return $"({cast}({arg1}) {comparison} {cast}({arg2}) ? ({arg1}) : ({arg2}))";
+        return $"metal::{function}({cast}({arg1}), {cast}({arg2}))";
+    }
 
     /// <inheritdoc/>
     public override string EmitFloor(string arg, ArithmeticBasicValueType type) =>
@@ -130,22 +164,6 @@ sealed class MetalIntrinsicEmitter : IntrinsicEmitter
     /// <inheritdoc/>
     public override string EmitCeil(string arg, ArithmeticBasicValueType type) =>
         $"metal::ceil({arg})";
-
-    /// <inheritdoc/>
-    public override string EmitTrunc(string arg, ArithmeticBasicValueType type) =>
-        $"metal::trunc({arg})";
-
-    /// <inheritdoc/>
-    public override string EmitRound(string arg, ArithmeticBasicValueType type) =>
-        $"metal::round({arg})";
-
-    /// <inheritdoc/>
-    public override string EmitClamp(
-        string value,
-        string min,
-        string max,
-        ArithmeticBasicValueType type) =>
-        $"metal::clamp({value}, {min}, {max})";
 
     /// <inheritdoc/>
     public override string EmitMultiplyAdd(
@@ -159,14 +177,19 @@ sealed class MetalIntrinsicEmitter : IntrinsicEmitter
 
     #region Atomic Operations
 
+    // Metal supports 32-bit integer atomics and float add/exchange. Unsigned
+    // values are stored in signed variables; min/max use atomic_uint to
+    // select the unsigned comparison. Other float atomics are lowered to
+    // compare-and-swap loops before code generation. Metal has no 64-bit
+    // atomic arithmetic or compare-and-swap.
+
     /// <inheritdoc/>
     public override string EmitAtomicAdd(
         string ptr,
         string value,
         ArithmeticBasicValueType type,
         MemoryAddressSpace addressSpace) =>
-        "atomic_fetch_add_explicit(" +
-        $"{AtomicCast(addressSpace, type)}{ptr}, {value}, memory_order_relaxed)";
+        EmitAtomic("atomic_fetch_add_explicit", "add", ptr, value, type, addressSpace);
 
     /// <inheritdoc/>
     public override string EmitAtomicExchange(
@@ -174,8 +197,7 @@ sealed class MetalIntrinsicEmitter : IntrinsicEmitter
         string value,
         ArithmeticBasicValueType type,
         MemoryAddressSpace addressSpace) =>
-        "atomic_exchange_explicit(" +
-        $"{AtomicCast(addressSpace, type)}{ptr}, {value}, memory_order_relaxed)";
+        EmitAtomic("atomic_exchange_explicit", "exchange", ptr, value, type, addressSpace);
 
     /// <inheritdoc/>
     public override string EmitAtomicCAS(
@@ -183,10 +205,20 @@ sealed class MetalIntrinsicEmitter : IntrinsicEmitter
         string compare,
         string value,
         ArithmeticBasicValueType type,
-        MemoryAddressSpace addressSpace) =>
-        "atomic_compare_exchange_weak_explicit(" +
-        $"{AtomicCast(addressSpace, type)}{ptr}, &{compare}, {value}, " +
-        "memory_order_relaxed, memory_order_relaxed)";
+        MemoryAddressSpace addressSpace)
+    {
+        // ilgpu_atomic_cas is defined in the source header
+        var cast = $"({GetAddressSpaceQualifier(addressSpace)} atomic_int*)";
+        return type switch
+        {
+            ArithmeticBasicValueType.Int32 or ArithmeticBasicValueType.UInt32 =>
+                $"ilgpu_atomic_cas({cast}({ptr}), {compare}, {value})",
+            ArithmeticBasicValueType.Float32 =>
+                $"as_type<float>(ilgpu_atomic_cas({cast}({ptr}), " +
+                $"as_type<int>({compare}), as_type<int>({value})))",
+            _ => throw UnsupportedAtomic("compare-exchange", type)
+        };
+    }
 
     /// <inheritdoc/>
     public override string EmitAtomicMin(
@@ -194,8 +226,7 @@ sealed class MetalIntrinsicEmitter : IntrinsicEmitter
         string value,
         ArithmeticBasicValueType type,
         MemoryAddressSpace addressSpace) =>
-        "atomic_fetch_min_explicit(" +
-        $"{AtomicCast(addressSpace, type)}{ptr}, {value}, memory_order_relaxed)";
+        EmitAtomic("atomic_fetch_min_explicit", "min", ptr, value, type, addressSpace);
 
     /// <inheritdoc/>
     public override string EmitAtomicMax(
@@ -203,8 +234,7 @@ sealed class MetalIntrinsicEmitter : IntrinsicEmitter
         string value,
         ArithmeticBasicValueType type,
         MemoryAddressSpace addressSpace) =>
-        "atomic_fetch_max_explicit(" +
-        $"{AtomicCast(addressSpace, type)}{ptr}, {value}, memory_order_relaxed)";
+        EmitAtomic("atomic_fetch_max_explicit", "max", ptr, value, type, addressSpace);
 
     /// <inheritdoc/>
     public override string EmitAtomicAnd(
@@ -212,8 +242,7 @@ sealed class MetalIntrinsicEmitter : IntrinsicEmitter
         string value,
         ArithmeticBasicValueType type,
         MemoryAddressSpace addressSpace) =>
-        "atomic_fetch_and_explicit(" +
-        $"{AtomicCast(addressSpace, type)}{ptr}, {value}, memory_order_relaxed)";
+        EmitAtomic("atomic_fetch_and_explicit", "and", ptr, value, type, addressSpace);
 
     /// <inheritdoc/>
     public override string EmitAtomicOr(
@@ -221,8 +250,7 @@ sealed class MetalIntrinsicEmitter : IntrinsicEmitter
         string value,
         ArithmeticBasicValueType type,
         MemoryAddressSpace addressSpace) =>
-        "atomic_fetch_or_explicit(" +
-        $"{AtomicCast(addressSpace, type)}{ptr}, {value}, memory_order_relaxed)";
+        EmitAtomic("atomic_fetch_or_explicit", "or", ptr, value, type, addressSpace);
 
     /// <inheritdoc/>
     public override string EmitAtomicXor(
@@ -230,41 +258,51 @@ sealed class MetalIntrinsicEmitter : IntrinsicEmitter
         string value,
         ArithmeticBasicValueType type,
         MemoryAddressSpace addressSpace) =>
-        "atomic_fetch_xor_explicit(" +
-        $"{AtomicCast(addressSpace, type)}{ptr}, {value}, memory_order_relaxed)";
+        EmitAtomic("atomic_fetch_xor_explicit", "xor", ptr, value, type, addressSpace);
 
     /// <summary>
-    /// Builds the leading address-space-qualified pointer cast used inside
-    /// every <c>atomic_*_explicit</c> call. Mirrors
-    /// <see cref="MetalLanguageConfiguration.GetAddressSpaceKeyword"/> so
-    /// shared-memory atomics emit <c>(threadgroup atomic_int*)</c> instead
-    /// of the cross-address-space <c>(device atomic_int*)</c> cast that
-    /// Metal rejects.
+    /// Emits a relaxed <c>atomic_*_explicit</c> call on the atomic type that
+    /// matches the operand type and the target address space.
     /// </summary>
-    private static string AtomicCast(
-        MemoryAddressSpace addressSpace,
+    private static string EmitAtomic(
+        string function,
+        string operation,
+        string ptr,
+        string value,
+        ArithmeticBasicValueType type,
+        MemoryAddressSpace addressSpace)
+    {
+        var atomicType = (type, operation) switch
+        {
+            (ArithmeticBasicValueType.Int32, _) => "atomic_int",
+            (ArithmeticBasicValueType.UInt32, "min" or "max") => "atomic_uint",
+            (ArithmeticBasicValueType.UInt32, _) => "atomic_int",
+            (ArithmeticBasicValueType.Float32, "add" or "exchange") => "atomic_float",
+            _ => throw UnsupportedAtomic(operation, type)
+        };
+        var valueCast = atomicType == "atomic_uint" ? $"(uint)({value})" : value;
+        return $"{function}(({GetAddressSpaceQualifier(addressSpace)} {atomicType}*)" +
+            $"({ptr}), {valueCast}, memory_order_relaxed)";
+    }
+
+    /// <summary>
+    /// Creates the compile-time error for atomics Metal cannot express.
+    /// </summary>
+    private static NotSupportedException UnsupportedAtomic(
+        string operation,
         ArithmeticBasicValueType type) =>
-        $"({GetAddressSpaceQualifier(addressSpace)} {GetAtomicType(type)}*)";
+        new(type is ArithmeticBasicValueType.Int64 or
+                ArithmeticBasicValueType.UInt64 or
+                ArithmeticBasicValueType.Float64
+            ? $"Atomic {operation} on 64-bit type {type} is not supported by Metal"
+            : $"Atomic {operation} is not supported for type {type} in Metal");
 
     private static string GetAddressSpaceQualifier(MemoryAddressSpace addressSpace) =>
         addressSpace switch
         {
             MemoryAddressSpace.Shared => "threadgroup",
             MemoryAddressSpace.Local => "thread",
-            MemoryAddressSpace.Constant => "constant",
             _ => "device",
-        };
-
-    /// <inheritdoc/>
-    private static string GetAtomicType(ArithmeticBasicValueType type) =>
-        type switch
-        {
-            ArithmeticBasicValueType.Int32 => "atomic_int",
-            ArithmeticBasicValueType.Int64 => "atomic_long",
-            ArithmeticBasicValueType.Int8 => "atomic_char",
-            ArithmeticBasicValueType.Int16 => "atomic_short",
-            _ => throw new NotSupportedException(
-                $"Atomic operations not supported for type {type}")
         };
 
     #endregion
@@ -307,7 +345,43 @@ sealed class MetalIntrinsicEmitter : IntrinsicEmitter
 
     /// <inheritdoc/>
     public override string EmitMemoryFence() =>
-        "threadgroup_barrier(mem_flags::mem_device)";
+        EmitMemoryFence(MemoryBarrierKind.DeviceLevel);
+
+    /// <inheritdoc/>
+    public override string EmitWarpBarrier() =>
+        "simdgroup_barrier(mem_flags::mem_device | mem_flags::mem_threadgroup)";
+
+    /// <inheritdoc/>
+    /// <remarks>
+    /// Metal has no system scope; system-level fences use the device scope.
+    /// ILGPU_THREAD_FENCE is defined in the source header.
+    /// </remarks>
+    public override string EmitMemoryFence(MemoryBarrierKind kind) =>
+        kind == MemoryBarrierKind.GroupLevel
+            ? "ILGPU_THREAD_FENCE(thread_scope_threadgroup)"
+            : "ILGPU_THREAD_FENCE(thread_scope_device)";
+
+    /// <inheritdoc/>
+    /// <remarks>
+    /// Group-level predicate barriers are lowered to group reductions before
+    /// code generation since Metal has no threadgroup-wide vote.
+    /// </remarks>
+    public override string EmitPredicateBarrier(
+        string predicate,
+        PredicateBarrierKind kind,
+        PredicateBarrierPredicateKind predicateKind)
+    {
+        if (kind != PredicateBarrierKind.WarpLevel)
+            return base.EmitPredicateBarrier(predicate, kind, predicateKind);
+        var vote = predicateKind switch
+        {
+            PredicateBarrierPredicateKind.PopCount =>
+                $"(int)simd_sum(({predicate}) ? 1u : 0u)",
+            PredicateBarrierPredicateKind.And => $"simd_all({predicate})",
+            _ => $"simd_any({predicate})",
+        };
+        return $"({EmitWarpBarrier()}, {vote})";
+    }
 
     #endregion
 
@@ -330,8 +404,21 @@ sealed class MetalIntrinsicEmitter : IntrinsicEmitter
             _ => throw new ArgumentException($"Unknown shuffle kind: {kind}")
         };
 
-        return $"{intrinsic}({variable}, {origin})";
+        return EmitSimdPermute(intrinsic, variable, origin, type);
     }
+
+    /// <summary>
+    /// Emits a SIMD-group permutation. Metal permutes 32-bit lanes only, so
+    /// 64-bit integers are permuted as a uint2 vector.
+    /// </summary>
+    private static string EmitSimdPermute(
+        string intrinsic,
+        string variable,
+        string origin,
+        ArithmeticBasicValueType type) =>
+        type is ArithmeticBasicValueType.Int64 or ArithmeticBasicValueType.UInt64
+            ? $"as_type<long>({intrinsic}(as_type<uint2>({variable}), {origin}))"
+            : $"{intrinsic}({variable}, {origin})";
 
     /// <inheritdoc/>
     public override string EmitBroadcast(
@@ -342,7 +429,7 @@ sealed class MetalIntrinsicEmitter : IntrinsicEmitter
     {
         // Broadcast at SIMD group (warp) level
         if (kind == BroadcastKind.WarpLevel)
-            return $"simd_broadcast({variable}, {origin})";
+            return EmitSimdPermute("simd_broadcast", variable, origin, type);
 
         // Group-level broadcast not directly supported
         throw new NotSupportedException(
@@ -436,28 +523,6 @@ sealed class MetalIntrinsicEmitter : IntrinsicEmitter
         2 => 'z',
         _ => throw new ArgumentOutOfRangeException(nameof(dimension))
     };
-
-    #endregion
-
-    #region Debug and Utility
-
-    /// <inheritdoc/>
-    public override string EmitPrintf(string format, params string[] args) =>
-        throw new NotSupportedException("Metal does not support device-side printf. " +
-        "Use a device buffer for debug output.");
-
-    /// <inheritdoc/>
-    public override string EmitAssert(string condition, string? message = null)
-    {
-        // Metal doesn't have native assert, implement custom version
-        return $"if (!({condition})) {{ /* assertion failed: {message} */ }}";
-    }
-
-    /// <inheritdoc/>
-    public override bool SupportsPrintf => false;
-
-    /// <inheritdoc/>
-    public override bool SupportsAssert => false;
 
     #endregion
 

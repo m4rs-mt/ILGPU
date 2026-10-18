@@ -165,12 +165,14 @@ partial class Intrinsics
     {
         var builder = context.ModuleBuilder;
 
-        // Create shared allocation
+        // Create a shared allocation holding a single element (globals
+        // require an explicit array length)
         var allocaType = context.GetMethodGenericArguments().First();
         return builder.CreateGlobal(
             context.Location,
             context.ModuleBuilder.CreateType(allocaType),
-            MemoryAddressSpace.Shared);
+            MemoryAddressSpace.Shared,
+            context.Builder.CreatePrimitiveValue(context.Location, 1));
     }
 
     /// <summary>

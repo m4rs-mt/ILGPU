@@ -45,6 +45,13 @@ sealed class ProgramBuilder : DisposeBase
 {
     private static int s_intrinsicsInitialized;
 
+    /// <summary>
+    /// The directory that receives the generated kernel and wrapper sources,
+    /// taken from <c>ILGPU_DUMP_SOURCE</c>. Nothing is written when it is unset.
+    /// </summary>
+    private static readonly string? SourceDumpDirectory =
+        Environment.GetEnvironmentVariable("ILGPU_DUMP_SOURCE");
+
     private readonly string _tempDir;
     private readonly BackendType _backend;
     private readonly ITestOutputHelper? _output;
@@ -445,14 +452,7 @@ sealed class ProgramBuilder : DisposeBase
         var compiled = backend.GenerateCode(
             properties, typeManager, optimizedModule, launch);
 
-        // Debug: dump generated GPU source
-        {
-            var dd = "/tmp/ilgpuc_debug";
-            Directory.CreateDirectory(dd);
-            File.WriteAllText(
-                Path.Combine(dd, $"{kernelName ?? "kernel"}.metal"),
-                compiled.SourceCode);
-        }
+        DumpSource($"{kernelName ?? "kernel"}.{_backend}.txt", compiled.SourceCode);
 
         // Native compilation: produce binary if possible (Metal→metallib,
         // CUDA→cubin, etc.). Without binary, the generated class embeds
@@ -511,14 +511,21 @@ sealed class ProgramBuilder : DisposeBase
 
         var genResult = kernelGen.Generate();
 
-        // Debug: dump generated wrapper source
-        var debugDir = "/tmp/ilgpuc_debug";
-        Directory.CreateDirectory(debugDir);
-        File.WriteAllText(
-            Path.Combine(debugDir, $"{genResult.ClassName}.cs"),
-            genResult.SourceCode);
+        DumpSource($"{genResult.ClassName}.cs", genResult.SourceCode);
 
         return genResult;
+    }
+
+    /// <summary>
+    /// Writes <paramref name="source"/> to <paramref name="fileName"/> in the
+    /// directory given by <c>ILGPU_DUMP_SOURCE</c>, if it is set.
+    /// </summary>
+    private static void DumpSource(string fileName, string source)
+    {
+        if (string.IsNullOrEmpty(SourceDumpDirectory))
+            return;
+        Directory.CreateDirectory(SourceDumpDirectory);
+        File.WriteAllText(Path.Combine(SourceDumpDirectory, fileName), source);
     }
 
     private static MethodInfo[] ResolveKernelMethods(

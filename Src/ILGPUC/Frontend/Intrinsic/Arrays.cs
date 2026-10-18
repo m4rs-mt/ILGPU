@@ -47,6 +47,7 @@ partial class Intrinsics
         for (int i = 0; i < dimension; ++i)
             arrayBuilder.Add(context[i + 1]);
         var newArray = arrayBuilder.Seal();
+        context.CodeGenerator.ReinitializeArrayInLoop(newArray);
 
         // Store instance
         builder.CreateStore(location, context[0], newArray);

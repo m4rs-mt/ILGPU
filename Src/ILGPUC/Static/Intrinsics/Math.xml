@@ -347,6 +347,16 @@
                 <Specialization Type="float" />
             </Remap>
 
+            <Remap Name="Round" Target="XMath.Round">
+                <Specialization Type="float" />
+                <Specialization Type="float,int" />
+                <Specialization Type="float,MidpointRounding" />
+                <Specialization Type="float,int, MidpointRounding" />
+            </Remap>
+            <Remap Name="Truncate" Target="XMath.Truncate">
+                <Specialization Type="float" />
+            </Remap>
+
             <!-- Binary -->
             <Remap Name="Atan2" Target="XMath.Atan2">
                 <Specialization Type="float,float" />
@@ -360,6 +370,11 @@
     </Type>
     <Type Name="ILGPU.Half">
         <Generators Target="Frontend.Intrinsic.Intrinsics">
+            <Generator Name="Abs" Target="Math_UnaryOperation"
+                Arguments="UnaryArithmeticKind.Abs" />
+            <Generator Name="IsNaN" Target="Math_UnaryOperation"
+                Arguments="UnaryArithmeticKind.IsNaN" />
+
             <Generator Name="op_UnaryNegation" Target="Math_UnaryOperation"
                 Arguments="UnaryArithmeticKind.Neg" />
 

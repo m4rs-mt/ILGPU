@@ -66,4 +66,22 @@ public abstract class BasicCallExecutionTests : ExecutionTestBase
             ["Kernels.ChainCallKernel"],
             ["22", "22", "22", "22"]);
     }
+
+    [SkippableFact]
+    public async Task HelperUniformArgument_ProducesCorrectOutput()
+    {
+        await VerifyProgramOutputAsync(
+            "TestPrograms/BasicCall/HelperUniformArgument.cs",
+            ["Kernels.HelperUniformArgumentKernel"],
+            ["1", "11", "21", "31", "41", "51", "61", "71", "81", "1", "11", "21"]);
+    }
+
+    [SkippableFact]
+    public async Task HelperInactiveLanes_ProducesCorrectOutput()
+    {
+        await VerifyProgramOutputAsync(
+            "TestPrograms/BasicCall/HelperInactiveLanes.cs",
+            ["Kernels.HelperInactiveLanesKernel"],
+            ["100", "0", "0", "103", "0", "0", "106", "0", "0", "109", "0", "0"]);
+    }
 }

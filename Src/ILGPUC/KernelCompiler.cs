@@ -104,11 +104,6 @@ sealed class KernelCompiler
     private readonly ILFrontendCache _frontendCache = new();
 
     /// <summary>
-    /// The compilation properties used by this compiler instance.
-    /// </summary>
-    public CompilationProperties Properties => _properties;
-
-    /// <summary>
     /// Creates a new kernel compiler with the given properties.
     /// </summary>
     public KernelCompiler(CompilationProperties? properties = null)

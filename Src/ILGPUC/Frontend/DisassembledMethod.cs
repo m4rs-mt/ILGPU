@@ -32,7 +32,6 @@ sealed record CatchClause(
     int? FilterBlock = null,
     Type? CatchType = null)
 {
-    public bool IsFilter => FilterBlock.HasValue;
 }
 
 /// <summary>
@@ -168,23 +167,6 @@ sealed class DisassembledMethod(
     /// <param name="index">The instruction index.</param>
     /// <returns>The instruction at the given index.</returns>
     public ILInstruction this[int index] => Instructions[index];
-
-    /// <summary>
-    /// Returns true if this is a low-level launcher.
-    /// </summary>
-    public bool IsLauncher =>
-        (Flags & DisassembledMethodFlags.IsLauncher) != DisassembledMethodFlags.None;
-
-    /// <summary>
-    /// Returns true if this is a compiler internal intrinsic.
-    /// </summary>
-    public bool IsIntrinsic =>
-        (Flags & DisassembledMethodFlags.InIntrinsic) != DisassembledMethodFlags.None;
-
-    /// <summary>
-    /// Returns true if this is a function that is known by the compiler in general.
-    /// </summary>
-    public bool IsBuiltIn => IsLauncher || IsIntrinsic;
 
     /// <summary>
     /// Returns an instruction enumerator.

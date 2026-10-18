@@ -10,6 +10,9 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPUC.IR;
+using ILGPUC.IR.PureValues;
+using System;
+using System.Globalization;
 using System.Collections.Generic;
 
 namespace ILGPUC.Backends.CPU;
@@ -36,7 +39,7 @@ sealed class CPULanguageConfiguration(int vectorWidth) : LanguageConfiguration
             BasicValueType.Int16 => "short",
             BasicValueType.Int32 => "int",
             BasicValueType.Int64 => "long",
-            BasicValueType.Float16 => "Half",
+            BasicValueType.Float16 => "System.Half",
             BasicValueType.Float32 => "float",
             BasicValueType.Float64 => "double",
             _ => "void"
@@ -55,7 +58,7 @@ sealed class CPULanguageConfiguration(int vectorWidth) : LanguageConfiguration
             ArithmeticBasicValueType.UInt32 => "uint",
             ArithmeticBasicValueType.Int64 => "long",
             ArithmeticBasicValueType.UInt64 => "ulong",
-            ArithmeticBasicValueType.Float16 => "Half",
+            ArithmeticBasicValueType.Float16 => "System.Half",
             ArithmeticBasicValueType.Float32 => "float",
             ArithmeticBasicValueType.Float64 => "double",
             _ => "void"
@@ -66,6 +69,60 @@ sealed class CPULanguageConfiguration(int vectorWidth) : LanguageConfiguration
         string elementTypeName,
         string addressSpaceKeyword) =>
         $"CPURuntimeView<{elementTypeName}>";
+
+    /// <inheritdoc/>
+    /// <remarks>
+    /// Small integer constants are cast to their storage types (Int8 values
+    /// are stored as byte) and floating-point special values use the C#
+    /// constants.
+    /// </remarks>
+    public override string? FormatPrimitive(PrimitiveValue value) =>
+        value.BasicValueType switch
+        {
+            BasicValueType.Int1 => value.Int1Value ? "true" : "false",
+            BasicValueType.Int8 =>
+                $"((byte){unchecked((byte)value.Int8Value)})",
+            BasicValueType.Int16 => $"((short){value.Int16Value})",
+            BasicValueType.Int32 => value.Int32Value.ToString(
+                CultureInfo.InvariantCulture),
+            BasicValueType.Int64 => value.Int64Value.ToString(
+                CultureInfo.InvariantCulture) + "L",
+            BasicValueType.Float32 => FormatFloat(value.Float32Value),
+            BasicValueType.Float64 => FormatDouble(value.Float64Value),
+            _ => null
+        };
+
+    /// <summary>
+    /// Formats a float constant as a round-trippable C# literal.
+    /// </summary>
+    private static string FormatFloat(float value)
+    {
+        if (float.IsNaN(value))
+            return "float.NaN";
+        if (float.IsInfinity(value))
+            return value > 0 ? "float.PositiveInfinity" : "float.NegativeInfinity";
+        return value.ToString("R", CultureInfo.InvariantCulture) + "f";
+    }
+
+    /// <summary>
+    /// Formats a double constant as a round-trippable C# literal.
+    /// </summary>
+    private static string FormatDouble(double value)
+    {
+        if (double.IsNaN(value))
+            return "double.NaN";
+        if (double.IsInfinity(value))
+        {
+            return value > 0
+                ? "double.PositiveInfinity"
+                : "double.NegativeInfinity";
+        }
+        var text = value.ToString("R", CultureInfo.InvariantCulture);
+        return text.AsSpan().IndexOfAny('.', 'E', 'e') >= 0 ? text : text + ".0";
+    }
+
+    /// <inheritdoc/>
+    public override bool SupportsExplicitFieldOffsets => true;
 
     /// <inheritdoc/>
     public override string FormatNullLiteral(string typeName) =>
@@ -81,12 +138,6 @@ sealed class CPULanguageConfiguration(int vectorWidth) : LanguageConfiguration
     /// <returns>The vector type name (e.g., "float[]").</returns>
     public string GetVectorTypeName(BasicValueType elementType) =>
         $"{GetPrimitiveTypeName(elementType)}[]";
-
-    /// <inheritdoc/>
-    /// <remarks>
-    /// C# doesn't use pointer syntax in vectorized code.
-    /// </remarks>
-    public override string PointerSyntax => "*";
 
     /// <inheritdoc/>
     public override bool SupportsFeature(LanguageFeature feature) =>

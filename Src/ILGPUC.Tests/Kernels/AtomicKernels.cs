@@ -115,4 +115,72 @@ static class AtomicKernels
         if (Group.IsFirstThread && index < result.Length)
             result[index] = shared[0];
     }
+
+    /// <summary>
+    /// Unsigned 32-bit and float atomics: native where the target has them,
+    /// compare-and-swap loops otherwise.
+    /// </summary>
+    public static void AtomicUnsignedFloatKernel(
+        Index1D index,
+        ArrayView1D<uint, Stride1D.Dense> u,
+        ArrayView1D<float, Stride1D.Dense> f)
+    {
+        uint value = (uint)index.X;
+        Atomic.Add(ref u[0], value);
+        Atomic.Max(ref u[1], value);
+        Atomic.Min(ref u[2], value);
+        Atomic.And(ref u[3], value);
+        Atomic.Or(ref u[4], value);
+        Atomic.Xor(ref u[5], value);
+        Atomic.Exchange(ref u[6], value);
+        Atomic.CompareExchange(ref u[7], 0u, value);
+        float floatValue = index.X * 0.5f;
+        Atomic.Add(ref f[0], floatValue);
+        f[1] = Atomic.Max(ref f[1], floatValue);
+        Atomic.Min(ref f[2], floatValue);
+        Atomic.Exchange(ref f[3], floatValue);
+        Atomic.CompareExchange(ref f[4], 0.0f, floatValue);
+    }
+
+    /// <summary>
+    /// Signed and unsigned 64-bit integer atomics.
+    /// </summary>
+    [RequiresCapability(BackendCapability.Int64Atomics)]
+    public static void AtomicInt64Kernel(
+        Index1D index,
+        ArrayView1D<long, Stride1D.Dense> l,
+        ArrayView1D<ulong, Stride1D.Dense> u)
+    {
+        long value = index.X;
+        Atomic.Add(ref l[0], value);
+        Atomic.Max(ref l[1], value);
+        Atomic.Min(ref l[2], value);
+        Atomic.And(ref l[3], value);
+        Atomic.Or(ref l[4], value);
+        Atomic.Xor(ref l[5], value);
+        Atomic.Exchange(ref l[6], value);
+        Atomic.CompareExchange(ref l[7], 0L, value);
+        ulong unsignedValue = (ulong)index.X;
+        Atomic.Add(ref u[0], unsignedValue);
+        Atomic.Max(ref u[1], unsignedValue);
+        Atomic.Min(ref u[2], unsignedValue);
+        Atomic.And(ref u[3], unsignedValue);
+        Atomic.Exchange(ref u[4], unsignedValue);
+        Atomic.CompareExchange(ref u[5], 0UL, unsignedValue);
+    }
+
+    /// <summary>
+    /// Float64 atomics besides add: max, min, exchange and compare-exchange.
+    /// </summary>
+    [RequiresCapability(BackendCapability.Float64Atomics)]
+    public static void AtomicFloat64Kernel(
+        Index1D index,
+        ArrayView1D<double, Stride1D.Dense> d)
+    {
+        double value = index.X * 0.5;
+        Atomic.Max(ref d[0], value);
+        Atomic.Min(ref d[1], value);
+        Atomic.Exchange(ref d[2], value);
+        d[3] = Atomic.CompareExchange(ref d[4], 0.0, value);
+    }
 }

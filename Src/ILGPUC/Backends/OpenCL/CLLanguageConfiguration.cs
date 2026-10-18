@@ -80,10 +80,15 @@ sealed class CLLanguageConfiguration(CLVendor vendor = CLVendor.Intel) : Languag
         };
 
     /// <inheritdoc/>
-    public override string PointerSyntax => "*";
+    public override bool UsesCStyleStructLiterals => true;
 
     /// <inheritdoc/>
-    public override bool UsesCStyleStructLiterals => true;
+    /// <remarks>get_local_id and friends return size_t.</remarks>
+    public override bool HasUnsignedThreadBuiltIns => true;
+
+    /// <inheritdoc/>
+    public override string? FormatFieldAlignment(int alignment) =>
+        $" __attribute__((aligned({alignment})))";
 
     /// <inheritdoc/>
     /// <remarks>
@@ -156,24 +161,46 @@ sealed class CLLanguageConfiguration(CLVendor vendor = CLVendor.Intel) : Languag
     /// the middle of a buffer, so every buffer pointer is followed by the
     /// byte offset of the view within its buffer.
     /// </remarks>
+    /// <remarks>
+    /// OpenCL C forbids bool kernel arguments: bools are passed as one byte
+    /// and converted in the prologue.
+    /// </remarks>
     public override string EmitNonFlattenedKernelParam(
         TypeValue type,
         string typeName,
         string paramName,
         int bufferIndex) =>
-        type is AddressSpaceType
-            ? $"{typeName} {paramName}, long {paramName}{BufferOffsetSuffix}"
-            : $"{typeName} {paramName}";
+        type switch
+        {
+            AddressSpaceType =>
+                $"{typeName} {paramName}, long {paramName}{BufferOffsetSuffix}",
+            PrimitiveType { BasicValueType: BasicValueType.Int1 } =>
+                $"uchar {paramName}{BoolValueSuffix}",
+            _ => $"{typeName} {paramName}",
+        };
 
     /// <inheritdoc/>
     public override string? EmitKernelParamPrologue(
         TypeValue type,
         string typeName,
         string paramName) =>
-        type is AddressSpaceType
-            ? $"  {paramName} = ({typeName})" +
-                $"((global char*){paramName} + {paramName}{BufferOffsetSuffix});"
-            : null;
+        type switch
+        {
+            AddressSpaceType =>
+                $"  {paramName} = ({typeName})" +
+                $"((global char*){paramName} + {paramName}{BufferOffsetSuffix});",
+            PrimitiveType { BasicValueType: BasicValueType.Int1 } =>
+                $"  bool {paramName} = {paramName}{BoolValueSuffix} != 0;",
+            _ => null,
+        };
+
+    /// <summary>
+    /// The suffix of the one-byte kernel parameter carrying a bool argument.
+    /// </summary>
+    public const string BoolValueSuffix = "_value";
+
+    /// <inheritdoc/>
+    public override string? BoolStorageTypeName => "uchar";
 
     /// <inheritdoc/>
     /// <remarks>
@@ -230,6 +257,11 @@ sealed class CLLanguageConfiguration(CLVendor vendor = CLVendor.Intel) : Languag
         // skip path on devices that lack the extension.
         yield return "#pragma OPENCL EXTENSION cl_khr_fp64 : enable";
         yield return "#pragma OPENCL EXTENSION cl_khr_subgroups : enable";
+        // 64-bit atomics (atom_* built-ins); like cl_khr_fp64 above, kernels
+        // without 64-bit atomics are unaffected on devices lacking them.
+        yield return "#pragma OPENCL EXTENSION cl_khr_int64_base_atomics : enable";
+        yield return
+            "#pragma OPENCL EXTENSION cl_khr_int64_extended_atomics : enable";
         if (vendor == CLVendor.Intel)
             yield return "#pragma OPENCL EXTENSION cl_intel_subgroups : enable";
         else

@@ -9,6 +9,7 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
+using ILGPU.Runtime;
 using ILGPU.Util;
 using ILGPUC.IR.BasicBlockValues;
 using ILGPUC.IR.ModuleValues;
@@ -72,6 +73,7 @@ sealed class LowerGroupCollectives(
         MapBasicBlockValue<GroupReduce>(LowerReduce);
         MapBasicBlockValue<GroupScan>(LowerScan);
         MapBasicBlockValue<GroupRadixSort>(LowerRadixSort);
+        MapBasicBlockValue<PredicateBarrier>(LowerPredicateBarrier);
     }
 
     /// <summary>
@@ -89,11 +91,77 @@ sealed class LowerGroupCollectives(
                 "Use a recognized binary operation like (a, b) => a + b.");
         }
 
-        var location = reduce.Location;
-        var data = transform.Rewrite(reduce.Variable).AsNotNull();
-        var identity = transform.Rewrite(reduce.Identity);
-        var op = reduce.IntrinsicOp!.Value;
+        return CreateGroupReduce(
+            transform,
+            reduce.Location,
+            transform.Rewrite(reduce.Variable).AsNotNull(),
+            transform.Rewrite(reduce.Identity).AsNotNull(),
+            reduce.IntrinsicOp!.Value,
+            reduce.Kind == GroupReduceKind.AllReduce);
+    }
 
+    /// <summary>
+    /// Lowers a group-level <see cref="PredicateBarrier"/> on backends without
+    /// a native group vote (Metal) to a group all-reduce over the predicate,
+    /// followed by a barrier.
+    /// </summary>
+    private Value? LowerPredicateBarrier(
+        BasicBlockTransform transform,
+        PredicateBarrier barrier)
+    {
+        if (barrier.Kind != PredicateBarrierKind.GroupLevel ||
+            specification.AcceleratorType != AcceleratorType.Metal)
+        {
+            return barrier;
+        }
+
+        var location = barrier.Location;
+        var predicate = transform.Rewrite(barrier.Predicate).AsNotNull();
+        var one = transform.CreatePrimitiveValue(location, 1);
+        var zero = transform.CreatePrimitiveValue(location, 0);
+        var data = transform.CreatePredicate(location, predicate, one, zero)
+            .AsNotNull();
+
+        var (op, identity) = barrier.PredicateKind switch
+        {
+            PredicateBarrierPredicateKind.PopCount =>
+                (BinaryArithmeticKind.Add, zero),
+            PredicateBarrierPredicateKind.And =>
+                (BinaryArithmeticKind.Min, one),
+            _ => (BinaryArithmeticKind.Max, zero),
+        };
+        var result = CreateGroupReduce(
+            transform,
+            location,
+            data,
+            identity,
+            op,
+            allReduce: true);
+
+        // A predicate barrier synchronizes all threads of the group
+        transform.CreateBarrier(location, BarrierKind.GroupLevel);
+
+        return barrier.PredicateKind == PredicateBarrierPredicateKind.PopCount
+            ? result
+            : transform.CreateCompare(
+                location,
+                result,
+                zero,
+                CompareKind.NotEqual).AsNotNull();
+    }
+
+    /// <summary>
+    /// Emits a group reduction of <paramref name="data"/> using shared memory,
+    /// warp reductions and barriers.
+    /// </summary>
+    private Value CreateGroupReduce(
+        BasicBlockTransform transform,
+        Location location,
+        Value data,
+        Value identity,
+        BinaryArithmeticKind op,
+        bool allReduce)
+    {
         // Obtain thread indices
         var laneIdx = transform.CreateSubGroupLaneIndexValue(location);
         var warpIdx = transform.CreateSubGroupIndexValue(location);
@@ -147,7 +215,7 @@ sealed class LowerGroupCollectives(
             laneIdx).AsNotNull();
         var val = transform.CreateLoad(location, readAddr).AsNotNull();
 
-        var finalKind = reduce.Kind == GroupReduceKind.AllReduce
+        var finalKind = allReduce
             ? WarpReduceKind.AllReduce
             : WarpReduceKind.Reduce;
         var finalResult = transform.CreateWarpReduce(

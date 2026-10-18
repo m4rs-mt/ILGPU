@@ -41,6 +41,10 @@ dotnet test --filter PerfTests --blame-hang-timeout 360s
 # backends). Optional: ILGPU_BENCH_WARMUP / ILGPU_BENCH_ITERATIONS /
 # ILGPU_BENCH_OUTPUT.
 ILGPU_RUN_BENCH=1 dotnet test --filter CompileBench --blame-hang-timeout 360s
+
+# Write the generated kernel and wrapper sources of execution tests to a
+# directory (nothing is written unless this is set).
+ILGPU_DUMP_SOURCE=/tmp/ilgpu_sources dotnet test --filter ExecutionTests
 ```
 
 Target framework is **net10.0** (C# 13). `AllowUnsafeBlocks` is enabled.
@@ -212,8 +216,6 @@ On Apple Silicon, enable Rosetta in Docker Desktop (`Settings → General`) for 
 **`PhiValue` layout:** `_values = [arg0, arg1, ..., src0, src1, ...]`. `Count = 2 * NumArguments`. Use `NumArguments` for the number of SSA arguments, not `Count`.
 
 **`MethodCall` layout:** `_values[0]` is the target method, `[1..]` are arguments. Use `call.Arguments` not `call.Values` for argument iteration.
-
-**`Module.GetPrimitiveType` broken with readonly struct** — `Module._basicValueTypes` is a readonly struct, calling methods creates defensive copies. Use `transform.GetPrimitiveType()` inside transforms instead.
 
 **After editing files, `touch` them before `dotnet build`** — the Edit tool doesn't update mtime, so MSBuild may skip recompilation.
 

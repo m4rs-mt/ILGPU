@@ -55,4 +55,16 @@ public abstract class WarpExecutionTests : ExecutionTestBase
         Assert.False(result.TimedOut, "Process timed out");
         Assert.Equal(4, result.StdOutLines.Length);
     }
+
+    /// <summary>
+    /// Warp shuffles of 64-bit integers.
+    /// </summary>
+    [SkippableFact]
+    public async Task WarpShuffleLong_ProducesCorrectOutput()
+    {
+        await VerifyProgramOutputAsync(
+            "TestPrograms/Warp/WarpShuffleLong.cs",
+            ["Kernels.WarpShuffleLongKernel"],
+            ["8589934603", "12884901900", "17179869197", "4294967306"]);
+    }
 }

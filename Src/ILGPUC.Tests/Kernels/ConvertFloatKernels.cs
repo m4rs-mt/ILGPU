@@ -62,4 +62,27 @@ static class ConvertFloatKernels
     {
         data[index] = (float)value;
     }
+
+    /// <summary>
+    /// Unsigned int to float conversion (conv.r.un followed by conv.r4).
+    /// </summary>
+    public static void UIntToFloatKernel(
+        Index1D index,
+        ArrayView1D<float, Stride1D.Dense> data,
+        uint value)
+    {
+        data[index] = (float)value;
+    }
+
+    /// <summary>
+    /// Unsigned int and long to double conversions (conv.r.un, conv.r8).
+    /// </summary>
+    public static void UnsignedToDoubleKernel(
+        Index1D index,
+        ArrayView1D<double, Stride1D.Dense> data,
+        uint value,
+        ulong longValue)
+    {
+        data[index] = (double)value + (double)longValue;
+    }
 }

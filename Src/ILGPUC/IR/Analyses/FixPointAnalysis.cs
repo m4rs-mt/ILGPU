@@ -45,27 +45,6 @@ readonly struct FixPointAnalysisResult<T>(
             return result;
         return AnalysisValue.Create(defaultValue, value.Type);
     }
-
-    /// <summary>
-    /// Tries to get an analysis result from this mapping.
-    /// </summary>
-    /// <param name="value">The value to get the result for.</param>
-    /// <param name="result">The determined result.</param>
-    /// <returns>True if the result could have been determined.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool TryGetResult(Value value, out AnalysisValue<T> result)
-    {
-        result = AnalysisValue.Create(defaultValue, value.Type);
-        if (!results.HasValue || !results.Value.TryGetValue(value, out var tempResult))
-            return false;
-        result = tempResult;
-        return true;
-    }
-
-    /// <summary>
-    /// Returns true if this alignment information object is empty.
-    /// </summary>
-    public bool IsEmpty => results is null;
 }
 
 /// <summary>
@@ -194,10 +173,15 @@ abstract class FixPointAnalysis<T, TDirection>(T defaultValue = default)
                 valueData[value] = CreateInitialValue(value.Type);
         });
 
-        // Initialize method return value
-        valueData[method] = method.IsVoid
-            ? default
-            : CreateInitialValue(method.Type);
+        // Initialize the method return value once. Re-analyses (triggered by
+        // the interprocedural driver) must keep the previously accumulated
+        // return information to preserve monotonicity.
+        if (!valueData.ContainsKey(method))
+        {
+            valueData[method] = method.IsVoid
+                ? default
+                : CreateInitialValue(method.Type);
+        }
 
         // Work-list algorithm
         var onStack = method.CreateSet<BasicBlock>();
@@ -223,7 +207,9 @@ abstract class FixPointAnalysis<T, TDirection>(T defaultValue = default)
                 var target = call.Target;
                 bool calleeChanged = false;
                 var parameters = target.Parameters;
-                var arguments = call.Values;
+                // Note: call.Values[0] is the target method itself; use
+                // call.Arguments so that parameter i is paired with argument i.
+                var arguments = call.Arguments;
 
                 for (int i = 0; i < Math.Min(parameters.Count, arguments.Length); ++i)
                 {
@@ -245,7 +231,7 @@ abstract class FixPointAnalysis<T, TDirection>(T defaultValue = default)
                     valueData[param] = newParamValue;
 
                     // Track if parameter changed
-                    calleeChanged |= oldParamValue.Equals(newParamValue);
+                    calleeChanged |= !oldParamValue.Equals(newParamValue);
                 }
 
                 // Notify that the callee needs re-analysis
@@ -305,15 +291,22 @@ abstract class FixPointAnalysis<T, TDirection>(T defaultValue = default)
         valueData ??= module.CreateGlobalMap<AnalysisValue<T>>();
         var results = valueData.Value;
 
-        workList.Enqueue(entryPoint);
-        visited.Add(entryPoint);
-
-        // Callback to enqueue callees when their parameters change
-        void OnCalleeChange(Method callee)
+        // Enqueues a method for (re-)analysis. Methods without an IR body
+        // (external/intrinsic) cannot be analyzed and are skipped; workListSet
+        // guards against duplicate queue entries. Termination is guaranteed:
+        // besides the once-only discovery below, methods are only re-enqueued
+        // when their parameter or return information actually changed, and all
+        // merges are monotone — bounded by the lattice height.
+        void Enqueue(Method method)
         {
-            if (visited.Contains(callee) && !workListSet.Add(callee))
-                workList.Enqueue(callee);
+            if (!method.HasImplementation)
+                return;
+            visited.Add(method);
+            if (workListSet.Add(method))
+                workList.Enqueue(method);
         }
+
+        Enqueue(entryPoint);
 
         while (workList.Count > 0)
         {
@@ -321,13 +314,17 @@ abstract class FixPointAnalysis<T, TDirection>(T defaultValue = default)
             workListSet.Remove(method);
             var node = callGraph[method];
 
-            // Analyze the method with parameter propagation callback
-            var valueMapping = AnalyzeMethod(method.Blocks, results, OnCalleeChange);
+            // Capture the previously accumulated return value BEFORE the
+            // analysis runs (it operates on the same shared mapping).
+            var oldRetValue = results.TryGetValue(method, out var prev)
+                ? prev : default;
+
+            // Analyze the method; changed callee parameters trigger their
+            // (re-)analysis via the callback.
+            var valueMapping = AnalyzeMethod(method.Blocks, results, Enqueue);
 
             // Update return value mapping
             var retValue = valueMapping.GetResult(method);
-            var oldRetValue = results.TryGetValue(method, out var prev)
-                ? prev : default;
             var mergedRetValue = oldRetValue.Equals(default)
                 ? retValue
                 : Merge(oldRetValue, retValue);
@@ -337,13 +334,16 @@ abstract class FixPointAnalysis<T, TDirection>(T defaultValue = default)
             if (!oldRetValue.Equals(mergedRetValue))
             {
                 foreach (var caller in node.Callers)
-                    OnCalleeChange(caller);
+                    Enqueue(caller);
             }
 
-            // Discover and enqueue called methods
-            var callees = node.Callees;
-            foreach (var callee in callees)
-                OnCalleeChange(callee);
+            // Discover called methods exactly once; subsequent re-analyses
+            // only happen through parameter/return changes above.
+            foreach (var callee in node.Callees)
+            {
+                if (!visited.Contains(callee))
+                    Enqueue(callee);
+            }
         }
 
         return new(results, DefaultValue);

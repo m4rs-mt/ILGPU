@@ -29,7 +29,7 @@ static class Kernels
 {
     // Trivial kernel — the point of this sample is the *workflow*
     // (consuming a local nupkg), not the kernel pattern. Other samples
-    // (KernelLibraryAttribute, AlgorithmsReduce, MatrixMultiply, ...)
+    // (KernelLibraryAttribute, Reduce, MatrixMultiply, ...)
     // demonstrate richer kernels.
     public static void DoubleKernel(
         Index1D index, ArrayView1D<int, Stride1D.Dense> data)

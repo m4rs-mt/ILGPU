@@ -60,17 +60,6 @@ readonly struct PureValueRewriter(MethodBuilder methodBuilder) : IPureValueRewri
         return newValue;
     }
 
-    /// <summary>
-    /// Replaces the specified value with the given value during rewriting.
-    /// </summary>
-    /// <param name="oldValue">The old value to replace.</param>
-    /// <param name="value">The new value to replace it with.</param>
-    public void Replace(Value<Method>? oldValue, Value? value)
-    {
-        if (oldValue is null) return;
-        _replaced[oldValue] = value;
-    }
-
     /// <inheritdoc/>
     public bool TryGetReplaced(Value? oldValue, out Value? newValue)
     {
