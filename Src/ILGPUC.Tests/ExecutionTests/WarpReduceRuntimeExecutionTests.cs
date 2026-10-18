@@ -72,4 +72,25 @@ public abstract class WarpReduceRuntimeExecutionTests : ExecutionTestBase
             ["Kernels.WarpExclusiveScanAddRuntimeKernel"],
             ["0", "1", "3", "6"]);
     }
+
+    /// <summary>
+    /// Warp reductions and scans in one arm of a conditional expression combine
+    /// the values of the lanes taking that arm only.
+    /// </summary>
+    [SkippableFact]
+    public async Task WarpReduceInBranch_Runtime_ProducesCorrectOutput()
+    {
+        Skip.If(
+            Backend is not (BackendType.CPU or BackendType.Metal),
+            "Warp collectives in divergent control flow are undefined on " +
+            Backend);
+        await VerifyProgramOutputAsync(
+            "TestPrograms/WarpReduceRuntime/WarpReduceInBranchRuntime.cs",
+            [
+                "Kernels.AllReduceInBranchKernel",
+                "Kernels.InclusiveScanInBranchKernel",
+                "Kernels.ReduceInBranchKernel",
+            ],
+            ["1 2 7 7", "1 2 3 7", "8"]);
+    }
 }

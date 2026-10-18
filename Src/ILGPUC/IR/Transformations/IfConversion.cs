@@ -31,9 +31,9 @@ namespace ILGPUC.IR.Transformations;
 /// </summary>
 /// <remarks>
 /// This transformation identifies simple if/else branches where both paths have no side
-/// effects and are small enough, then converts them to predicated instructions using
-/// conditional values (select/predicate operations). This enables better instruction
-/// level parallelism and reduces branch mis-prediction costs.
+/// effects or collectives and are small enough, then converts them to predicated
+/// instructions using conditional values (select/predicate operations). This enables
+/// better instruction level parallelism and reduces branch mis-prediction costs.
 /// </remarks>
 /// <param name="args">The transformation arguments.</param>
 /// <param name="maxBlockSize">
@@ -183,7 +183,7 @@ sealed class IfConversion(
             if (!gathered.Add(current))
                 return false;
 
-            // Reject blocks with side effects
+            // Reject blocks with side effects or collectives
             if (HasSideEffects(current))
                 return false;
 
@@ -205,14 +205,16 @@ sealed class IfConversion(
     }
 
     /// <summary>
-    /// Checks if a block has side effects.
+    /// Checks if a block has side effects or collectives (warp and group
+    /// operations), whose results depend on the threads executing them: only the
+    /// threads taking the branch may execute them.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static bool HasSideEffects(BasicBlock block)
     {
         foreach (var value in block.Values)
         {
-            if (value is MemoryValue or MethodCall)
+            if (value is MemoryValue or MethodCall or ThreadValue)
                 return true;
         }
         return false;

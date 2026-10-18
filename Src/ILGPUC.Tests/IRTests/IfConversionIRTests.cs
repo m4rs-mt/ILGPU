@@ -9,6 +9,7 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
+using ILGPU;
 using ILGPU.Util;
 using ILGPUC.IR;
 using ILGPUC.IR.MethodValues;
@@ -46,6 +47,18 @@ public sealed class IfConversionIRTests : DisposeBase
 
         public static uint DivAllOnesUnsigned(uint a, int b) =>
             b > 0 ? a / uint.MaxValue : a;
+
+        public static int ShuffleInArm(int value) =>
+            value > 0 ? Warp.Shuffle(value, 1) : value;
+
+        public static int AllReduceInArm(int value) =>
+            value > 0 ? Warp.AllReduce(value, (a, b) => a + b) : value;
+
+        public static int InclusiveScanInArm(int value) =>
+            value > 0 ? Warp.InclusiveScan(value, (a, b) => a + b) : value;
+
+        public static int GroupBroadcastInArm(int value) =>
+            value > 0 ? Group.Broadcast(value, 0) : value;
     }
 
     #endregion
@@ -119,6 +132,19 @@ public sealed class IfConversionIRTests : DisposeBase
         // all ones can fault
         var method = ApplyIfConversion(GetSnippet(snippet));
         Assert.Equal(0, CountBranches(method));
+    }
+
+    [Theory]
+    [InlineData(nameof(Snippets.ShuffleInArm))]
+    [InlineData(nameof(Snippets.AllReduceInArm))]
+    [InlineData(nameof(Snippets.InclusiveScanInArm))]
+    [InlineData(nameof(Snippets.GroupBroadcastInArm))]
+    public void CollectiveInArm_KeepsTheBranch(string snippet)
+    {
+        // Only the threads taking a branch may execute its collectives, which
+        // determine the threads a reduction or scan combines
+        var method = ApplyIfConversion(GetSnippet(snippet));
+        Assert.Equal(1, CountBranches(method));
     }
 
     #endregion
