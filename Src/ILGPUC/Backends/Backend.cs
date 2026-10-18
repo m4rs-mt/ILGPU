@@ -12,9 +12,15 @@
 using ILGPU.Runtime;
 using ILGPUC.Compilers;
 using ILGPUC.IR;
+using ILGPUC.IR.Analyses;
+using ILGPUC.IR.BasicBlockValues;
+using ILGPUC.IR.MethodValues;
 using ILGPUC.IR.ModuleValues;
 using ILGPUC.IR.Transformations;
+using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -192,8 +198,150 @@ abstract class Backend(
                 $"opt: {properties.OptimizationLevel}");
         }
 
+        if (!LanguageConfiguration.SupportsFeature(LanguageFeature.GenericAddressSpace))
+            VerifyNoGenericAddressSpaces(finalModule);
+
         return GenerateCode(finalModule, EntryPointLaunch.Resolve(module, launch));
     }
+
+    /// <summary>
+    /// Rejects generic pointers and references into shared or local memory,
+    /// which this backend cannot express: they remain generic when they can
+    /// point to several address spaces or are returned by a helper method.
+    /// Generic pointers into global memory or with an unknown address space (for
+    /// example, pointers loaded from memory) are emitted in the backend's
+    /// default (global) address space and are not rejected.
+    /// </summary>
+    /// <param name="module">The final module after all transformations.</param>
+    private void VerifyNoGenericAddressSpaces(Module module)
+    {
+        var results = PointerAddressSpaces.AnalyzeModule(
+            module.EntryPoint,
+            PointerAddressSpaces.AnalysisFlags.IgnoreGenericAddressSpace);
+        var visited = new HashSet<Value>();
+        var worklist = new Stack<Value>();
+        foreach (var method in module.Methods)
+        {
+            if (!method.HasImplementation)
+                continue;
+
+            foreach (var param in method.Parameters)
+                VerifyNotGeneric(module, results, method, param);
+
+            // Pure values and returned values are not part of the value chain
+            // of any block: reach them as operands
+            foreach (var block in method.Blocks)
+            {
+                foreach (var value in block)
+                    worklist.Push(value);
+                if (block.TerminationValue is { } terminationValue)
+                    worklist.Push(terminationValue);
+            }
+            while (worklist.TryPop(out var value))
+            {
+                if (value is Method or TypeValue or BasicBlock || !visited.Add(value))
+                    continue;
+                VerifyNotGeneric(module, results, method, value);
+                foreach (var operand in value.Values)
+                    worklist.Push(operand);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Throws if the given generic pointer or view can point to shared or local
+    /// memory in a way the target cannot express: it can point to several
+    /// address spaces, or it crosses a method boundary as a parameter or call
+    /// result. A generic value that provably points into a single address space
+    /// inside a method is emitted in that address space.
+    /// </summary>
+    private void VerifyNotGeneric(
+        Module module,
+        AddressSpaceResults results,
+        Method method,
+        Value value)
+    {
+        if (value.Type is not AddressSpaceType
+            {
+                AddressSpace: MemoryAddressSpace.Generic
+            })
+        {
+            return;
+        }
+
+        const AddressSpaceFlags Spaces = AddressSpaceFlags.Global |
+            AddressSpaceFlags.Shared | AddressSpaceFlags.Local;
+        var flags = results[value].Flags & Spaces;
+        if ((flags & (AddressSpaceFlags.Shared | AddressSpaceFlags.Local)) ==
+            AddressSpaceFlags.None)
+        {
+            return;
+        }
+
+        bool severalSpaces = (flags & (flags - 1)) != AddressSpaceFlags.None;
+        bool crossesMethod = value is Parameter || value is MethodCall ||
+            IsPassedAcrossMethods(value);
+        if (!severalSpaces && !crossesMethod)
+            return;
+
+        var kernel = module.EntryPoint;
+        var where = method == kernel
+            ? string.Empty
+            : $" in '{GetDisplayName(method)}'";
+        var reason = severalSpaces
+            ? $"can point to {FormatSpaces(flags)} memory"
+            : $"points to {FormatSpaces(flags)} memory but is passed to or " +
+                "returned from a helper method as a generic pointer";
+        var message = value.Location.FormatErrorMessage(
+            $"Kernel '{GetDisplayName(kernel)}': a pointer or reference{where} " +
+            reason);
+        throw new NotSupportedException(
+            $"{message}. {BackendType} does not support generic pointers; make " +
+            "each pointer or reference point into a single address space.");
+    }
+
+    /// <summary>
+    /// Returns true if the given value is returned from its method or passed to
+    /// a called method.
+    /// </summary>
+    private static bool IsPassedAcrossMethods(Value value)
+    {
+        foreach (Use use in value.Uses)
+        {
+            if (use.Target is MethodCall ||
+                use.Target is BasicBlock
+                {
+                    TerminationKind: BlockTerminationKind.Return
+                })
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /// <summary>
+    /// Returns the address spaces of the given flags as a readable list.
+    /// </summary>
+    private static string FormatSpaces(AddressSpaceFlags flags) =>
+        string.Join(
+            " and ",
+            new[]
+            {
+                (AddressSpaceFlags.Global, "global"),
+                (AddressSpaceFlags.Shared, "shared"),
+                (AddressSpaceFlags.Local, "local"),
+            }
+            .Where(space => (flags & space.Item1) != AddressSpaceFlags.None)
+            .Select(space => space.Item2));
+
+    /// <summary>
+    /// Returns the user-facing name of a method.
+    /// </summary>
+    private static string GetDisplayName(Method method) =>
+        method.Source is { } source
+            ? $"{source.DeclaringType?.Name}.{source.Name}".TrimStart('.')
+            : method.Name;
 
     /// <summary>
     /// Generates code for the given module.

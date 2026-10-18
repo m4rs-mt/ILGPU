@@ -103,7 +103,9 @@ sealed class CLLanguageConfiguration(CLVendor vendor = CLVendor.Intel) : Languag
     public override bool SupportsFeature(LanguageFeature feature) =>
         feature switch
         {
-            LanguageFeature.GenericAddressSpace => true,
+            // Generic pointers need OpenCL C 2.0 and a device that
+            // supports them; ILGPU emits explicit address spaces only.
+            LanguageFeature.GenericAddressSpace => false,
             LanguageFeature.ConstantAddressSpace => true,
             LanguageFeature.LocalAddressSpace => true,
             LanguageFeature.Atomics => true,
