@@ -336,9 +336,8 @@ public abstract class HalfPrecisionExecutionTests : ExecutionTestBase
     }
 
     /// <summary>
-    /// Conversions between Half and Int128, UInt128, char, nint and nuint, the
-    /// checked conversions and the generic conversions match the host, and the
-    /// conversions to Int128, UInt128 and the generic conversions to integers
+    /// Conversions between Half and char, the checked conversions and the generic
+    /// conversions match the host, and the generic conversions to integers
     /// saturate.
     /// </summary>
     [SkippableFact]
