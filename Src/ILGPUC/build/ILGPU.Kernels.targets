@@ -152,6 +152,8 @@
                       Condition="'$(LangVersion)' != ''" />
       <_ILGPURspLines Include="$(LangVersion)"
                       Condition="'$(LangVersion)' != ''" />
+      <!-- Kernels are compiled from the IL of the project's configuration -->
+      <_ILGPURspLines Include="--optimize" Condition="'$(Optimize)' == 'true'" />
       <_ILGPURspLines Include="--max-generic-type-depth"
                       Condition="'$(ILGPUMaxGenericTypeDepth)' != ''" />
       <_ILGPURspLines Include="$(ILGPUMaxGenericTypeDepth)"

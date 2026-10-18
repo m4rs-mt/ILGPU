@@ -148,7 +148,9 @@ recursion such as `Run<T>` calling `Run<Box<T>>` stops at the limits above with 
 warning (`ILGPU1002` to `ILGPU1004`), and launching an instantiation beyond the
 limits throws a `NotSupportedException`. The limits only count type arguments
 that reach a kernel launch. The build passes the project's `DefineConstants` and
-`LangVersion` on, so `#if` blocks select the same launch sites as the C# build.
+`LangVersion` on, so `#if` blocks select the same launch sites as the C# build, and
+its `Optimize` setting, so kernels are compiled from the same IL as the project's
+Debug or Release build.
 
 Inline lambda kernels and local functions used as kernels in generic methods and
 classes are compiled the same way, once for each instantiation of the code that

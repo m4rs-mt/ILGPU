@@ -194,6 +194,17 @@ sealed partial class Program
         };
 
         /// <summary>
+        /// Compiles the sources with optimizations, so that kernels are compiled
+        /// from the same IL as the project's optimized builds.
+        /// </summary>
+        readonly Option<bool> _optimizeOption = new("--optimize")
+        {
+            Description =
+                "Compile the project's sources with optimizations, as the project " +
+                "does (default: off)",
+        };
+
+        /// <summary>
         /// The name of the assembly being built, which identifies its dispatch code
         /// for the builds of other assemblies.
         /// </summary>
@@ -328,6 +339,7 @@ sealed partial class Program
                 _irFormatOption,
                 _defineConstantsOption,
                 _langVersionOption,
+                _optimizeOption,
                 _maxGenericTypeDepthOption,
                 _maxGenericInstantiationsPerDefinitionOption,
                 _maxGenericInstantiationsOption,
@@ -455,6 +467,9 @@ sealed partial class Program
                     references: refs,
                     options: new CSharpCompilationOptions(
                         OutputKind.DynamicallyLinkedLibrary,
+                        optimizationLevel: parseResult.GetValue(_optimizeOption)
+                            ? Microsoft.CodeAnalysis.OptimizationLevel.Release
+                            : Microsoft.CodeAnalysis.OptimizationLevel.Debug,
                         allowUnsafe: true));
 
             // Run the project's source generators, so that generated types

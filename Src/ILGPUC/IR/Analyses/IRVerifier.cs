@@ -324,6 +324,8 @@ sealed class VerificationContext
                     current.Type, $"value {current.ToReferenceString()} type");
 
             VerifyOperands(current, method);
+            if (current is MethodCall call)
+                VerifyMethodCall(call, blockRef);
 
             prev = current;
             current = current.Next;
@@ -335,6 +337,28 @@ sealed class VerificationContext
                 $"Block {blockRef} LastValue=" +
                 $"{block.LastValue?.ToReferenceString() ?? "null"} " +
                 $"but chain tail is {prev?.ToReferenceString() ?? "null"}");
+        }
+    }
+
+    /// <summary>
+    /// Verifies that a call passes exactly one argument per parameter of its
+    /// target. Passes and backends map call arguments to target parameters by
+    /// position. External and intrinsic targets are declarations without a
+    /// parameter list and are skipped.
+    /// </summary>
+    /// <param name="call">The call to verify.</param>
+    /// <param name="blockRef">The reference string of the call's block.</param>
+    private void VerifyMethodCall(MethodCall call, string blockRef)
+    {
+        var target = call.Target;
+        if (target.HasImplementation &&
+            call.Arguments.Length != target.NumParameters)
+        {
+            AddError(
+                $"Call {call.ToReferenceString()} in {blockRef} passes " +
+                $"{call.Arguments.Length} arguments to " +
+                $"{target.ToReferenceString()}, which has " +
+                $"{target.NumParameters} parameters");
         }
     }
 
