@@ -170,10 +170,9 @@ sealed class CodeGenerator(
         var globalName = context.GetValueName(global);
 
         // Emit with address space qualifier
-        if (!string.IsNullOrEmpty(addressSpaceKeyword))
-            context.Write($"{addressSpaceKeyword} ");
-
-        context.Write($"{typeName} {globalName}");
+        var qualifiedTypeName = context.LanguageConfig.GetQualifiedTypeName(
+            typeName, addressSpaceKeyword);
+        context.Write($"{qualifiedTypeName} {globalName}");
 
         // Handle array allocations
         if (global.ArrayLength.HasValue)

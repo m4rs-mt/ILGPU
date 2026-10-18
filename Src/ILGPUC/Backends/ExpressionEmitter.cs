@@ -323,9 +323,9 @@ sealed class ExpressionEmitter(GenerationContext context, TypeEmitter typeEmitte
 
         var sb = new StringBuilder();
         // Emit the storage array
-        if (!string.IsNullOrEmpty(addrSpace))
-            sb.Append($"{addrSpace} ");
-        sb.Append($"{elemTypeName} {storageName}[{GetAllocaLength(alloca)}];");
+        var storageTypeName = context.LanguageConfig.GetQualifiedTypeName(
+            elemTypeName, addrSpace);
+        sb.Append($"{storageTypeName} {storageName}[{GetAllocaLength(alloca)}];");
 
         // Emit the pointer variable. Build the pointer type via the
         // language config so backends that don't carry an address-space
@@ -430,9 +430,8 @@ sealed class ExpressionEmitter(GenerationContext context, TypeEmitter typeEmitte
             return source;
 
         // Build cast type using source address space + target element type
-        var castType = hasAddrSpace
-            ? $"{addrKeyword} {elemTypeName}*"
-            : $"{elemTypeName}*";
+        var castType = context.LanguageConfig.GetQualifiedTypeName(
+            elemTypeName, addrKeyword) + "*";
 
         return new Emitted(
             $"({castType}){Parenthesize(source, Prec.Unary)}",
@@ -1395,9 +1394,8 @@ sealed class ExpressionEmitter(GenerationContext context, TypeEmitter typeEmitte
         // CUDA omits the address-space qualifier (pointer types in CUDA C++
         // don't carry one); Metal/OpenCL prepend their qualifier.
         var elemTypeName = typeEmitter.GetTypeName(lfa.FieldType);
-        var castType = string.IsNullOrEmpty(addrKeyword)
-            ? $"{elemTypeName}*"
-            : $"{addrKeyword} {elemTypeName}*";
+        var castType = context.LanguageConfig.GetQualifiedTypeName(
+            elemTypeName, addrKeyword) + "*";
 
         // Take the address of the flattened field member so that the native
         // compiler applies the real byte offset of the field. A multi-field

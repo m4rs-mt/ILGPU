@@ -73,6 +73,22 @@ abstract class LanguageConfiguration
     public abstract string GetPrimitiveTypeName(ArithmeticBasicValueType basicType);
 
     /// <summary>
+    /// Returns the given type name qualified with an address-space keyword
+    /// (possibly empty). Default implementation prefixes the keyword
+    /// (<c>threadgroup int</c>), but appends it to a pointer type name
+    /// (<c>device int* thread</c>): a leading keyword would qualify the
+    /// element type of the pointer instead of the pointer itself.
+    /// </summary>
+    public virtual string GetQualifiedTypeName(
+        string typeName,
+        string addressSpaceKeyword) =>
+        string.IsNullOrEmpty(addressSpaceKeyword)
+            ? typeName
+            : typeName.EndsWith('*')
+                ? $"{typeName} {addressSpaceKeyword}"
+                : $"{addressSpaceKeyword} {typeName}";
+
+    /// <summary>
     /// Returns the type name for a view type given its element type name
     /// and address-space keyword (possibly empty).
     /// Default implementation returns pointer syntax with an optional
@@ -82,9 +98,7 @@ abstract class LanguageConfiguration
     public virtual string GetViewTypeName(
         string elementTypeName,
         string addressSpaceKeyword) =>
-        string.IsNullOrEmpty(addressSpaceKeyword)
-            ? elementTypeName + "*"
-            : $"{addressSpaceKeyword} {elementTypeName}*";
+        GetQualifiedTypeName(elementTypeName, addressSpaceKeyword) + "*";
 
     /// <summary>
     /// Returns the type name for a pointer type given its element type name
@@ -103,9 +117,7 @@ abstract class LanguageConfiguration
     public virtual string GetPointerTypeName(
         string elementTypeName,
         string addressSpaceKeyword) =>
-        string.IsNullOrEmpty(addressSpaceKeyword)
-            ? elementTypeName + "*"
-            : $"{addressSpaceKeyword} {elementTypeName}*";
+        GetQualifiedTypeName(elementTypeName, addressSpaceKeyword) + "*";
 
     /// <summary>
     /// Returns true if this language supports a specific feature.

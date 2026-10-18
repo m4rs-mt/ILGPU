@@ -40,4 +40,47 @@ public sealed class OpenCLSourceTests
         Assert.DoesNotMatch(@"\bbool\b", signature.Groups[1].Value);
         Assert.DoesNotMatch(@"\bbool\s+Field\d+\s*;", source);
     }
+
+    /// <summary>
+    /// An address-space keyword in front of a pointer type qualifies the
+    /// element type of the pointer: a local pointer into global memory whose
+    /// address is taken is a global pointer stored in private memory.
+    /// </summary>
+    [Fact]
+    public void LocalPointerAddresses_QualifyThePointers()
+    {
+        var kernel = typeof(AddressSpaceKernels)
+            .GetMethod(nameof(AddressSpaceKernels.LocalPointerAddressKernel))!;
+        using var helper = new CompilationHelper(BackendType.OpenCL);
+        var source = helper.GenerateBackendCode(kernel, BackendType.OpenCL).SourceCode;
+
+        Assert.DoesNotMatch(
+            @"\b(global|local|private|constant)\s+(global|local|private|constant)\b",
+            source);
+        Assert.Matches(@"global int\* private \w+_storage\[1\];", source);
+        Assert.Matches(@"global int\* private\* \w+ = \w+_storage;", source);
+        Assert.Matches(@"\(global void\* private\*\)", source);
+    }
+
+    /// <summary>
+    /// A local array of pointers into global memory is declared in private
+    /// memory and passed to the helper method using it as a pointer to its
+    /// global pointers.
+    /// </summary>
+    [Fact]
+    public void LocalPointerArrays_QualifyThePointers()
+    {
+        var kernel = typeof(AddressSpaceKernels)
+            .GetMethod(nameof(AddressSpaceKernels.LocalPointerArrayKernel))!;
+        using var helper = new CompilationHelper(BackendType.OpenCL);
+        var source = helper.GenerateBackendCode(kernel, BackendType.OpenCL).SourceCode;
+
+        Assert.DoesNotMatch(
+            @"\b(global|local|private|constant)\s+(global|local|private|constant)\b",
+            source);
+        Assert.Matches(@"global void\* private \w+\[2\] = \{0\}", source);
+        Assert.Matches(
+            @"\(global int\* \w+, int \w+, global void\* private\* \w+\)",
+            source);
+    }
 }

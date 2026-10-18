@@ -37,6 +37,25 @@ static class AddressSpaceKernels
     static ref int Next(ref int value) => ref Unsafe.Add(ref value, 1);
 
     /// <summary>
+    /// Advances the pointer the given pointer points to. Never inlined: the
+    /// pointer stays in local memory.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    static unsafe void Advance(int** pointer, int steps) => *pointer += steps;
+
+    /// <summary>
+    /// Reads an element through a local array of pointers. Never inlined: the
+    /// kernel declares the local array of the helper method and passes it on.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    static unsafe int ReadThroughLocalArray(int* pointer, int slot)
+    {
+        var addresses = new nint[2];
+        addresses[slot] = (nint)pointer;
+        return *(int*)addresses[slot];
+    }
+
+    /// <summary>
     /// Advances a reference through shared memory: the loop-carried reference
     /// is a phi of element addresses that all point into shared memory.
     /// </summary>
@@ -164,5 +183,45 @@ static class AddressSpaceKernels
 
         if (groupIdx < 32)
             data[index] = shared[groupIdx + 1];
+    }
+
+    /// <summary>
+    /// Takes the address of a local pointer into global memory: the pointer
+    /// lives in local memory, and is changed and read through a pointer to
+    /// it, directly and in a helper method.
+    /// </summary>
+    public static unsafe void LocalPointerAddressKernel(
+        Index1D index,
+        ArrayView1D<int, Stride1D.Dense> input,
+        ArrayView1D<int, Stride1D.Dense> data)
+    {
+        fixed (int* own = &input[index])
+        fixed (int* mirrored = &input[3 - index])
+        {
+            int* p = own;
+            int** pp = &p;
+            if (index % 2 == 0)
+                *pp = mirrored;
+            Advance(pp, 0);
+            data[index] = **pp;
+        }
+    }
+
+    /// <summary>
+    /// Stores the address of an input element in a local array of pointers
+    /// that a helper method allocates, and in a local array of the kernel.
+    /// </summary>
+    public static unsafe void LocalPointerArrayKernel(
+        Index1D index,
+        ArrayView1D<int, Stride1D.Dense> input,
+        ArrayView1D<int, Stride1D.Dense> data)
+    {
+        var addresses = new nint[2];
+        fixed (int* element = &input[index])
+        {
+            addresses[index % 2] = (nint)element;
+            data[index] = ReadThroughLocalArray(element, index % 2) +
+                *(int*)addresses[index % 2];
+        }
     }
 }

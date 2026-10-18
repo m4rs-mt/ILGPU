@@ -93,6 +93,19 @@ class CudaLanguageConfiguration : LanguageConfiguration
 
     /// <inheritdoc/>
     /// <remarks>
+    /// CUDA / HIP keywords such as <c>__shared__</c> specify the storage of
+    /// the declared variable, and always precede its type, including
+    /// pointer types.
+    /// </remarks>
+    public override string GetQualifiedTypeName(
+        string typeName,
+        string addressSpaceKeyword) =>
+        string.IsNullOrEmpty(addressSpaceKeyword)
+            ? typeName
+            : $"{addressSpaceKeyword} {typeName}";
+
+    /// <inheritdoc/>
+    /// <remarks>
     /// CUDA / HIP pointer types do not take a pointee address-space
     /// qualifier (unlike Metal's <c>threadgroup T*</c> or OpenCL's
     /// <c>__local T*</c>). Prepending <c>__shared__</c> to a pointer
