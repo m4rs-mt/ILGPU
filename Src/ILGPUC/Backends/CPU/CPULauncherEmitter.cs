@@ -35,6 +35,16 @@ sealed class CPULauncherEmitter : LauncherEmitter
         var className = ctx.KernelClassName;
         var pool = ctx.BufferPool;
 
+        // CPU kernels run on the host and access the memory of CPU buffers
+        ctx.WriteLine(
+            "if (stream.Accelerator is { } _accelerator && " +
+            "_accelerator.AcceleratorType != ILGPU.Runtime.AcceleratorType.CPU)");
+        ctx.WriteLine(
+            "    throw new System.InvalidOperationException(" +
+            "\"The kernel is not loaded on this accelerator: it was compiled " +
+            "for the CPU.\");");
+        ctx.WriteLine("");
+
         // Grid/group iteration
         ctx.WriteLine("long gridSize = config.GridSize;");
         ctx.WriteLine("int groupSize = config.GroupSize;");

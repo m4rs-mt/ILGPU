@@ -12,7 +12,6 @@
 
 // disable: max_line_length
 using System;
-using System.Linq;
 using ILGPU;
 using ILGPU.Runtime;
 
@@ -41,17 +40,7 @@ static class Program
     {
         using var context = Context.CreateDefault();
 
-        var device = context.Devices
-            .OrderByDescending(d => d.AcceleratorType switch
-            {
-                AcceleratorType.Metal  => 5,
-                AcceleratorType.Cuda   => 4,
-                AcceleratorType.ROCm   => 3,
-                AcceleratorType.OpenCL => 2,
-                AcceleratorType.CPU    => 1,
-                _                      => 0,
-            })
-            .First();
+        var device = context.GetPreferredDevice(preferCPU: false);
 
         using var accelerator = device.CreateAccelerator(context);
         Console.WriteLine($"Using {accelerator}");

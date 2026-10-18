@@ -195,4 +195,12 @@ sealed class CPULanguageConfiguration(int vectorWidth) : LanguageConfiguration
     /// declared name rather than inlining a C-style pointer cast.
     /// </remarks>
     public override bool LoadFieldAddressUsesVariable => true;
+
+    /// <inheritdoc/>
+    /// <remarks>
+    /// The entry point declares local and shared memory, and passes it on to
+    /// the helper methods using it.
+    /// </remarks>
+    public override bool IsFileScopeAddressSpace(MemoryAddressSpace addressSpace) =>
+        addressSpace is not (MemoryAddressSpace.Local or MemoryAddressSpace.Shared);
 }

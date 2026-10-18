@@ -33,6 +33,19 @@ public abstract class SharedMemoryExecutionTests : ExecutionTestBase
             ["0", "2", "4", "6"]);
     }
 
+    /// <summary>
+    /// Shared memory, group barriers and warp indices in helper methods that
+    /// are not inlined, including a helper that only calls such a helper.
+    /// </summary>
+    [SkippableFact]
+    public async Task SharedMemoryHelpers_ProducesCorrectOutput()
+    {
+        await VerifyProgramOutputAsync(
+            "TestPrograms/SharedMemory/SharedMemoryHelpers.cs",
+            ["Kernels.SharedMemoryHelpersKernel"],
+            ["neighbour mismatches 0", "warp mismatches 0"]);
+    }
+
     [SkippableFact]
     public async Task SharedMemoryArray_ProducesOutput()
     {

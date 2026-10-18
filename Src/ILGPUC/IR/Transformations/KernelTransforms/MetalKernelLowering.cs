@@ -9,10 +9,13 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
+using ILGPU.Util;
 using ILGPUC.IR.BasicBlockValues;
 using ILGPUC.IR.MethodValues;
 using ILGPUC.IR.ModuleValues;
 using ILGPUC.IR.PureValues;
+using System;
+using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 
 namespace ILGPUC.IR.Transformations.KernelTransform;
@@ -42,33 +45,16 @@ sealed class MetalKernelLowering(TransformationArgs args) :
     internal sealed class Analysis
     {
         /// <summary>
-        /// Creates a new analysis instance accepting the parent module and current
-        /// method.
+        /// Creates a new analysis instance from the device constants a method
+        /// needs.
         /// </summary>
-        /// <param name="module">The parent module.</param>
-        /// <param name="method">The current method.</param>
-        public Analysis(Module module, Method method)
+        /// <param name="needs">The device constants the method needs.</param>
+        public Analysis(Needs needs)
         {
-            bool needsGroup = false;
-            bool needsGrid = false;
-            bool needsGroupDim = false;
-            bool needsGridDim = false;
-
-            if (module.EntryPoint != method)
-            {
-                method.ForEachValue<DeviceConstantValue>(deviceConstant =>
-                {
-                    needsGroup    |= deviceConstant is GroupIndexValue;
-                    needsGrid     |= deviceConstant is GridIndexValue;
-                    needsGroupDim |= deviceConstant is GroupDimensionValue;
-                    needsGridDim  |= deviceConstant is GridDimensionValue;
-                });
-            }
-
-            NeedsGroup    = needsGroup;
-            NeedsGrid     = needsGrid;
-            NeedsGroupDim = needsGroupDim;
-            NeedsGridDim  = needsGridDim;
+            NeedsGroup    = (needs & Needs.Group) != 0;
+            NeedsGrid     = (needs & Needs.Grid) != 0;
+            NeedsGroupDim = (needs & Needs.GroupDim) != 0;
+            NeedsGridDim  = (needs & Needs.GridDim) != 0;
         }
 
         /// <summary>
@@ -118,12 +104,74 @@ sealed class MetalKernelLowering(TransformationArgs args) :
         public Parameter? GridDim { get; set; }
     }
 
+    /// <summary>
+    /// The device constants a helper method needs.
+    /// </summary>
+    [Flags]
+    internal enum Needs
+    {
+        None = 0,
+        Group = 1 << 0,
+        Grid = 1 << 1,
+        GroupDim = 1 << 2,
+        GridDim = 1 << 3,
+    }
+
     private readonly Method _entryPoint = args.Module.EntryPoint;
+    private Dictionary<Method, Needs>? _needs;
 
     /// <inheritdoc/>
     protected override Analysis CreateIntermediate(
         ModuleTransform transform,
-        Method method) => new(transform.OldModule, method);
+        Method method)
+    {
+        _needs ??= ComputeNeeds(transform.OldModule);
+        return new(_needs.GetValueOrDefault(method));
+    }
+
+    /// <summary>
+    /// Computes the device constants each helper method needs: the ones it
+    /// reads itself and the ones it passes on to the helpers it calls.
+    /// </summary>
+    private static Dictionary<Method, Needs> ComputeNeeds(Module module)
+    {
+        var needs = new Dictionary<Method, Needs>();
+        var callees = new Dictionary<Method, List<Method>>();
+        foreach (var method in module.Methods)
+        {
+            if (method == module.EntryPoint)
+                continue;
+            var methodNeeds = Needs.None;
+            method.ForEachValue<DeviceConstantValue>(deviceConstant =>
+                methodNeeds |= deviceConstant switch
+                {
+                    GroupIndexValue => Needs.Group,
+                    GridIndexValue => Needs.Grid,
+                    GroupDimensionValue => Needs.GroupDim,
+                    GridDimensionValue => Needs.GridDim,
+                    _ => Needs.None,
+                });
+            var called = new List<Method>();
+            method.ForEachValue<MethodCall>(call => called.Add(call.Target));
+            needs[method] = methodNeeds;
+            callees[method] = called;
+        }
+
+        bool changed = true;
+        while (changed)
+        {
+            changed = false;
+            foreach (var (method, called) in callees)
+            {
+                var methodNeeds = needs[method];
+                foreach (var callee in called)
+                    methodNeeds |= needs.GetValueOrDefault(callee);
+                changed |= methodNeeds != needs[method];
+                needs[method] = methodNeeds;
+            }
+        }
+        return needs;
+    }
 
     /// <inheritdoc/>
     protected override void OnMap(ModuleTransform transform)
@@ -298,16 +346,17 @@ sealed class MetalKernelLowering(TransformationArgs args) :
         }
         else
         {
-            // Caller is a helper: pass our own parameters through.
+            // Caller is a helper: pass our own parameters through. Callers
+            // need everything their callees need, so the parameters exist.
             var intermediate = GetIntermediate(call.Scope);
-            if (intermediate.NeedsGroup && intermediate.Group is Parameter gp)
-                callBuilder.Add(gp);
-            if (intermediate.NeedsGrid && intermediate.Grid is Parameter gdp)
-                callBuilder.Add(gdp);
-            if (intermediate.NeedsGroupDim && intermediate.GroupDim is Parameter gdimP)
-                callBuilder.Add(gdimP);
-            if (intermediate.NeedsGridDim && intermediate.GridDim is Parameter griddimP)
-                callBuilder.Add(griddimP);
+            if (calleeIntermediate.NeedsGroup)
+                callBuilder.Add(intermediate.Group.AsNotNull());
+            if (calleeIntermediate.NeedsGrid)
+                callBuilder.Add(intermediate.Grid.AsNotNull());
+            if (calleeIntermediate.NeedsGroupDim)
+                callBuilder.Add(intermediate.GroupDim.AsNotNull());
+            if (calleeIntermediate.NeedsGridDim)
+                callBuilder.Add(intermediate.GridDim.AsNotNull());
         }
 
         return callBuilder.Seal();

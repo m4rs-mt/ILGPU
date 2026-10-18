@@ -49,7 +49,7 @@ partial class Context
         kernels ??= new(kernelsToAdd.Count);
 
         kernels.AddRange(kernelsToAdd);
-        NumCompiledKernels += kernels.Count;
+        NumCompiledKernels += kernelsToAdd.Count;
     }
 
     /// <summary>

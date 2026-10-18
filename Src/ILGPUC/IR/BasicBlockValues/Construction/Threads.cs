@@ -60,31 +60,35 @@ partial class BasicBlockBuilder
     /// or shuffle value operating on the warp or the group level.
     /// </summary>
     /// <param name="variable">The variable to test.</param>
+    /// <param name="groupLevel">
+    /// True for operations across a group, false for operations across a warp.
+    /// </param>
     /// <returns>
     /// True, if the given variable is a constant in the parent broadcast or shuffle
     /// context.
     /// </returns>
-    private static bool IsShuffleOrBroadcastConstant(Value variable) =>
+    private static bool IsShuffleOrBroadcastConstant(Value variable, bool groupLevel) =>
         variable switch
         {
-            // Entry-point parameters can be considered uniform
-            Parameter param => param.Method.IsEntryPoint,
+            // Entry-point parameters can be considered uniform, except for the
+            // first one, which may be the index of the thread
+            Parameter param => param.Method.IsEntryPoint && param.Index > 0,
             PrimitiveValue _ => true,
             GridDimensionValue _ => true,
             GroupDimensionValue _ => true,
             SubGroupDimensionValue _ => true,
             GridIndexValue _ => true,
-            GroupIndexValue _ => true,
-            SubGroupIndexValue _ => true,
+            // The warp index is uniform within a warp but differs within a group
+            SubGroupIndexValue _ => !groupLevel,
             UnaryArithmeticValue unary =>
-                IsShuffleOrBroadcastConstant(unary.Value),
+                IsShuffleOrBroadcastConstant(unary.Value, groupLevel),
             BinaryArithmeticValue binary =>
-                IsShuffleOrBroadcastConstant(binary.Left) &&
-                IsShuffleOrBroadcastConstant(binary.Right),
+                IsShuffleOrBroadcastConstant(binary.Left, groupLevel) &&
+                IsShuffleOrBroadcastConstant(binary.Right, groupLevel),
             TernaryArithmeticValue ternary =>
-                IsShuffleOrBroadcastConstant(ternary.First) &&
-                IsShuffleOrBroadcastConstant(ternary.Second) &&
-                IsShuffleOrBroadcastConstant(ternary.Third),
+                IsShuffleOrBroadcastConstant(ternary.First, groupLevel) &&
+                IsShuffleOrBroadcastConstant(ternary.Second, groupLevel) &&
+                IsShuffleOrBroadcastConstant(ternary.Third, groupLevel),
             _ => false
         };
 
@@ -106,7 +110,9 @@ partial class BasicBlockBuilder
     {
         if (variable is null || origin is null) return null;
 
-        return IsShuffleOrBroadcastConstant(variable)
+        return IsShuffleOrBroadcastConstant(
+                variable,
+                groupLevel: kind == BroadcastKind.GroupLevel)
             ? variable
             : Append(new Broadcast(
                 GetInitializer(location),
@@ -131,7 +137,7 @@ partial class BasicBlockBuilder
     {
         if (variable is null || origin is null) return null;
 
-        return IsShuffleOrBroadcastConstant(variable)
+        return IsShuffleOrBroadcastConstant(variable, groupLevel: false)
             ? variable
             : Append(new Shuffle(
                 GetInitializer(location),
@@ -214,7 +220,7 @@ partial class BasicBlockBuilder
     {
         if (data is null) return null;
 
-        if (IsShuffleOrBroadcastConstant(data)
+        if (IsShuffleOrBroadcastConstant(data, groupLevel: false)
             && IsIdempotentOperation(intrinsicOp))
         {
             return data;
@@ -267,7 +273,7 @@ partial class BasicBlockBuilder
         if (data is null) return null;
 
         if (kind == WarpScanKind.Inclusive
-            && IsShuffleOrBroadcastConstant(data)
+            && IsShuffleOrBroadcastConstant(data, groupLevel: false)
             && IsIdempotentOperation(intrinsicOp))
         {
             return data;
@@ -324,7 +330,7 @@ partial class BasicBlockBuilder
     {
         if (data is null || identity is null) return null;
 
-        if (IsShuffleOrBroadcastConstant(data)
+        if (IsShuffleOrBroadcastConstant(data, groupLevel: true)
             && IsIdempotentOperation(intrinsicOp))
         {
             return data;
@@ -377,7 +383,7 @@ partial class BasicBlockBuilder
         if (data is null || identity is null) return null;
 
         if (kind == GroupScanKind.Inclusive
-            && IsShuffleOrBroadcastConstant(data)
+            && IsShuffleOrBroadcastConstant(data, groupLevel: true)
             && IsIdempotentOperation(intrinsicOp))
         {
             return data;

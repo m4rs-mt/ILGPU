@@ -74,6 +74,74 @@ sealed class LowerGroupCollectives(
         MapBasicBlockValue<GroupScan>(LowerScan);
         MapBasicBlockValue<GroupRadixSort>(LowerRadixSort);
         MapBasicBlockValue<PredicateBarrier>(LowerPredicateBarrier);
+        MapBasicBlockValue<Broadcast>(LowerBroadcast);
+    }
+
+    /// <summary>
+    /// Lowers a group-level <see cref="Broadcast"/> on backends without a
+    /// native group broadcast (CUDA, ROCm and Metal): every warp shuffles the
+    /// value of the lane matching the origin's lane, stores it to
+    /// shared[warpIdx], and all threads read the slot of the origin's warp.
+    /// </summary>
+    private Value? LowerBroadcast(
+        BasicBlockTransform transform,
+        Broadcast broadcast)
+    {
+        if (broadcast.Kind != BroadcastKind.GroupLevel ||
+            specification.AcceleratorType is not (AcceleratorType.Cuda or
+                AcceleratorType.ROCm or AcceleratorType.Metal))
+        {
+            return broadcast;
+        }
+
+        var location = broadcast.Location;
+        var variable = transform.Rewrite(broadcast.Variable).AsNotNull();
+        var origin = transform.Rewrite(broadcast.Origin).AsNotNull();
+        var warpIdx = transform.CreateSubGroupIndexValue(location);
+        var warpDim = transform.CreateSubGroupDimensionValue(location);
+        var originWarp = transform.CreateArithmetic(
+            location,
+            origin,
+            warpDim,
+            BinaryArithmeticKind.Div).AsNotNull();
+        var originLane = transform.CreateArithmetic(
+            location,
+            origin,
+            warpDim,
+            BinaryArithmeticKind.Rem).AsNotNull();
+
+        // One slot per warp of the group
+        var slots = transform.CreatePrimitiveValue(location, _scratchSlots);
+        var sharedGlobal = transform.ModuleBuilder.CreateGlobal(
+            location,
+            variable.Type,
+            MemoryAddressSpace.Shared,
+            slots);
+        var view = transform.CreateNewView(location, sharedGlobal, slots).AsNotNull();
+
+        // All lanes of a warp store the same value to its slot
+        var warpValue = transform.CreateShuffle(
+            location,
+            variable,
+            originLane,
+            ShuffleKind.Generic).AsNotNull();
+        var storeAddr = transform.CreateLoadElementAddress(
+            location,
+            view,
+            warpIdx).AsNotNull();
+        transform.CreateStore(location, storeAddr, warpValue);
+        transform.CreateBarrier(location, BarrierKind.GroupLevel);
+
+        var readAddr = transform.CreateLoadElementAddress(
+            location,
+            view,
+            originWarp).AsNotNull();
+        var result = transform.CreateLoad(location, readAddr).AsNotNull();
+
+        // A later broadcast from the same call site, such as in the next
+        // iteration of a loop, must not overwrite the slots before they are read
+        transform.CreateBarrier(location, BarrierKind.GroupLevel);
+        return result;
     }
 
     /// <summary>

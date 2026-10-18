@@ -1415,6 +1415,14 @@ sealed class ExpressionEmitter(GenerationContext context, TypeEmitter typeEmitte
                 sb.Append(", ");
             sb.Append(Emit(arguments[i]).Text);
         }
+        bool first = arguments.Length == 0;
+        foreach (var scopeParameter in context.GetHelperScopeParameters(call.Target))
+        {
+            if (!first)
+                sb.Append(", ");
+            first = false;
+            sb.Append(scopeParameter.Argument);
+        }
         sb.Append(')');
         return new Emitted(sb.ToString(), Prec.Postfix);
     }
