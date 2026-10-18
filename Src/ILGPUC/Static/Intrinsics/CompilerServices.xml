@@ -8,6 +8,7 @@
         <Generators Target="Frontend.Intrinsic.Intrinsics">
             <Generator Name="As" Target="Unsafe_As" />
             <Generator Name="Add" Target="Unsafe_Add" />
+            <Generator Name="AsPointer" Target="Unsafe_AsPointer" />
             <Generator Name="BitCast" Target="Unsafe_BitCast" />
         </Generators>
     </Type>

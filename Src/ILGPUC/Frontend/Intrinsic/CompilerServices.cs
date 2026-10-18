@@ -183,4 +183,14 @@ partial class Intrinsics
         return context.Builder.CreateLoadElementAddress(
             location, source, offset);
     }
+
+    /// <summary>
+    /// Handles <c>Unsafe.AsPointer&lt;T&gt;(ref T value)</c>, which converts the
+    /// reference into a pointer to the same element, as <c>conv.u</c> does.
+    /// </summary>
+    private static Value? Unsafe_AsPointer(ref InvocationContext context) =>
+        context.CodeGenerator.CreateConversion(
+            context[0],
+            context.ModuleBuilder.CreateType(context.Method.GetReturnType()),
+            ConvertFlags.None);
 }

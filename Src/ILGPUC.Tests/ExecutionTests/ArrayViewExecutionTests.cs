@@ -161,4 +161,21 @@ public abstract class ArrayViewExecutionTests : ExecutionTestBase
             ["Kernels.PerLaneViewLoopKernel"],
             ["801 702 603 504 801 702 603 504"]);
     }
+
+    /// <summary>
+    /// Unsafe.AsPointer converts references to a view element and to a local into
+    /// pointers to them.
+    /// </summary>
+    [SkippableTheory]
+    [InlineData(OptimizationLevel.O0)]
+    [InlineData(OptimizationLevel.O1)]
+    [InlineData(OptimizationLevel.O2)]
+    public async Task AsPointer_ProducesCorrectOutput(OptimizationLevel level)
+    {
+        await VerifyProgramOutputAsync(
+            "TestPrograms/ArrayView/AsPointer.cs",
+            ["Kernels.AsPointerKernel"],
+            ["110 121 132 143"],
+            new CompilationProperties { OptimizationLevel = level });
+    }
 }
