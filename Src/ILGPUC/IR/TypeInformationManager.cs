@@ -187,14 +187,14 @@ sealed class TypeInformationManager
         AddTypeInfo(typeof(ushort), true);
         AddTypeInfo(typeof(uint), true);
         AddTypeInfo(typeof(ulong), true);
-        AddTypeInfo(typeof(UInt128), true);
+        AddWideIntegerTypeInfo(typeof(UInt128));
         AddTypeInfo(typeof(UIntPtr), true);
 
         AddTypeInfo(typeof(sbyte), true);
         AddTypeInfo(typeof(short), true);
         AddTypeInfo(typeof(int), true);
         AddTypeInfo(typeof(long), true);
-        AddTypeInfo(typeof(Int128), true);
+        AddWideIntegerTypeInfo(typeof(Int128));
         AddTypeInfo(typeof(IntPtr), true);
 
         AddTypeInfo(typeof(float), true);
@@ -292,6 +292,26 @@ sealed class TypeInformationManager
             1,
             isBlittable,
             isValidKernelParameter);
+
+    /// <summary>
+    /// Adds the type information of <see cref="Int128"/> or
+    /// <see cref="UInt128"/>, which are passed as a whole like primitive types,
+    /// but are represented by two 64-bit fields in kernels. The fields count
+    /// as two flattened fields, so that the fields that follow them in a
+    /// structure map to the right fields of its kernel representation.
+    /// </summary>
+    /// <param name="type">The type to add.</param>
+    private void AddWideIntegerTypeInfo(Type type) =>
+        _typeInfoMapping.Add(type, new TypeInformation(
+            this,
+            type,
+            0,
+            ImmutableArray<FieldInfo>.Empty,
+            ImmutableArray<int>.Empty,
+            ImmutableArray<Type>.Empty,
+            2,
+            isBlittable: true,
+            isValidKernelParameter: true));
 
     /// <summary>
     /// Creates new type information and registers the created object
