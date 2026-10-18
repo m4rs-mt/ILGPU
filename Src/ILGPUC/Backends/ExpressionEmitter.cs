@@ -170,6 +170,9 @@ sealed class ExpressionEmitter(GenerationContext context, TypeEmitter typeEmitte
         {
             // Constants
             PrimitiveValue primitive => EmitPrimitive(primitive),
+            NullValue { Type: PointerType } nullPointer => new Emitted(
+                context.LanguageConfig.FormatNullPointer(
+                    typeEmitter.GetTypeName(nullPointer.Type)), Prec.Atom),
             NullValue nullValue => new Emitted(
                 context.LanguageConfig.FormatNullLiteral(
                     typeEmitter.GetTypeName(nullValue.Type)), Prec.Atom),
@@ -1250,8 +1253,9 @@ sealed class ExpressionEmitter(GenerationContext context, TypeEmitter typeEmitte
     private Emitted EmitIntAsPointer(IntAsPointerCast cast)
     {
         var source = Emit(cast.Source);
+        var targetType = typeEmitter.GetTypeName(cast.Type);
         var inner = Parenthesize(source, Prec.Unary);
-        return new Emitted($"(nint){inner}", Prec.Unary);
+        return new Emitted($"({targetType}){inner}", Prec.Unary);
     }
 
     #endregion

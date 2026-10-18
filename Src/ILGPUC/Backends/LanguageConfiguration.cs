@@ -148,6 +148,14 @@ abstract class LanguageConfiguration
         $"(({typeName}){{}})";  // Zero-initialized struct/value
 
     /// <summary>
+    /// Formats a null pointer for a given pointer type name.
+    /// Default: C-style <c>((Type)0)</c>, as OpenCL C compilers reject empty
+    /// initializers of scalars. CPU override: <c>default</c>.
+    /// </summary>
+    public virtual string FormatNullPointer(string typeName) =>
+        $"(({typeName})0)";
+
+    /// <summary>
     /// Returns the field name used to access a view's length.
     /// Default: <c>Field1</c> (lowered struct). CPU: <c>Length</c>.
     /// </summary>

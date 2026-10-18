@@ -252,4 +252,21 @@ static class AddressSpaceKernels
         }
         data[index] = *holders[index].P + *(int*)addresses[index];
     }
+
+    /// <summary>
+    /// Compares a pointer into global memory that is null in every other
+    /// thread with null.
+    /// </summary>
+    public static unsafe void NullPointerKernel(
+        Index1D index, ArrayView1D<int, Stride1D.Dense> data)
+    {
+        fixed (int* element = &data[index])
+        {
+            int* p = element;
+            if (index % 2 == 0)
+                p = null;
+            if (p != null)
+                *p += 1;
+        }
+    }
 }

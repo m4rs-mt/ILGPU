@@ -132,6 +132,10 @@ sealed class CPULanguageConfiguration(int vectorWidth) : LanguageConfiguration
         "default";
 
     /// <inheritdoc/>
+    public override string FormatNullPointer(string typeName) =>
+        "default";
+
+    /// <inheritdoc/>
     public override string ViewLengthFieldName => "Length";
 
     /// <summary>

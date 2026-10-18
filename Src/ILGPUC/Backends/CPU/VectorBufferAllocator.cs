@@ -341,6 +341,8 @@ sealed class VectorBufferAllocator
             // Broadcast temp uses the operand type, not bool
             if (cmp.Left.Type is PrimitiveType cpt)
                 return _config.GetPrimitiveTypeName(cpt.BasicValueType);
+            if (cmp.Left.Type is PointerType)
+                return "nint";
             return "int";
         }
 

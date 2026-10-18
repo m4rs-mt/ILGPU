@@ -961,7 +961,10 @@ sealed class CPUExpressionEmitter(
         bool unordered = isFloat && compare.IsUnsignedOrUnordered;
         bool isOrdering = compare.Kind is not (
             CompareKind.Equal or CompareKind.NotEqual);
-        var storageType = GetStorageType(leftBvt);
+        // Per-lane pointers are stored as addresses
+        var storageType = compare.Left.Type is PointerType
+            ? "nint"
+            : GetStorageType(leftBvt);
         var opType = !isFloat && isOrdering
             ? GetSemanticType(compare.CompareType)
             : storageType;
@@ -1036,7 +1039,7 @@ sealed class CPUExpressionEmitter(
             var bcast = GetBroadcastName(compare);
             context.WriteLine(
                 $"CPUVectorIntrinsics.Broadcast<{storageType}>(" +
-                $"{bcast}, {left});");
+                $"{bcast}, {ToLaneElement(left, storageType)});");
             left = bcast;
         }
         else if (rScalar)
@@ -1044,7 +1047,7 @@ sealed class CPUExpressionEmitter(
             var bcast = GetBroadcastName(compare);
             context.WriteLine(
                 $"CPUVectorIntrinsics.Broadcast<{storageType}>(" +
-                $"{bcast}, {right});");
+                $"{bcast}, {ToLaneElement(right, storageType)});");
             right = bcast;
         }
 

@@ -108,4 +108,37 @@ public sealed class OpenCLSourceTests
             @"\(\1_buffer \+ \1_offset\);",
             source);
     }
+
+    /// <summary>
+    /// Integers converted to pointers, such as null pointers, are cast to the
+    /// OpenCL C pointer type.
+    /// </summary>
+    [Fact]
+    public void IntegersAsPointers_AreCastToPointerTypes()
+    {
+        var kernel = typeof(AddressSpaceKernels)
+            .GetMethod(nameof(AddressSpaceKernels.NullPointerKernel))!;
+        using var helper = new CompilationHelper(BackendType.OpenCL);
+        var source = helper.GenerateBackendCode(kernel, BackendType.OpenCL).SourceCode;
+
+        Assert.DoesNotContain("nint", source);
+        Assert.Contains("(global void*)0L", source);
+    }
+
+    /// <summary>
+    /// Null pointers, such as the initial value of a local pointer, are zeros
+    /// cast to the OpenCL C pointer type, as OpenCL C compilers reject empty
+    /// initializers of scalars.
+    /// </summary>
+    [Fact]
+    public void NullPointers_AreZerosCastToPointerTypes()
+    {
+        var kernel = typeof(AddressSpaceKernels)
+            .GetMethod(nameof(AddressSpaceKernels.LocalPointerAddressKernel))!;
+        using var helper = new CompilationHelper(BackendType.OpenCL);
+        var source = helper.GenerateBackendCode(kernel, BackendType.OpenCL).SourceCode;
+
+        Assert.DoesNotContain("*){})", source);
+        Assert.Contains("((global int*)0)", source);
+    }
 }

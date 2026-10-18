@@ -86,6 +86,8 @@ sealed class VectorizationAnalysis
             GetField gf => IsScalar(gf.Source),
             // Address space casts keep the address (or view) of their source
             AddressSpaceCast cast => IsScalar(cast.Source),
+            // A uniform integer is a uniform address (e.g. a null pointer)
+            IntAsPointerCast cast => IsScalar(cast.Source),
             // An element address with a uniform offset into a uniform pointer
             // or view is uniform, unless it addresses a local array that every
             // lane owns privately

@@ -916,9 +916,13 @@ sealed partial class CPUMethodEmitter(
                     if (lScalar != rScalar)
                     {
                         // Broadcast temp uses the operand type, not bool
-                        var operandType = cmp.Left.Type is PrimitiveType cpt
-                            ? config.GetPrimitiveTypeName(cpt.BasicValueType)
-                            : "int";
+                        var operandType = cmp.Left.Type switch
+                        {
+                            PrimitiveType cpt =>
+                                config.GetPrimitiveTypeName(cpt.BasicValueType),
+                            PointerType => "nint",
+                            _ => "int",
+                        };
                         context.WriteLine(
                             $"var _bcast_tmp_{value.Id} = " +
                             $"new {operandType}[SIMDWidth];");

@@ -133,6 +133,18 @@ public abstract class AddressSpaceExecutionTests : ExecutionTestBase
     }
 
     [SkippableFact]
+    public async Task NullPointerLoop_ProducesCorrectOutput()
+    {
+        // x = t + 1, y = 10 * (t + 1); a pointer alternates between x and y
+        // until it becomes null after t + 1 iterations
+        RequireCapability(Backend, BackendCapability.GenericAddressSpace);
+        await VerifyProgramOutputAsync(
+            "TestPrograms/AddressSpace/NullPointerLoop.cs",
+            ["Kernels.NullPointerLoopKernel"],
+            ["1 22 36 88"]);
+    }
+
+    [SkippableFact]
     public async Task MixedSpaceRef_ProducesCorrectOutput()
     {
         // Even threads increment shared[t] = 10 * (t + 1), odd threads data[t] = t;
