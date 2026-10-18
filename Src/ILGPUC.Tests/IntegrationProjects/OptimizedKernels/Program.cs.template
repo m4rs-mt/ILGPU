@@ -1,0 +1,59 @@
+// OptimizedKernels: kernels whose optimized IL differs from their debug IL. With
+// optimizations, Roslyn emits the inner 0/1 selections as comparisons, so one
+// predecessor of the integer join pushes a bool.
+// Expected output: 2 2 1 0 (Select), then 0 1 0 1 (BoolToFloat)
+
+using System;
+using ILGPU;
+using ILGPU.Runtime;
+
+namespace OptimizedKernels;
+
+static class Kernels
+{
+    public static void SelectKernel(
+        Index1D index,
+        ArrayView1D<int, Stride1D.Dense> dir,
+        ArrayView1D<int, Stride1D.Dense> flag,
+        ArrayView1D<int, Stride1D.Dense> output)
+    {
+        output[index] = dir[index] < 0 ? 2 : flag[index] != 0 ? 0 : 1;
+    }
+
+    public static void BoolToFloatKernel(
+        Index1D index,
+        ArrayView1D<int, Stride1D.Dense> flag,
+        ArrayView1D<float, Stride1D.Dense> output)
+    {
+        float r = flag[index] != 0 ? 1 : 0;
+        output[index] = r;
+    }
+}
+
+static class Program
+{
+    static void Main()
+    {
+        using var context = Context.Create(b => b.Default());
+        using var accelerator = context.GetPreferredDevice(preferCPU: $(PREFER_CPU))
+            .CreateAccelerator(context);
+        var stream = accelerator.DefaultStream;
+
+        using var dir = stream.Allocate1D(new[] { -1, -1, 1, 1 });
+        using var flag = stream.Allocate1D(new[] { 0, 1, 0, 1 });
+        using var select = stream.Allocate1D<int>(4);
+        using var boolToFloat = stream.Allocate1D<float>(4);
+        stream.Launch(
+            (Index1D)4,
+            index => Kernels.SelectKernel(index, dir.View, flag.View, select.View));
+        stream.Launch(
+            (Index1D)4,
+            index => Kernels.BoolToFloatKernel(index, flag.View, boolToFloat.View));
+        stream.Synchronize();
+
+        foreach (var v in select.GetAsArray1D())
+            Console.WriteLine(v);
+        foreach (var v in boolToFloat.GetAsArray1D())
+            Console.WriteLine(v);
+    }
+}

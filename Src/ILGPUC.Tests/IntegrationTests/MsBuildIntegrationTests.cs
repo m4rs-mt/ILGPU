@@ -961,6 +961,71 @@ public static class MsBuildIntegrationTests
     }
 
     // -----------------------------------------------------------------------
+    // Test 20: OptimizedKernels — with Optimize=true, as in Release builds,
+    // kernels are compiled from optimized IL, which emits 0/1 selections as
+    // comparisons. Without it, the response file does not request optimized IL.
+    // -----------------------------------------------------------------------
+
+    public sealed class OptimizedKernels(ITestOutputHelper output)
+    {
+        [SkippableTheory]
+        [InlineData(BackendType.CPU)]
+        [InlineData(BackendType.Metal)]
+        public async Task Build_Optimized_CompilesKernelsFromOptimizedILAndRuns(
+            BackendType backend)
+        {
+            await RequireBackendAsync(backend);
+
+            using var project = new IntegrationProjectFixture(
+                "OptimizedKernels", backend, output);
+            try
+            {
+                var build = await project.BuildAsync(
+                    new Dictionary<string, string> { ["Optimize"] = "true" });
+                Assert.True(build.Succeeded,
+                    $"dotnet build failed (exit {build.ExitCode}). " +
+                    $"Stderr: {build.StdErr}");
+                Assert.Contains("--optimize", project.ReadResponseFile());
+
+                var run = await project.RunAsync();
+                Assert.False(run.TimedOut, "Binary timed out");
+                Assert.Equal(0, run.ExitCode);
+                OutputVerifier.Verify(
+                    run.StdOutLines,
+                    expected: ["2", "2", "1", "0", "0", "1", "0", "1"]);
+            }
+            catch
+            {
+                project.MarkFailed();
+                throw;
+            }
+        }
+
+        [SkippableFact]
+        public async Task Build_NotOptimized_DoesNotRequestOptimizedIL()
+        {
+            await RequireBackendAsync(BackendType.CPU);
+
+            using var project = new IntegrationProjectFixture(
+                "OptimizedKernels", BackendType.CPU, output);
+            try
+            {
+                var build = await project.BuildAsync(
+                    new Dictionary<string, string> { ["Optimize"] = "false" });
+                Assert.True(build.Succeeded,
+                    $"dotnet build failed (exit {build.ExitCode}). " +
+                    $"Stderr: {build.StdErr}");
+                Assert.DoesNotContain("--optimize", project.ReadResponseFile());
+            }
+            catch
+            {
+                project.MarkFailed();
+                throw;
+            }
+        }
+    }
+
+    // -----------------------------------------------------------------------
     // Helpers
     // -----------------------------------------------------------------------
 
