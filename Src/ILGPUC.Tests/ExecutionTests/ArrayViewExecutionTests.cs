@@ -101,4 +101,68 @@ public abstract class ArrayViewExecutionTests : ExecutionTestBase
                 "0 3 6 9 100 102 104 106 24 27 30 33 101 103 105 107"
             ]);
     }
+
+    [SkippableFact]
+    public async Task PerLaneLocalArrays_ProducesCorrectOutput()
+    {
+        await VerifyProgramOutputAsync(
+            "TestPrograms/ArrayView/PerLaneLocalArrays.cs",
+            ["Kernels.PerLaneLocalArraysKernel"],
+            ["5 28 27 50 49 72 71 94"]);
+    }
+
+    [SkippableFact]
+    public async Task PerLaneSubViews_ProducesCorrectOutput()
+    {
+        await VerifyProgramOutputAsync(
+            "TestPrograms/ArrayView/PerLaneSubViews.cs",
+            ["Kernels.PerLaneSubViewsKernel"],
+            [
+                "0 24 3 27 6 30 9 33",
+                "0 3 6 9 100 102 104 106 24 27 30 33 101 103 105 107"
+            ]);
+    }
+
+    [SkippableFact]
+    public async Task PerLaneViewParameters_ProducesCorrectOutput()
+    {
+        await VerifyProgramOutputAsync(
+            "TestPrograms/ArrayView/PerLaneViewParameters.cs",
+            ["Kernels.PerLaneViewParametersKernel"],
+            [
+                "0 24 3 27 6 30 9 33",
+                "0 3 6 9 100 102 104 106 24 27 30 33 101 103 105 107"
+            ]);
+    }
+
+    [SkippableFact]
+    public async Task PerLaneViewLength_ProducesCorrectOutput()
+    {
+        await VerifyProgramOutputAsync(
+            "TestPrograms/ArrayView/PerLaneViewLength.cs",
+            ["Kernels.PerLaneViewLengthKernel"],
+            ["3303 5508 3303 5508"]);
+    }
+
+    [SkippableFact]
+    public async Task PerLaneViewAtomic_ProducesCorrectOutput()
+    {
+        await VerifyProgramOutputAsync(
+            "TestPrograms/ArrayView/PerLaneViewAtomic.cs",
+            ["Kernels.PerLaneViewAtomicKernel"],
+            ["0 16 0 20"]);
+    }
+
+    [SkippableFact]
+    public async Task PerLaneViewLoop_ProducesCorrectOutput()
+    {
+        Skip.If(
+            Backend != BackendType.CPU,
+            "GPU backends read stale lengths of views that are shrunk in a " +
+            "loop which the lanes leave in different iterations.");
+        await VerifyProgramOutputAsync(
+            "TestPrograms/ArrayView/PerLaneViewLoop.cs",
+            ["Kernels.PerLaneViewLoopKernel"],
+            ["801 702 603 504 801 702 603 504"]);
+    }
 }
