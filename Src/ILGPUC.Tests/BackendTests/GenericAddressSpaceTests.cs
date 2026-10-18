@@ -63,6 +63,57 @@ public sealed class GenericAddressSpaceTests
     }
 
     /// <summary>
+    /// Addresses of local variables and of shared memory stored to memory: in a
+    /// local pointer whose address is taken, in a view of nint and in a view of
+    /// structs holding a pointer. Loaded back, they would point into global
+    /// memory, so the store is reported at its location.
+    /// </summary>
+    [Theory]
+    [InlineData(
+        BackendType.Metal,
+        nameof(AddressSpaceKernels.LocalAddressInLocalPointerKernel),
+        "local")]
+    [InlineData(
+        BackendType.Metal,
+        nameof(AddressSpaceKernels.LocalAddressInViewKernel),
+        "local")]
+    [InlineData(
+        BackendType.Metal,
+        nameof(AddressSpaceKernels.SharedAddressInViewKernel),
+        "shared")]
+    [InlineData(
+        BackendType.OpenCL,
+        nameof(AddressSpaceKernels.LocalAddressInLocalPointerKernel),
+        "local")]
+    [InlineData(
+        BackendType.OpenCL,
+        nameof(AddressSpaceKernels.LocalAddressInViewKernel),
+        "local")]
+    [InlineData(
+        BackendType.OpenCL,
+        nameof(AddressSpaceKernels.SharedAddressInViewKernel),
+        "shared")]
+    public void StoredReference_ReportsError(
+        BackendType backend,
+        string kernelName,
+        string space)
+    {
+        var kernel = typeof(AddressSpaceKernels).GetMethod(kernelName)!;
+        using var helper = new CompilationHelper(backend);
+
+        var exception = Assert.Throws<NotSupportedException>(
+            () => helper.GenerateBackendCode(kernel, backend));
+        Assert.Contains($"Kernel 'AddressSpaceKernels.{kernelName}'", exception.Message);
+        Assert.Contains(
+            $"points to {space} memory but is stored to memory as a generic pointer",
+            exception.Message);
+        Assert.Contains("AddressSpaceKernels.cs', line ", exception.Message);
+        Assert.Contains(
+            $"{backend} does not support generic pointers",
+            exception.Message);
+    }
+
+    /// <summary>
     /// A reference selected from two elements of the same address space keeps
     /// that address space.
     /// </summary>
@@ -120,8 +171,18 @@ public sealed class GenericAddressSpaceTests
     [Theory]
     [InlineData(BackendType.Cuda, nameof(AddressSpaceKernels.MixedSpaceRefKernel))]
     [InlineData(BackendType.Cuda, nameof(AddressSpaceKernels.SharedRefReturnKernel))]
+    [InlineData(
+        BackendType.Cuda,
+        nameof(AddressSpaceKernels.LocalAddressInLocalPointerKernel))]
+    [InlineData(BackendType.Cuda, nameof(AddressSpaceKernels.LocalAddressInViewKernel))]
+    [InlineData(BackendType.Cuda, nameof(AddressSpaceKernels.SharedAddressInViewKernel))]
     [InlineData(BackendType.ROCm, nameof(AddressSpaceKernels.MixedSpaceRefKernel))]
     [InlineData(BackendType.ROCm, nameof(AddressSpaceKernels.SharedRefReturnKernel))]
+    [InlineData(
+        BackendType.ROCm,
+        nameof(AddressSpaceKernels.LocalAddressInLocalPointerKernel))]
+    [InlineData(BackendType.ROCm, nameof(AddressSpaceKernels.LocalAddressInViewKernel))]
+    [InlineData(BackendType.ROCm, nameof(AddressSpaceKernels.SharedAddressInViewKernel))]
     public void GenericReference_CompilesWithGenericAddressSpace(
         BackendType backend,
         string kernelName)

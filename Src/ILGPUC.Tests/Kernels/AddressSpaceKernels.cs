@@ -25,6 +25,15 @@ unsafe struct PointerHolder
 }
 
 /// <summary>
+/// A struct holding a pointer and a tag.
+/// </summary>
+unsafe struct TaggedPointer
+{
+    public int* P;
+    public int Tag;
+}
+
+/// <summary>
 /// Kernel definitions for address space inference: references into shared,
 /// local and global memory that flow through phis and helper methods.
 /// </summary>
@@ -267,6 +276,62 @@ static class AddressSpaceKernels
                 p = null;
             if (p != null)
                 *p += 1;
+        }
+    }
+
+    /// <summary>
+    /// Stores the address of a local variable in a local pointer whose address
+    /// is taken, and reads the variable through the pointer to the pointer.
+    /// </summary>
+    [RequiresCapability(BackendCapability.GenericAddressSpace)]
+    public static unsafe void LocalAddressInLocalPointerKernel(
+        Index1D index, ArrayView1D<int, Stride1D.Dense> data)
+    {
+        int x = data[index];
+        int y = 2 * x;
+        int* p = &x;
+        int** pp = &p;
+        if (index % 2 == 0)
+            *pp = &y;
+        data[index] = **pp + 1;
+    }
+
+    /// <summary>
+    /// Stores the address of a local variable in a view of nint addresses and
+    /// reads the variable through the view.
+    /// </summary>
+    [RequiresCapability(BackendCapability.GenericAddressSpace)]
+    public static unsafe void LocalAddressInViewKernel(
+        Index1D index,
+        ArrayView1D<nint, Stride1D.Dense> addresses,
+        ArrayView1D<int, Stride1D.Dense> data)
+    {
+        int x = data[index] + 1;
+        addresses[index] = (nint)(&x);
+        data[index] = *(int*)addresses[index];
+    }
+
+    /// <summary>
+    /// Stores the address of an element of shared memory in a view of structs
+    /// holding a pointer and reads the element through the view.
+    /// </summary>
+    [RequiresCapability(BackendCapability.GenericAddressSpace)]
+    public static unsafe void SharedAddressInViewKernel(
+        Index1D index,
+        ArrayView1D<TaggedPointer, Stride1D.Dense> pointers,
+        ArrayView1D<int, Stride1D.Dense> data)
+    {
+        var shared = Group.GetSharedMemory<int>(32);
+        int groupIdx = Group.Index;
+        if (groupIdx < 32)
+            shared[groupIdx] = index.X + 1;
+        Group.Barrier();
+
+        if (groupIdx < 32)
+        {
+            fixed (int* p = &shared[groupIdx])
+                pointers[index] = new TaggedPointer { P = p, Tag = 1 };
+            data[index] = *pointers[index].P + pointers[index].Tag;
         }
     }
 }
