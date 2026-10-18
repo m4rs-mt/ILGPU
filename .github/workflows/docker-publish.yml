@@ -2,25 +2,27 @@ name: Publish compiler-service images to GHCR
 
 # Builds and pushes the three ILGPUC.CompilerService Docker images
 # (cuda / rocm / opencl) to GitHub Container Registry. The published images
-# are consumed by the test workflow (.github/workflows/test.yml) — they
+# are consumed by the CI workflow (.github/workflows/ci.yml) — they
 # bundle the .NET 10 SDK + the native GPU compiler so `dotnet test` can run
 # inside the container with the local toolchain on PATH.
 #
-# See Src/docker/README.md and Src/plans/new_docker_containers.md for the
-# image design rationale, and plans/ci_redesign.md for the CI architecture.
+# See Src/docker/README.md for the image design and the local build workflow.
 #
-# First-time setup (one-time, manual):
-#  1. Trigger this workflow via the Actions tab (workflow_dispatch).
-#  2. After the first successful push, navigate to the repo's Packages tab,
-#     open each new package, click "Package settings", and change visibility
-#     to Public. Without this step the published images stay private and
-#     external / fork-PR runners cannot pull them anonymously.
+# The packages are private: they serve this repository's CI, which pulls
+# them with the repository's GITHUB_TOKEN. Fork-PR runners cannot pull them,
+# which is why ci.yml skips the GPU compile jobs on fork PRs.
+#
+# First-time setup (one-time, manual): trigger this workflow via the Actions
+# tab (workflow_dispatch). Packages created by this workflow belong to the
+# repository, so later pushes from it are allowed. Do not create or push
+# these packages by hand from a personal account — the repository would only
+# get read access and this workflow's pushes would fail with
+# `permission_denied: write_package`.
 
 on:
-  # Manual trigger via the Actions tab UI. Use this for out-of-band
-  # rebuilds when you need fresh CompilerService code baked into the
-  # published image (e.g., for third parties who consume the GHCR image
-  # directly without overriding the entrypoint).
+  # Manual trigger via the Actions tab UI. Use this for the first-time
+  # setup described above and for out-of-band rebuilds, e.g. to bake a
+  # fresh CompilerService snapshot into the published images.
   workflow_dispatch:
 
   # Monthly base-image refresh on the 1st of each month at 04:00 UTC.
@@ -34,7 +36,7 @@ on:
   #
   # The published images contain the .NET 10 SDK + the native GPU compiler
   # (nvcc / hipcc / ocloc) + a snapshot of the CompilerService binary. The
-  # CI test workflow (.github/workflows/test.yml) DOES NOT use the
+  # CI workflow (.github/workflows/ci.yml) DOES NOT use the
   # CompilerService binary inside the image — it bind-mounts freshly built
   # test binaries from the host and runs `dotnet test --no-build` against
   # those. So the image only needs to be rebuilt when the SDK pin, the
