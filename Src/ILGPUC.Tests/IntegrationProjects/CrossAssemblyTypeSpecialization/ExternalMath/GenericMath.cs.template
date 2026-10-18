@@ -1,0 +1,20 @@
+// ExternalMath: the type-specialized helper from issue #1427 as external API, in a
+// library that does not reference ILGPU. Kernels compile it from its IL.
+
+using System;
+using System.Runtime.CompilerServices;
+
+namespace ExternalMath;
+
+public static class GenericMath
+{
+    public static T GenericSin<T>(T x) where T : unmanaged
+    {
+        if (typeof(T) == typeof(float))
+            return Unsafe.BitCast<float, T>(MathF.Sin(Unsafe.BitCast<T, float>(x)));
+        else if (typeof(T) == typeof(double))
+            return Unsafe.BitCast<double, T>(Math.Cos(Unsafe.BitCast<T, double>(x)));
+        else
+            throw new NotSupportedException();
+    }
+}

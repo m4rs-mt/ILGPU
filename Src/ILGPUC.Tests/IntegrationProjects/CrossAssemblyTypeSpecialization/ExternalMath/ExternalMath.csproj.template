@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- A plain library: no ILGPU reference and no ILGPU build integration -->
+  <PropertyGroup>
+    <OutputType>Library</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <LangVersion>13.0</LangVersion>
+    <RootNamespace>ExternalMath</RootNamespace>
+    <AssemblyName>ExternalMath</AssemblyName>
+  </PropertyGroup>
+
+</Project>
