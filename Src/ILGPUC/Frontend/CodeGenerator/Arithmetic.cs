@@ -22,30 +22,24 @@ namespace ILGPUC.Frontend;
 partial class CodeGenerator
 {
     /// <summary>
-    /// Tries to map the given IR value representing a raw integer-based value size
-    /// to a corresponding <see cref="BasicValueType"/> entry.
+    /// Tries to determine the stride in bytes of the given address offset: an
+    /// element index multiplied or shifted by a constant.
     /// </summary>
-    /// <param name="value">The IR to map.</param>
-    /// <param name="shiftValue">The base value for shift operations.</param>
-    /// <param name="valueType">The determined basic-value type (if any).</param>
-    /// <returns>
-    /// True, if the given IR node could be mapped to a basic value type.
-    /// </returns>
+    /// <param name="offset">The address offset.</param>
+    /// <param name="stride">The determined stride (if any).</param>
+    /// <returns>True, if the offset has a constant stride.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static bool TryGetBasicValueSize(
-        Value value,
-        int? shiftValue,
-        out BasicValueType valueType)
+    private static bool TryGetStride(BinaryArithmeticValue offset, out int stride)
     {
-        valueType =
-            value is PrimitiveValue size &&
-            size.BasicValueType.IsInt()
-            ? PrimitiveType.GetBasicValueTypeBySize(
-                shiftValue is null
-                ? size.Int32Value
-                : shiftValue.Value << size.Int32Value)
-            : BasicValueType.None;
-        return valueType != BasicValueType.None;
+        stride = offset.Right is PrimitiveValue size && size.BasicValueType.IsInt()
+            ? offset.Kind switch
+            {
+                BinaryArithmeticKind.Mul => size.Int32Value,
+                BinaryArithmeticKind.Shl => 1 << size.Int32Value,
+                _ => 0,
+            }
+            : 0;
+        return stride > 0;
     }
 
     /// <summary>
@@ -53,6 +47,7 @@ partial class CodeGenerator
     /// </summary>
     /// <param name="left">The left operand (the pointer to use).</param>
     /// <param name="baseAddress">The base address offset.</param>
+    /// <param name="negate">True, if the offset is subtracted.</param>
     /// <param name="result">The result value (if any).</param>
     /// <returns>
     /// True, if the given pattern could be converted into a LEA node.
@@ -60,35 +55,51 @@ partial class CodeGenerator
     private bool TryConvertIntoLoadElementAddress(
         Value left,
         BinaryArithmeticValue baseAddress,
+        bool negate,
         [NotNullWhen(true)] out Value? result)
     {
-        if (
-            // Check multiplications
-            baseAddress.Kind == BinaryArithmeticKind.Mul &&
-            // Extract the element stride from the multiplication pattern
-            // (must be the right operand since we have moved all pointer
-            // values the left hand side by definition)
-            TryGetBasicValueSize(baseAddress.Right, null, out var strideType) ||
+        result = null;
+        if (!TryGetStride(baseAddress, out int stride))
+            return false;
 
-            // Check shift-based address computations
-            baseAddress.Kind == BinaryArithmeticKind.Shl &&
-            // Extract the element stride from the shift pattern
-            TryGetBasicValueSize(baseAddress.Right, 1, out strideType))
+        // Cast raw pointer into an appropriate target type, unless it points to
+        // elements of the stride that no primitive type has, such as structures
+        var index = baseAddress.Left;
+        if (stride is 1 or 2 or 4 or 8)
         {
-            // Cast raw pointer into an appropriate target type
-            var targetElementType = ModuleBuilder.GetPrimitiveType(strideType);
+            var strideType = PrimitiveType.GetBasicValueTypeBySize(stride);
             left = Builder.CreatePointerCast(
                 Location,
                 left,
-                targetElementType).AsNotNull();
-            result = Builder.CreateLoadElementAddress(
+                ModuleBuilder.GetPrimitiveType(strideType)).AsNotNull();
+        }
+        else if (left.GetTypeAs<PointerType>().ElementType.Size != stride)
+        {
+            // Offset other pointers by bytes
+            left = Builder.CreatePointerCast(
                 Location,
                 left,
-                baseAddress.Left).AsNotNull();
-            return true;
+                ModuleBuilder.GetPrimitiveType(BasicValueType.Int8)).AsNotNull();
+            index = baseAddress.Type is PointerType
+                ? Builder.CreatePointerAsIntCast(
+                    Location,
+                    baseAddress,
+                    ModuleBuilder.IntPointerType.BasicValueType)
+                : baseAddress;
         }
-        result = null;
-        return false;
+
+        if (negate)
+        {
+            index = Builder.CreateArithmetic(
+                Location,
+                index is IntAsPointerCast cast ? cast.Source : index,
+                UnaryArithmeticKind.Neg).AsNotNull();
+        }
+        result = Builder.CreateLoadElementAddress(
+            Location,
+            left,
+            index).AsNotNull();
+        return true;
     }
 
     /// <summary>
@@ -145,11 +156,15 @@ partial class CodeGenerator
                 ref left,
                 ref right);
 
+            // Offsets are added to pointers or subtracted from pointers
+            bool isOffset = kind == BinaryArithmeticKind.Add ||
+                kind == BinaryArithmeticKind.Sub && !swapped;
+
             // Check for raw combinations of two pointer values
             if (
                 right.Type is not PointerType &&
                 // Check whether this can be safely converted into a LEA value
-                kind == BinaryArithmeticKind.Add)
+                isOffset)
             {
                 // Check the size of the element type and divide the raw offset
                 // by the element size to retrieve the actual element index.
@@ -162,6 +177,13 @@ partial class CodeGenerator
                     right,
                     elementSize,
                     BinaryArithmeticKind.Div);
+                if (kind == BinaryArithmeticKind.Sub)
+                {
+                    leaIndex = Builder.CreateArithmetic(
+                        Location,
+                        leaIndex,
+                        UnaryArithmeticKind.Neg);
+                }
                 result = Builder.CreateLoadElementAddress(
                     Location,
                     left,
@@ -171,10 +193,14 @@ partial class CodeGenerator
             // into a LEA instruction
             // FIXME: remove this code once we add additional LEA nodes
             else if (
-                kind == BinaryArithmeticKind.Add &&
+                isOffset &&
                 (right is IntAsPointerCast stride ? stride.Source : right)
                     is BinaryArithmeticValue baseAddress &&
-                TryConvertIntoLoadElementAddress(left, baseAddress, out var lea))
+                TryConvertIntoLoadElementAddress(
+                    left,
+                    baseAddress,
+                    kind == BinaryArithmeticKind.Sub,
+                    out var lea))
             {
                 result = lea;
             }

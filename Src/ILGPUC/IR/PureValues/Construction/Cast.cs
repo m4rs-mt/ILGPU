@@ -77,9 +77,11 @@ partial class PureValueBuilder
         if (node is null) return null;
 
         // Fold casts of integers to pointers, which extend the integers to
-        // native integers
+        // native integers, and of null pointers
         if (node is IntAsPointerCast cast)
             return CreateConvert(location, cast.Source, targetType);
+        if (node is NullValue)
+            return CreatePrimitiveValue(location, targetType, 0);
 
         // Compute arithmetic on native integers, such as the strides of
         // address computations, on the integer values of its operands
@@ -125,6 +127,16 @@ partial class PureValueBuilder
         // Check whether the element types are the same
         if (type.ElementType.Equals(targetElementType))
             return node;
+
+        // Null pointers are null pointers of all element types
+        if (node is NullValue)
+        {
+            return CreateNull(
+                location,
+                ModuleBuilder.CreatePointerType(
+                    targetElementType,
+                    type.AddressSpace));
+        }
 
         // Check whether we are casting a nested pointer cast
         if (node is PointerCast pointerCast)
@@ -190,6 +202,16 @@ partial class PureValueBuilder
         var sourceAddressSpace = type.AddressSpace;
         if (sourceAddressSpace == targetAddressSpace)
             return node;
+
+        // Null pointers are null pointers in all address spaces
+        if (node is NullValue && type is PointerType pointerType)
+        {
+            return CreateNull(
+                location,
+                ModuleBuilder.CreatePointerType(
+                    pointerType.ElementType,
+                    targetAddressSpace));
+        }
 
         // Deduplicate: check if an identical cast was already created
         // for this source and target within the current builder scope.
