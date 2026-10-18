@@ -12,6 +12,7 @@
 using ILGPU.Util;
 using ILGPUC.IR;
 using ILGPUC.IR.PureValues;
+using ILGPUC.Util;
 using System;
 
 namespace ILGPUC.Frontend.Intrinsic;
@@ -91,6 +92,38 @@ partial class Intrinsics
             context.Pull(),
             kind,
             DetermineArithmeticFlags(ref context)).AsNotNull();
+
+    /// <summary>
+    /// Handles copysign operations. Integers are negated if the signs of both
+    /// operands differ, which keeps the minimum value as its negation wraps around.
+    /// </summary>
+    /// <param name="context">The current invocation context.</param>
+    /// <returns>The resulting value.</returns>
+    public static Value? Math_CopySign(ref InvocationContext context)
+    {
+        if (context[0].BasicValueType.IsFloat())
+            return Math_BinaryOperation(ref context, BinaryArithmeticKind.CopySign);
+
+        // The sign bit of value ^ sign is set if the signs of both operands differ
+        var location = context.Location;
+        var builder = context.Builder;
+        var value = context.Pull();
+        var signs = builder.CreateArithmetic(
+            location,
+            value,
+            context.Pull(),
+            BinaryArithmeticKind.Xor);
+        var differ = builder.CreateCompare(
+            location,
+            signs,
+            builder.CreatePrimitiveValue(location, value.BasicValueType, 0),
+            CompareKind.LessThan);
+        return builder.CreatePredicate(
+            location,
+            differ,
+            builder.CreateArithmetic(location, value, UnaryArithmeticKind.Neg),
+            value);
+    }
 
     /// <summary>
     /// Handles ternary math operations.

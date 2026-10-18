@@ -161,6 +161,20 @@ public abstract class BinaryIntOpExecutionTests : ExecutionTestBase
     }
 
     /// <summary>
+    /// CopySign on sbyte, short, int and long, called directly and through
+    /// generic math, matches .NET; the minimum values with a positive sign
+    /// wrap around.
+    /// </summary>
+    [SkippableFact]
+    public async Task IntegerCopySign_ProducesCorrectOutput()
+    {
+        await VerifyProgramOutputAsync(
+            "TestPrograms/BinaryIntOp/IntegerCopySign.cs",
+            ["Kernels.IntegerCopySignKernel"],
+            ["mismatches 0", "-128 -32768 -2147483648 -9223372036854775808"]);
+    }
+
+    /// <summary>
     /// Divisions by powers of two round towards zero for negative signed
     /// values and keep the top bit of unsigned values.
     /// </summary>
