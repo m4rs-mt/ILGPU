@@ -14,7 +14,7 @@ ILGPU's CUDA / ROCm backends. The same images plug straight into the
 | Dockerfile        | Runtime base                                       | Architectures        | Bundled compilers              |
 |-------------------|----------------------------------------------------|----------------------|--------------------------------|
 | `Dockerfile.cuda` | `nvidia/cuda:13.2.0-devel-ubuntu24.04`             | `linux/amd64`, `linux/arm64` (SBSA) | `nvcc`, `ptxas` at `/usr/local/cuda/bin/` |
-| `Dockerfile.rocm` | `rocm/dev-ubuntu-24.04:7.1.1-complete`             | `linux/amd64` only   | `hipcc`, `amdclang++` at `/opt/rocm/bin/` |
+| `Dockerfile.rocm` | `ubuntu:24.04` + `rocm-hip-runtime-dev` (ROCm 7.1.1) | `linux/amd64` only   | `hipcc`, `amdclang++` at `/opt/rocm/bin/` |
 
 Both images:
 
@@ -91,8 +91,8 @@ docker build \
     .
 ```
 
-There is no ARM64 build for ROCm — AMD does not publish a multi-arch
-`rocm/dev-ubuntu-24.04` base.
+There is no ARM64 build for ROCm — AMD publishes its ROCm packages for
+`amd64` only.
 
 ## Quick start: build and launch both side-by-side
 
@@ -248,7 +248,7 @@ test command.
 | Pin                                       | Why                                                                 |
 |-------------------------------------------|---------------------------------------------------------------------|
 | `nvidia/cuda:13.2.0-devel-ubuntu24.04`    | Latest CUDA SDK with multi-arch (`amd64` + `arm64/SBSA`) manifests. |
-| `rocm/dev-ubuntu-24.04:7.1.1-complete`    | Last release with a documented `-complete` tag bundling `hipcc`; ROCm 7.2+ deprecates `hipcc` in favour of `amdclang++`. |
+| `repo.radeon.com/rocm/apt/7.1.1`          | `rocm-hip-runtime-dev` from AMD's apt repository; 7.1.1 keeps `hipcc` as the primary driver, ROCm 7.2+ deprecates it in favour of `amdclang++`. |
 | `mcr.microsoft.com/dotnet/sdk:10.0-noble` | .NET 10 GA, Ubuntu 24.04, multi-arch.                                |
 
 Bump these in the Dockerfiles when newer base images have been validated
@@ -258,7 +258,7 @@ against `ILGPUC.Compilers`.
 
 - **`OpenCLAmd` reports unavailable in the ROCm image.**
   `ILGPUC.Compilers/CompilerOptions.cs` looks for clang at `/usr/bin/clang`,
-  but the ROCm `*-complete` base ships clang at `/opt/rocm/llvm/bin/clang`
+  but the ROCm image ships clang at `/opt/rocm/lib/llvm/bin/clang`
   and the wrapper as `/opt/rocm/bin/amdclang++`. The `Hip` backend itself
   is fully operational; only the OpenCL-via-clang detection misses. Fix
   later by either symlinking or making `ClangPath` configurable from an

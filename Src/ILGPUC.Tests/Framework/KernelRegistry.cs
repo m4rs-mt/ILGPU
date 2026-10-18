@@ -56,6 +56,16 @@ static class KernelRegistry
         s_kernels.Keys.OrderBy(k => k).Select(k => new object[] { k });
 
     /// <summary>
+    /// Every <paramref name="count"/>-th kernel name starting at
+    /// <paramref name="index"/>, as single-element object[] arrays for [MemberData].
+    /// Splits a theory over several test classes, which xUnit runs in parallel.
+    /// </summary>
+    public static IEnumerable<object[]> KernelNameShard(int index, int count) =>
+        s_kernels.Keys.OrderBy(k => k)
+            .Where((_, i) => i % count == index)
+            .Select(k => new object[] { k });
+
+    /// <summary>
     /// Resolves a kernel name to its concrete MethodInfo.
     /// </summary>
     public static MethodInfo Resolve(string name) =>

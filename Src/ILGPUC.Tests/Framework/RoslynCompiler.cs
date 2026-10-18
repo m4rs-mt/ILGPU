@@ -52,9 +52,23 @@ static class RoslynCompiler
             additionalReferences);
 
     /// <summary>
-    /// Returns MetadataReferences for the .NET runtime + ILGPU.
+    /// The default references, created once: loading the reference assemblies
+    /// dominates the analysis of each test program otherwise.
     /// </summary>
-    public static MetadataReference[] GetDefaultReferences()
+    private static readonly Lazy<IReadOnlyList<MetadataReference>> s_defaultReferences =
+        new(CreateDefaultReferences);
+
+    /// <summary>
+    /// Returns MetadataReferences for the .NET runtime + ILGPU, shared by all
+    /// compilations.
+    /// </summary>
+    public static IReadOnlyList<MetadataReference> GetDefaultReferences() =>
+        s_defaultReferences.Value;
+
+    /// <summary>
+    /// Creates the MetadataReferences for the .NET runtime + ILGPU.
+    /// </summary>
+    private static IReadOnlyList<MetadataReference> CreateDefaultReferences()
     {
         var refs = new List<MetadataReference>();
 

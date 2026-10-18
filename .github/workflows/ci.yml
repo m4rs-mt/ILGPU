@@ -327,13 +327,13 @@ jobs:
           dotnet restore Src/ILGPUC.Tests/ILGPUC.Tests.csproj
           dotnet restore Src/ILGPUC.CompilerService.Tests/ILGPUC.CompilerService.Tests.csproj
 
-      - name: Run ILGPUC.Tests (CPU + IR + integration)
+      - name: Run ILGPUC.Tests (CPU + IR + source + integration)
         run: |
           dotnet test Src/ILGPUC.Tests/ILGPUC.Tests.csproj \
             --no-build --no-restore \
             --blame-hang-timeout 900s \
             --logger "trx;LogFileName=cpu.trx" \
-            --filter "FullyQualifiedName~IRTests|FullyQualifiedName~NonKernelTests|FullyQualifiedName~ExecutionTests.CPU|FullyQualifiedName~CPUBackendTests|FullyQualifiedName~IntegrationTests"
+            --filter "FullyQualifiedName~IRTests|FullyQualifiedName~NonKernelTests|FullyQualifiedName~ExecutionTests.CPU|FullyQualifiedName~CPUBackendTests|FullyQualifiedName~IntegrationTests|FullyQualifiedName~SourceTests|FullyQualifiedName~LauncherAlignmentTests|FullyQualifiedName~GenericAddressSpaceTests|FullyQualifiedName~CultureInvarianceTests"
 
       - name: Run ILGPUC.CompilerService.Tests
         run: |
@@ -503,9 +503,36 @@ jobs:
         with:
           submodules: true
 
-      # See test-rocm-compile for context — the ROCm dev image is ~26.5 GB
-      # and ubuntu-latest needs preinstalled tooling pruned to fit it.
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # The published ROCm image is checked before the pull: an image built on
+      # the complete ROCm development image (~26.5 GB on disk) needs
+      # preinstalled software pruned from ubuntu-latest (~14 GB free) to fit,
+      # the HIP toolchain image does not. An unreadable size counts as large.
+      - name: Check the ROCm compiler image size
+        id: rocm-image
+        run: |
+          image=ghcr.io/${{ github.repository_owner }}/ilgpuc-compiler-service-rocm:latest
+          raw=$(docker manifest inspect "$image" 2>/dev/null || true)
+          if jq -e '.manifests' >/dev/null 2>&1 <<<"$raw"; then
+            digest=$(jq -r '[.manifests[] | select(.platform.architecture == "amd64")][0].digest // empty' <<<"$raw")
+            raw=$( [ -n "$digest" ] && docker manifest inspect "${image%:*}@${digest}" 2>/dev/null || true)
+          fi
+          size=$(jq '[.layers[]?.size] | add // 0' 2>/dev/null <<<"$raw" || echo 0)
+          echo "Compressed image size: ${size:-0} bytes"
+          if [ "${size:-0}" -gt 0 ] && [ "${size}" -lt 3000000000 ]; then
+            echo "large=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "large=true" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Free disk space for the ROCm devel image
+        if: steps.rocm-image.outputs.large == 'true'
         run: |
           df -h /
           sudo rm -rf \
@@ -522,13 +549,6 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: test-binaries
-
-      - name: Log in to GHCR
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Pull ROCm compiler image
         run: |
@@ -892,12 +912,36 @@ jobs:
         with:
           submodules: true
 
-      # rocm/dev-ubuntu-24.04:7.1.1-complete is ~26.5 GB on disk after pull
-      # (the -complete tag bundles the entire ROCm SDK). The standard
-      # ubuntu-latest runner only has ~14 GB free of ~84 GB total — not
-      # enough headroom. Reclaim ~30 GB by removing preinstalled software
-      # we don't need for this job.
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # The published ROCm image is checked before the pull: an image built on
+      # the complete ROCm development image (~26.5 GB on disk) needs
+      # preinstalled software pruned from ubuntu-latest (~14 GB free) to fit,
+      # the HIP toolchain image does not. An unreadable size counts as large.
+      - name: Check the ROCm compiler image size
+        id: rocm-image
+        run: |
+          image=ghcr.io/${{ github.repository_owner }}/ilgpuc-compiler-service-rocm:latest
+          raw=$(docker manifest inspect "$image" 2>/dev/null || true)
+          if jq -e '.manifests' >/dev/null 2>&1 <<<"$raw"; then
+            digest=$(jq -r '[.manifests[] | select(.platform.architecture == "amd64")][0].digest // empty' <<<"$raw")
+            raw=$( [ -n "$digest" ] && docker manifest inspect "${image%:*}@${digest}" 2>/dev/null || true)
+          fi
+          size=$(jq '[.layers[]?.size] | add // 0' 2>/dev/null <<<"$raw" || echo 0)
+          echo "Compressed image size: ${size:-0} bytes"
+          if [ "${size:-0}" -gt 0 ] && [ "${size}" -lt 3000000000 ]; then
+            echo "large=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "large=true" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Free disk space for the ROCm devel image
+        if: steps.rocm-image.outputs.large == 'true'
         run: |
           df -h /
           sudo rm -rf \
@@ -912,13 +956,6 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: test-binaries
-
-      - name: Log in to GHCR
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Pull ROCm compiler image
         run: |
@@ -1201,9 +1238,36 @@ jobs:
         with:
           submodules: true
 
-      # Same disk-pressure mitigation as test-rocm-compile —
-      # rocm/dev-ubuntu-24.04:7.1.1-complete needs ~30 GB free before pull.
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # The published ROCm image is checked before the pull: an image built on
+      # the complete ROCm development image (~26.5 GB on disk) needs
+      # preinstalled software pruned from ubuntu-latest (~14 GB free) to fit,
+      # the HIP toolchain image does not. An unreadable size counts as large.
+      - name: Check the ROCm compiler image size
+        id: rocm-image
+        run: |
+          image=ghcr.io/${{ github.repository_owner }}/ilgpuc-compiler-service-rocm:latest
+          raw=$(docker manifest inspect "$image" 2>/dev/null || true)
+          if jq -e '.manifests' >/dev/null 2>&1 <<<"$raw"; then
+            digest=$(jq -r '[.manifests[] | select(.platform.architecture == "amd64")][0].digest // empty' <<<"$raw")
+            raw=$( [ -n "$digest" ] && docker manifest inspect "${image%:*}@${digest}" 2>/dev/null || true)
+          fi
+          size=$(jq '[.layers[]?.size] | add // 0' 2>/dev/null <<<"$raw" || echo 0)
+          echo "Compressed image size: ${size:-0} bytes"
+          if [ "${size:-0}" -gt 0 ] && [ "${size}" -lt 3000000000 ]; then
+            echo "large=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "large=true" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Free disk space for the ROCm devel image
+        if: steps.rocm-image.outputs.large == 'true'
         run: |
           df -h /
           sudo rm -rf \
@@ -1218,13 +1282,6 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: test-binaries
-
-      - name: Log in to GHCR
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Pull ROCm compiler image
         run: |
