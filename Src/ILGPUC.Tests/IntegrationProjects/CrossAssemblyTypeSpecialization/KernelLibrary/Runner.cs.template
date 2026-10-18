@@ -1,0 +1,35 @@
+// KernelLibrary: launches a generic kernel that calls the external helper from a
+// public generic method. The library uses no instantiation itself; the
+// application's build compiles them all.
+
+using ExternalMath;
+using ILGPU;
+using ILGPU.Runtime;
+
+namespace KernelLibrary;
+
+public static class Kernels
+{
+    public static void Sin<T>(
+        Index1D index,
+        ArrayView1D<T, Stride1D.Dense> x,
+        ArrayView1D<T, Stride1D.Dense> ans)
+        where T : unmanaged
+    {
+        ans[index] = GenericMath.GenericSin(x[index]);
+    }
+}
+
+public static class Runner
+{
+    public static T[] Run<T>(AcceleratorStream stream, T[] values) where T : unmanaged
+    {
+        using var x = stream.Allocate1D(values);
+        using var ans = stream.Allocate1D<T>(values.Length);
+        var xView = x.View;
+        var ansView = ans.View;
+        stream.Launch((Index1D)values.Length, i => Kernels.Sin(i, xView, ansView));
+        stream.Synchronize();
+        return ans.GetAsArray1D();
+    }
+}

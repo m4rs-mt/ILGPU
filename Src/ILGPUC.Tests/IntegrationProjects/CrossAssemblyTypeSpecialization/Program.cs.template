@@ -1,0 +1,72 @@
+// CrossAssemblyTypeSpecialization: the type-specialized helper from issue #1427
+// lives in a referenced library without ILGPU. The application's own kernel calls
+// it, and so does a kernel that another library launches from a public generic
+// method. Runner.Run<int> reaches the helper's throw for int: the build skips that
+// instantiation with warning ILGPU1006, and launching it throws a
+// KernelNotCompiledException (a NotSupportedException).
+// Expected output: 0.4794 0.8415 | 0.4794 0.8415 | 0.4794 | KernelNotCompiledException
+
+using System;
+using System.Globalization;
+using ExternalMath;
+using ILGPU;
+using ILGPU.Runtime;
+using KernelLibrary;
+
+namespace CrossAssemblyTypeSpecialization;
+
+public static class Kernels
+{
+    public static void Kernel2<T>(
+        Index1D index,
+        ArrayView1D<T, Stride1D.Dense> x,
+        ArrayView1D<T, Stride1D.Dense> ans)
+        where T : unmanaged
+    {
+        ans[index] = GenericMath.GenericSin(x[index]);
+    }
+}
+
+static class Program
+{
+    static void Main()
+    {
+        using var context = Context.Create(b => b.Default());
+        using var accelerator = context.GetPreferredDevice(preferCPU: $(PREFER_CPU))
+            .CreateAccelerator(context);
+        var stream = accelerator.DefaultStream;
+
+        float[] values = [0.5f, 1.0f];
+        using var x = stream.Allocate1D(values);
+        using var ans = stream.Allocate1D<float>(values.Length);
+        var xView = x.View;
+        var ansView = ans.View;
+        stream.Launch((Index1D)values.Length, i => Kernels.Kernel2(i, xView, ansView));
+        stream.Synchronize();
+        Print(ans.GetAsArray1D());
+
+        Print(Runner.Run(stream, values));
+        Print(Wrap(stream, new[] { 0.5f }));
+        try
+        {
+            Print(Wrap(stream, new[] { 1 }));
+        }
+        catch (NotSupportedException e)
+        {
+            Console.WriteLine(e.GetType().Name);
+        }
+    }
+
+    static T[] Wrap<T>(AcceleratorStream stream, T[] values) where T : unmanaged =>
+        Runner.Run(stream, values);
+
+    static void Print<T>(T[] values)
+    {
+        foreach (var value in values)
+        {
+            Console.WriteLine(
+                Convert.ToDouble(value, CultureInfo.InvariantCulture)
+                    .ToString("F4", CultureInfo.InvariantCulture));
+        }
+    }
+}

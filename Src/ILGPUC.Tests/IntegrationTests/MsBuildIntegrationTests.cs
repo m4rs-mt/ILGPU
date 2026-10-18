@@ -1026,6 +1026,58 @@ public static class MsBuildIntegrationTests
     }
 
     // -----------------------------------------------------------------------
+    // Test 21: CrossAssemblyTypeSpecialization — the type-specialized helper
+    // from issue #1427 lives in a referenced library without ILGPU. Kernels of
+    // the application and of a library launching from a public generic method
+    // call it; the int instantiation is skipped with warning ILGPU1006.
+    // -----------------------------------------------------------------------
+
+    public sealed class CrossAssemblyTypeSpecialization(ITestOutputHelper output)
+    {
+        [SkippableTheory]
+        [InlineData(BackendType.CPU)]
+        [InlineData(BackendType.Metal)]
+        public async Task Build_CrossAssemblyTypeSpecialization_FoldsExternalTypeTests(
+            BackendType backend)
+        {
+            await RequireBackendAsync(backend);
+
+            using var project = new IntegrationProjectFixture(
+                "CrossAssemblyTypeSpecialization", backend, output);
+            try
+            {
+                var build = await project.BuildAsync();
+                Assert.True(build.Succeeded,
+                    $"dotnet build failed (exit {build.ExitCode}). " +
+                    $"Stderr: {build.StdErr}");
+
+                var combined = build.FullStdOut + "\n" + build.StdErr;
+                Assert.Contains("warning ILGPU1006", combined, StringComparison.Ordinal);
+                Assert.Contains("Kernels.Sin<int>", combined, StringComparison.Ordinal);
+                Assert.DoesNotContain("ILGPU1001", combined, StringComparison.Ordinal);
+
+                var run = await project.RunAsync();
+                Assert.False(run.TimedOut, "Binary timed out");
+                Assert.Equal(0, run.ExitCode);
+                OutputVerifier.Verify(
+                    run.StdOutLines,
+                    expected:
+                    [
+                        "0.4794", "0.8415",
+                        "0.4794", "0.8415",
+                        "0.4794",
+                        "KernelNotCompiledException",
+                    ]);
+            }
+            catch
+            {
+                project.MarkFailed();
+                throw;
+            }
+        }
+    }
+
+    // -----------------------------------------------------------------------
     // Helpers
     // -----------------------------------------------------------------------
 
