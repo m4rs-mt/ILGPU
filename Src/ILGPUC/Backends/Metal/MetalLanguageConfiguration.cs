@@ -120,6 +120,20 @@ sealed class MetalLanguageConfiguration : LanguageConfiguration
             yield return "    return expected;";
             yield return "}";
         }
+
+        // IEEE 754 remainder, which the Metal standard library lacks. The exact
+        // fmod reduces |x| below 2|y| and keeps the parity of the quotient that
+        // rounds halfway cases to even; subtracting |y| at most twice from a
+        // value within a factor of two of it is exact.
+        yield return "inline float ilgpu_remainder(float x, float y) {";
+        yield return "    float d = metal::fabs(y);";
+        yield return "    float r = metal::fabs(metal::fmod(x, d + d));";
+        yield return "    if (r + r > d) {";
+        yield return "        r -= d;";
+        yield return "        if (r + r >= d) r -= d;";
+        yield return "    }";
+        yield return "    return metal::signbit(x) ? -r : r;";
+        yield return "}";
     }
 
     /// <summary>
