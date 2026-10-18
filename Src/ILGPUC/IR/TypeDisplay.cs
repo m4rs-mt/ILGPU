@@ -9,14 +9,17 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
+using ILGPUC.IR.ModuleValues;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 
 namespace ILGPUC.IR;
 
 /// <summary>
 /// Formats types for diagnostics in the C# spelling of kernel code, such as
-/// <c>int*</c> or <c>ArrayView1D&lt;float, Dense&gt;</c>.
+/// <c>int*</c> or <c>ArrayView1D&lt;float, Dense&gt;</c>, instead of the spelling
+/// of IR types.
 /// </summary>
 static class TypeDisplay
 {
@@ -76,5 +79,63 @@ static class TypeDisplay
             name = name[..tick];
         var arguments = string.Join(", ", type.GetGenericArguments().Select(Format));
         return $"{name}<{arguments}>";
+    }
+
+    /// <summary>
+    /// Formats the given IR type in C# spelling where the managed type is not
+    /// known: a primitive type as its signed C# type, a pointer as <c>int*</c>,
+    /// a view as <c>ArrayView&lt;int&gt;</c> and a structure as a tuple of its
+    /// fields.
+    /// </summary>
+    /// <param name="type">The IR type.</param>
+    /// <returns>The formatted type.</returns>
+    public static string Format(TypeValue? type) =>
+        type switch
+        {
+            null => "void",
+            PrimitiveType primitive => Format(primitive.BasicValueType),
+            PointerType pointer => $"{Format(pointer.ElementType)}*",
+            ViewType view => $"ArrayView<{Format(view.ElementType)}>",
+            ArrayType array =>
+                $"{Format(array.ElementType)}" +
+                $"[{new string(',', array.NumDimensions - 1)}]",
+            StructureType structure => FormatStructure(structure),
+            VoidType => "void",
+            StringType => "string",
+            DelegateHandleType => "Delegate",
+            _ => type.ToString(),
+        };
+
+    /// <summary>
+    /// Formats the given basic value type as its signed C# type.
+    /// </summary>
+    /// <param name="basicValueType">The basic value type.</param>
+    /// <returns>The formatted type.</returns>
+    public static string Format(BasicValueType basicValueType) =>
+        basicValueType switch
+        {
+            BasicValueType.Int1 => "bool",
+            BasicValueType.Int8 => "sbyte",
+            BasicValueType.Int16 => "short",
+            BasicValueType.Int32 => "int",
+            BasicValueType.Int64 => "long",
+            BasicValueType.Float16 => "Half",
+            BasicValueType.Float32 => "float",
+            BasicValueType.Float64 => "double",
+            _ => basicValueType.ToString(),
+        };
+
+    /// <summary>
+    /// Formats a structure type as a tuple of its fields without padding.
+    /// </summary>
+    private static string FormatStructure(StructureType structure)
+    {
+        var fields = new List<string>();
+        foreach (var field in structure.Fields)
+        {
+            if (field is not PaddingType)
+                fields.Add(Format(field));
+        }
+        return $"({string.Join(", ", fields)})";
     }
 }

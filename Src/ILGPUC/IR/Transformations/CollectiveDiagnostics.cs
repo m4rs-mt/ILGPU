@@ -78,6 +78,6 @@ static class CollectiveDiagnostics
             string.Format(
                 ErrorMessages.KernelDiagnosticUnsupportedCollectiveType,
                 GetName(collective),
-                type),
+                TypeDisplay.Format(type)),
             collective.Location);
 }

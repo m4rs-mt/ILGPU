@@ -555,7 +555,7 @@ public sealed class CollectiveOperationIRTests
     {
         var exception = Compile(kernelName, backend);
         Assert.Equal(
-            $"{collective} does not support values of type 'ptr<Int32, Generic>'. " +
+            $"{collective} does not support values of type 'int*'. " +
             "Only primitive types and structures of primitive types can be " +
             "broadcast, shuffled, reduced or scanned.",
             exception.Message);

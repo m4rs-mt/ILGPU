@@ -280,7 +280,7 @@ partial class PureValueBuilder
                     Interop.FloatAsInt(primitive.Float64Value)),
                 _ => throw location.GetNotSupportedException(
                     ErrorMessages.NotSupportedFloatIntCast,
-                    primitiveType),
+                    TypeDisplay.Format(primitiveType)),
             };
         }
 
@@ -291,7 +291,7 @@ partial class PureValueBuilder
             BasicValueType.Float64 => BasicValueType.Int64,
             _ => throw location.GetNotSupportedException(
                 ErrorMessages.NotSupportedFloatIntCast,
-                primitiveType),
+                TypeDisplay.Format(primitiveType)),
         };
         var type = ModuleBuilder.GetPrimitiveType(basicValueType);
         return Append(new FloatAsIntCast(
@@ -327,7 +327,7 @@ partial class PureValueBuilder
                     Interop.IntAsFloat(primitive.UInt64Value)),
                 _ => throw location.GetNotSupportedException(
                     ErrorMessages.NotSupportedFloatIntCast,
-                    primitiveType),
+                    TypeDisplay.Format(primitiveType)),
             };
         }
 
@@ -338,7 +338,7 @@ partial class PureValueBuilder
             BasicValueType.Int64 => BasicValueType.Float64,
             _ => throw location.GetNotSupportedException(
                 ErrorMessages.NotSupportedFloatIntCast,
-                primitiveType),
+                TypeDisplay.Format(primitiveType)),
         };
         var type = ModuleBuilder.GetPrimitiveType(basicValueType);
         return Append(new IntAsFloatCast(
