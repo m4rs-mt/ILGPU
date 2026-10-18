@@ -159,4 +159,18 @@ public abstract class BinaryIntOpExecutionTests : ExecutionTestBase
             ["Kernels.UnsignedMinMaxKernel"],
             ["10", "4294967280", "10", "18446744073709551600"]);
     }
+
+    /// <summary>
+    /// Divisions by powers of two round towards zero for negative signed
+    /// values and keep the top bit of unsigned values.
+    /// </summary>
+    [SkippableFact]
+    public async Task DivPowerOfTwo_ProducesCorrectOutput()
+    {
+        await VerifyProgramOutputAsync(
+            "TestPrograms/BinaryIntOp/DivPowerOfTwo.cs",
+            ["Kernels.DivPowerOfTwoKernel"],
+            ["0", "-1", "-2", "1", "0", "-1", "2147483647", "536870912",
+                "9223372036854775807"]);
+    }
 }

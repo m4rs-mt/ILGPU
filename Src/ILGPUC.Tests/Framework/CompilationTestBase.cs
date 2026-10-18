@@ -51,7 +51,8 @@ public abstract class CompilationTestBase(ITestOutputHelper output) : DisposeBas
         IRDumpPoint point,
         CompilationProperties? props = null)
     {
-        var ir = _helper.GetNormalizedIR(kernel, point, props);
+        var ir = AssertionRecorder.Run(
+            () => _helper.GetNormalizedIR(kernel, point, props));
         WriteIR(ir);
         return ir;
     }
@@ -67,8 +68,8 @@ public abstract class CompilationTestBase(ITestOutputHelper output) : DisposeBas
         MethodInfo kernel,
         ILFrontendCache cache)
     {
-        var module = _helper.CompileToModule(
-            kernel, props: null, backendType: null, frontendCache: cache);
+        var module = AssertionRecorder.Run(() => _helper.CompileToModule(
+            kernel, props: null, backendType: null, frontendCache: cache));
         using var sw = new System.IO.StringWriter();
         module.Dump(
             sw,
@@ -85,7 +86,8 @@ public abstract class CompilationTestBase(ITestOutputHelper output) : DisposeBas
     /// </summary>
     protected void VerifyAfterFrontend(MethodInfo kernel)
     {
-        var ir = _helper.GetNormalizedIR(kernel, IRDumpPoint.AfterFrontend);
+        var ir = AssertionRecorder.Run(
+            () => _helper.GetNormalizedIR(kernel, IRDumpPoint.AfterFrontend));
         WriteIR(ir);
 
         var (className, methodName) = GetKernelNames(kernel);
@@ -101,7 +103,8 @@ public abstract class CompilationTestBase(ITestOutputHelper output) : DisposeBas
         MethodInfo kernel, OptimizationLevel opt, CompilationMode mode)
     {
         var props = new CompilationProperties(OptimizationLevel: opt).WithMode(mode);
-        var ir = _helper.GetNormalizedIR(kernel, IRDumpPoint.AfterGlobalOpt, props);
+        var ir = AssertionRecorder.Run(
+            () => _helper.GetNormalizedIR(kernel, IRDumpPoint.AfterGlobalOpt, props));
         WriteIR(ir);
 
         var (className, methodName) = GetKernelNames(kernel);
@@ -118,8 +121,8 @@ public abstract class CompilationTestBase(ITestOutputHelper output) : DisposeBas
         OptimizationLevel opt, CompilationMode mode)
     {
         var props = new CompilationProperties(OptimizationLevel: opt).WithMode(mode);
-        var ir = _helper.GetNormalizedIR(
-            kernel, IRDumpPoint.AfterBackendTransforms, props, backend);
+        var ir = AssertionRecorder.Run(() => _helper.GetNormalizedIR(
+            kernel, IRDumpPoint.AfterBackendTransforms, props, backend));
         WriteIR(ir);
 
         var (className, methodName) = GetKernelNames(kernel);

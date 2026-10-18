@@ -91,8 +91,12 @@
             <Source>{Value1}.HasIntValue(1)</Source>
             <Target>{Value0}</Target>
         </Rewriter>
+        <!-- Only unsigned: shifts round towards negative infinity, signed
+             divisions towards zero -->
         <Rewriter>
             <Source>
+                ({Flags} &amp; ArithmeticFlags.Unsigned) ==
+                ArithmeticFlags.Unsigned &amp;&amp;
                 {Value1}.IsInt &amp;&amp; {Value1}.RawValue > 0 &amp;&amp;
                 XMath.IsPowerOf2({Value1}.RawValue)
             </Source>
@@ -101,7 +105,8 @@
                 {Location},
                 {Value0},
                 GetDivMulShiftAmount({Location}, {Value1}),
-                BinaryArithmeticKind.Shr)
+                BinaryArithmeticKind.Shr,
+                ArithmeticFlags.Unsigned)
             </Target>
         </Rewriter>
     </Operation>

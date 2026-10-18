@@ -52,7 +52,8 @@ public abstract class BackendTestBase : DisposeBase
             unsupported != BackendCapability.None,
             $"{Backend} does not support: {unsupported}");
 
-        var result = _helper.GenerateBackendCode(kernel, Backend, props);
+        var result = AssertionRecorder.Run(
+            () => _helper.GenerateBackendCode(kernel, Backend, props));
         _output.WriteLine($"// Entry point: {result.EntryPointName}");
         _output.WriteLine(result.SourceCode);
 
@@ -82,7 +83,8 @@ public abstract class BackendTestBase : DisposeBase
         var available = await Availability.IsCompilerAvailableAsync(Backend);
         Skip.IfNot(available, $"Native compiler for {Backend} is not available");
 
-        var result = await _helper.CompileToNativeAsync(kernel, Backend, props);
+        var result = await AssertionRecorder.RunAsync(
+            () => _helper.CompileToNativeAsync(kernel, Backend, props));
 
         Assert.NotNull(result);
         Assert.True(

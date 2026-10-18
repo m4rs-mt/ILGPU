@@ -95,10 +95,10 @@ public abstract class ExecutionTestBase : DisposeBase
         }
 
         var sourcePath = GetTestProgramPath(programSourceFile);
-        var exePath = _builder.BuildExecutable(
+        var exePath = AssertionRecorder.Run(() => _builder.BuildExecutable(
             [sourcePath],
             kernelMethodNames,
-            props);
+            props));
 
         var result = await ProcessRunner.RunAsync(exePath);
 

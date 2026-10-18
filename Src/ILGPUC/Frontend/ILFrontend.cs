@@ -729,6 +729,11 @@ sealed class ILFrontend
             if (methodBuilder.Method.IsExternal)
                 return;
 
+            // Intrinsics used as method groups already have a sealed body
+            // synthesised from their generator (TrySynthesizeIntrinsicBody)
+            if (methodBuilder.Method.IsSealed)
+                return;
+
             // Retrieve disassembled method. If not available, try on-the-fly
             // disassembly — this handles methods discovered through
             // devirtualization or intrinsic handler reflection during code
