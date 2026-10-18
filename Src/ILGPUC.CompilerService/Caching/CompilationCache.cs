@@ -62,9 +62,9 @@ public sealed class CompilationCache : ICache
     /// Computes a deterministic cache key for the given compile request.
     /// </summary>
     /// <remarks>
-    /// The key is a SHA-256 hash of the source code, CUDA flags, include
-    /// paths, and compiler directives, prefixed with the target and output
-    /// type.
+    /// The key is a SHA-256 hash of the source code, optimization level,
+    /// extra compiler flags, include paths, and compiler directives,
+    /// prefixed with the target and output type.
     /// </remarks>
     /// <param name="request">The compile request.</param>
     /// <returns>A unique string key identifying the request.</returns>
@@ -73,7 +73,9 @@ public sealed class CompilationCache : ICache
         var sb = new StringBuilder();
         sb.Append(request.SourceCode);
         sb.Append('\0');
-        sb.Append(request.CudaFlags ?? string.Empty);
+        sb.Append((int)request.OptimizationLevel);
+        sb.Append('\0');
+        sb.Append(request.ExtraFlags ?? string.Empty);
 
         if (request.IncludePaths is { Length: > 0 })
         {

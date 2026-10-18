@@ -68,13 +68,16 @@ public sealed class MetalCompiler(
                 .ConfigureAwait(false);
 
             var airFile = Path.Combine(tempDir, "output.air");
+            var optFlag = $"-O{(int)request.OptimizationLevel}";
             var includes = BuildIncludeArgs(request);
             var directives = BuildDirectiveArgs(request);
 
             // Step 1: .metal -> .air
+            // Metal's `metal` driver is a clang-derived front-end and accepts
+            // the standard -O<N> flag spelling.
             var compileArgs =
                 $"-sdk {sdk} metal -c \"{inputFile}\" -o \"{airFile}\"" +
-                $"{includes}{directives}";
+                $" {optFlag}{includes}{directives}";
             var (exitCode, stdout, stderr) = await RunProcessAsync(
                 ExecutablePath,
                 compileArgs,

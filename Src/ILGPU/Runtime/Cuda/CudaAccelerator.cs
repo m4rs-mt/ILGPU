@@ -163,6 +163,13 @@ public sealed class CudaAccelerator : Accelerator
             CurrentAPI.GetSharedMemoryConfig(out sharedMemoryConfiguration));
         CudaException.ThrowIfFailed(
             CurrentAPI.GetCacheConfig(out cacheConfiguration));
+
+        // Trigger kernel loading and accelerator registration so that
+        // generated CompiledKernel registrars receive their OnKernelLoaded
+        // callback (which caches the runtime kernel handle used by
+        // every Launch invocation). Without this, _runtimeKernel stays
+        // null and Launch throws NullReferenceException.
+        OnAcceleratorCreated();
     }
 
     #endregion

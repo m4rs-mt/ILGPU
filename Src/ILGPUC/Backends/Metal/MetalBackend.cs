@@ -67,6 +67,7 @@ sealed class MetalBackend(MetalTargetOS targetOS, MetalGPUFamily gpuFamily) :
     public override async Task<CompilationResult?> CompileSourceAsync<TManager>(
         CodeGenerationResult source,
         TManager manager,
+        CompilationProperties properties,
         CancellationToken ct = default)
     {
         return await manager.CompileAsync(new CompileRequest
@@ -74,6 +75,7 @@ sealed class MetalBackend(MetalTargetOS targetOS, MetalGPUFamily gpuFamily) :
             SourceCode = source.SourceCode,
             Target = CompilationTarget.Metal,
             OutputType = OutputType.Binary,
+            OptimizationLevel = GetNativeOptLevel(properties.OptimizationLevel),
         }, ct).ConfigureAwait(false);
     }
 }

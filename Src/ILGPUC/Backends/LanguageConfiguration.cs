@@ -85,6 +85,27 @@ abstract class LanguageConfiguration
             : $"{addressSpaceKeyword} {elementTypeName}*";
 
     /// <summary>
+    /// Returns the type name for a pointer type given its element type name
+    /// and address-space keyword (possibly empty). Default implementation
+    /// prefixes the keyword as a pointee qualifier (Metal/OpenCL semantics:
+    /// <c>threadgroup int*</c> is a pointer-to-threadgroup-int).
+    /// </summary>
+    /// <remarks>
+    /// CUDA / HIP must override to drop the keyword: in CUDA C++ pointer
+    /// types do not carry an address-space qualifier. Emitting
+    /// <c>__shared__ int* p;</c> for a local pointer variable would place
+    /// the variable <c>p</c> itself in shared memory (single shared cell,
+    /// races on assignment), instead of declaring a per-thread pointer
+    /// that happens to point into shared memory.
+    /// </remarks>
+    public virtual string GetPointerTypeName(
+        string elementTypeName,
+        string addressSpaceKeyword) =>
+        string.IsNullOrEmpty(addressSpaceKeyword)
+            ? elementTypeName + "*"
+            : $"{addressSpaceKeyword} {elementTypeName}*";
+
+    /// <summary>
     /// Returns the keyword for a pointer type.
     /// </summary>
     public abstract string PointerSyntax { get; }
@@ -212,6 +233,17 @@ abstract class LanguageConfiguration
         $"{typeName} {paramName}";
 
     /// <summary>
+    /// Returns a statement to emit at the start of the kernel entry point for
+    /// the given entry point parameter (as declared by
+    /// <see cref="EmitNonFlattenedKernelParam"/>), or <see langword="null"/>.
+    /// </summary>
+    public virtual string? EmitKernelParamPrologue(
+        TypeValue type,
+        string typeName,
+        string paramName) =>
+        null;
+
+    /// <summary>
     /// Returns true if the kernel entry point's first parameter (the thread index)
     /// should NOT be emitted as a buffer parameter. GPU backends return true and
     /// compute the index from built-in thread attributes instead.
@@ -221,17 +253,35 @@ abstract class LanguageConfiguration
     /// <summary>
     /// Returns the code to compute the thread index from built-in
     /// thread attributes. Called at the start of the entry point body when
-    /// <see cref="SkipsIndexParameter"/> is true.
+    /// <see cref="SkipsIndexParameter"/> is true and the entry point takes
+    /// an index parameter.
     /// For 1D indices, computes a linear index. For 2D/3D struct indices,
-    /// computes each component separately.
+    /// computes each component separately. For grouped launches, fills the
+    /// <c>KernelIndex</c> from the group and thread-in-group ids.
     /// </summary>
     /// <param name="typeName">The target-language type name for the index.</param>
     /// <param name="paramName">The generated parameter name.</param>
     /// <param name="indexType">The IR type of the index parameter.</param>
+    /// <param name="launch">How the entry point is launched.</param>
     /// <returns>Statement(s) to emit, or null if not applicable.</returns>
     public virtual string? EmitIndexComputation(
-        string typeName, string paramName, TypeValue indexType) =>
+        string typeName,
+        string paramName,
+        TypeValue indexType,
+        EntryPointLaunch launch) =>
         null;
+
+    /// <summary>
+    /// The target-language type of the hidden launch-extent parameters, or
+    /// <see langword="null"/> if the backend launches exactly the requested
+    /// number of threads. When set, the entry points of implicitly grouped
+    /// launches receive one extra trailing parameter per index dimension
+    /// (named by <see cref="EntryPointLaunch.GetExtentParameterName"/>) and
+    /// return early for threads outside the extent. The launch rounds the
+    /// thread count up to whole groups, so these threads exist whenever the
+    /// extent is not a multiple of the group size.
+    /// </summary>
+    public virtual string? LaunchExtentTypeName => null;
 
     /// <summary>
     /// Returns true if struct literals should use C-style compound literal syntax:

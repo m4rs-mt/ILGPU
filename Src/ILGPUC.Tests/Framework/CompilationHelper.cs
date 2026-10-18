@@ -167,7 +167,7 @@ sealed class CompilationHelper : DisposeBase
         var compilerManager = await CompilerManagerFactory
             .ResolveAsync(target, ct).ConfigureAwait(false);
         return await backendInstance
-            .CompileSourceAsync(codeGenResult, compilerManager, ct)
+            .CompileSourceAsync(codeGenResult, compilerManager, properties, ct)
             .ConfigureAwait(false);
     }
 

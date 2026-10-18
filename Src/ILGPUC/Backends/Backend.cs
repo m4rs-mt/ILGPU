@@ -133,12 +133,22 @@ abstract class Backend(
     /// <param name="properties">Compilation properties to use.</param>
     /// <param name="typeInformationManager">Shared type manager to use.</param>
     /// <param name="module">The module to generate code for.</param>
+    /// <param name="launch">
+    /// How the entry point is launched; derived from the entry point's first
+    /// parameter when <see langword="null"/>.
+    /// </param>
     /// <returns>The generated code.</returns>
     public CodeGenerationResult GenerateCode(
         CompilationProperties properties,
         TypeInformationManager typeInformationManager,
-        Module module) =>
-        GenerateCode(properties, typeInformationManager, module, dumpWriter: null);
+        Module module,
+        EntryPointLaunch? launch = null) =>
+        GenerateCode(
+            properties,
+            typeInformationManager,
+            module,
+            dumpWriter: null,
+            launch: launch);
 
     /// <summary>
     /// Generates code for the given module, optionally dumping the post-backend-
@@ -155,13 +165,18 @@ abstract class Backend(
     /// The IR printer format to use when writing the dump.
     /// Defaults to <see cref="IRPrinterFormat.ILGPU"/>.
     /// </param>
+    /// <param name="launch">
+    /// How the entry point is launched; derived from the entry point's first
+    /// parameter when <see langword="null"/>.
+    /// </param>
     /// <returns>The generated code.</returns>
     public CodeGenerationResult GenerateCode(
         CompilationProperties properties,
         TypeInformationManager typeInformationManager,
         Module module,
         TextWriter? dumpWriter,
-        IRPrinterFormat dumpFormat = IRPrinterFormat.ILGPU)
+        IRPrinterFormat dumpFormat = IRPrinterFormat.ILGPU,
+        EntryPointLaunch? launch = null)
     {
         var transformer = CreateBackendTransformer(properties);
         var finalModule = transformer.Apply(properties, typeInformationManager, module);
@@ -177,17 +192,20 @@ abstract class Backend(
                 $"opt: {properties.OptimizationLevel}");
         }
 
-        return GenerateCode(finalModule);
+        return GenerateCode(finalModule, EntryPointLaunch.Resolve(module, launch));
     }
 
     /// <summary>
     /// Generates code for the given module.
     /// </summary>
     /// <param name="module">The module to generate code for.</param>
+    /// <param name="launch">How the entry point is launched.</param>
     /// <returns>The generated code.</returns>
-    protected virtual CodeGenerationResult GenerateCode(Module module)
+    protected virtual CodeGenerationResult GenerateCode(
+        Module module,
+        EntryPointLaunch launch)
     {
-        var codeGenerator = new CodeGenerator(module, LanguageConfiguration);
+        var codeGenerator = new CodeGenerator(module, LanguageConfiguration, launch);
         return codeGenerator.GenerateCode();
     }
 
@@ -200,6 +218,11 @@ abstract class Backend(
     /// </typeparam>
     /// <param name="source">The code generation result containing source code.</param>
     /// <param name="manager">The compiler manager to use.</param>
+    /// <param name="properties">
+    /// The compilation properties driving this compile. Used by backends to map the
+    /// ILGPU <see cref="CompilationProperties.OptimizationLevel"/> to a native
+    /// compiler optimization flag.
+    /// </param>
     /// <param name="ct">Cancellation token.</param>
     /// <returns>
     /// The compilation result, or null if this backend does not support compilation.
@@ -207,9 +230,30 @@ abstract class Backend(
     public virtual Task<CompilationResult?> CompileSourceAsync<TManager>(
         CodeGenerationResult source,
         TManager manager,
+        CompilationProperties properties,
         CancellationToken ct = default)
         where TManager : ICompilerManager =>
         Task.FromResult<CompilationResult?>(null);
+
+    /// <summary>
+    /// Translates an ILGPU <see cref="OptimizationLevel"/> to the corresponding
+    /// <see cref="NativeOptimizationLevel"/>. ILGPU exposes O0..O2; we offset by one
+    /// (O0 → native O1, O1 → native O2, O2 → native O3) so even an "unoptimized" IR
+    /// build still gets basic register allocation and inlining from the native
+    /// toolchain.
+    /// </summary>
+    /// <param name="level">The IR optimization level.</param>
+    /// <returns>
+    /// The native optimization level, never <see cref="NativeOptimizationLevel.O0"/>.
+    /// </returns>
+    protected static NativeOptimizationLevel GetNativeOptLevel(OptimizationLevel level)
+        => level switch
+        {
+            OptimizationLevel.O0 => NativeOptimizationLevel.O1,
+            OptimizationLevel.O1 => NativeOptimizationLevel.O2,
+            OptimizationLevel.O2 => NativeOptimizationLevel.O3,
+            _ => NativeOptimizationLevel.O2,
+        };
 }
 
 #pragma warning restore CA1515

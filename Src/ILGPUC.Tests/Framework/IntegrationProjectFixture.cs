@@ -54,17 +54,35 @@ sealed class IntegrationProjectFixture : IDisposable
     public static string RepoRoot => s_repoRoot.Value;
 
     /// <summary>
+    /// Directory containing the locally built <c>ILGPUC.dll</c> /
+    /// <c>ILGPU.dll</c> the tests reference. Resolved from the test
+    /// assembly's own load location so the configuration (Debug/Release)
+    /// matches the test-runner's build, instead of hard-coding "Debug".
+    /// <c>ILGPUC.Tests</c> ProjectReferences <c>ILGPUC</c> (which itself
+    /// references <c>ILGPU</c>), so all three DLLs land in the same
+    /// per-config output directory.
+    /// </summary>
+    public static string IlgpucDllDir { get; } = AppContext.BaseDirectory;
+
+    /// <summary>
+    /// Build configuration the test-runner was launched with
+    /// ("Debug", "Release", ...), derived from the directory containing
+    /// the test assembly (e.g. <c>Bin/Release/net10.0/</c> -> "Release").
+    /// </summary>
+    public static string BuildConfiguration { get; } = ResolveBuildConfiguration();
+
+    /// <summary>
     /// Resolved path to the locally built <c>ILGPUC.dll</c>. The fixture
     /// fails fast at construction if this file is missing.
     /// </summary>
     public static string IlgpucDllPath { get; } = Path.Combine(
-        RepoRoot, "Bin", "Debug", "net10.0", "ILGPUC.dll");
+        IlgpucDllDir, "ILGPUC.dll");
 
     /// <summary>
     /// Resolved path to the locally built <c>ILGPU.dll</c>.
     /// </summary>
     public static string IlgpuDllPath { get; } = Path.Combine(
-        RepoRoot, "Bin", "Debug", "net10.0", "ILGPU.dll");
+        IlgpucDllDir, "ILGPU.dll");
 
     public IntegrationProjectFixture(
         string projectName,
@@ -112,6 +130,17 @@ sealed class IntegrationProjectFixture : IDisposable
         {
             ["$(ILGPU_REPO_ROOT)"] = NormalizePath(RepoRoot),
             ["$(ILGPU_BACKEND)"] = backend.ToString(),
+            // Configuration the OUTER test-runner was launched with. Templates
+            // embed this into HintPaths so they pick up the same ILGPU/ILGPUC
+            // DLLs that the test host itself loaded, regardless of whether the
+            // run was `-c Debug` or `-c Release`.
+            ["$(ILGPU_BUILD_CONFIG)"] = BuildConfiguration,
+            // Directory containing the ILGPUC.dll / ILGPU.dll that the test
+            // host is running against. Equivalent to
+            // "$(ILGPU_REPO_ROOT)/Bin/$(ILGPU_BUILD_CONFIG)/net10.0" but
+            // resolved directly from AppContext.BaseDirectory so it stays
+            // correct even if the layout ever changes.
+            ["$(ILGPUC_DLL_DIR)"] = NormalizePath(IlgpucDllDir),
             // PREFER_CPU is substituted into Program.cs.template's call to
             // GetPreferredDevice. CPU theory cases need preferCPU: true; GPU
             // backends (Metal etc.) need preferCPU: false so the runtime
@@ -318,6 +347,28 @@ sealed class IntegrationProjectFixture : IDisposable
 
     private static string NormalizePath(string path) =>
         path.Replace('\\', '/');
+
+    /// <summary>
+    /// Walk up from <see cref="AppContext.BaseDirectory"/> looking for the
+    /// configuration segment of the standard ILGPU output layout
+    /// (<c>Bin/&lt;Config&gt;/&lt;tfm&gt;/</c>). Falls back to "Debug" if the
+    /// path doesn't follow that convention (e.g. when running under an IDE
+    /// that puts test assemblies somewhere unusual).
+    /// </summary>
+    private static string ResolveBuildConfiguration()
+    {
+        var dir = new DirectoryInfo(AppContext.BaseDirectory);
+        // Expected layout: .../Bin/<Config>/<tfm>/ -> parent of base is <Config>.
+        var parent = dir.Parent;
+        if (parent is not null
+            && parent.Parent is not null
+            && string.Equals(
+                parent.Parent.Name, "Bin", StringComparison.OrdinalIgnoreCase))
+        {
+            return parent.Name;
+        }
+        return "Debug";
+    }
 
     private static string FindRepoRoot()
     {

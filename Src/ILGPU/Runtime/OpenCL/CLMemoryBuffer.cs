@@ -24,6 +24,38 @@ public sealed class CLMemoryBuffer : MemoryBuffer
     #region Static
 
     /// <summary>
+    /// Resolves an <see cref="IArrayView"/> to the <c>cl_mem</c> handle of its
+    /// buffer and its byte offset within that buffer. Used by generated
+    /// OpenCL launcher code: a <c>cl_mem</c> kernel argument cannot carry an
+    /// offset, so the kernel receives the offset separately.
+    /// </summary>
+    /// <param name="view">The array view whose underlying buffer to resolve.</param>
+    /// <param name="effectivePtr">
+    /// The effective address of the view (from ViewImplementation.Ptr), i.e.
+    /// the buffer's native pointer plus the view's byte offset.
+    /// </param>
+    /// <param name="memory">
+    /// The <c>cl_mem</c> handle, or <see cref="IntPtr.Zero"/> for an invalid
+    /// view.
+    /// </param>
+    /// <param name="byteOffset">Byte offset from the start of the buffer.</param>
+    public static void ResolveView(
+        IArrayView view,
+        IntPtr effectivePtr,
+        out IntPtr memory,
+        out long byteOffset)
+    {
+        if (view is null || !view.IsValid || view.Buffer is not CLMemoryBuffer buffer)
+        {
+            memory = IntPtr.Zero;
+            byteOffset = 0;
+            return;
+        }
+        memory = buffer.NativePtr;
+        byteOffset = (nint)effectivePtr - (nint)buffer.NativePtr;
+    }
+
+    /// <summary>
     /// Performs an OpenCL memset operation.
     /// </summary>
     /// <typeparam name="T">The element type.</typeparam>
@@ -53,7 +85,7 @@ public sealed class CLMemoryBuffer : MemoryBuffer
                 stream,
                 target.NativePtr,
                 value,
-                new IntPtr(targetView.Index * target.ElementSize),
+                new IntPtr(targetView.Index * ArrayView<T>.ElementSize),
                 new IntPtr(targetView.LengthInBytes)));
 
         binding.Recover();

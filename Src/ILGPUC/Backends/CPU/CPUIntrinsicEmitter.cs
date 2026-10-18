@@ -108,6 +108,29 @@ sealed class CPUIntrinsicEmitter(int? vectorWidth) : IntrinsicEmitter
         $"{M(type)}.Pow({x}, {y})";
 
     /// <inheritdoc/>
+    public override string EmitPopCount(string arg, ArithmeticBasicValueType type) =>
+        $"System.Numerics.BitOperations.PopCount({AsUnsigned(arg, type)})";
+
+    /// <inheritdoc/>
+    public override string EmitLeadingZeroCount(
+        string arg,
+        ArithmeticBasicValueType type) =>
+        $"System.Numerics.BitOperations.LeadingZeroCount({AsUnsigned(arg, type)})";
+
+    /// <inheritdoc/>
+    public override string EmitTrailingZeroCount(
+        string arg,
+        ArithmeticBasicValueType type) =>
+        $"System.Numerics.BitOperations.TrailingZeroCount({AsUnsigned(arg, type)})";
+
+    /// <summary>
+    /// Reinterprets an integer as the unsigned type of the same width, which
+    /// the BitOperations overloads take.
+    /// </summary>
+    private static string AsUnsigned(string arg, ArithmeticBasicValueType type) =>
+        Is64BitInteger(type) ? $"unchecked((ulong)({arg}))" : $"unchecked((uint)({arg}))";
+
+    /// <inheritdoc/>
     public override string EmitAbs(string arg, ArithmeticBasicValueType type) =>
         $"Math.Abs({arg})";
 

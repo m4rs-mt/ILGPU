@@ -11,6 +11,8 @@
 
 using Microsoft.CodeAnalysis;
 using System.Collections.Immutable;
+using ILGPUC.Backends;
+using System.Linq;
 
 namespace ILGPUC.Roslyn.Analysis;
 
@@ -47,4 +49,32 @@ record KernelDescriptor(
     LaunchVariant Variant,
     KernelLaunchInfo LaunchInfo,
     string? GenericOriginName = null,
-    ImmutableArray<ITypeSymbol>? ConcreteTypeArgs = null);
+    ImmutableArray<ITypeSymbol>? ConcreteTypeArgs = null)
+{
+    /// <summary>
+    /// Returns how the kernel is launched, which the generated device code,
+    /// the generated Launch method and the rewritten call site agree on:
+    /// implicitly grouped launches with 1-3 index dimensions, or grouped
+    /// launches whose kernel does or does not take a <c>KernelIndex</c>.
+    /// </summary>
+    public EntryPointLaunch GetEntryPointLaunch()
+    {
+        if (Variant == LaunchVariant.Grouped)
+        {
+            var firstParam = KernelMethod?.Parameters.FirstOrDefault();
+            return EntryPointLaunch.Grouped(
+                hasKernelIndex: firstParam?.Type.Name is "KernelIndex");
+        }
+
+        return EntryPointLaunch.Implicit(Variant switch
+        {
+            LaunchVariant.Auto2D or LaunchVariant.AutoLong2D
+                or LaunchVariant.Auto2DStride
+                or LaunchVariant.AutoLong2DStride => 2,
+            LaunchVariant.Auto3D or LaunchVariant.AutoLong3D
+                or LaunchVariant.Auto3DStride
+                or LaunchVariant.AutoLong3DStride => 3,
+            _ => 1,
+        });
+    }
+}

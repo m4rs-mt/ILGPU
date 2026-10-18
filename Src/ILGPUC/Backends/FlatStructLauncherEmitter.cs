@@ -52,13 +52,19 @@ abstract class FlatStructLauncherEmitter : LauncherEmitter
     protected virtual string ApiLaunchPrefix => $"{ApiTypeName}.CurrentAPI";
 
     /// <inheritdoc/>
+    public override bool PassesLaunchExtents => true;
+
+    /// <inheritdoc/>
     public sealed override bool NeedsKernelArgsStruct => true;
 
     public sealed override void EmitLaunchBody(
         LauncherEmissionContext ctx,
         List<ParameterInfo> parameters)
     {
-        ctx.WriteLine($"var typedKernel = ({KernelTypeName})_runtimeKernel!;");
+        ctx.WriteLine($"var typedKernel = ({KernelTypeName})(_runtimeKernel" +
+            " ?? throw new System.InvalidOperationException(" +
+            "\"The kernel is not loaded on this accelerator: it is not " +
+            "compatible with the device or failed to build for it.\"));");
         ctx.WriteLine($"var typedStream = ({StreamTypeName})stream;");
         ctx.WriteLine(
             "var launchConfig = stream.PrepareKernelLaunch(" +
@@ -68,14 +74,40 @@ abstract class FlatStructLauncherEmitter : LauncherEmitter
             ".GetCombinedSharedMemoryConfig(launchConfig);");
         ctx.WriteLine("");
 
+        // Reshape the 1-D KernelConfig into explicit 3-D grid / block
+        // dimensions. cuLaunchKernel / hipModuleLaunchKernel are intrinsically
+        // 3-D; passing gridDimY = gridDimZ = blockDimY = blockDimZ = 1 would
+        // force index.Y / index.Z to 0 inside an Index2D / Index3D kernel.
+        EmitLaunchDimensions(ctx);
+        ctx.WriteLine("");
+
         ctx.EmitArgsMarshalingBlock(parameters);
+
+        // Hidden launch-extent arguments of implicitly grouped launches; the
+        // kernel skips the threads that only fill up the last block.
+        var extents = GetLaunchExtentExpressions(ctx);
+        for (int i = 0; i < extents.Length; ++i)
+        {
+            ctx.WriteLine(
+                $"args.{EntryPointLaunch.GetExtentParameterName(i)} = {extents[i]};");
+        }
+        if (extents.Length > 0)
+            ctx.WriteLine("");
 
         ctx.WriteLine($"{ExceptionTypeName}.ThrowIfFailed(");
         ctx.IncrementIndent();
-        ctx.WriteLine($"{ApiLaunchPrefix}.LaunchKernelWithStruct(");
+        ctx.WriteLine($"{ApiLaunchPrefix}.LaunchKernelWithStruct3D(");
         ctx.IncrementIndent();
-        ctx.WriteLine("typedStream, typedKernel, launchConfig,");
-        ctx.WriteLine("ref args, sizeof(KernelArgs)));");
+        ctx.WriteLine("typedStream, typedKernel,");
+        ctx.WriteLine("_ilgpuc_gX, _ilgpuc_gY, _ilgpuc_gZ,");
+        ctx.WriteLine("_ilgpuc_bX, _ilgpuc_bY, _ilgpuc_bZ,");
+        ctx.WriteLine("launchConfig.SharedMemoryBytes,");
+        // Pass the codegen-computed CUDA parameter-buffer size, not
+        // sizeof(KernelArgs). C# Sequential-layout rounds the struct size
+        // up to its largest field's alignment, but the device kernel's
+        // parameter list has no trailing pad -- mismatched sizes make
+        // cuLaunchKernel return CUDA_ERROR_LAUNCH_OUT_OF_RESOURCES (701).
+        ctx.WriteLine("ref args, KernelArgsSize));");
         ctx.DecrementIndent();
         ctx.DecrementIndent();
     }

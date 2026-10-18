@@ -85,14 +85,17 @@ sealed class CPUBackend(
     /// <remarks>
     /// Overrides code generation to use vectorization-aware C# code generator.
     /// </remarks>
-    protected override CodeGenerationResult GenerateCode(Module module)
+    protected override CodeGenerationResult GenerateCode(
+        Module module,
+        EntryPointLaunch launch)
     {
         var codeGenerator = new CPUCodeGenerator(
             module,
             LanguageConfiguration,
             VectorWidth,
             EmitDebugSymbols,
-            PoolBuffers);
+            PoolBuffers,
+            launch);
         return codeGenerator.GenerateCode();
     }
 }

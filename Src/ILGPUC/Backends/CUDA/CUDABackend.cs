@@ -59,13 +59,25 @@ sealed class CudaBackend(AcceleratorArchitecture arch, CudaInstructionSet isa) :
     public override async Task<CompilationResult?> CompileSourceAsync<TManager>(
         CodeGenerationResult source,
         TManager manager,
+        CompilationProperties properties,
         CancellationToken ct = default)
     {
+        // Build a PTX-only fatbin keyed to the configured virtual
+        // architecture. The CUDA driver JITs PTX at module-load time, so
+        // the resulting binary loads on any device with a compute
+        // capability >= the requested virtual architecture (matching what
+        // the runtime kernel-loading path expects). Without an explicit
+        // -gencode flag nvcc defaults to a SASS-only cubin for a fixed
+        // architecture that refuses to load on newer hardware.
+        var computeTag = $"compute_{arch.Major}{arch.Minor}";
+        var archFlags = $"-gencode=arch={computeTag},code={computeTag}";
         return await manager.CompileAsync(new CompileRequest
         {
             SourceCode = source.SourceCode,
             Target = CompilationTarget.Cuda,
             OutputType = OutputType.Binary,
+            OptimizationLevel = GetNativeOptLevel(properties.OptimizationLevel),
+            ExtraFlags = archFlags,
         }, ct).ConfigureAwait(false);
     }
 }

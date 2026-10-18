@@ -37,6 +37,12 @@ public enum BackendCapability
     /// requires the <c>cl_khr_int64_base_atomics</c> extension.
     /// </summary>
     Float64Atomics = 1 << 2,
+
+    /// <summary>
+    /// Signed 64-bit atomic min/max. Metal has no signed 64-bit atomic type,
+    /// and the OpenCL emitter does not map 64-bit atomic min/max.
+    /// </summary>
+    Int64AtomicMinMax = 1 << 3,
 }
 
 /// <summary>
@@ -89,13 +95,16 @@ public static class BackendCapabilities
     {
         [BackendType.CPU] = BackendCapability.Float64
             | BackendCapability.Float16
-            | BackendCapability.Float64Atomics,
+            | BackendCapability.Float64Atomics
+            | BackendCapability.Int64AtomicMinMax,
         [BackendType.Cuda] = BackendCapability.Float64
             | BackendCapability.Float16
-            | BackendCapability.Float64Atomics,
+            | BackendCapability.Float64Atomics
+            | BackendCapability.Int64AtomicMinMax,
         [BackendType.ROCm] = BackendCapability.Float64
             | BackendCapability.Float16
-            | BackendCapability.Float64Atomics,
+            | BackendCapability.Float64Atomics
+            | BackendCapability.Int64AtomicMinMax,
         [BackendType.OpenCL] = BackendCapability.Float64
             | BackendCapability.Float16,
         [BackendType.Metal] = BackendCapability.Float16,

@@ -1141,6 +1141,47 @@ public static class CPUMathIntrinsics
         => TensorPrimitives.Abs<T>(input, target);
 
     /// <summary>
+    /// Computes the element-wise number of set bits across all lanes.
+    /// </summary>
+    /// <typeparam name="T">The integer element type of the input.</typeparam>
+    /// <param name="target">The destination span to write results into.</param>
+    /// <param name="input">The input values, one per lane.</param>
+    public static void PopCount<T>(Span<int> target, ReadOnlySpan<T> input)
+        where T : IBinaryInteger<T>
+    {
+        for (int i = 0; i < input.Length; ++i)
+            target[i] = int.CreateTruncating(T.PopCount(input[i]));
+    }
+
+    /// <summary>
+    /// Computes the element-wise number of leading zero bits across all lanes
+    /// (the bit width for zero).
+    /// </summary>
+    /// <typeparam name="T">The integer element type of the input.</typeparam>
+    /// <param name="target">The destination span to write results into.</param>
+    /// <param name="input">The input values, one per lane.</param>
+    public static void LeadingZeroCount<T>(Span<int> target, ReadOnlySpan<T> input)
+        where T : IBinaryInteger<T>
+    {
+        for (int i = 0; i < input.Length; ++i)
+            target[i] = int.CreateTruncating(T.LeadingZeroCount(input[i]));
+    }
+
+    /// <summary>
+    /// Computes the element-wise number of trailing zero bits across all lanes
+    /// (the bit width for zero).
+    /// </summary>
+    /// <typeparam name="T">The integer element type of the input.</typeparam>
+    /// <param name="target">The destination span to write results into.</param>
+    /// <param name="input">The input values, one per lane.</param>
+    public static void TrailingZeroCount<T>(Span<int> target, ReadOnlySpan<T> input)
+        where T : IBinaryInteger<T>
+    {
+        for (int i = 0; i < input.Length; ++i)
+            target[i] = int.CreateTruncating(T.TrailingZeroCount(input[i]));
+    }
+
+    /// <summary>
     /// Computes element-wise floor across all lanes into a pre-allocated target.
     /// </summary>
     /// <typeparam name="T">

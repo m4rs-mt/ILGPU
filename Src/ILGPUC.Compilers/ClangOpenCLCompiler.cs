@@ -68,14 +68,15 @@ public sealed class ClangOpenCLCompiler : CompilerBase
             await File.WriteAllTextAsync(inputFile, request.SourceCode, ct)
                 .ConfigureAwait(false);
 
+            var optFlag = $"-O{(int)request.OptimizationLevel}";
             var includes = BuildIncludeArgs(request);
             var directives = BuildDirectiveArgs(request);
-            var flags = SanitizeCompilerFlags(request.CudaFlags);
+            var extraFlags = SanitizeCompilerFlags(request.ExtraFlags);
 
             var args =
                 $"-target spirv64-unknown-unknown -cl-std={_clStandard} -x cl" +
                 $" -o \"{outputFile}\" \"{inputFile}\"" +
-                $" {flags}{includes}{directives}";
+                $" {optFlag} {extraFlags}{includes}{directives}";
 
             var (exitCode, stdout, stderr) = await RunProcessAsync(
                 ExecutablePath,

@@ -154,9 +154,10 @@ sealed class KernelCompiler
     /// call sites resolve correctly. When <see langword="null"/>, falls back
     /// to the IR-derived internal entry point name.
     /// </param>
-    /// <param name="indexDimOverride">
-    /// Optional user-facing override functionality to change behavior of indexed
-    /// dimension parameters for launch-index propagation.
+    /// <param name="launch">
+    /// How the kernel is launched (derived from the launch site). When
+    /// <see langword="null"/>, it is derived from the entry point's first
+    /// parameter.
     /// </param>
     /// <param name="ct">Cancellation token.</param>
     /// <returns>The compilation result with class name and C# source.</returns>
@@ -168,7 +169,7 @@ sealed class KernelCompiler
         string[]? launchParamTypeNames = null,
         string[]?[]? launchParamFieldAccessors = null,
         string? kernelName = null,
-        int? indexDimOverride = null,
+        EntryPointLaunch? launch = null,
         CancellationToken ct = default)
     {
         // Build IR module (may write AfterFrontend / AfterGlobalOpt dumps)
@@ -184,7 +185,7 @@ sealed class KernelCompiler
             launchParamTypeNames,
             launchParamFieldAccessors,
             kernelName,
-            indexDimOverride,
+            launch,
             ct).ConfigureAwait(false);
     }
 
@@ -330,7 +331,7 @@ sealed class KernelCompiler
         string[]? launchParamTypeNames,
         string[]?[]? launchParamFieldAccessors,
         string? kernelName,
-        int? indexDimOverride,
+        EntryPointLaunch? launch,
         CancellationToken ct)
     {
         // Open optional IR dump writer for AfterBackendTransforms (file, console, or both)
@@ -342,7 +343,8 @@ sealed class KernelCompiler
             _typeManager,
             module,
             dumpWriter,
-            dump.Format);
+            dump.Format,
+            launch);
 
         // Print GPU source to console
         if (dump.PrintToConsole)
@@ -362,7 +364,7 @@ sealed class KernelCompiler
         if (compilerManager is not null)
         {
             var compilationResult = await backend
-                .CompileSourceAsync(compiled, compilerManager, ct)
+                .CompileSourceAsync(compiled, compilerManager, _properties, ct)
                 .ConfigureAwait(false);
             if (compilationResult is { Success: true, Output: not null })
             {
@@ -415,7 +417,7 @@ sealed class KernelCompiler
             kernelName: kernelName,
             launchParamTypeNames: launchParamTypeNames,
             launchParamFieldAccessors: launchParamFieldAccessors,
-            indexDimOverride: indexDimOverride);
+            launch: launch);
         var genResult = compiledKernelGen.Generate();
 
         return new KernelCompilationResult(

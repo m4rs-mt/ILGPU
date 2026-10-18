@@ -64,50 +64,52 @@ public enum HipMemcpyKind
 }
 
 /// <summary>
-/// Represents HIP device attribute kinds.
+/// Represents HIP device attribute kinds. The values are HIP's
+/// <c>hipDeviceAttribute_t</c> numbers (ROCm 6.0 and later), which differ
+/// from CUDA's <c>CUdevice_attribute</c>.
 /// </summary>
 public enum HipDeviceAttributeKind
 {
     /// <summary>Maximum threads per block.</summary>
-    MaxThreadsPerBlock = 1,
+    MaxThreadsPerBlock = 56,
     /// <summary>Maximum block dimension X.</summary>
-    MaxBlockDimX = 2,
+    MaxBlockDimX = 26,
     /// <summary>Maximum block dimension Y.</summary>
-    MaxBlockDimY = 3,
+    MaxBlockDimY = 27,
     /// <summary>Maximum block dimension Z.</summary>
-    MaxBlockDimZ = 4,
+    MaxBlockDimZ = 28,
     /// <summary>Maximum grid dimension X.</summary>
-    MaxGridDimX = 5,
+    MaxGridDimX = 29,
     /// <summary>Maximum grid dimension Y.</summary>
-    MaxGridDimY = 6,
+    MaxGridDimY = 30,
     /// <summary>Maximum grid dimension Z.</summary>
-    MaxGridDimZ = 7,
+    MaxGridDimZ = 31,
     /// <summary>Maximum shared memory per block in bytes.</summary>
-    MaxSharedMemoryPerBlock = 8,
+    MaxSharedMemoryPerBlock = 74,
     /// <summary>Total constant memory in bytes.</summary>
-    TotalConstantMemory = 9,
+    TotalConstantMemory = 83,
     /// <summary>Warp size in threads.</summary>
-    WarpSize = 10,
+    WarpSize = 87,
     /// <summary>Maximum registers per block.</summary>
-    MaxRegistersPerBlock = 12,
+    MaxRegistersPerBlock = 71,
     /// <summary>Clock rate in kHz.</summary>
-    ClockRate = 13,
+    ClockRate = 5,
     /// <summary>Multiprocessor count.</summary>
-    MultiprocessorCount = 16,
+    MultiprocessorCount = 63,
     /// <summary>Whether the device is integrated.</summary>
-    Integrated = 18,
+    Integrated = 16,
     /// <summary>Whether the device can map host memory.</summary>
-    CanMapHostMemory = 19,
+    CanMapHostMemory = 3,
     /// <summary>Compute mode.</summary>
-    ComputeMode = 20,
+    ComputeMode = 6,
     /// <summary>Maximum threads per multiprocessor.</summary>
-    MaxThreadsPerMultiprocessor = 39,
+    MaxThreadsPerMultiprocessor = 57,
     /// <summary>Whether the device supports managed memory.</summary>
-    ManagedMemory = 83,
+    ManagedMemory = 24,
     /// <summary>L2 cache size in bytes.</summary>
-    L2CacheSize = 44,
+    L2CacheSize = 19,
     /// <summary>Max shared memory per multiprocessor.</summary>
-    MaxSharedMemoryPerMultiprocessor = 81,
+    MaxSharedMemoryPerMultiprocessor = 10002,
 }
 
 /// <summary>
@@ -248,13 +250,76 @@ unsafe partial class ROCmAPI
             launchConfig[1] = pArgs;
             launchConfig[2] = (void*)2; // HIP_LAUNCH_PARAM_BUFFER_SIZE
             launchConfig[3] = &size;
-            launchConfig[4] = (void*)0; // HIP_LAUNCH_PARAM_END
+            launchConfig[4] = (void*)3; // HIP_LAUNCH_PARAM_END
 
             return hipModuleLaunchKernel(
                 kernel.FunctionHandle,
                 (uint)config.GridSize, 1U, 1U,
                 (uint)config.GroupSize, 1U, 1U,
                 (uint)config.SharedMemoryBytes,
+                stream.StreamHandle,
+                IntPtr.Zero,
+                new IntPtr(launchConfig));
+        }
+    }
+
+    /// <summary>
+    /// Launches a kernel using a flat KernelArgs buffer and explicit 3-D
+    /// grid / block dimensions. The 1-D
+    /// <see cref="LaunchKernelWithStruct{T}"/> forces gridY/Z and blockY/Z
+    /// to 1, which makes <c>hipBlockIdx_y</c> / <c>hipBlockIdx_z</c> a
+    /// constant zero inside the device kernel even when the IL kernel
+    /// was generated for an Index2D / Index3D entry. The HIP / ROCm
+    /// launcher emits a call to this overload instead for those
+    /// kernels so each thread maps to a unique 3-D thread id.
+    /// </summary>
+    /// <typeparam name="T">The kernel arguments struct type.</typeparam>
+    /// <param name="stream">The HIP stream.</param>
+    /// <param name="kernel">The HIP kernel.</param>
+    /// <param name="gridDimX">Grid dimension along X.</param>
+    /// <param name="gridDimY">Grid dimension along Y.</param>
+    /// <param name="gridDimZ">Grid dimension along Z.</param>
+    /// <param name="blockDimX">Block dimension along X.</param>
+    /// <param name="blockDimY">Block dimension along Y.</param>
+    /// <param name="blockDimZ">Block dimension along Z.</param>
+    /// <param name="sharedMemoryBytes">Dynamic shared-memory size in bytes.</param>
+    /// <param name="args">Reference to the launch-args struct.</param>
+    /// <param name="argsSizeInBytes">The argument-buffer size in bytes.</param>
+    /// <returns>The error status.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public ROCmError LaunchKernelWithStruct3D<T>(
+        ROCmStream stream,
+        ROCmKernel kernel,
+        int gridDimX,
+        int gridDimY,
+        int gridDimZ,
+        int blockDimX,
+        int blockDimY,
+        int blockDimZ,
+        int sharedMemoryBytes,
+        ref T args,
+        int argsSizeInBytes)
+        where T : unmanaged
+    {
+        var size = new IntPtr(argsSizeInBytes);
+        Debug.Assert(
+            argsSizeInBytes <= Interop.SizeOf<T>(),
+            "Invalid argument size");
+
+        fixed (T* pArgs = &args)
+        {
+            var launchConfig = stackalloc void*[5];
+            launchConfig[0] = (void*)1; // HIP_LAUNCH_PARAM_BUFFER_POINTER
+            launchConfig[1] = pArgs;
+            launchConfig[2] = (void*)2; // HIP_LAUNCH_PARAM_BUFFER_SIZE
+            launchConfig[3] = &size;
+            launchConfig[4] = (void*)3; // HIP_LAUNCH_PARAM_END
+
+            return hipModuleLaunchKernel(
+                kernel.FunctionHandle,
+                (uint)gridDimX, (uint)gridDimY, (uint)gridDimZ,
+                (uint)blockDimX, (uint)blockDimY, (uint)blockDimZ,
+                (uint)sharedMemoryBytes,
                 stream.StreamHandle,
                 IntPtr.Zero,
                 new IntPtr(launchConfig));
@@ -353,9 +418,26 @@ unsafe partial class ROCmAPI
         hipSetDevice(device);
 
     /// <summary>
-    /// Returns the name of the specified device.
+    /// Returns the AMD target ID of the specified device (e.g. "gfx1100" or
+    /// "gfx90a:sramecc+:xnack-"), which selects the code object to load.
     /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public ROCmError GetDeviceArchitecture(out string architecture, int device)
+    {
+        // hipDeviceProp_tR0600: 1472 bytes, gcnArchName (char[256]) at offset
+        // 1160 on all 64-bit platforms (unchanged since ROCm 6.0).
+        const int propertiesSize = 1472;
+        const int gcnArchNameOffset = 1160;
+        var buffer = stackalloc byte[propertiesSize];
+        var error = hipGetDevicePropertiesR0600(buffer, device);
+        architecture = error == ROCmError.Success
+            ? new string((sbyte*)(buffer + gcnArchNameOffset))
+            : string.Empty;
+        return error;
+    }
+
+    /// <summary>
+    /// Returns the marketing name of the given device.
+    /// </summary>
     public ROCmError GetDeviceName(out string name, int device)
     {
         const int maxNameLength = 256;
@@ -426,7 +508,7 @@ unsafe partial class ROCmAPI
         IntPtr function,
         int blockSize,
         int dynamicSharedMemorySize) =>
-        hipOccupancyMaxActiveBlocksPerMultiprocessor(
+        hipModuleOccupancyMaxActiveBlocksPerMultiprocessor(
             out numBlocks,
             function,
             blockSize,
@@ -442,7 +524,7 @@ unsafe partial class ROCmAPI
         IntPtr function,
         int dynamicSharedMemorySize,
         int blockSizeLimit) =>
-        hipOccupancyMaxPotentialBlockSize(
+        hipModuleOccupancyMaxPotentialBlockSize(
             out gridSize,
             out blockSize,
             function,

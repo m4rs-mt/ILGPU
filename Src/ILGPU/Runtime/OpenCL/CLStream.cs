@@ -39,11 +39,13 @@ public sealed class CLStream : AcceleratorStream
     internal CLStream(CLAccelerator accelerator, AcceleratorStreamFlags flags)
         : base(accelerator, flags)
     {
+        // Streams are in-order queues, like CUDA streams: copies and launches
+        // are enqueued without events, so an out-of-order queue could run
+        // them in any order. Async only means the stream is not the default
+        // stream.
         CLCommandQueueProperties properties =
             accelerator.Context.Properties.EnableProfiling
             ? CLCommandQueueProperties.CL_QUEUE_PROFILING_ENABLE
-            : (flags & AcceleratorStreamFlags.Async) == AcceleratorStreamFlags.Async
-            ? CLCommandQueueProperties.CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE
             : default;
         CLException.ThrowIfFailed(
             CurrentAPI.CreateCommandQueue(

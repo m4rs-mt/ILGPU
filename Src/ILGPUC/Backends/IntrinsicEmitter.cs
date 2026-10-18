@@ -114,6 +114,34 @@ abstract class IntrinsicEmitter
     public abstract string EmitAbs(string arg, ArithmeticBasicValueType type);
 
     /// <summary>
+    /// Emits a population count (number of set bits) of a 32- or 64-bit
+    /// integer. The result is an <c>int</c>.
+    /// </summary>
+    public abstract string EmitPopCount(string arg, ArithmeticBasicValueType type);
+
+    /// <summary>
+    /// Emits a leading-zero count of a 32- or 64-bit integer. The result is
+    /// an <c>int</c> and equals the bit width for zero.
+    /// </summary>
+    public abstract string EmitLeadingZeroCount(
+        string arg,
+        ArithmeticBasicValueType type);
+
+    /// <summary>
+    /// Emits a trailing-zero count of a 32- or 64-bit integer. The result is
+    /// an <c>int</c> and equals the bit width for zero.
+    /// </summary>
+    public abstract string EmitTrailingZeroCount(
+        string arg,
+        ArithmeticBasicValueType type);
+
+    /// <summary>
+    /// Returns true for 64-bit integer types.
+    /// </summary>
+    protected static bool Is64BitInteger(ArithmeticBasicValueType type) =>
+        type is ArithmeticBasicValueType.Int64 or ArithmeticBasicValueType.UInt64;
+
+    /// <summary>
     /// Emits a minimum function call.
     /// </summary>
     public abstract string EmitMin(string arg1, string arg2, ArithmeticBasicValueType type);

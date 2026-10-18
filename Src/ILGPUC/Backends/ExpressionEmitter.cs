@@ -333,11 +333,17 @@ sealed class ExpressionEmitter(GenerationContext context, TypeEmitter typeEmitte
             sb.Append($"{addrSpace} ");
         sb.Append($"{elemTypeName} {storageName}[{arraySize}];");
 
-        // Emit the pointer variable
+        // Emit the pointer variable. Build the pointer type via the
+        // language config so backends that don't carry an address-space
+        // qualifier on pointer types (CUDA / HIP) skip the keyword for
+        // the pointer itself — otherwise the local pointer variable ends
+        // up in shared memory and all threads race on a single cell.
+        // Metal / OpenCL keep the qualifier (e.g. <c>threadgroup int*</c>)
+        // which correctly types the pointee.
         sb.Append('\n');
-        if (!string.IsNullOrEmpty(addrSpace))
-            sb.Append($"{addrSpace} ");
-        sb.Append($"{elemTypeName}* {varName} = {storageName};");
+        var ptrTypeName = context.LanguageConfig.GetPointerTypeName(
+            elemTypeName, addrSpace);
+        sb.Append($"{ptrTypeName} {varName} = {storageName};");
 
         return sb.ToString();
     }
@@ -811,6 +817,22 @@ sealed class ExpressionEmitter(GenerationContext context, TypeEmitter typeEmitte
             return new Emitted($"{l} / {r}", Prec.Multiplicative);
         }
 
+        // Bit counting: the intrinsic names and 64-bit variants differ per
+        // language.
+        var bitArg = Parenthesize(operand, Prec.Unary);
+        var bitCount = kind switch
+        {
+            UnaryArithmeticKind.PopC =>
+                IntrinsicEmitter.EmitPopCount(bitArg, basicType),
+            UnaryArithmeticKind.CLZ =>
+                IntrinsicEmitter.EmitLeadingZeroCount(bitArg, basicType),
+            UnaryArithmeticKind.CTZ =>
+                IntrinsicEmitter.EmitTrailingZeroCount(bitArg, basicType),
+            _ => null
+        };
+        if (bitCount is not null)
+            return new Emitted(bitCount, Prec.Postfix);
+
         // Function-call-style operations
         var operation = kind switch
         {
@@ -823,9 +845,6 @@ sealed class ExpressionEmitter(GenerationContext context, TypeEmitter typeEmitte
             UnaryArithmeticKind.IsNaN => "isnan",
             UnaryArithmeticKind.IsInf => "isinf",
             UnaryArithmeticKind.IsFin => "isfinite",
-            UnaryArithmeticKind.PopC => "__popc",
-            UnaryArithmeticKind.CLZ => "__clz",
-            UnaryArithmeticKind.CTZ => "__ctz",
             _ => null
         };
 
