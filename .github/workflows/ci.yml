@@ -18,10 +18,9 @@ name: CI
 #                                                                                          ▼
 #                                                                                   package-library
 #                                                                                          │
-#                                                                              ┌───────────┴───────────┐
-#                                                                              ▼                       ▼
-#                                                                      publish-preview          publish-release
-#                                                                      (push to master)         (push to refs/tags/v*)
+#                                                                                          ▼
+#                                                                                   publish-release
+#                                                                                (push to refs/tags/v*)
 #
 # Key invariants:
 #  - publishing CANNOT happen unless `checks-completed` succeeded
@@ -1468,8 +1467,7 @@ jobs:
   #
   # Runs on every push (any branch) once tests pass. Produces the
   # `nuget-packages` artifact attached to the workflow run, available for
-  # download in the Actions UI. publish-preview / publish-release consume
-  # this artifact.
+  # download in the Actions UI. publish-release consumes this artifact.
 
   package-library:
     needs:
@@ -1536,26 +1534,6 @@ jobs:
   # ===========================================================================
   # Tier 6: Publishing (gated by package-library, which is gated by tests)
   # ===========================================================================
-
-  publish-preview:
-    # Push to FeedzIO preview feed on master push (not forks).
-    if: github.event_name == 'push' && github.ref == 'refs/heads/master' && !github.event.repository.fork
-    needs: package-library
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - name: Setup .NET SDK
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: 10.0.x
-
-      - name: Download NuGet package artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: nuget-packages
-
-      - name: Publish to FeedzIO
-        run: dotnet nuget push "*.nupkg" --api-key ${{ secrets.FEEDZIO_API_KEY }} --source https://f.feedz.io/ilgpu/preview/nuget/index.json
 
   publish-release:
     # Create a draft GitHub release and publish to nuget.org on tag push
