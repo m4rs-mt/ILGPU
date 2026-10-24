@@ -121,4 +121,40 @@ public abstract class AtomicExecutionTests : ExecutionTestBase
             ["Kernels.MakeAtomicJoinKernel"],
             ["2", "1", "5"]);
     }
+
+    /// <summary>
+    /// The target of a float atomic max, read after the atomic and passed to a
+    /// second atomic max in a branch, holds the value the first atomic stored where
+    /// both are lowered to compare-and-swap loops.
+    /// </summary>
+    [SkippableTheory]
+    [InlineData(OptimizationLevel.O0)]
+    [InlineData(OptimizationLevel.O1)]
+    [InlineData(OptimizationLevel.O2)]
+    public async Task AtomicMaxReadBack_ProducesCorrectOutput(OptimizationLevel level)
+    {
+        await VerifyProgramOutputAsync(
+            "TestPrograms/Atomics/AtomicMaxReadBack.cs",
+            ["Kernels.AtomicMaxReadBackKernel"],
+            ["5", "5", "5"],
+            new CompilationProperties { OptimizationLevel = level });
+    }
+
+    /// <summary>
+    /// The target of a custom atomic built with Atomic.MakeAtomic, read after the
+    /// atomic and passed to a second custom atomic in a branch, holds the value the
+    /// first atomic stored.
+    /// </summary>
+    [SkippableTheory]
+    [InlineData(OptimizationLevel.O0)]
+    [InlineData(OptimizationLevel.O1)]
+    [InlineData(OptimizationLevel.O2)]
+    public async Task MakeAtomicReadBack_ProducesCorrectOutput(OptimizationLevel level)
+    {
+        await VerifyProgramOutputAsync(
+            "TestPrograms/Atomics/MakeAtomicReadBack.cs",
+            ["Kernels.MakeAtomicReadBackKernel"],
+            ["5", "5", "5"],
+            new CompilationProperties { OptimizationLevel = level });
+    }
 }
