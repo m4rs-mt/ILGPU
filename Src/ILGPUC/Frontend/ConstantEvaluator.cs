@@ -33,13 +33,14 @@ namespace ILGPUC.Frontend;
 /// <param name="Reason">Why the call is not constant, if it is not.</param>
 /// <param name="IsBudgetExceeded">
 /// <see langword="true"/> if the evaluation ran out of its instruction budget or
-/// nested calls too deeply. Such results depend on where the evaluation started and
-/// are not memoized.
+/// nested calls too deeply.
 /// </param>
 /// <param name="Cost">
 /// The number of instructions the evaluation executed, including nested calls. A
 /// memoized constant charges this cost to every evaluation that uses it, so that
 /// whether an evaluation fits its budget does not depend on what the memo holds.
+/// For a memoized budget failure, the budget the evaluation ran out of: every
+/// evaluation of the call with at most this budget runs out of it as well.
 /// </param>
 readonly record struct ConstantEvaluationResult(
     bool IsConstant,
@@ -90,6 +91,12 @@ readonly record struct ConstantEvaluationResult(
 /// memo or a base case. An instruction budget per evaluation stops runaway loops,
 /// and a limit of <see cref="MaxCallDepth"/> nested calls keeps deep recursion
 /// from exhausting the stack of the compiler.
+/// </para>
+/// <para>
+/// Calls that run out of the instruction budget are memoized with the budget they
+/// had, so that repeated calls with the same arguments fail without being
+/// interpreted again unless they have a larger budget. Calls that nest too deeply
+/// are not memoized, as their depth depends on the calls the memo answers.
 /// </para>
 /// </remarks>
 sealed class ConstantEvaluator
@@ -173,6 +180,12 @@ sealed class ConstantEvaluator
 
         /// <summary>Whether the instruction budget ran out.</summary>
         public bool IsBudgetExceeded { get; }
+
+        /// <summary>
+        /// Whether evaluation stopped because no instructions were left, as
+        /// opposed to nesting calls too deeply.
+        /// </summary>
+        public bool IsOutOfInstructions { get; init; }
     }
 
     #endregion
@@ -233,6 +246,12 @@ sealed class ConstantEvaluator
     /// Returns the number of evaluations answered from the memo.
     /// </summary>
     public int MemoHitCount { get; private set; }
+
+    /// <summary>
+    /// Returns the number of calls whose IL was interpreted, which are the
+    /// evaluations not answered from the memo.
+    /// </summary>
+    public int InterpretationCount { get; private set; }
 
     #endregion
 
@@ -327,9 +346,12 @@ sealed class ConstantEvaluator
         ++EvaluationCount;
         var argumentKey = GetArgumentKey(arguments);
         var key = (method, argumentKey, _is64Bit);
-        if (_memo.TryGetValue(key, out var cached))
+        if (_memo.TryGetValue(key, out var cached) &&
+            (!cached.IsBudgetExceeded || cached.Cost >= _remainingBudget))
         {
             ++MemoHitCount;
+            if (cached.IsBudgetExceeded)
+                throw OutOfInstructions(cached.Reason!);
             if (!cached.IsConstant)
                 throw new NotConstantException(cached.Reason!);
             _remainingBudget -= cached.Cost;
@@ -353,14 +375,35 @@ sealed class ConstantEvaluator
                 "with the same arguments");
         }
 
+        int budgetBefore = _remainingBudget;
         try
         {
-            int budgetBefore = _remainingBudget;
+            ++InterpretationCount;
             var value = Interpret(method, arguments);
             _memo[key] = ConstantEvaluationResult.Constant(
                 value,
                 budgetBefore - _remainingBudget);
             return value;
+        }
+        catch (NotConstantException e) when (e.IsOutOfInstructions)
+        {
+            // The call needs more instructions than it had; keep the largest
+            // budget it ran out of
+            var failure = new ConstantEvaluationResult(
+                false,
+                null,
+                e.Message,
+                IsBudgetExceeded: true,
+                Cost: budgetBefore);
+            _memo.AddOrUpdate(
+                key,
+                static (_, update) => update,
+                static (_, existing, update) =>
+                    existing.IsBudgetExceeded && existing.Cost < update.Cost
+                    ? update
+                    : existing,
+                failure);
+            throw;
         }
         catch (NotConstantException e) when (!e.IsBudgetExceeded)
         {
@@ -378,10 +421,16 @@ sealed class ConstantEvaluator
     /// <paramref name="method"/>.
     /// </summary>
     private NotConstantException BudgetExceeded(MethodBase method) =>
-        new(
+        OutOfInstructions(
             $"the evaluation exceeded its budget of {Budget} instructions " +
-            $"in '{FrontendDisplay.Format(method)}'",
-            isBudgetExceeded: true);
+            $"in '{FrontendDisplay.Format(method)}'");
+
+    /// <summary>
+    /// Creates the exception for an evaluation that ran out of its budget.
+    /// </summary>
+    /// <param name="message">Why evaluation stopped.</param>
+    private static NotConstantException OutOfInstructions(string message) =>
+        new(message, isBudgetExceeded: true) { IsOutOfInstructions = true };
 
     /// <summary>
     /// Returns a memo key for a list of argument constants.

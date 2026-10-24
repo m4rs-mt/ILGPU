@@ -108,14 +108,34 @@ sealed class CompilationHelper : DisposeBase
         ILFrontendCache? frontendCache,
         out IReadOnlyDictionary<MethodBase, Exception> failedMethods)
     {
+        var module = CompileToModuleWithFrontend(
+            method,
+            props,
+            backendType,
+            frontendCache,
+            out var frontend);
+        failedMethods = frontend.FailedMethods;
+        return module;
+    }
+
+    /// <summary>
+    /// Stage 0: IL -> sealed Module (unoptimized), also returning the frontend
+    /// that generated it.
+    /// </summary>
+    public IRModule CompileToModuleWithFrontend(
+        MethodInfo method,
+        CompilationProperties? props,
+        BackendType? backendType,
+        ILFrontendCache? frontendCache,
+        out ILFrontend frontend)
+    {
         var properties = props ?? new CompilationProperties();
         var bt = backendType ?? _defaultBackendType;
 
-        var frontend = new ILFrontend(
+        frontend = new ILFrontend(
             bt,
             frontendCache ?? s_frontendCache,
             GetAssemblyDir(method));
-        failedMethods = frontend.FailedMethods;
         frontend.LoadMethods([method]);
 
         var moduleBuilder = new ModuleBuilder(

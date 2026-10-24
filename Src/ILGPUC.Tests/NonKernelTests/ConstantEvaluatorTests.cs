@@ -193,7 +193,41 @@ public sealed class ConstantEvaluatorTests
     }
 
     [Fact]
-    public void BudgetFailures_AreNotMemoized()
+    public void BudgetFailures_AreMemoized()
+    {
+        var evaluator = CreateEvaluator(budget: 10_000);
+        var loop = Get(typeof(ConstantEvaluatorTests), nameof(LongLoop));
+
+        var first = evaluator.Evaluate(loop, []);
+        int interpretations = evaluator.InterpretationCount;
+        var second = evaluator.Evaluate(loop, []);
+
+        Assert.True(first.IsBudgetExceeded);
+        Assert.Equal(first, second);
+        Assert.Equal(interpretations, evaluator.InterpretationCount);
+    }
+
+    [Fact]
+    public void BudgetFailures_FailCallsWithSmallerBudgets()
+    {
+        var evaluator = CreateEvaluator(budget: 10_000);
+        var loop = Get(typeof(ConstantEvaluatorTests), nameof(LongLoop));
+        var callsLoop = Get(typeof(ConstantEvaluatorTests), nameof(CallsLongLoop));
+
+        evaluator.Evaluate(loop, []);
+        int interpretations = evaluator.InterpretationCount;
+        var result = evaluator.Evaluate(callsLoop, []);
+
+        // Only the caller is interpreted; the nested call has less budget left
+        // than the memoized failure ran out of
+        Assert.False(result.IsConstant);
+        Assert.True(result.IsBudgetExceeded);
+        Assert.Contains("budget", result.Reason);
+        Assert.Equal(interpretations + 1, evaluator.InterpretationCount);
+    }
+
+    [Fact]
+    public void BudgetFailures_AreRetriedWithLargerBudgets()
     {
         var loop = Get(typeof(ConstantEvaluatorTests), nameof(LongLoop));
 
@@ -357,6 +391,8 @@ public sealed class ConstantEvaluatorTests
             sum++;
         return sum;
     }
+
+    private static int CallsLongLoop() => LongLoop() + 1;
 
     private static readonly int[] StaticArray = [1, 2, 3];
 

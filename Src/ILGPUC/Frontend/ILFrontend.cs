@@ -178,6 +178,18 @@ sealed class ILFrontend
     /// </summary>
     public IReadOnlyList<KernelCompilationWarning> Warnings => _warnings;
 
+    /// <summary>
+    /// Returns the number of calls with constant arguments that code generation
+    /// asked the constant evaluator to evaluate, including the calls they make.
+    /// </summary>
+    internal int ConstantEvaluationCount { get; private set; }
+
+    /// <summary>
+    /// Returns the number of calls whose IL the constant evaluator interpreted,
+    /// which are the evaluations not answered from its memo.
+    /// </summary>
+    internal int ConstantInterpretationCount { get; private set; }
+
     #endregion
 
     #region Methods
@@ -980,6 +992,9 @@ sealed class ILFrontend
                 break;
             }
         }
+
+        ConstantEvaluationCount += evaluator.EvaluationCount;
+        ConstantInterpretationCount += evaluator.InterpretationCount;
 
         // Closures and recursion can be verified once all calls are known
         closureCaptures.Verify();
