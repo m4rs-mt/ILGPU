@@ -11,6 +11,7 @@
 
 
 // disable: max_line_length
+using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using ILGPU.Util;
 using ILGPUC.IR.Analyses;
@@ -18,6 +19,7 @@ using ILGPUC.IR.BasicBlockValues;
 using ILGPUC.IR.MethodValues;
 using ILGPUC.IR.ModuleValues;
 using ILGPUC.IR.PureValues;
+using ILGPUC.Util;
 
 namespace ILGPUC.IR.Transformations;
 
@@ -117,6 +119,9 @@ sealed class SSAConstruction(TransformationArgs args) :
 
         // Cleanup derived pure values
         CleanupDerivedPureValues(transform, joined);
+
+        // Ensure that no other value depends on a promoted allocation
+        VerifyPromotedAllocationUses(transform);
     }
 
     /// <summary>
@@ -210,6 +215,72 @@ sealed class SSAConstruction(TransformationArgs args) :
                     break;
             }
         });
+    }
+
+    /// <summary>
+    /// Verifies that only the converted loads and stores use the allocations removed
+    /// by this transformation and the addresses derived from them. Rebuilding a value
+    /// with a removed operand removes the value as well, which is intended for loads
+    /// and for unused addresses, but which would silently drop a store or any other
+    /// side effect, or an argument of a call or a phi value.
+    /// </summary>
+    /// <param name="transform">The method transform.</param>
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+    internal static void VerifyPromotedAllocationUses(MethodTransform transform)
+    {
+        var removed = new Dictionary<ValueId, bool>();
+
+        // Returns true if the given value has been removed, or if it is a pure value
+        // or a load that is rebuilt with a removed operand
+        bool IsRemoved(Value value)
+        {
+            if (transform.TryGetReplaced(value, out var replacement))
+                return replacement is null;
+            if (value is not (PureValue or Load))
+                return false;
+            if (removed.TryGetValue(value.Id, out bool isRemoved))
+                return isRemoved;
+
+            removed[value.Id] = false;
+            foreach (var operand in value.Values)
+            {
+                if (IsRemoved(operand))
+                {
+                    isRemoved = true;
+                    break;
+                }
+            }
+            removed[value.Id] = isRemoved;
+            return isRemoved;
+        }
+
+        var method = transform.OldMethod;
+        foreach (var block in method.Blocks)
+        {
+            foreach (var (value, _) in block.BasicBlockValues)
+            {
+                // Skip loads, which only affect their uses, and the allocations and
+                // stores that have been converted
+                if (value is Load ||
+                    (value is Alloca or Store) &&
+                    transform.TryGetReplaced(value, out var replacement) &&
+                    replacement is null)
+                {
+                    continue;
+                }
+
+                foreach (var operand in value.Values)
+                {
+                    if (!IsRemoved(operand))
+                        continue;
+
+                    var name = method.Source?.GetDisplayName() ?? method.Name;
+                    throw value.Location.GetInvalidOperationException(
+                        $"{value} in '{name}' uses {operand.ToReferenceString()}, " +
+                        "which depends on an allocation promoted to SSA form");
+                }
+            }
+        }
     }
 
     /// <summary>
