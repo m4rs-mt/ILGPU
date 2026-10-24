@@ -224,9 +224,8 @@ sealed class SSABuilder<TVariable> where TVariable : notnull
         /// <param name="markerProvider">A provider of new marker values.</param>
         /// <returns>The value of the given variable.</returns>
         public Value GetValue(TVariable var, ref MarkerProvider markerProvider) =>
-            _values.TryGetValue(var, out Value? value)
-            ? value
-            : GetValueRecursive(var, ref markerProvider);
+            BeginGetValue(var, ref markerProvider) ??
+            CompleteLookups(var, ref markerProvider);
 
         /// <summary>
         /// Removes the value of the given variable.
@@ -235,27 +234,60 @@ sealed class SSABuilder<TVariable> where TVariable : notnull
         public void RemoveValue(TVariable var) => _values.Remove(var);
 
         /// <summary>
-        /// Peeks a value recursively. This method only retrieves a value
-        /// from a predecessor but does not build any phi nodes.
+        /// Peeks a value in this block and its predecessors. This method only
+        /// retrieves a value from a predecessor but does not build any phi nodes.
         /// </summary>
         /// <param name="var">The variable reference.</param>
         /// <param name="marker">The current marker to break cycles.</param>
-        /// <returns></returns>
+        /// <returns>
+        /// The first value found in a depth-first search through the predecessors.
+        /// </returns>
+        /// <remarks>
+        /// The search keeps its pending blocks on the heap instead of the stack,
+        /// as chains of predecessors can be thousands of blocks long.
+        /// </remarks>
         [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         private Value? PeekValue(TVariable var, int marker)
         {
-            if (!IsProcessed || !Mark(marker))
-                return null;
-            if (_values.TryGetValue(var, out Value? value))
-                return value;
-            foreach (var predecessor in Block.Predecessors)
+            var frames = Parent._peekFrames;
+            Block.Assert(frames.Count == 0);
+            try
             {
-                var valueContainer = Parent[predecessor];
-                Value? result;
-                if ((result = valueContainer.PeekValue(var, marker)) != null)
-                    return result;
+                ValueContainer? container = this;
+                while (container is not null)
+                {
+                    // Visit the block once per marker
+                    if (container.IsProcessed && container.Mark(marker))
+                    {
+                        if (container._values.TryGetValue(var, out Value? value))
+                            return value;
+                        frames.Add((container, 0));
+                    }
+
+                    // Continue with the next predecessor of the innermost block
+                    // that has not been searched yet
+                    container = null;
+                    while (frames.Count > 0 && container is null)
+                    {
+                        var (current, index) = frames[^1];
+                        var predecessors = current.Block.Predecessors;
+                        if (index < predecessors.Length)
+                        {
+                            frames[^1] = (current, index + 1);
+                            container = Parent[predecessors[index]];
+                        }
+                        else
+                        {
+                            frames.RemoveAt(frames.Count - 1);
+                        }
+                    }
+                }
+                return null;
             }
-            return null;
+            finally
+            {
+                frames.Clear();
+            }
         }
 
         /// <summary>
@@ -339,17 +371,28 @@ sealed class SSABuilder<TVariable> where TVariable : notnull
         // Implements an adapted version of the SSA-construction algorithm from the
         // paper: Simple and Efficient Construction of Static Single Assignment Form
         //
+        // The paper reads variables recursively, one level per predecessor. Chains
+        // of predecessors can be thousands of blocks long, so the lookups that wait
+        // for the value of a predecessor are kept as frames on the heap
+        // (LookupFrame), and the values, phis and conversions are created in the
+        // same order as by the recursive formulation.
+        //
 
         /// <summary>
-        /// Returns the value of the given variable by asking the predecessors.
-        /// This method recursively constructs required phi nodes to break cycles.
+        /// Starts to look up the value of the given variable in this block.
         /// </summary>
         /// <param name="var">The variable reference.</param>
         /// <param name="markerProvider">A provider of new marker values.</param>
-        /// <returns>The value of the given variable.</returns>
+        /// <returns>
+        /// The value of the given variable, or null if its lookup waits for the value
+        /// of a predecessor and has been pushed as a frame.
+        /// </returns>
         [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-        private Value GetValueRecursive(TVariable var, ref MarkerProvider markerProvider)
+        private Value? BeginGetValue(TVariable var, ref MarkerProvider markerProvider)
         {
+            if (_values.TryGetValue(var, out Value? value))
+                return value;
+
             // Handle unreachable blocks gracefully: if all predecessor
             // edges were removed by branch folding (e.g. the dead target
             // of a folded delegate-caching brtrue), the variable is
@@ -361,96 +404,146 @@ sealed class SSABuilder<TVariable> where TVariable : notnull
                 SetValue(var, undef);
                 return undef;
             }
-            Value value;
+
+            // The value of a sealed block with a single predecessor is the value
+            // of the predecessor
             if (Block.Predecessors.Length == 1 && IsSealed)
             {
-                var valueContainer = Parent[Block.Predecessors[0]];
-                value = valueContainer.GetValue(var, ref markerProvider);
+                Parent._lookupFrames.Add(new(this, null, setValue: true));
+                return null;
             }
-            else
-            {
-                // Insert the actual phi value
-                var phiType = GetPhiType(var, ref markerProvider);
-                // Let the phi point to the beginning of the current block
-                var phiBuilder = Builder.CreatePhi(
-                    Builder.BasicBlock.Location,
-                    phiType);
-                value = phiBuilder.PhiValue;
 
-                var incompletePhi = new IncompletePhi(var, phiBuilder);
-                if (IsSealed)
-                {
-                    SetValue(var, value);
-                    value = SetupPhiArguments(incompletePhi, ref markerProvider);
-                }
-                else
-                {
-                    _incompletePhis[var] = incompletePhi;
-                }
+            // Insert the actual phi value
+            var phiType = GetPhiType(var, ref markerProvider);
+            // Let the phi point to the beginning of the current block
+            var phiBuilder = Builder.CreatePhi(
+                Builder.BasicBlock.Location,
+                phiType);
+            var phiValue = phiBuilder.PhiValue;
+            SetValue(var, phiValue);
+            if (IsSealed)
+            {
+                Parent._lookupFrames.Add(new(this, phiBuilder, setValue: true));
+                return null;
             }
-            SetValue(var, value);
-            return value;
+            _incompletePhis[var] = new IncompletePhi(var, phiBuilder);
+            return phiValue;
         }
 
         /// <summary>
-        /// Setups phi arguments for the given variable reference and the given
-        /// phi parameter. This method is invoked for sealed blocks during CPS
-        /// construction or during the sealing process in the last step.
+        /// Completes all pending lookups of the given variable, innermost first.
         /// </summary>
-        /// <param name="incompletePhi">An incomplete phi node to complete.</param>
+        /// <param name="var">The variable reference.</param>
         /// <param name="markerProvider">A provider of new marker values.</param>
+        /// <returns>The value of the outermost lookup.</returns>
         [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-        private PhiValue SetupPhiArguments(
-            IncompletePhi incompletePhi,
-            ref MarkerProvider markerProvider)
+        private Value CompleteLookups(TVariable var, ref MarkerProvider markerProvider)
         {
-            var phiBuilder = incompletePhi.PhiBuilder;
-            foreach (var predecessor in Block.Predecessors)
+            var frames = Parent._lookupFrames;
+            try
             {
-                var valueContainer = Parent[predecessor];
-
-                // Get the related predecessor value
-                var value = valueContainer.GetValue(
-                    incompletePhi.VariableRef,
-                    ref markerProvider);
-
-                // Convert the value into the target type
-                if (incompletePhi.PhiType is PrimitiveType primitiveType)
+                // The value of the last completed lookup, which the innermost
+                // frame waits for
+                Value? value = null;
+                while (true)
                 {
-                    // Use the predecessor block to convert the value
-                    value = valueContainer.Builder.CreateConvert(
-                        incompletePhi.Location,
-                        value,
-                        primitiveType).AsNotNull();
-                }
-                else if (
-                    incompletePhi.PhiType is PointerType pointerType &&
-                    value.Type is PointerType valueType &&
-                    !valueType.Equals(pointerType) &&
-                    (value is NullValue ||
-                    valueType.AddressSpace == pointerType.AddressSpace ||
-                    pointerType.AddressSpace == MemoryAddressSpace.Generic))
-                {
-                    // Use the predecessor block to cast the pointer
-                    var builder = valueContainer.Builder;
-                    value = builder.CreatePointerCast(
-                        incompletePhi.Location,
-                        builder.CreateAddressSpaceCast(
-                            incompletePhi.Location,
-                            value,
-                            pointerType.AddressSpace),
-                        pointerType.ElementType).AsNotNull();
-                }
+                    var frame = frames[^1];
+                    var container = frame.Container;
+                    var predecessors = container.Block.Predecessors;
+                    if (frame.PhiBuilder is not { } phiBuilder)
+                    {
+                        // Wait for the value of the single predecessor
+                        value ??= Parent[predecessors[0]].BeginGetValue(
+                            var,
+                            ref markerProvider);
+                        if (value is null)
+                            continue;
+                    }
+                    else
+                    {
+                        // Wire the value of the current predecessor
+                        if (value is not null)
+                        {
+                            container.AddPhiArgument(
+                                phiBuilder,
+                                predecessors[frame.ArgumentIndex],
+                                value);
+                            frames[^1] = frame.NextArgument();
+                            value = null;
+                            continue;
+                        }
 
-                // Set argument value — transform the predecessor to the
-                // current generation. Block.Predecessors are old-gen blocks
-                // but the phi lives in a new-gen block.
-                phiBuilder.AddArgument(
-                    Parent._blockTransformer(predecessor), value);
+                        // Wait for the value of the next predecessor
+                        if (frame.ArgumentIndex < predecessors.Length)
+                        {
+                            value = Parent[predecessors[frame.ArgumentIndex]]
+                                .BeginGetValue(var, ref markerProvider);
+                            continue;
+                        }
+
+                        phiBuilder.PhiValue.Location.Assert(
+                            phiBuilder.Count == predecessors.Length);
+                        value = phiBuilder.Seal();
+                    }
+
+                    // The lookup of this frame is complete
+                    if (frame.SetValue)
+                        container.SetValue(var, value);
+                    frames.RemoveAt(frames.Count - 1);
+                    if (frames.Count < 1)
+                        return value;
+                }
             }
-            incompletePhi.Location.Assert(
-                phiBuilder.Count == Block.Predecessors.Length);
-            return phiBuilder.Seal();
+            finally
+            {
+                frames.Clear();
+            }
+        }
+
+        /// <summary>
+        /// Adds the value of a variable in a predecessor as an argument to the given
+        /// phi of this block.
+        /// </summary>
+        /// <param name="phiBuilder">The phi builder.</param>
+        /// <param name="predecessor">The predecessor.</param>
+        /// <param name="value">The value in the predecessor.</param>
+        private void AddPhiArgument(
+            PhiValue.Builder phiBuilder,
+            BasicBlock predecessor,
+            Value value)
+        {
+            // Convert the value into the target type
+            if (phiBuilder.Type is PrimitiveType primitiveType)
+            {
+                // Use the predecessor block to convert the value
+                value = Parent[predecessor].Builder.CreateConvert(
+                    phiBuilder.PhiValue.Location,
+                    value,
+                    primitiveType).AsNotNull();
+            }
+            else if (
+                phiBuilder.Type is PointerType pointerType &&
+                value.Type is PointerType valueType &&
+                !valueType.Equals(pointerType) &&
+                (value is NullValue ||
+                valueType.AddressSpace == pointerType.AddressSpace ||
+                pointerType.AddressSpace == MemoryAddressSpace.Generic))
+            {
+                // Use the predecessor block to cast the pointer
+                var builder = Parent[predecessor].Builder;
+                value = builder.CreatePointerCast(
+                    phiBuilder.PhiValue.Location,
+                    builder.CreateAddressSpaceCast(
+                        phiBuilder.PhiValue.Location,
+                        value,
+                        pointerType.AddressSpace),
+                    pointerType.ElementType).AsNotNull();
+            }
+
+            // Set argument value — transform the predecessor to the
+            // current generation. Block.Predecessors are old-gen blocks
+            // but the phi lives in a new-gen block.
+            phiBuilder.AddArgument(Parent._blockTransformer(predecessor), value);
         }
 
         /// <summary>
@@ -461,8 +554,12 @@ sealed class SSABuilder<TVariable> where TVariable : notnull
         public void Seal(ref MarkerProvider markerProvider)
         {
             Block.Assert(!IsSealed);
-            foreach (var var in _incompletePhis.Values)
-                SetupPhiArguments(var, ref markerProvider);
+            foreach (var incompletePhi in _incompletePhis.Values)
+            {
+                Parent._lookupFrames.Add(
+                    new(this, incompletePhi.PhiBuilder, setValue: false));
+                CompleteLookups(incompletePhi.VariableRef, ref markerProvider);
+            }
             IsSealed = true;
             _incompletePhis.Clear();
         }
@@ -493,6 +590,54 @@ sealed class SSABuilder<TVariable> where TVariable : notnull
         public override string ToString() => Block.ToString();
 
         #endregion
+    }
+
+    /// <summary>
+    /// A lookup of a variable in a block that waits for the value of the variable in
+    /// a predecessor.
+    /// </summary>
+    /// <param name="container">The block of the lookup.</param>
+    /// <param name="phiBuilder">
+    /// The phi whose arguments are looked up, or null if the block is sealed and has a
+    /// single predecessor whose value is the value of the block.
+    /// </param>
+    /// <param name="setValue">
+    /// True if the value of the block is set to the result of the lookup.
+    /// </param>
+    /// <param name="argumentIndex">
+    /// The index of the predecessor whose value is looked up next.
+    /// </param>
+    private readonly struct LookupFrame(
+        ValueContainer container,
+        PhiValue.Builder? phiBuilder,
+        bool setValue,
+        int argumentIndex = 0)
+    {
+        /// <summary>
+        /// Returns the block of the lookup.
+        /// </summary>
+        public ValueContainer Container { get; } = container;
+
+        /// <summary>
+        /// Returns the phi whose arguments are looked up, if any.
+        /// </summary>
+        public PhiValue.Builder? PhiBuilder { get; } = phiBuilder;
+
+        /// <summary>
+        /// Returns true if the value of the block is set to the result.
+        /// </summary>
+        public bool SetValue { get; } = setValue;
+
+        /// <summary>
+        /// Returns the index of the predecessor whose value is looked up next.
+        /// </summary>
+        public int ArgumentIndex { get; } = argumentIndex;
+
+        /// <summary>
+        /// Returns this frame advanced to the next predecessor.
+        /// </summary>
+        public LookupFrame NextArgument() =>
+            new(Container, PhiBuilder, SetValue, ArgumentIndex + 1);
     }
 
     #endregion
@@ -533,6 +678,17 @@ sealed class SSABuilder<TVariable> where TVariable : notnull
 
     private int _markerValue;
     private readonly ValueMap<Method, BasicBlock, ValueContainer> _mapping;
+
+    /// <summary>
+    /// The pending lookups of a variable, innermost last.
+    /// </summary>
+    private readonly List<LookupFrame> _lookupFrames = [];
+
+    /// <summary>
+    /// The blocks of a search for a value, innermost last, with the index of the
+    /// next predecessor to search.
+    /// </summary>
+    private readonly List<(ValueContainer Container, int Index)> _peekFrames = [];
 
     /// <summary>
     /// Constructs a new SSA builder.
