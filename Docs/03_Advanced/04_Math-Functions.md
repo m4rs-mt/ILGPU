@@ -18,6 +18,38 @@ like `x / y`.
 Context context = Context.Create(builder => builder.Math(MathMode.Fast));
 ```
 
+On Metal, the fast math modes (`--math Fast` or `--math Fast32BitOnly`, for instance
+`<ILGPUCompilationOptions>--math Fast</ILGPUCompilationOptions>` in the project file) enable the fast math of the Metal
+compiler, which approximates divisions and uses the fast variants of the math functions.
+Without a fast math mode, the Metal compiler runs without fast math.
+
+### Fused Multiply-Adds
+
+By default, the native compilers of all GPU backends may fuse multiplications and additions into multiply-adds
+for the best performance.
+A fused multiply-add rounds once instead of twice, so an expression like `a * b - c * d` or `a / b - c * d` may differ
+from the host in the last bit, and an infinite product may yield an infinity instead of the NaN of `inf - inf`.
+
+To compute every operation like the host, turn fusion off with `--fma Off`, for instance in the project
+file:
+
+```xml
+<PropertyGroup>
+  <ILGPUCompilationOptions>--fma Off</ILGPUCompilationOptions>
+</PropertyGroup>
+```
+
+or with `FusedMultiplyAddMode.Off` in the `CompilationProperties` passed to the compiler.
+This applies to all backends: CUDA kernels are compiled with `--fmad=false`, ROCm kernels with `-ffp-contract=off`,
+OpenCL sources start with `#pragma OPENCL FP_CONTRACT OFF` and Metal sources with `#pragma STDC FP_CONTRACT OFF` (and
+are compiled with `-ffp-contract=off`), and the pragmas also apply when the runtime compiles the embedded source.
+In addition, Metal kernels then divide `Half` values by constants with correct rounding instead of multiplying with
+the rounded reciprocal of the constant (unless a fast math mode is requested), so `Half` and `float` results match
+`System.Half` and `float` on the host.
+
+CPU kernels never fuse multiplications and additions: they are C# code compiled by the .NET JIT, which does not
+fuse floating-point operations, so they match the host in both modes.
+
 ### Forced 32-bit Math
 
 Your kernels might rely on third-party functions that are not under your control.
