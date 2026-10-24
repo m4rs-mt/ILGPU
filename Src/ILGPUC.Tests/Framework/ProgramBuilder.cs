@@ -54,11 +54,25 @@ sealed class ProgramBuilder : DisposeBase
     private readonly string _tempDir;
     private readonly BackendType _backend;
     private readonly ITestOutputHelper? _output;
+    private readonly ICompilerManager? _compilerManager;
 
-    public ProgramBuilder(BackendType backend, ITestOutputHelper? output = null)
+    /// <summary>
+    /// Creates a new program builder for the given backend.
+    /// </summary>
+    /// <param name="backend">The backend to compile the kernels for.</param>
+    /// <param name="output">Optional test output for diagnostics.</param>
+    /// <param name="compilerManager">
+    /// Optional compiler manager for native compilation, used instead of the one
+    /// <see cref="CompilerManagerFactory"/> resolves for the backend.
+    /// </param>
+    public ProgramBuilder(
+        BackendType backend,
+        ITestOutputHelper? output = null,
+        ICompilerManager? compilerManager = null)
     {
         _backend = backend;
         _output = output;
+        _compilerManager = compilerManager;
         _tempDir = Path.Combine(
             Path.GetTempPath(), $"ilgpuc_test_{Guid.NewGuid():N}");
         Directory.CreateDirectory(_tempDir);
@@ -386,44 +400,40 @@ sealed class ProgramBuilder : DisposeBase
         DumpSource($"{kernelName ?? "kernel"}.{_backend}.txt", compiled.SourceCode);
 
         // Native compilation: produce binary if possible (Metal→metallib,
-        // CUDA→cubin, etc.). Without binary, the generated class embeds
-        // source and the GPU must compile at runtime, which may fail.
+        // CUDA→cubin, etc.). Like the build command, a kernel the native
+        // compiler rejects fails the build instead of embedding its source,
+        // which the driver would compile again when the program runs.
         byte[]? compiledBinary = null;
         if (backend.CreateCompiledKernelEmitter().EmbedMode == KernelEmbedMode.Binary)
         {
-            try
+            // GenerateWrapper is synchronous; match the existing
+            // sync-over-async pattern used for CompileSourceAsync
+            // below. The probe runs at most once per backend per
+            // process so the blocking cost is bounded.
+            var target = Availability.MapToTarget(_backend)
+                ?? throw new InvalidOperationException(
+                    $"Backend '{_backend}' has no native compilation target.");
+            var compilerManager = _compilerManager ?? CompilerManagerFactory
+                .ResolveAsync(target)
+                .GetAwaiter().GetResult();
+            var nativeResult = backend
+                .CompileSourceAsync(compiled, compilerManager, properties)
+                .GetAwaiter().GetResult();
+            if (nativeResult is { Success: false })
             {
-                // GenerateWrapper is synchronous; match the existing
-                // sync-over-async pattern used for CompileSourceAsync
-                // below. The probe runs at most once per backend per
-                // process so the blocking cost is bounded.
-                var target = Availability.MapToTarget(_backend)
-                    ?? throw new InvalidOperationException(
-                        $"Backend '{_backend}' has no native compilation target.");
-                var compilerManager = CompilerManagerFactory
-                    .ResolveAsync(target)
-                    .GetAwaiter().GetResult();
-                var nativeResult = backend
-                    .CompileSourceAsync(compiled, compilerManager, properties)
-                    .GetAwaiter().GetResult();
-                if (nativeResult is { Success: true, Output: not null })
-                {
-                    compiledBinary = Convert.FromBase64String(nativeResult.Output);
-                    _output?.WriteLine(
-                        $"Native binary: {compiledBinary.Length} bytes");
-                }
-                else
-                {
-                    _output?.WriteLine(
-                        $"Native compilation failed: " +
-                        $"success={nativeResult?.Success} " +
-                        $"stderr={nativeResult?.StdErr}");
-                }
+                var messages = new[] { nativeResult.StdErr, nativeResult.StdOut }
+                    .Where(message => !string.IsNullOrWhiteSpace(message));
+                throw new InvalidOperationException(
+                    $"{_backend} native compilation of kernel " +
+                    $"'{kernelName ?? method.Name}' failed " +
+                    $"(exit code {nativeResult.ExitCode}):" + Environment.NewLine +
+                    string.Join(Environment.NewLine, messages));
             }
-            catch (Exception ex)
+            if (nativeResult is { Output: not null })
             {
+                compiledBinary = Convert.FromBase64String(nativeResult.Output);
                 _output?.WriteLine(
-                    $"Native compilation error: {ex.Message}");
+                    $"Native binary: {compiledBinary.Length} bytes");
             }
         }
 

@@ -205,6 +205,8 @@ TestPrograms/BasicIf/IfTrue.cs              ① Test program source
          │
     ILGPUC pipeline per kernel:              ③ ILFrontend → IR → optimize
          │                                      → Backend.GenerateCode
+         │                                      → native compiler (GPU backends; a
+         │                                        rejected kernel fails the test)
          │                                      → CompiledKernelGenerator → wrapper .cs
          │                                      → KernelRegistrarGenerator → registrar .cs
          │
@@ -320,6 +322,7 @@ after 30 seconds and the test reports a timeout failure.
 | GenericKernelExecutionTests | 2 | Generic closures; kernels launched through generic wrappers, generic classes and constructed type arguments |
 | TypeSpecializationExecutionTests | 5 | `typeof(T)` helpers (issue #1427) in Debug and Release IL, and instantiations skipped because they throw |
 | RecursionExecutionTests | 14 | Helpers calling themselves directly, through each other, twice, at two instantiations of a generic helper, with loops and in tail position passing the address of a variable (as an `nint` or through memory), skipped on Metal and OpenCL; helpers calling themselves in tail position (in Debug and Release IL) and recursive helpers with constant arguments on all backends |
+| NativeCompilationExecutionTests | 1 | A kernel the native compiler rejects fails the build with the compiler's message instead of running from its embedded source |
 
 **Total: 26 test classes, 39 test methods, 38 test programs.**
 
