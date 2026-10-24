@@ -20,7 +20,7 @@ sealed partial class Program
     /// <summary>
     /// Registers compilation properties command-line switches.
     /// </summary>
-    sealed class CompilationPropertiesOptions
+    internal sealed class CompilationPropertiesOptions
     {
         /// <summary>Debug symbols mode to embed in generated code.</summary>
         readonly Option<DebugSymbolsMode> _debugSymbolsOption = new("--debug-symbols")
