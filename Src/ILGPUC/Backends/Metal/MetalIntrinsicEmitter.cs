@@ -564,4 +564,31 @@ sealed class MetalIntrinsicEmitter : IntrinsicEmitter
         $"as_type<half>((ushort)0x{rawBits:X4})";
 
     #endregion
+
+    #region Precise Arithmetic
+
+    /// <summary>
+    /// Metal divides half values by a constant by multiplying with the
+    /// half-precision reciprocal of the constant, which is not correctly
+    /// rounded. Divisions by normal powers of two are exact multiplications and
+    /// zeros, infinities and NaN divide as usual; all other constants divide
+    /// through ilgpu_div_half (defined in the source header).
+    /// </summary>
+    public override string? EmitPreciseHalfDivision(string left, Half divisor)
+    {
+        ushort bits = BitConverter.HalfToUInt16Bits(divisor);
+        if (!Half.IsFinite(divisor) || divisor == Half.Zero ||
+            Half.IsNormal(divisor) && (bits & 0x3FF) == 0)
+        {
+            return null;
+        }
+
+        float value = (float)divisor;
+        float reciprocal = 1.0f / value;
+        return $"ilgpu_div_half({left}, " +
+            $"as_type<float>(0x{BitConverter.SingleToUInt32Bits(value):X8}u), " +
+            $"as_type<float>(0x{BitConverter.SingleToUInt32Bits(reciprocal):X8}u))";
+    }
+
+    #endregion
 }

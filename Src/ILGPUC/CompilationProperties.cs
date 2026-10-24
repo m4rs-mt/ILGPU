@@ -99,6 +99,28 @@ public enum MathMode
 }
 
 /// <summary>
+/// Specifies whether floating-point multiplications and additions may be fused
+/// into multiply-adds.
+/// </summary>
+public enum FusedMultiplyAddMode
+{
+    /// <summary>
+    /// The native compilers may fuse multiplications and additions into
+    /// multiply-adds, which round once instead of twice.
+    /// </summary>
+    /// <remarks>
+    /// This is the default setting.
+    /// </remarks>
+    Fast,
+
+    /// <summary>
+    /// Multiplications and additions are never fused into multiply-adds on any
+    /// backend, so that every operation rounds like it does on the host.
+    /// </summary>
+    Off,
+}
+
+/// <summary>
 /// Internal flags to specify the behavior in the presence of static fields.
 /// </summary>
 public enum StaticFieldMode
@@ -158,6 +180,10 @@ public enum ArrayMode
 /// <param name="OptimizationLevel">Optimization level to use.</param>
 /// <param name="InliningMode">Inlining mode to use.</param>
 /// <param name="MathMode">Math mode to use.</param>
+/// <param name="FusedMultiplyAddMode">
+/// Specifies whether multiplications and additions may be fused into
+/// multiply-adds.
+/// </param>
 /// <param name="StaticFieldMode">Static field mode to use.</param>
 /// <param name="ArrayMode">Array mode to use.</param>
 /// <param name="ConstantEvaluationBudget">
@@ -173,6 +199,7 @@ public sealed record class CompilationProperties(
     OptimizationLevel OptimizationLevel = OptimizationLevel.O1,
     InliningMode InliningMode = InliningMode.Aggressive,
     MathMode MathMode = MathMode.Default,
+    FusedMultiplyAddMode FusedMultiplyAddMode = FusedMultiplyAddMode.Fast,
     StaticFieldMode StaticFieldMode = StaticFieldMode.Default,
     ArrayMode ArrayMode = ArrayMode.Default,
     int ConstantEvaluationBudget = CompilationProperties.DefaultConstantEvaluationBudget)

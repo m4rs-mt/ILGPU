@@ -587,6 +587,20 @@ sealed class ExpressionEmitter(GenerationContext context, TypeEmitter typeEmitte
         var left = Emit(binary.Left);
         var right = Emit(binary.Right);
 
+        // Half divisions by constants are correctly rounded if fusion is
+        // turned off and no fast math mode is requested
+        if (binary.Kind == BinaryArithmeticKind.Div &&
+            binary.ArithmeticBasicValueType == ArithmeticBasicValueType.Float16 &&
+            binary.Right is PrimitiveValue divisor &&
+            context.Module.FusedMultiplyAddMode == FusedMultiplyAddMode.Off &&
+            context.Module.MathMode == MathMode.Default &&
+            IntrinsicEmitter.EmitPreciseHalfDivision(
+                left.Text,
+                divisor.Float16Value) is string division)
+        {
+            return new Emitted(division, Prec.Postfix);
+        }
+
         // Half operations other than the basic arithmetic are evaluated in
         // single precision (see WidenHalf)
         if (binary.ArithmeticBasicValueType == ArithmeticBasicValueType.Float16 &&

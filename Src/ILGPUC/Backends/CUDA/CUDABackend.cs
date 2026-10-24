@@ -82,7 +82,8 @@ sealed class CudaBackend(AcceleratorArchitecture arch, CudaInstructionSet isa) :
             Target = CompilationTarget.Cuda,
             OutputType = OutputType.Binary,
             OptimizationLevel = GetNativeOptLevel(properties.OptimizationLevel),
-            ExtraFlags = archFlags,
+            ExtraFlags = archFlags +
+                GetFusionFlag(properties, " --fmad=false"),
         }, ct).ConfigureAwait(false);
     }
 }

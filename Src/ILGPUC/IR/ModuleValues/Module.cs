@@ -155,6 +155,7 @@ sealed class Module : IGenerationObject, IValueScope, IDumpable
             _basicValueTypes.Add(type, moduleBuilder.GetPrimitiveType(type));
 
         MathMode = moduleBuilder.Properties.MathMode;
+        FusedMultiplyAddMode = moduleBuilder.Properties.FusedMultiplyAddMode;
 
         TargetPlatform = moduleBuilder.TargetPlatform;
         IntPointerArithmeticType = moduleBuilder.IntPointerArithmeticType;
@@ -184,6 +185,12 @@ sealed class Module : IGenerationObject, IValueScope, IDumpable
     /// Returns the current math mode.
     /// </summary>
     public MathMode MathMode { get; private set; }
+
+    /// <summary>
+    /// Returns whether multiplications and additions may be fused into
+    /// multiply-adds.
+    /// </summary>
+    public FusedMultiplyAddMode FusedMultiplyAddMode { get; private set; }
 
     /// <summary>
     /// Returns the main entry point handle.
