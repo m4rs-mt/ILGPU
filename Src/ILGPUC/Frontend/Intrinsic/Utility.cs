@@ -157,10 +157,14 @@ partial class Intrinsics
             ++argumentIndex;
             if (arg.BasicValueType != BasicValueType.None)
                 continue;
+            var parameterType = methodParams[argumentIndex].ParameterType;
             throw location.GetNotSupportedException(
                 ErrorMessages.NotSupportedInlinePTXFormatArgumentType,
                 ptxExpression,
-                TypeDisplay.Format(methodParams[argumentIndex].ParameterType));
+                TypeDisplay.Format(
+                    parameterType.IsByRef
+                    ? parameterType.GetElementType()!
+                    : parameterType));
         }
 
         // Create the language statement
