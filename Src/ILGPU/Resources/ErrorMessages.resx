@@ -613,6 +613,10 @@
     <value>Kernel code cannot call '{0}', which computes with values of type '{1}'. Kernels can store and copy Int128, UInt128 and decimal values, but cannot compute with them or convert them; use long, ulong or double instead.</value>
     <comment/>
   </data>
+  <data name="KernelDiagnosticReturnedLocalAddress" xml:space="preserve">
+    <value>Method '{0}' returns the address of one of its local variables, of a field of one, or of a parameter it receives by value, which no longer exists once the method returns. Return the value instead, or an address of memory that the caller provides, such as a parameter passed by reference or an element of a view.</value>
+    <comment/>
+  </data>
   <data name="NotSupportedKernelDelegateBind" xml:space="preserve">
     <value>Delegates bound with KernelDelegates.Bind can only be used in kernels compiled by ILGPUC.</value>
     <comment/>

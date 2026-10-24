@@ -1204,6 +1204,15 @@ namespace ILGPU.Resources {
         }
 
         /// <summary>
+        ///   Looks up a localized string similar to Method &apos;{0}&apos; returns the address of one of its local variables, of a field of one, or of a parameter it receives by value, which no longer exists once the method returns. Return the value instead, or an address of memory that the caller provides, such as a parameter passed by reference or an element of a view..
+        /// </summary>
+        internal static string KernelDiagnosticReturnedLocalAddress {
+            get {
+                return ResourceManager.GetString("KernelDiagnosticReturnedLocalAddress", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to Delegates bound with KernelDelegates.Bind can only be used in kernels compiled by ILGPUC.
         /// </summary>
         internal static string NotSupportedKernelDelegateBind {
