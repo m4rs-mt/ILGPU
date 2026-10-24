@@ -534,4 +534,124 @@ public abstract class HalfPrecisionExecutionTests : ExecutionTestBase
                 "585", "585", "841", "73", "73", "4356"
             ]);
     }
+
+    /// <summary>
+    /// The bits of the results of every lane of HalfDivision, which match
+    /// System.Half and float on the host.
+    /// </summary>
+    private static readonly string[] HalfDivisionOutput =
+    [
+        "13653", "13653", "17066", "6784", "16727", "0", "1076538027",
+        "1051372203", "14677", "14677", "18090", "7936", "17751", "0",
+        "1084926635", "1059760811", "12434", "13653", "17066", "6016", "18140",
+        "0", "1088122295", "1051372203", "14450", "16043", "19498", "6400",
+        "20878", "0", "1110558492", "1070945621", "13653", "10308", "13653",
+        "8480", "46257", "3003121664", "3197849218", "1023969417", "47383",
+        "49323", "52693", "10992", "54469", "0", "3264789039", "3222623573",
+        "13627", "15787", "19221", "54462", "52540", "3058696192", "1113305402",
+        "1068848469", "16228", "15408", "18748", "47356", "16829", "0",
+        "1080002701", "1065749131", "31744", "29922", "31744", "-1", "64512",
+        "-1", "4286578688", "2123789977", "31744", "29922", "31744", "31744",
+        "31744", "2139095040", "2139095040", "2123789977", "64512", "62690",
+        "64512", "-1", "31744", "-1", "2139095040", "4271273625", "15045",
+        "13789", "17236", "45208", "14090", "3205854959", "0", "1052490684",
+        "14043", "11879", "15360", "11804", "45022", "1046466867", "847249408",
+        "1036831949", "30719", "30037", "31744", "64512", "-1", "4286578688",
+        "-1", "2125104745", "12629", "13653", "17066", "6528", "17878", "0",
+        "1085975211", "1051372203", "205", "341", "2729", "32915", "3239", "0",
+        "52647397", "20282339"
+    ];
+
+    /// <summary>
+    /// The number of results per lane of HalfDivision.
+    /// </summary>
+    private const int HalfDivisionResults = 8;
+
+    /// <summary>
+    /// Half and float divisions and differences of quotients and products run
+    /// with fusion allowed. The divisions by values cannot be fused and
+    /// match the host; CPU kernels never fuse and match the host in every line.
+    /// </summary>
+    [SkippableFact]
+    public async Task HalfDivision_ProducesCorrectOutput()
+    {
+        RequireCapability(Backend, BackendCapability.Float16);
+        var result = await RunProgramAsync(
+            "TestPrograms/HalfPrecision/HalfDivision.cs",
+            ["Kernels.HalfDivisionKernel"]);
+
+        Assert.False(result.TimedOut, "Test program timed out");
+        Assert.Equal(0, result.ExitCode);
+        if (Backend == BackendType.CPU)
+        {
+            OutputVerifier.Verify(result.StdOutLines, HalfDivisionOutput);
+            return;
+        }
+
+        Assert.Equal(HalfDivisionOutput.Length, result.StdOutLines.Length);
+        for (int i = 0; i < HalfDivisionOutput.Length; i += HalfDivisionResults)
+        {
+            // a / b and x / 3
+            Assert.Equal(HalfDivisionOutput[i], result.StdOutLines[i]);
+            Assert.Equal(HalfDivisionOutput[i + 7], result.StdOutLines[i + 7]);
+        }
+    }
+
+    /// <summary>
+    /// With fusion turned off, half divisions by values and by constants
+    /// that are not powers of two are correctly rounded, and differences of
+    /// quotients and products are not fused into multiply-adds, like
+    /// System.Half and float on the host.
+    /// </summary>
+    [SkippableFact]
+    public async Task HalfDivisionWithoutFusion_ProducesCorrectOutput()
+    {
+        RequireCapability(Backend, BackendCapability.Float16);
+        await VerifyProgramOutputAsync(
+            "TestPrograms/HalfPrecision/HalfDivision.cs",
+            ["Kernels.HalfDivisionKernel"],
+            HalfDivisionOutput,
+            new CompilationProperties(
+                FusedMultiplyAddMode: FusedMultiplyAddMode.Off));
+    }
+
+    /// <summary>
+    /// With fusion turned off, every Half value divided by constants,
+    /// including subnormal values, the largest finite value and powers of two,
+    /// matches System.Half on the host.
+    /// </summary>
+    [SkippableFact]
+    public async Task HalfDivisionByConstants_ProducesCorrectOutput()
+    {
+        RequireCapability(Backend, BackendCapability.Float16);
+        await VerifyProgramOutputAsync(
+            "TestPrograms/HalfPrecision/HalfDivisionByConstants.cs",
+            ["Kernels.HalfDivisionByConstantsKernel"],
+            [
+                "0: 0", "1: 0", "2: 0", "3: 0", "4: 0", "5: 0", "6: 0", "7: 0",
+                "8: 0", "9: 0"
+            ],
+            new CompilationProperties(
+                FusedMultiplyAddMode: FusedMultiplyAddMode.Off));
+    }
+
+    /// <summary>
+    /// Half divisions by constants compile and run with fusion allowed and
+    /// in the fast math mode, which keep the native division of the backend.
+    /// </summary>
+    [SkippableTheory]
+    [InlineData(MathMode.Default)]
+    [InlineData(MathMode.Fast)]
+    public async Task HalfDivisionByConstantsNative_ProducesOutput(MathMode mathMode)
+    {
+        RequireCapability(Backend, BackendCapability.Float16);
+        var result = await RunProgramAsync(
+            "TestPrograms/HalfPrecision/HalfDivisionByConstants.cs",
+            ["Kernels.HalfDivisionByConstantsKernel"],
+            new CompilationProperties(MathMode: mathMode));
+
+        Assert.False(result.TimedOut, "Test program timed out");
+        Assert.Equal(0, result.ExitCode);
+        Assert.Equal(10, result.StdOutLines.Length);
+    }
 }
