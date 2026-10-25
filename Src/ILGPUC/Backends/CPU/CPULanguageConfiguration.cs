@@ -10,6 +10,7 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPUC.IR;
+using ILGPUC.IR.ModuleValues;
 using ILGPUC.IR.PureValues;
 using System;
 using System.Globalization;
@@ -120,6 +121,18 @@ sealed class CPULanguageConfiguration(int vectorWidth) : LanguageConfiguration
         var text = value.ToString("R", CultureInfo.InvariantCulture);
         return text.AsSpan().IndexOfAny('.', 'E', 'e') >= 0 ? text : text + ".0";
     }
+
+    /// <inheritdoc/>
+    /// <remarks>
+    /// Globals are declared as views over their storage: the address of shared
+    /// memory is the base pointer of its view. Local memory is private to each
+    /// lane and addressed per lane.
+    /// </remarks>
+    public override string? FormatGlobalAddress(Global global, string name) =>
+        global.AddressSpace == MemoryAddressSpace.Local
+            ? null
+            : $"({VectorizationAnalysis.GetScalarTypeName(global.Type, this)})" +
+                $"{name}.Ptr";
 
     /// <inheritdoc/>
     public override bool SupportsExplicitFieldOffsets => true;

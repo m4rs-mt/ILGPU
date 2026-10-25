@@ -113,6 +113,9 @@ sealed class VectorizationAnalysis
                 && IsScalar(sub.Offset)
                 && IsScalar(sub.Length),
             ViewCast cast => IsScalar(cast.Source),
+            // Shared memory has the same address for all lanes, whereas every
+            // lane owns a private copy of local memory
+            Global global => global.AddressSpace != MemoryAddressSpace.Local,
             // Views of shared memory are the same for all lanes, whereas
             // every lane owns a private copy of a local array
             NewView { Pointer: Global global } =>
