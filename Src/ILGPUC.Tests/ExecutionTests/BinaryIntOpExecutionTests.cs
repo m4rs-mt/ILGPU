@@ -11,6 +11,8 @@
 
 using ILGPUC.Backends;
 using ILGPUC.Tests.Framework;
+using System.Globalization;
+using System.Linq;
 using System.Threading.Tasks;
 using Xunit;
 using Xunit.Abstractions;
@@ -187,4 +189,41 @@ public abstract class BinaryIntOpExecutionTests : ExecutionTestBase
             ["0", "-1", "-2", "1", "0", "-1", "2147483647", "536870912",
                 "9223372036854775807"]);
     }
+
+    /// <summary>
+    /// A hash whose 64 rounds each read their intermediate value twice matches
+    /// the hash computed on the host.
+    /// </summary>
+    [SkippableFact]
+    public async Task SharedOperandChain_ProducesCorrectOutput()
+    {
+        await VerifyProgramOutputAsync(
+            "TestPrograms/BinaryIntOp/SharedOperandChain.cs",
+            ["Kernels.SharedOperandChainKernel"],
+            HashSharedOperandChainOnHost());
+    }
+
+    [SkippableFact]
+    public async Task SharedOperandChain_O0_ProducesCorrectOutput()
+    {
+        await VerifyProgramOutputAsync(
+            "TestPrograms/BinaryIntOp/SharedOperandChain.cs",
+            ["Kernels.SharedOperandChainKernel"],
+            HashSharedOperandChainOnHost(),
+            new CompilationProperties { OptimizationLevel = OptimizationLevel.O0 });
+    }
+
+    /// <summary>
+    /// Computes the hashes of the shared operand chain program on the host.
+    /// </summary>
+    private static string[] HashSharedOperandChainOnHost() =>
+        [.. new uint[] { 0, 1, 12345, 4294967295 }.Select(x =>
+        {
+            for (int round = 0; round < 64; ++round)
+            {
+                x = x * 31 + 7;
+                x ^= x >> 3;
+            }
+            return x.ToString(CultureInfo.InvariantCulture);
+        })];
 }

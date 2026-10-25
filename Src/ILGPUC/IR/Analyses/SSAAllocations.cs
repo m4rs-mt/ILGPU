@@ -196,9 +196,16 @@ abstract class SSAAllocations(GlobalValueMap<SSAValueFieldRef>? valueRefs) :
     /// <summary>
     /// Processes a value and its children to build field/element references.
     /// </summary>
+    /// <param name="value">The value to process.</param>
+    /// <param name="valueRefs">The field/element references to extend.</param>
+    /// <param name="visited">
+    /// The pure values processed so far. Pure values form a DAG that shares
+    /// operands, so each of them is processed once instead of once per path.
+    /// </param>
     protected static void ProcessValueForRefs(
         Value value,
-        GlobalValueMap<SSAValueFieldRef> valueRefs)
+        GlobalValueMap<SSAValueFieldRef> valueRefs,
+        GlobalValueSet visited)
     {
         bool TryGetValue(Value value, out SSAValueFieldRef fieldRef) =>
             valueRefs.TryGetValue(value, out fieldRef);
@@ -211,8 +218,10 @@ abstract class SSAAllocations(GlobalValueMap<SSAValueFieldRef>? valueRefs) :
         // of the current value.
         if (value is PureValue pureValue)
         {
+            if (!visited.Add(pureValue))
+                return;
             foreach (var childValue in pureValue.Values)
-                ProcessValueForRefs(childValue, valueRefs);
+                ProcessValueForRefs(childValue, valueRefs, visited);
         }
 
         switch (value)
@@ -385,13 +394,14 @@ sealed class SSALocalAllocations : SSAAllocations
             result[allocation] = new(allocInfo.BaseFieldRef, allocInfo);
 
         // Process all blocks in the method to find uses of local allocations
+        var visited = method.Module.CreateGlobalSet(method.NumValues);
         foreach (var block in method.Blocks)
         {
             foreach (BasicBlockValue bbValue in block)
             {
                 // Process the basic block value and all its pure value children
                 foreach (var childValue in bbValue.Values)
-                    ProcessValueForRefs(childValue, result);
+                    ProcessValueForRefs(childValue, result, visited);
             }
         }
 
@@ -593,6 +603,7 @@ sealed class SSAGlobalAllocations : SSAAllocations
             result[allocation] = new(allocInfo.BaseFieldRef, allocInfo);
 
         // Process all methods in the module to find uses of globals
+        var visited = module.CreateGlobalSet();
         foreach (var method in module.Methods)
         {
             foreach (var block in method.Blocks)
@@ -601,7 +612,7 @@ sealed class SSAGlobalAllocations : SSAAllocations
                 {
                     // Process the basic block value and all its pure value children
                     foreach (var childValue in bbValue.Values)
-                        ProcessValueForRefs(childValue, result);
+                        ProcessValueForRefs(childValue, result, visited);
                 }
             }
         }

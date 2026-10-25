@@ -16,6 +16,7 @@ using ILGPU.Util;
 using ILGPUC.IR.Analyses;
 using ILGPUC.IR.BasicBlockValues;
 using ILGPUC.IR.MethodValues;
+using ILGPUC.IR.PureValues;
 using ILGPUC.IR.Rewriting;
 using System;
 using System.Collections;
@@ -400,7 +401,7 @@ sealed partial class Method : ModuleValue,
     public void ForEachValue<TValue>(Action<TValue> callback)
         where TValue : Value<Method>
     {
-        ValueSet<Method, TValue>? set = null;
+        ValueSet<Method, PureValue>? set = null;
         ForEachValue(callback, ref set);
     }
 
@@ -409,11 +410,13 @@ sealed partial class Method : ModuleValue,
     /// Note that the callback will be invoked in reverse post order of the blocks.
     /// </summary>
     /// <param name="callback">The callback to be invoked.</param>
-    /// <param name="set">The value set to be used (or null to create a new set).</param>
+    /// <param name="set">
+    /// The set of visited pure values (or null to create a new set).
+    /// </param>
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     public void ForEachValue<TValue>(
         Action<TValue> callback,
-        ref ValueSet<Method, TValue>? set)
+        ref ValueSet<Method, PureValue>? set)
         where TValue : Value<Method>
     {
         if (ValueUtil<TValue>.IsParameterOrBase)

@@ -453,7 +453,7 @@ sealed partial class BasicBlock(in MethodValueInitializer initializer, string? n
     public void ForEachValue<TValue>(Action<TValue> callback)
         where TValue : Value<Method>
     {
-        ValueSet<Method, TValue>? set = null;
+        ValueSet<Method, PureValue>? set = null;
         ForEachValue(callback, ref set);
     }
 
@@ -461,15 +461,15 @@ sealed partial class BasicBlock(in MethodValueInitializer initializer, string? n
     /// Executes the given callback for each value in this block.
     /// </summary>
     /// <param name="callback">The callback.</param>
-    /// <param name="set">The value set to ensure values are visited once.</param>
+    /// <param name="set">The set of visited pure values.</param>
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     public void ForEachValue<TValue>(
         Action<TValue> callback,
-        ref ValueSet<Method, TValue>? set)
+        ref ValueSet<Method, PureValue>? set)
         where TValue : Value<Method>
     {
         if (ValueUtil<TValue>.IsPureValueOrBase)
-            set ??= Method.CreateSet<TValue>();
+            set ??= Method.CreateSet<PureValue>();
 
         if (ValueUtil<TValue>.IsBasicBlockValueOrBase)
         {
@@ -514,20 +514,23 @@ sealed partial class BasicBlock(in MethodValueInitializer initializer, string? n
     /// Internal recursive helper to iterate over pure values.
     /// </summary>
     /// <param name="pureValue">The pure value to traverse.</param>
-    /// <param name="set">The value set to ensure values are visited once.</param>
+    /// <param name="set">The set of visited pure values.</param>
     /// <param name="callback">The callback.</param>
+    /// <remarks>
+    /// Every pure value is visited once, not only the ones matching
+    /// <typeparamref name="TValue"/>: pure values form a DAG whose shared
+    /// operands would otherwise be traversed once per path.
+    /// </remarks>
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     private static void ForEachValueRecursive<TValue>(
         PureValue pureValue,
-        ValueSet<Method, TValue> set,
+        ValueSet<Method, PureValue> set,
         Action<TValue> callback)
         where TValue : Value<Method>
     {
+        if (!set.Add(pureValue)) return;
         if (pureValue is TValue cast)
-        {
-            if (!set.Add(cast)) return;
             callback(cast);
-        }
 
         foreach (var value in pureValue.Values)
         {

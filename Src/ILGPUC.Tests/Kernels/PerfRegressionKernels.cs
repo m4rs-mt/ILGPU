@@ -50,4 +50,82 @@ static class PerfRegressionKernels
     {
         a[index] = b[index] + c[index];
     }
+
+    /// <summary>
+    /// Hashes every element with 64 rounds of <c>x = x * 31 + 7; x ^= x &gt;&gt; 3</c>.
+    /// Every round reads its intermediate value twice, so the number of operand
+    /// paths through the pure values of this kernel doubles with every round.
+    /// </summary>
+    public static void SharedOperandChain(
+        Index1D index,
+        ArrayView1D<uint, Stride1D.Dense> input,
+        ArrayView1D<uint, Stride1D.Dense> output)
+    {
+        uint x = input[index];
+        x = x * 31 + 7; x ^= x >> 3;
+        x = x * 31 + 7; x ^= x >> 3;
+        x = x * 31 + 7; x ^= x >> 3;
+        x = x * 31 + 7; x ^= x >> 3;
+        x = x * 31 + 7; x ^= x >> 3;
+        x = x * 31 + 7; x ^= x >> 3;
+        x = x * 31 + 7; x ^= x >> 3;
+        x = x * 31 + 7; x ^= x >> 3;
+        x = x * 31 + 7; x ^= x >> 3;
+        x = x * 31 + 7; x ^= x >> 3;
+        x = x * 31 + 7; x ^= x >> 3;
+        x = x * 31 + 7; x ^= x >> 3;
+        x = x * 31 + 7; x ^= x >> 3;
+        x = x * 31 + 7; x ^= x >> 3;
+        x = x * 31 + 7; x ^= x >> 3;
+        x = x * 31 + 7; x ^= x >> 3;
+        x = x * 31 + 7; x ^= x >> 3;
+        x = x * 31 + 7; x ^= x >> 3;
+        x = x * 31 + 7; x ^= x >> 3;
+        x = x * 31 + 7; x ^= x >> 3;
+        x = x * 31 + 7; x ^= x >> 3;
+        x = x * 31 + 7; x ^= x >> 3;
+        x = x * 31 + 7; x ^= x >> 3;
+        x = x * 31 + 7; x ^= x >> 3;
+        x = x * 31 + 7; x ^= x >> 3;
+        x = x * 31 + 7; x ^= x >> 3;
+        x = x * 31 + 7; x ^= x >> 3;
+        x = x * 31 + 7; x ^= x >> 3;
+        x = x * 31 + 7; x ^= x >> 3;
+        x = x * 31 + 7; x ^= x >> 3;
+        x = x * 31 + 7; x ^= x >> 3;
+        x = x * 31 + 7; x ^= x >> 3;
+        x = x * 31 + 7; x ^= x >> 3;
+        x = x * 31 + 7; x ^= x >> 3;
+        x = x * 31 + 7; x ^= x >> 3;
+        x = x * 31 + 7; x ^= x >> 3;
+        x = x * 31 + 7; x ^= x >> 3;
+        x = x * 31 + 7; x ^= x >> 3;
+        x = x * 31 + 7; x ^= x >> 3;
+        x = x * 31 + 7; x ^= x >> 3;
+        x = x * 31 + 7; x ^= x >> 3;
+        x = x * 31 + 7; x ^= x >> 3;
+        x = x * 31 + 7; x ^= x >> 3;
+        x = x * 31 + 7; x ^= x >> 3;
+        x = x * 31 + 7; x ^= x >> 3;
+        x = x * 31 + 7; x ^= x >> 3;
+        x = x * 31 + 7; x ^= x >> 3;
+        x = x * 31 + 7; x ^= x >> 3;
+        x = x * 31 + 7; x ^= x >> 3;
+        x = x * 31 + 7; x ^= x >> 3;
+        x = x * 31 + 7; x ^= x >> 3;
+        x = x * 31 + 7; x ^= x >> 3;
+        x = x * 31 + 7; x ^= x >> 3;
+        x = x * 31 + 7; x ^= x >> 3;
+        x = x * 31 + 7; x ^= x >> 3;
+        x = x * 31 + 7; x ^= x >> 3;
+        x = x * 31 + 7; x ^= x >> 3;
+        x = x * 31 + 7; x ^= x >> 3;
+        x = x * 31 + 7; x ^= x >> 3;
+        x = x * 31 + 7; x ^= x >> 3;
+        x = x * 31 + 7; x ^= x >> 3;
+        x = x * 31 + 7; x ^= x >> 3;
+        x = x * 31 + 7; x ^= x >> 3;
+        x = x * 31 + 7; x ^= x >> 3;
+        output[index] = x;
+    }
 }
