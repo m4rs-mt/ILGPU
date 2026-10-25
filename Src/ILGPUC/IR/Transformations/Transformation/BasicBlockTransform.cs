@@ -315,6 +315,7 @@ sealed class BasicBlockTransform :
     {
         if (!visitedPureValues.Add(pv))
             return;
+        StackGuard.EnsureSufficientStack(pv, BasicBlock.Method);
         foreach (var operand in pv.Values)
         {
             if (operand is BasicBlockValue bbOp

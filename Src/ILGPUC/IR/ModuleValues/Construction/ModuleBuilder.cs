@@ -1128,7 +1128,8 @@ partial class ModuleBuilder : IGenerationObject
                 method.ComputeUses(usesSet);
 #if DEBUG
             }
-            catch (Exception ex) when (ex is not IRVerificationException)
+            catch (Exception ex) when (
+                ex is not (IRVerificationException or KernelCompilationException))
             {
                 // Walk the method to find the exact stale value chain
                 var sb = new System.Text.StringBuilder();

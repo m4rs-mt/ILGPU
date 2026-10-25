@@ -147,6 +147,10 @@ sealed class ExpressionEmitter(GenerationContext context, TypeEmitter typeEmitte
         if (context.NeedsVariable(value) && value is not (Parameter or Global))
             return new Emitted(context.GetValueName(value), Prec.Atom);
 
+        // Values used once are emitted inline, recursing once per nesting level
+        if (value is PureValue pureValue)
+            StackGuard.EnsureSufficientStack(pureValue, pureValue.Scope);
+
         return EmitDirect(value);
     }
 

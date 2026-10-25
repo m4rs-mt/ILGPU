@@ -110,8 +110,13 @@ abstract class PureValue(in PureValueInitializer initializer, TypeValue type) :
     public override ValueClass ValueClass => ValueClass.Pure;
 
     /// <inheritdoc/>
-    public sealed override bool ComputeUses(GlobalValueSet visited) =>
-        base.ComputeUses(visited);
+    public sealed override bool ComputeUses(GlobalValueSet visited)
+    {
+        // Computes the uses of the operands first, recursing once per nesting
+        // level of an expression
+        StackGuard.EnsureSufficientStack(this, Scope);
+        return base.ComputeUses(visited);
+    }
 
     /// <summary>
     /// Visits all child nodes using DFS. Pure values shared by several parents are

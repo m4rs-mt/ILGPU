@@ -220,6 +220,7 @@ abstract class SSAAllocations(GlobalValueMap<SSAValueFieldRef>? valueRefs) :
         {
             if (!visited.Add(pureValue))
                 return;
+            StackGuard.EnsureSufficientStack(pureValue, pureValue.Scope);
             foreach (var childValue in pureValue.Values)
                 ProcessValueForRefs(childValue, valueRefs, visited);
         }
