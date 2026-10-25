@@ -214,7 +214,30 @@ public abstract class BinaryIntOpExecutionTests : ExecutionTestBase
     }
 
     /// <summary>
-    /// Computes the hashes of the shared operand chain program on the host.
+    /// The same hash kept in a field of a local struct, whose loads become pure
+    /// values when the struct is promoted to SSA values.
+    /// </summary>
+    [SkippableFact]
+    public async Task SharedOperandFieldChain_ProducesCorrectOutput()
+    {
+        await VerifyProgramOutputAsync(
+            "TestPrograms/BinaryIntOp/SharedOperandFieldChain.cs",
+            ["Kernels.SharedOperandFieldChainKernel"],
+            HashSharedOperandChainOnHost());
+    }
+
+    [SkippableFact]
+    public async Task SharedOperandFieldChain_O0_ProducesCorrectOutput()
+    {
+        await VerifyProgramOutputAsync(
+            "TestPrograms/BinaryIntOp/SharedOperandFieldChain.cs",
+            ["Kernels.SharedOperandFieldChainKernel"],
+            HashSharedOperandChainOnHost(),
+            new CompilationProperties { OptimizationLevel = OptimizationLevel.O0 });
+    }
+
+    /// <summary>
+    /// Computes the hashes of the shared operand chain programs on the host.
     /// </summary>
     private static string[] HashSharedOperandChainOnHost() =>
         [.. new uint[] { 0, 1, 12345, 4294967295 }.Select(x =>

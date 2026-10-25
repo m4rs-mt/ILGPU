@@ -25,11 +25,13 @@ namespace ILGPUC.Tests.PerfTests;
 /// Compile-time regression tests for kernels whose pure values share operands.
 /// Every round of <see cref="PerfRegressionKernels.SharedOperandChain"/> reads
 /// its intermediate value twice, so the number of operand paths through its
-/// pure values doubles with every round. A walk over pure operands that does
-/// not remember the values it has visited takes 2^64 steps on this kernel and
-/// never finishes, whereas the whole pipeline compiles it for all five backends
-/// in about a second. The time bound only turns such a hang into a failure and
-/// is far above any legitimate compile time.
+/// pure values doubles with every round;
+/// <see cref="PerfRegressionKernels.SharedOperandFieldChain"/> reads it twice
+/// from a field of a local structure. A walk over pure operands that does not
+/// remember the values it has visited takes 2^64 steps on these kernels and
+/// never finishes, whereas the whole pipeline compiles each of them for all
+/// five backends in about a second. The time bound only turns such a hang into
+/// a failure and is far above any legitimate compile time.
 /// </summary>
 public sealed class SharedOperandCompileTests(ITestOutputHelper output)
 {
@@ -51,6 +53,16 @@ public sealed class SharedOperandCompileTests(ITestOutputHelper output)
     public void SharedOperandChain_CompilesOnAllBackendsInBoundedTime(
         OptimizationLevel level) =>
         CompileOnAllBackends(nameof(PerfRegressionKernels.SharedOperandChain), level);
+
+    [Theory]
+    [InlineData(OptimizationLevel.O0)]
+    [InlineData(OptimizationLevel.O1)]
+    [InlineData(OptimizationLevel.O2)]
+    public void SharedOperandFieldChain_CompilesOnAllBackendsInBoundedTime(
+        OptimizationLevel level) =>
+        CompileOnAllBackends(
+            nameof(PerfRegressionKernels.SharedOperandFieldChain),
+            level);
 
     /// <summary>
     /// Compiles the given kernel for all backends and fails if this does not
