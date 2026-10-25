@@ -328,9 +328,7 @@ public readonly record struct <#= typeName #>(
             ref target);
 <#              for (int i = 0; i < vectorLength; ++i) { #>
         Atomic.Add(
-            ref Unsafe.AddByteOffset(
-                ref elementRef,
-                OffsetPtr<#= vectorItemNames[i] #>),
+            ref Unsafe.Add(ref elementRef, <#= i #>),
             value.<#= vectorItemNames[i] #>);
 <#              } #>
     }
