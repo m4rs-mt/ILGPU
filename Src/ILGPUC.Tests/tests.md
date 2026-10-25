@@ -28,6 +28,7 @@ ILGPUC.Tests/
 │   ├── ProgramBuilder.cs         # Full pipeline: source → ILGPUC → executable
 │   ├── RoslynCompiler.cs         # In-process Roslyn compilation (.cs → .dll)
 │   ├── ProcessRunner.cs          # Runs executable as separate process with timeout
+│   ├── DeviceProgramLimiter.cs   # Limits concurrently running GPU test programs
 │   ├── OutputVerifier.cs         # Compares stdout lines to expected values
 │   ├── FloatTolerance.cs         # Backend-specific float comparison precision
 │   ├── Availability.cs           # Checks native compiler availability per backend
@@ -288,6 +289,12 @@ public sealed class BasicIfExecutionTests : ExecutionTestBase
 **Process isolation:** Test programs run as separate `dotnet` processes. A segfault or
 infinite loop in the compiled kernel cannot crash the test host — the process is killed
 after 30 seconds and the test reports a timeout failure.
+
+**Device memory:** Every GPU test program creates its own accelerator and device context
+(about 250 MiB per CUDA program). `DeviceProgramLimiter` runs at most four programs per
+GPU backend at the same time, so a run fits next to other workloads on shared or
+unified-memory GPUs; the programs are still built in parallel, and CPU programs are never
+limited. `ILGPU_TEST_DEVICE_PROGRAMS=<n>` sets another limit, `0` removes it.
 
 ### Execution Test Coverage
 
@@ -573,6 +580,12 @@ Runs a `.dll` via `dotnet` as a separate process:
 - 30-second timeout (configurable)
 - Kills entire process tree on timeout
 - Returns `ProcessResult(ExitCode, StdOutLines, StdErr, TimedOut)`
+
+### `DeviceProgramLimiter`
+
+Runs the programs of execution and integration tests through `ProcessRunner`, at most
+`ILGPU_TEST_DEVICE_PROGRAMS` (default 4, `0` = unlimited) at once per GPU backend. The
+timeout of a program starts when it runs, not while it waits for a slot.
 
 ### `OutputVerifier`
 

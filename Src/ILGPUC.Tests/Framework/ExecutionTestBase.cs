@@ -117,7 +117,7 @@ public abstract class ExecutionTestBase : DisposeBase
             props,
             programOptimization));
 
-        var result = await ProcessRunner.RunAsync(exePath);
+        var result = await DeviceProgramLimiter.RunAsync(Backend, exePath);
 
         _output.WriteLine($"Exit code: {result.ExitCode}");
         _output.WriteLine($"Timed out: {result.TimedOut}");
