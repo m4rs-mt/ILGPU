@@ -64,4 +64,22 @@ public abstract class VectorStructuresExecutionTests : ExecutionTestBase
                 "101", "503"
             ]);
     }
+
+    /// <summary>
+    /// A vector passed to a helper inlined in a loop keeps its fields for a helper
+    /// after the loop.
+    /// </summary>
+    [SkippableFact]
+    public async Task VectorFieldsAfterInlinedCalls_ProducesCorrectOutput()
+    {
+        await VerifyProgramOutputAsync(
+            "TestPrograms/VectorStructures/VectorFieldsAfterInlinedCalls.cs",
+            ["Kernels.VectorFieldsAfterInlinedCallsKernel"],
+            [
+                "0", "40", "5", "80", "9", "120", "13", "160",
+                "0", "0", "0", "0", "-0", "-0", "-0", "-0", "10", "12", "14", "16",
+                "-5", "-6", "-7", "-8", "18", "20", "22", "24", "-9", "-10", "-11",
+                "-12", "26", "28", "30", "32", "-13", "-14", "-15", "-16"
+            ]);
+    }
 }

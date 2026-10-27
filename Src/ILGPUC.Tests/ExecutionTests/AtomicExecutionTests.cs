@@ -94,4 +94,31 @@ public abstract class AtomicExecutionTests : ExecutionTestBase
             ["Kernels.AtomicAddInLoopKernel"],
             ["23", "23", "23", "23"]);
     }
+
+    /// <summary>
+    /// A float atomic max in a branch whose result flows into the join of an
+    /// if/else, lowered to a compare-and-swap loop where the target has no native
+    /// float max.
+    /// </summary>
+    [SkippableFact]
+    public async Task AtomicMaxJoin_ProducesCorrectOutput()
+    {
+        await VerifyProgramOutputAsync(
+            "TestPrograms/Atomics/AtomicMaxJoin.cs",
+            ["Kernels.AtomicMaxJoinKernel"],
+            ["2", "1"]);
+    }
+
+    /// <summary>
+    /// A custom atomic built with Atomic.MakeAtomic in a branch whose result flows
+    /// into the join of an if/else.
+    /// </summary>
+    [SkippableFact]
+    public async Task MakeAtomicJoin_ProducesCorrectOutput()
+    {
+        await VerifyProgramOutputAsync(
+            "TestPrograms/Atomics/MakeAtomicJoin.cs",
+            ["Kernels.MakeAtomicJoinKernel"],
+            ["2", "1", "5"]);
+    }
 }

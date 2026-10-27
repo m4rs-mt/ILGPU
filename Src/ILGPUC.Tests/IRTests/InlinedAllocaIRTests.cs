@@ -11,6 +11,7 @@
 
 using ILGPU;
 using ILGPU.Runtime;
+using ILGPU.Vectors;
 using ILGPUC.IR;
 using ILGPUC.Tests.Framework;
 using Xunit;
@@ -51,6 +52,28 @@ static class InlinedAllocaKernels
             total += Accumulate(seed + i, 5);
         data[index] = total;
     }
+
+    static Float32x4 Step(Float32x4 value, int i) => i == 0 ? value + value : -value;
+
+    static Float32x2 Pair(Float32x4 first, Float32x4 second) =>
+        new(first.X, second.W);
+
+    // The vector's constructor is inlined into the entry, the load after it is
+    // demanded first by a call inlined in the loop body and later by a call
+    // after the loop.
+    public static void VectorAfterLoopKernel(
+        Index1D index,
+        ArrayView1D<float, Stride1D.Dense> data,
+        ArrayView1D<float, Stride1D.Dense> output)
+    {
+        var x = Float32x4.FromElementView(data, index * 4);
+        var y = Float32x4.FromElementView(data, index * 4 + 4);
+        for (int i = 0; i < 2; ++i)
+            Step(x, i).ToElementView(output, (index * 3 + i) * 4);
+        var pair = Pair(x, y);
+        output[index * 12 + 8] = pair.X;
+        output[index * 12 + 9] = pair.Y;
+    }
 }
 
 /// <summary>
@@ -85,5 +108,25 @@ public sealed class InlinedAllocaIRTests(ITestOutputHelper output)
         // The local must be fully promoted, which is what makes the value flow
         // above meaningful.
         Assert.DoesNotContain("alloca", ir);
+    }
+
+    /// <summary>
+    /// A value moved to the exit block of an inlined call is created there when a
+    /// call inlined later in another block demands it first, so a use after the
+    /// loop still reads the loaded vector instead of the alloca's initial zero.
+    /// </summary>
+    [Theory]
+    [InlineData(OptimizationLevel.O1)]
+    [InlineData(OptimizationLevel.O2)]
+    public void VectorAfterLoop_KeepsLoadedField(OptimizationLevel opt)
+    {
+        var ir = DumpIRString(
+            GetKernel(
+                typeof(InlinedAllocaKernels),
+                nameof(InlinedAllocaKernels.VectorAfterLoopKernel)),
+            IRDumpPoint.AfterGlobalOpt,
+            new CompilationProperties(OptimizationLevel: opt));
+
+        Assert.DoesNotContain("store float 0.0", ir);
     }
 }

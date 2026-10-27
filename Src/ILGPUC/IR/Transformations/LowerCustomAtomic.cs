@@ -323,8 +323,9 @@ sealed class LowerAtomicSites(
             ? loopBuilder.CreateIntAsFloatCast(location, casResult).AsNotNull()
             : casResult;
 
-        // Now copy the termination from the original block to the exit block.
-        exitBuilder.CopyTerminationFrom(oldBlock);
+        // Now copy the termination from the original block to the exit block,
+        // which becomes the predecessor of its successors' phi values.
+        transform.CompleteBlockSplit(preHeader, exitBuilder, oldBlock);
 
         transform.Replace(site, finalTyped);
     }

@@ -72,6 +72,14 @@ sealed class MethodTransform :
     #region Instance
 
     private readonly Dictionary<BasicBlockValue, BasicBlockValue?> _prevMapping;
+
+    /// <summary>
+    /// The blocks that values were moved to by
+    /// <see cref="AppendTo(BasicBlockTransform, BasicBlockValue?)"/>.
+    /// </summary>
+    private readonly Dictionary<BasicBlockValue, BasicBlockTransform> _relinkedBlocks =
+        new();
+
     private readonly ValueSet<Method, BasicBlock> _rewritten;
     private readonly ValueMap<Method, BasicBlock, BasicBlock> _newToOld;
     private readonly Lazy<CFG<ReversePostOrder<BasicBlock>, Forwards>> _cfg;
@@ -192,8 +200,12 @@ sealed class MethodTransform :
 
         if (oldBlock is not null)
         {
-            // Register all phi values in this block
-            _phiRewriter.ProcessBlock(this, result, oldBlock);
+            // Register all phi values in this block. Blocks of an inlined method
+            // register their phis with the local phi rewriter of the inlining
+            // (see SpecializeMethod) and are wired before the inlining scope
+            // closes, so they must not register with this method's rewriter.
+            if (!_inlining)
+                _phiRewriter.ProcessBlock(this, result, oldBlock);
 
             // Replace old block
             Replace(oldBlock, basicBlock);
@@ -275,9 +287,10 @@ sealed class MethodTransform :
             // e.g. for the back edge of a split single-block loop.
             if (oldValue is BasicBlock bb)
             {
-                // When a block has been split by SpecializeMethodCall, phi sources
-                // must redirect to the exit block (which inherited the termination
-                // and is the actual predecessor of successor blocks).
+                // When a block has been split by CompleteBlockSplit (an inlined
+                // call or a lowered atomic), phi sources must redirect to the exit
+                // block (which inherited the termination and is the actual
+                // predecessor of successor blocks).
                 // However, successor edges must NOT follow these redirects — they
                 // should point to the original (split) block, not the exit block.
                 // _skipPhiSourceRedirects is set during successor resolution
@@ -425,6 +438,17 @@ sealed class MethodTransform :
                         .Contains(currentGenBlock) ?? false))
                 {
                     blockTransform = _overrideBlockTransform;
+                }
+                else if (_currentDemandBlock is not null
+                    && _relinkedBlocks.TryGetValue(bbv, out var relinkedBlock))
+                {
+                    // This value was moved to another block by AppendTo, for
+                    // example to the exit block of an inlined call, and may be
+                    // demanded from a different block (e.g. as an argument
+                    // of a call inlined later). Create it in the block it was
+                    // moved to; outside of inlining, it is queued there as a
+                    // cross-block value.
+                    blockTransform = relinkedBlock;
                 }
                 else if (_currentDemandBlock is not null
                     && currentGenBlock != _currentDemandBlock.BasicBlock
@@ -767,10 +791,10 @@ sealed class MethodTransform :
 
     /// <summary>
     /// Checks whether the given value is a relinked chain member — its
-    /// predecessor was set via <c>_prevMapping</c> by AppendTo during
-    /// SimplifyControlFlow block merging. This means the value is from
-    /// a block that was merged into another block, and its original
-    /// BasicBlock no longer matches the demand block.
+    /// predecessor was set via <c>_prevMapping</c> by AppendTo when
+    /// SimplifyControlFlow merges blocks or a block is split at an inlined
+    /// call. This means the value was moved to another block, and its
+    /// original BasicBlock no longer matches the demand block.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private bool IsRelinkedChainMember(BasicBlockValue bbv) =>
@@ -794,7 +818,8 @@ sealed class MethodTransform :
 
     /// <summary>
     /// Maps the given value from the previous generation to a newly assigned target
-    /// block from the previous generation.
+    /// block from the previous generation and records that block for the value and
+    /// every value after it in its chain.
     /// </summary>
     /// <param name="block">The block to append to.</param>
     /// <param name="toAppend">The value to append.</param>
@@ -805,6 +830,7 @@ sealed class MethodTransform :
 
         if (!AppendTo(block.Last, toAppend))
             block.UpdateLastFromChain(toAppend);
+        _relinkedBlocks[toAppend] = block;
 
         // Register every subsequent value in the moved chain in
         // _prevMapping. AppendTo semantics move the whole .Next chain;
@@ -822,6 +848,7 @@ sealed class MethodTransform :
              current is not null;
              current = current.Next)
         {
+            _relinkedBlocks[current] = block;
             if (!_prevMapping.ContainsKey(current))
                 _prevMapping[current] = current.Previous;
         }
@@ -962,12 +989,8 @@ sealed class MethodTransform :
 
         var returnValue = SpecializeMethod(specialization, currentBlockTransform);
 
-        // Wire exit block to fit into the game. Disable _phiSourceRedirects
-        // so that successor edges resolve to the original (split) blocks, not
-        // their exit blocks from prior inlining processes.
-        _skipPhiSourceRedirects = true;
-        exitBuilder.CopyTerminationFrom(methodCall.BasicBlock);
-        _skipPhiSourceRedirects = false;
+        // Wire exit block to fit into the game
+        CompleteBlockSplit(currentBlockTransform, exitBuilder, methodCall.BasicBlock);
 
         // Replace value with phi value or null (remove)
         Replace(methodCall, returnValue);
@@ -975,14 +998,35 @@ sealed class MethodTransform :
         // Track split: subsequent calls from the same old block use the exit
         _splitBlocks[methodCall.BasicBlock] = exitBuilder;
 
+        // Return potential return value
+        return returnValue;
+    }
+
+    /// <summary>
+    /// Completes the split of a block whose remaining values were moved to the
+    /// given exit block: copies the termination of the old block to the exit
+    /// block and makes phi sources that name the split block name the exit block,
+    /// which is now the predecessor of the old block's successors.
+    /// </summary>
+    /// <param name="splitBlock">The block that was split.</param>
+    /// <param name="exitBlock">The exit block that continues the split block.</param>
+    /// <param name="oldBlock">The old block whose termination is copied.</param>
+    internal void CompleteBlockSplit(
+        BasicBlockTransform splitBlock,
+        BasicBlockTransform exitBlock,
+        BasicBlock oldBlock)
+    {
+        // Disable _phiSourceRedirects so that successor edges resolve to the
+        // original (split) blocks, not to their exit blocks from earlier splits.
+        _skipPhiSourceRedirects = true;
+        exitBlock.CopyTerminationFrom(oldBlock);
+        _skipPhiSourceRedirects = false;
+
         // Redirect phi sources: after the split, the exit block is the actual
         // predecessor of the original block's successors. Phi sources pointing
         // to the pre-split block must resolve to the exit block instead.
-        _phiSourceRedirects[currentBlockTransform.BasicBlock] = exitBuilder.BasicBlock;
-        _resolvedIdentity.Remove(currentBlockTransform.BasicBlock);
-
-        // Return potential return value
-        return returnValue;
+        _phiSourceRedirects[splitBlock.BasicBlock] = exitBlock.BasicBlock;
+        _resolvedIdentity.Remove(splitBlock.BasicBlock);
     }
 
     /// <summary>
@@ -1038,8 +1082,9 @@ sealed class MethodTransform :
         {
             Generation.ValidateCurrentOrPreviousGeneration(block);
 
-            // Define new block and map it accordingly (ReplaceDirect
-            // is used via _inlining flag in CreateBasicBlockBuilder)
+            // Define new block and map it accordingly (with _inlining set,
+            // CreateBasicBlockBuilder maps it via ReplaceDirect and leaves its
+            // phis to the local phi rewriter below)
             var bbBuilder = CreateBasicBlockFromOldBlock(
                 block,
                 $"{targetName}_{block.Name}").AsNotNullCast<BasicBlockTransform>();
@@ -1076,7 +1121,9 @@ sealed class MethodTransform :
             // Clear stale phi mappings from lower scopes (e.g., Phase 1's
             // base-scope mapping from CreateMethodTransform) so that
             // ProcessBlock's IsReplacedOrRemoved check doesn't skip phis
-            // that need fresh inlined versions.
+            // that need fresh inlined versions. Pass 1 does not map these
+            // phis, but lower scopes still can, such as the callee's own
+            // transform when the callee is rewritten in this pass as well.
             foreach (BasicBlockValue bbv in block)
             {
                 if (bbv is PhiValue)
