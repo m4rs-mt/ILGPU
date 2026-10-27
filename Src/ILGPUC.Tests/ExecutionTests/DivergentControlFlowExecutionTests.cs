@@ -319,4 +319,143 @@ public abstract class DivergentControlFlowExecutionTests : ExecutionTestBase
                 "31", "163"
             ]);
     }
+
+    [SkippableFact]
+    public async Task SwitchSharedCases_ProducesCorrectOutput()
+    {
+        await VerifyProgramOutputAsync(
+            "TestPrograms/DivergentControlFlow/SwitchSharedCases.cs",
+            ["Kernels.SwitchSharedCasesKernel"],
+            [
+                "11", "102", "115", "106", "129", "110", "112", "-26", "116", "11",
+                "102", "115"
+            ]);
+    }
+
+    [SkippableFact]
+    public async Task LoopSearchBreakValue_ProducesCorrectOutput()
+    {
+        await VerifyProgramOutputAsync(
+            "TestPrograms/DivergentControlFlow/LoopSearchBreakValue.cs",
+            ["Kernels.LoopSearchBreakValueKernel"],
+            [
+                "60", "821", "112", "33", "164", "85", "216", "77", "268", "60", "821",
+                "112"
+            ]);
+    }
+
+    [SkippableFact]
+    public async Task HelperLoopTwoReturns_ProducesCorrectOutput()
+    {
+        await VerifyProgramOutputAsync(
+            "TestPrograms/DivergentControlFlow/HelperLoopTwoReturns.cs",
+            ["Kernels.HelperLoopTwoReturnsKernel"],
+            [
+                "-3", "-5", "-7", "3", "1104", "405", "1004", "1007", "908", "-3", "-5",
+                "-7"
+            ]);
+    }
+
+    [SkippableFact]
+    public async Task SwitchContinueLatchCopies_ProducesCorrectOutput()
+    {
+        await VerifyProgramOutputAsync(
+            "TestPrograms/DivergentControlFlow/SwitchContinueLatchCopies.cs",
+            ["Kernels.SwitchContinueLatchCopiesKernel"],
+            [
+                "45076", "87115", "1056", "-36992", "45012", "12059", "7029", "50031",
+                "73033", "45076", "87115", "1056"
+            ]);
+    }
+
+    [SkippableFact]
+    public async Task TripleLoopGotoStore_ProducesCorrectOutput()
+    {
+        await VerifyProgramOutputAsync(
+            "TestPrograms/DivergentControlFlow/TripleLoopGotoStore.cs",
+            ["Kernels.TripleLoopGotoStoreKernel"],
+            [
+                "60", "201", "352", "493", "594", "705", "826", "957", "1098", "60",
+                "201", "352"
+            ]);
+    }
+
+    [SkippableFact]
+    public async Task ShortCircuitTernaryChain_ProducesCorrectOutput()
+    {
+        await VerifyProgramOutputAsync(
+            "TestPrograms/DivergentControlFlow/ShortCircuitTernaryChain.cs",
+            ["Kernels.ShortCircuitTernaryChainKernel"],
+            [
+                "100", "101", "102", "103", "20", "105", "30", "107", "40", "100", "101",
+                "102"
+            ]);
+    }
+
+    [SkippableFact]
+    public async Task MergeWithBarrier_ProducesCorrectOutput()
+    {
+        await VerifyProgramOutputAsync(
+            "TestPrograms/DivergentControlFlow/MergeWithBarrier.cs",
+            ["Kernels.MergeWithBarrierKernel"],
+            [
+                "6065", "65006", "11003", "3011", "16008", "8016", "21007", "7021",
+                "26006", "6026", "65011", "11065"
+            ]);
+    }
+
+    [SkippableFact]
+    public async Task MergeWithShuffle_ProducesCorrectOutput()
+    {
+        await VerifyProgramOutputAsync(
+            "TestPrograms/DivergentControlFlow/MergeWithShuffle.cs",
+            ["Kernels.MergeWithShuffleKernel"],
+            [
+                "6065", "65006", "11003", "3011", "16008", "8016", "21007", "7021",
+                "26006", "6026", "65011", "11065"
+            ]);
+    }
+
+    [SkippableFact]
+    public async Task EarlyReturnLoopWithBarrier_ProducesCorrectOutput()
+    {
+        await VerifyProgramOutputAsync(
+            "TestPrograms/DivergentControlFlow/EarlyReturnLoopWithBarrier.cs",
+            ["Kernels.EarlyReturnLoopWithBarrierKernel"],
+            [
+                "123", "123", "233", "233", "273", "273", "243", "313", "193", "123",
+                "143", "143", "-26", "-26", "-35", "-35", "-44", "-44", "-39", "-46",
+                "-33", "-26", "-27", "-27"
+            ]);
+    }
+
+    [SkippableFact]
+    public async Task GotoCaseNoCopies_ProducesCorrectOutput()
+    {
+        await VerifyProgramOutputAsync(
+            "TestPrograms/DivergentControlFlow/GotoCaseNoCopies.cs",
+            ["Kernels.GotoCaseNoCopiesKernel"],
+            [
+                "30", "3", "998", "1003", "42", "15", "1002", "1007", "54", "30", "3",
+                "998"
+            ]);
+    }
+
+    /// <summary>
+    /// Switch cases that compute different values before one store, and a store behind a
+    /// condition, an atomic and a load, keep their store in one shared tail.
+    /// </summary>
+    [SkippableFact]
+    public async Task SharedStoreTail_ProducesCorrectOutput()
+    {
+        await VerifyProgramOutputAsync(
+            "TestPrograms/DivergentControlFlow/SharedStoreTail.cs",
+            ["Kernels.SharedStoreTailSwitchKernel", "Kernels.SharedStoreTailGuardKernel"],
+            [
+                "12", "8", "106", "103", "16", "12", "118", "107", "20", "12", "8",
+                "106",
+                "0", "-1", "4", "-3", "8", "10", "-6", "14", "16", "0", "-1", "4",
+                "8"
+            ]);
+    }
 }
