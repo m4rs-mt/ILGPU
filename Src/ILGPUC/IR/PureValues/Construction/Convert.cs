@@ -200,14 +200,9 @@ partial class PureValueBuilder
             return CreatePredicate(
                 location,
                 node,
-                CreatePrimitiveValue(
-                    location,
-                    targetPrimitiveType.BasicValueType,
-                    1),
-                CreatePrimitiveValue(
-                    location,
-                    targetPrimitiveType.BasicValueType,
-                    0)).AsNotNull();
+                CreateBoolAs(location, targetPrimitiveType.BasicValueType, true),
+                CreateBoolAs(location, targetPrimitiveType.BasicValueType, false))
+                .AsNotNull();
         }
 
 
@@ -219,22 +214,10 @@ partial class PureValueBuilder
             switch (value.BasicValueType)
             {
                 case BasicValueType.Int1:
-                    return targetBasicValueType switch
-                    {
-                        BasicValueType.Float16 => CreatePrimitiveValue(
-                            location,
-                            value.Int1Value ? Half.One : Half.Zero),
-                        BasicValueType.Float32 => CreatePrimitiveValue(
-                            location,
-                            Convert.ToSingle(value.Int1Value)),
-                        BasicValueType.Float64 => CreatePrimitiveValue(
-                            location,
-                            Convert.ToDouble(value.Int1Value)),
-                        _ => CreatePrimitiveValue(
-                            location,
-                            targetBasicValueType,
-                            value.Int1Value ? 1 : 0),
-                    };
+                    return CreateBoolAs(
+                        location,
+                        targetBasicValueType,
+                        value.Int1Value);
                 case BasicValueType.Int8:
                 case BasicValueType.Int16:
                 case BasicValueType.Int32:
@@ -402,4 +385,30 @@ partial class PureValueBuilder
             targetType,
             flags));
     }
+
+    /// <summary>
+    /// Creates the given bool as a primitive value of the given type: 1 or 0 for
+    /// integers and 1.0 or 0.0 for floats.
+    /// </summary>
+    /// <param name="location">The current location.</param>
+    /// <param name="type">The target basic value type.</param>
+    /// <param name="value">The bool value.</param>
+    /// <returns>The created primitive value.</returns>
+    private PrimitiveValue CreateBoolAs(
+        Location location,
+        BasicValueType type,
+        bool value) =>
+        type switch
+        {
+            BasicValueType.Float16 => CreatePrimitiveValue(
+                location,
+                value ? Half.One : Half.Zero),
+            BasicValueType.Float32 => CreatePrimitiveValue(
+                location,
+                Convert.ToSingle(value)),
+            BasicValueType.Float64 => CreatePrimitiveValue(
+                location,
+                Convert.ToDouble(value)),
+            _ => CreatePrimitiveValue(location, type, value ? 1 : 0),
+        };
 }
