@@ -143,6 +143,6 @@ partial class Intrinsics
     /// <summary>
     /// Returns true if the given method has a remapping.
     /// </summary>
-    private static bool HasIntrinsicRemapping(MethodBase methodBase) =>
+    internal static bool HasIntrinsicRemapping(MethodBase methodBase) =>
         _remappings.ContainsKey((methodBase.Module, methodBase.MetadataToken));
 }

@@ -120,6 +120,15 @@ abstract class IntrinsicEmitter
         ArithmeticBasicValueType type) => null;
 
     /// <summary>
+    /// Emits an IEEE 754 remainder (<c>x - y * round(x / y)</c>, rounding the
+    /// quotient to the nearest even integer).
+    /// </summary>
+    public virtual string EmitIEEERemainder(
+        string x,
+        string y,
+        ArithmeticBasicValueType type) => $"remainder({x}, {y})";
+
+    /// <summary>
     /// Emits an absolute value function call.
     /// </summary>
     public abstract string EmitAbs(string arg, ArithmeticBasicValueType type);

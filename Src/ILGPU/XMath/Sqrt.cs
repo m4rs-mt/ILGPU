@@ -59,7 +59,8 @@ partial class XMath
     /// <param name="value">The value.</param>
     /// <returns>cbrt(value).</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static double Cbrt(double value) => Pow(value, 1.0 / 3.0);
+    public static double Cbrt(double value) =>
+        CopySign(Pow(Abs(value), 1.0 / 3.0), value);
 
     /// <summary>
     /// Computes cbrt(value).
@@ -67,5 +68,6 @@ partial class XMath
     /// <param name="value">The value.</param>
     /// <returns>cbrt(value).</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static float Cbrt(float value) => Pow(value, 1.0f / 3.0f);
+    public static float Cbrt(float value) =>
+        CopySign(Pow(Abs(value), 1.0f / 3.0f), value);
 }

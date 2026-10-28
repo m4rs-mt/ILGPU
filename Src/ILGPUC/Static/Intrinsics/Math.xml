@@ -361,6 +361,9 @@
             <Remap Name="Atan2" Target="XMath.Atan2">
                 <Specialization Type="float,float" />
             </Remap>
+            <Remap Name="IEEERemainder" Target="XMath.IEEERemainder">
+                <Specialization Type="float,float" />
+            </Remap>
             <Remap Name="Pow" Target="XMath.Pow">
                 <Specialization Type="float,float" />
             </Remap>
@@ -512,6 +515,8 @@
             <Generator Name="Min" Target="Math_BinaryOperation" Arguments="BinaryArithmeticKind.Min" />
             <Generator Name="Pow" Target="Math_BinaryOperation"
                 Arguments="BinaryArithmeticKind.Pow" />
+            <Generator Name="Rem" Target="Math_BinaryOperation"
+                Arguments="BinaryArithmeticKind.Rem" />
 
             <!-- Ternary -->
             <Generator Name="FMA" Target="Math_TernaryOperation"

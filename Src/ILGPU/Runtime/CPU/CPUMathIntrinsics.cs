@@ -1079,6 +1079,42 @@ public static class CPUMathIntrinsics
         where T : IPowerFunctions<T>
         => TensorPrimitives.Pow<T>(x, y, target);
 
+    /// <summary>
+    /// Computes the element-wise IEEE 754 remainder across all lanes into a
+    /// pre-allocated target.
+    /// </summary>
+    /// <typeparam name="T">
+    /// The element type satisfying <see cref="IFloatingPointIeee754{T}"/>.
+    /// </typeparam>
+    /// <param name="target">The destination span to write results into.</param>
+    /// <param name="x">The dividends, one per lane.</param>
+    /// <param name="y">The divisors, one per lane.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void Ieee754Remainder<T>(
+        Span<T> target,
+        ReadOnlySpan<T> x,
+        ReadOnlySpan<T> y)
+        where T : IFloatingPointIeee754<T>
+        => TensorPrimitives.Ieee754Remainder<T>(x, y, target);
+
+    /// <summary>
+    /// Computes the element-wise logarithm of x in base y across all lanes into
+    /// a pre-allocated target.
+    /// </summary>
+    /// <typeparam name="T">
+    /// The element type satisfying <see cref="ILogarithmicFunctions{T}"/>.
+    /// </typeparam>
+    /// <param name="target">The destination span to write results into.</param>
+    /// <param name="x">The values, one per lane.</param>
+    /// <param name="newBase">The bases, one per lane.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void Log<T>(
+        Span<T> target,
+        ReadOnlySpan<T> x,
+        ReadOnlySpan<T> newBase)
+        where T : ILogarithmicFunctions<T>
+        => TensorPrimitives.Log<T>(x, newBase, target);
+
     #endregion
 
     #region In-place Exponential and Logarithmic Functions

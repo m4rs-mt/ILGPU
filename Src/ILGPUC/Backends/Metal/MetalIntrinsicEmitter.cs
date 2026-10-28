@@ -97,6 +97,17 @@ sealed class MetalIntrinsicEmitter : IntrinsicEmitter
         $"metal::fmod({x}, {y})";
 
     /// <inheritdoc/>
+    /// <remarks>
+    /// The Metal standard library has no remainder function. The quotient is
+    /// rounded to the nearest even integer by <c>rint</c>.
+    /// </remarks>
+    public override string EmitIEEERemainder(
+        string x,
+        string y,
+        ArithmeticBasicValueType type) =>
+        $"(({x}) - ({y}) * metal::rint(({x}) / ({y})))";
+
+    /// <inheritdoc/>
     public override string EmitPopCount(string arg, ArithmeticBasicValueType type) =>
         $"(int)popcount({arg})";
 

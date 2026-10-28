@@ -82,11 +82,8 @@ partial class XMath
     /// <param name="value">The value to check</param>
     /// <returns>True, if the value is an integer</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool IsInteger(double value)
-    {
-        var remainder = Rem(Abs(value), 2.0);
-        return remainder < 1e-9 | remainder >= 1.0 - 1e-9;
-    }
+    public static bool IsInteger(double value) =>
+        IsFinite(value) & value == Truncate(value);
 
     /// <summary>
     /// Tests if a floating point value is an integer
@@ -94,11 +91,8 @@ partial class XMath
     /// <param name="value">The value to check</param>
     /// <returns>True, if the value is an integer</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool IsInteger(float value)
-    {
-        var remainder = Rem(Abs(value), 2.0f);
-        return remainder < 1e-6f | remainder >= 1.0f - 1e-6f;
-    }
+    public static bool IsInteger(float value) =>
+        IsFinite(value) & value == Truncate(value);
 
     /// <summary>
     /// Tests if a floating point value is an odd integer
@@ -106,11 +100,8 @@ partial class XMath
     /// <param name="value">The value to check</param>
     /// <returns>True, if the value is an odd integer</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool IsOddInteger(double value)
-    {
-        var remainder = Rem(Abs(value), 2.0);
-        return remainder >= 1.0 - 1e-9;
-    }
+    public static bool IsOddInteger(double value) =>
+        IsInteger(value) & Abs(Rem(value, 2.0)) == 1.0;
 
     /// <summary>
     /// Tests if a floating point value is an odd integer
@@ -118,11 +109,8 @@ partial class XMath
     /// <param name="value">The value to check</param>
     /// <returns>True, if the value is an odd integer</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool IsOddInteger(float value)
-    {
-        var remainder = Rem(Abs(value), 2.0f);
-        return remainder >= 1.0f - 1e-6f;
-    }
+    public static bool IsOddInteger(float value) =>
+        IsInteger(value) & Abs(Rem(value, 2.0f)) == 1.0f;
 
     /// <summary>
     /// Returns true if the given integer is a power of two.
