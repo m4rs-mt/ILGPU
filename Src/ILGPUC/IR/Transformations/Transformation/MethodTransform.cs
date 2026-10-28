@@ -531,6 +531,7 @@ sealed class MethodTransform :
             {
                 newValue = converted;
                 ReverseSideEffectChain(blockTransform);
+                blockTransform._convertedValue = bbv;
             }
             else if (_inPhiWiring
                 || (_currentDemandBlock is not null
@@ -629,7 +630,10 @@ sealed class MethodTransform :
     /// DemandRewriteBlock collects side effects by walking <c>Last</c>
     /// backward — without reversal, they'd appear in reverse creation order
     /// in <c>finalValues</c>, misplacing barriers after the operations they
-    /// guard.
+    /// guard. The converter's result keeps its place in this order (see
+    /// <see cref="BasicBlockTransform._convertedValue"/>), so that a value
+    /// emitted after it, such as the barrier after the load of a group
+    /// broadcast, still follows it.
     /// </remarks>
     private static void ReverseSideEffectChain(
         BasicBlockTransform blockTransform)

@@ -44,6 +44,13 @@ sealed class BasicBlockTransform :
     internal List<BasicBlockValue>? _pendingValues;
 
     /// <summary>
+    /// The old value whose deferred converter last ran in this block.
+    /// Its chain lists those values in the order the converter created them, the
+    /// converter's result included (see <see cref="DemandRewriteBlock{TSet}"/>).
+    /// </summary>
+    internal Value? _convertedValue;
+
+    /// <summary>
     /// Constructs a new basic block transform.
     /// </summary>
     /// <param name="parent">The parent method transform.</param>
@@ -201,6 +208,7 @@ sealed class BasicBlockTransform :
             // values that were mapped by inlining (return values, etc.).
             bool wasPreReplaced = _parent.TryGetReplaced(bbValue, out _);
             var scope = PushLastValue(null);
+            _convertedValue = null;
             var result = _parent.Rewrite(bbValue);
             var sideEffectLast = Last; // Values created during Rewrite
             scope.Pop();
@@ -209,6 +217,11 @@ sealed class BasicBlockTransform :
             // Rewrite (e.g., an alloca created as a cascade when
             // rewriting a Store's target). These form a chain from
             // null → ... → sideEffectLast (since we pushed null).
+            // A deferred converter of this value emitted its values in
+            // the order it created them: its result keeps its place among
+            // them, before the values that follow it, such as the barrier
+            // after the load of a group broadcast.
+            bool keepsResultInPlace = _convertedValue == bbValue;
             if (sideEffectLast is not null)
             {
                 BasicBlockValue? se = sideEffectLast;
@@ -216,7 +229,7 @@ sealed class BasicBlockTransform :
                 {
                     if (se is not PhiValue
                         && se.BasicBlock == BasicBlock
-                        && se != result
+                        && (se != result || keepsResultInPlace)
                         && visited.Add(se))
                     {
                         finalValues.Add(se);
