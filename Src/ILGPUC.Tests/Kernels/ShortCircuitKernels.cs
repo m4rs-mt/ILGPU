@@ -195,6 +195,33 @@ static class ShortCircuitKernels
             data[index] = 0;
     }
 
+    static bool InRange(int x, int lo, int hi) =>
+        x != lo && x != hi && (x & 3) != 0;
+
+    static bool OutOfRange(int x, int lo, int hi) =>
+        x == lo || x == hi || (x & 3) == 0;
+
+    /// <summary>
+    /// A chain of eight short-circuit predicates, each selecting one bit of
+    /// the result: the if-converted predicates share their operations, and the
+    /// IR must grow linearly with the chain length.
+    /// </summary>
+    public static void PredicateChainKernel(
+        Index1D index,
+        ArrayView1D<int, Stride1D.Dense> data)
+    {
+        int x = data[index];
+        data[index] =
+            (InRange(x, 0, 3) ? 1 : 0) |
+            (OutOfRange(x, 1, 4) ? 2 : 0) |
+            (InRange(x, 2, 5) ? 4 : 0) |
+            (OutOfRange(x, 3, 6) ? 8 : 0) |
+            (InRange(x, 4, 7) ? 16 : 0) |
+            (OutOfRange(x, 5, 8) ? 32 : 0) |
+            (InRange(x, 6, 9) ? 64 : 0) |
+            (OutOfRange(x, 7, 10) ? 128 : 0);
+    }
+
     /// <summary>
     /// Speculation-safety negative in phi-argument form: the division is a phi
     /// argument of the guarded merge — the region must not fold.

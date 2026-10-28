@@ -54,6 +54,12 @@ abstract partial class PureValueBuilder(Generation generation, Location location
     /// </summary>
     public UndefinedValue UndefinedValue => ModuleBuilder.UndefinedValue;
 
+    /// <summary>
+    /// Returns true if floating-point operations may be simplified without
+    /// preserving IEEE 754 semantics (signed zeros, NaNs and rounding).
+    /// </summary>
+    public bool IsFastMath => ModuleBuilder.Properties.MathMode != MathMode.Default;
+
     #endregion
 
     #region Methods
