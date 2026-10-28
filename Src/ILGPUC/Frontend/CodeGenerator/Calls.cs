@@ -112,6 +112,12 @@ partial class CodeGenerator
     /// <param name="instruction">The instruction to realize.</param>
     private void MakeCall(ILInstruction instruction)
     {
+        if (_cfgBuilder.IsTailCall(CurrentInstructionIndex))
+        {
+            MakeTailCall();
+            return;
+        }
+
         var method = instruction.GetArgumentAs<MethodBase>();
         if (instruction.HasFlags(ILInstructionFlags.Constrained)
             && method is MethodInfo methodInfo)

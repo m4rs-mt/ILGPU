@@ -34,6 +34,8 @@ namespace ILGPUC.Tests.NonKernelTests;
 /// Tests that methods calling themselves, directly or through other methods, are
 /// compiled as recursive functions instead of being inlined, with a warning
 /// (ILGPU1210), and that backends without recursive calls reject them (ILGPU1211).
+/// Calls of a method itself in tail position become loops, and calls with constant
+/// arguments are evaluated at compile time.
 /// </summary>
 public sealed class RecursionTests
 {
@@ -167,6 +169,301 @@ public sealed class RecursionTests
         {
             if (Never())
                 data[index] = Factorial(data[index]);
+        }
+
+        private static int Gcd(int a, int b) => b == 0 ? a : Gcd(b, a % b);
+
+        public static void GcdKernel(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data)
+        {
+            data[index] = Gcd(data[index], 12);
+        }
+
+        private static int SumTo(int n, int sum)
+        {
+            if (n <= 0)
+                return sum;
+            int next = sum + n;
+            return SumTo(n - 1, next);
+        }
+
+        public static void SumToKernel(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data)
+        {
+            data[index] = SumTo(data[index], 0);
+        }
+
+        private static void Fill(ArrayView1D<int, Stride1D.Dense> data, int i, int n)
+        {
+            if (i >= n)
+                return;
+            data[i] = i;
+            Fill(data, i + 1, n);
+        }
+
+        public static void FillKernel(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data)
+        {
+            Fill(data, index * 2, index * 2 + 2);
+        }
+
+        private static int Steps<T>(int n, int steps) where T : struct =>
+            n <= 1 ? steps : Steps<T>(n % 2 == 0 ? n / 2 : 3 * n + 1, steps + 1);
+
+        public static void StepsKernel(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data)
+        {
+            data[index] = Steps<float>(data[index], 0);
+        }
+
+        private static void Increment(ref int value, int n)
+        {
+            if (n <= 0)
+                return;
+            value++;
+            Increment(ref value, n - 1); // Increment
+        }
+
+        public static void IncrementKernel(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data)
+        {
+            int value = 0;
+            Increment(ref value, data[index]);
+            data[index] = value;
+        }
+
+        private static int CountOdd(int n)
+        {
+            if (n <= 0)
+                return 0;
+            if (n % 2 == 0)
+                return CountOdd(n - 1);
+            return 1 + CountOdd(n - 1); // CountOdd
+        }
+
+        public static void CountOddKernel(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data)
+        {
+            data[index] = CountOdd(data[index]);
+        }
+
+        public static void ConstantFactorialKernel(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data)
+        {
+            data[index] = Factorial(5) + index;
+        }
+
+        public static void ConstantMutualRecursionKernel(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data)
+        {
+            data[index] = IsEven(10) ? index : 0;
+        }
+
+        private static int SumBelow(int n) =>
+            n <= 0 ? 0 : n + SumBelow(n - 1); // SumBelow
+
+        public static void DeepConstantRecursionKernel(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data)
+        {
+            data[index] = SumBelow(1000);
+        }
+
+        private struct Pair
+        {
+            public int A;
+            public int B;
+
+            public readonly int Sum() => A + B;
+        }
+
+        private static int SumPairs(int n, int sum)
+        {
+            var pair = new Pair { A = n, B = 1 };
+            if (n <= 0)
+                return sum;
+            return SumPairs(n - 1, sum + pair.Sum());
+        }
+
+        public static void SumPairsKernel(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data)
+        {
+            data[index] = SumPairs(data[index], 0);
+        }
+
+        private static int Count(nint p, int n, int count) =>
+            n <= 0 ? count : Count(p, n - 1, count + 1);
+
+        public static void CountKernel(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data)
+        {
+            data[index] = Count(0, data[index], 0);
+        }
+
+        private static void Add(ref int value, int amount) => value += amount;
+
+        private static int Accumulate(int n, int sum)
+        {
+            int x = sum;
+            if (n <= 0)
+                return sum;
+            Add(ref x, n);
+            return Accumulate(n - 1, x);
+        }
+
+        public static void AccumulateKernel(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data)
+        {
+            data[index] = Accumulate(data[index], 0);
+        }
+
+        private static unsafe int Locals(int n, nint p, int sum)
+        {
+            int x = n;
+            if (n == 0)
+                return sum;
+            return Locals(n - 1, (nint)(&x), sum + *(int*)p); // Locals
+        }
+
+        public static unsafe void LocalsKernel(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data)
+        {
+            int start = 0;
+            data[index] = Locals(data[index], (nint)(&start), 0);
+        }
+
+        private static unsafe int Arguments(int n, nint p, int sum) =>
+            n == 0 ? sum : Arguments(n - 1, (nint)(&n), sum + *(int*)p); // Arguments
+
+        public static unsafe void ArgumentsKernel(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data)
+        {
+            int start = 0;
+            data[index] = Arguments(data[index], (nint)(&start), 0);
+        }
+
+        private static unsafe void GetAddress(ref int value, out nint address)
+        {
+            fixed (int* pointer = &value)
+                address = (nint)pointer;
+        }
+
+        private static unsafe int Outputs(int n, nint p, int sum)
+        {
+            int x = n;
+            if (n == 0)
+                return sum;
+            GetAddress(ref x, out nint next);
+            return Outputs(n - 1, next, sum + *(int*)p); // Outputs
+        }
+
+        public static unsafe void OutputsKernel(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data)
+        {
+            int start = 0;
+            data[index] = Outputs(data[index], (nint)(&start), 0);
+        }
+
+        private static unsafe int* AddressOf(ref int value)
+        {
+            fixed (int* address = &value)
+                return address;
+        }
+
+        private static unsafe int Slots(
+            ArrayView1D<nint, Stride1D.Dense> slots,
+            int n,
+            int sum)
+        {
+            int x = n;
+            if (n == 0)
+                return sum;
+            int value = *(int*)slots[0];
+            slots[0] = (nint)AddressOf(ref x);
+            return Slots(slots, n - 1, sum + value); // Slots
+        }
+
+        public static unsafe void SlotsKernel(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data,
+            ArrayView1D<nint, Stride1D.Dense> slots)
+        {
+            int start = 0;
+            slots[0] = (nint)(&start);
+            data[index] = Slots(slots, data[index], 0);
+        }
+
+        private static unsafe void Remember(
+            ref int value,
+            ArrayView1D<nint, Stride1D.Dense> slots)
+        {
+            fixed (int* address = &value)
+                slots[0] = (nint)address;
+        }
+
+        private static unsafe int Callees(
+            ArrayView1D<nint, Stride1D.Dense> slots,
+            int n,
+            int sum)
+        {
+            int x = n;
+            if (n == 0)
+                return sum;
+            int value = *(int*)slots[0];
+            Remember(ref x, slots);
+            return Callees(slots, n - 1, sum + value); // Callees
+        }
+
+        public static unsafe void CalleesKernel(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data,
+            ArrayView1D<nint, Stride1D.Dense> slots)
+        {
+            int start = 0;
+            slots[0] = (nint)(&start);
+            data[index] = Callees(slots, data[index], 0);
+        }
+
+        private static void Forward(
+            ref int value,
+            ArrayView1D<nint, Stride1D.Dense> slots) =>
+            Remember(ref value, slots);
+
+        private static unsafe int NestedCallees(
+            ArrayView1D<nint, Stride1D.Dense> slots,
+            int n,
+            int sum)
+        {
+            int x = n;
+            if (n == 0)
+                return sum;
+            int value = *(int*)slots[0];
+            Forward(ref x, slots);
+            return NestedCallees(slots, n - 1, sum + value); // NestedCallees
+        }
+
+        public static unsafe void NestedCalleesKernel(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data,
+            ArrayView1D<nint, Stride1D.Dense> slots)
+        {
+            int start = 0;
+            slots[0] = (nint)(&start);
+            data[index] = NestedCallees(slots, data[index], 0);
         }
     }
 
@@ -437,6 +734,129 @@ public sealed class RecursionTests
     [Fact]
     public async Task NestedTypeArguments_AreCompiled() =>
         Assert.Empty(await GetWarningsAsync(nameof(Kernels.NestedTypeArgumentsKernel)));
+
+    #endregion
+
+    #region Tail Calls
+
+    [Theory]
+    [InlineData(nameof(Kernels.GcdKernel), "Gcd")]
+    [InlineData(nameof(Kernels.SumToKernel), "SumTo")]
+    [InlineData(nameof(Kernels.FillKernel), "Fill")]
+    [InlineData(nameof(Kernels.StepsKernel), "Steps")]
+    [InlineData(nameof(Kernels.SumPairsKernel), "SumPairs")]
+    [InlineData(nameof(Kernels.CountKernel), "Count")]
+    [InlineData(nameof(Kernels.AccumulateKernel), "Accumulate")]
+    public async Task TailRecursion_BecomesLoopThatIsInlined(
+        string kernelName,
+        string helperName)
+    {
+        Assert.Empty(await GetWarningsAsync(kernelName));
+
+        var module = Optimize(kernelName);
+        Assert.Empty(CallCycle.FindAll(module.Methods.ToArray()));
+        Assert.DoesNotContain(
+            module.Methods.ToArray(),
+            method => method.Source?.Name == helperName);
+    }
+
+    [Theory]
+    [InlineData(BackendType.Metal)]
+    [InlineData(BackendType.OpenCL)]
+    public void BackendsWithoutRecursiveCalls_CompileTailRecursion(BackendType backend)
+    {
+        using var helper = new CompilationHelper(backend);
+        helper.GenerateBackendCode(GetKernel(nameof(Kernels.GcdKernel)), backend);
+        helper.GenerateBackendCode(GetKernel(nameof(Kernels.SumToKernel)), backend);
+        helper.GenerateBackendCode(GetKernel(nameof(Kernels.FillKernel)), backend);
+    }
+
+    [Fact]
+    public async Task TailRecursionWithReferenceParameter_StaysRecursive()
+    {
+        // The reference could point to a variable of the calling method
+        var warning = Assert.Single(
+            await GetWarningsAsync(nameof(Kernels.IncrementKernel)));
+
+        Assert.Equal("ILGPU1210", warning.Id);
+        AssertLocation(warning.Location, "Increment");
+    }
+
+    [Theory]
+    [InlineData(nameof(Kernels.LocalsKernel), "Locals")]
+    [InlineData(nameof(Kernels.ArgumentsKernel), "Arguments")]
+    [InlineData(nameof(Kernels.OutputsKernel), "Outputs")]
+    [InlineData(nameof(Kernels.SlotsKernel), "Slots")]
+    [InlineData(nameof(Kernels.CalleesKernel), "Callees")]
+    [InlineData(nameof(Kernels.NestedCalleesKernel), "NestedCallees")]
+    public async Task TailRecursionPassingAddresses_StaysRecursive(
+        string kernelName,
+        string helperName)
+    {
+        // The next call reads the variable of the calling one, which a loop would
+        // have assigned again
+        var warning = Assert.Single(await GetWarningsAsync(kernelName));
+
+        Assert.Equal("ILGPU1210", warning.Id);
+        AssertLocation(warning.Location, helperName);
+    }
+
+    [Fact]
+    public async Task RecursionWithTailAndOtherCalls_ReportsWarningAtTheOtherCall()
+    {
+        var warning = Assert.Single(
+            await GetWarningsAsync(nameof(Kernels.CountOddKernel)));
+
+        Assert.Equal("ILGPU1210", warning.Id);
+        AssertLocation(warning.Location, "CountOdd");
+    }
+
+    #endregion
+
+    #region Constant Arguments
+
+    [Theory]
+    [InlineData(nameof(Kernels.ConstantFactorialKernel), "Factorial")]
+    [InlineData(nameof(Kernels.ConstantMutualRecursionKernel), "IsEven")]
+    public async Task RecursionWithConstantArguments_IsEvaluated(
+        string kernelName,
+        string helperName)
+    {
+        Assert.Empty(await GetWarningsAsync(kernelName));
+
+        using var helper = new CompilationHelper(BackendType.CPU);
+        var module = helper.CompileToModule(
+            GetKernel(kernelName),
+            new CompilationProperties());
+        Assert.DoesNotContain(
+            module.Methods.ToArray(),
+            method => method.Source?.Name == helperName);
+    }
+
+    [Theory]
+    [InlineData(BackendType.Metal)]
+    [InlineData(BackendType.OpenCL)]
+    public void BackendsWithoutRecursiveCalls_CompileRecursionWithConstantArguments(
+        BackendType backend)
+    {
+        using var helper = new CompilationHelper(backend);
+        helper.GenerateBackendCode(
+            GetKernel(nameof(Kernels.ConstantFactorialKernel)),
+            backend);
+        helper.GenerateBackendCode(
+            GetKernel(nameof(Kernels.ConstantMutualRecursionKernel)),
+            backend);
+    }
+
+    [Fact]
+    public async Task RecursionWithConstantArguments_DeeperThanTheLimit_StaysRecursive()
+    {
+        var warning = Assert.Single(
+            await GetWarningsAsync(nameof(Kernels.DeepConstantRecursionKernel)));
+
+        Assert.Equal("ILGPU1210", warning.Id);
+        AssertLocation(warning.Location, "SumBelow");
+    }
 
     #endregion
 

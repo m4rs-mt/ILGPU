@@ -10,8 +10,9 @@
 // ---------------------------------------------------------------------------------------
 
 // Test program: RecursiveStores
-// A helper stores through a view at every depth of its recursion and returns
-// early at the end, writing a different number of elements per thread.
+// A helper stores through a view before calling itself in tail position, which
+// compiles to a loop, and returns early at the end, writing a different number of
+// elements per thread.
 // Expected output: 1 0 0 0 5 6 0 0 9 10 13 0 13 14 17 22
 
 using System;

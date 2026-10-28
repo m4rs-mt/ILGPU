@@ -16,6 +16,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 
 namespace ILGPUC.Frontend;
 
@@ -31,8 +32,9 @@ namespace ILGPUC.Frontend;
 /// </param>
 /// <param name="Reason">Why the call is not constant, if it is not.</param>
 /// <param name="IsBudgetExceeded">
-/// <see langword="true"/> if the evaluation ran out of its instruction budget. Such
-/// results depend on where the evaluation started and are not memoized.
+/// <see langword="true"/> if the evaluation ran out of its instruction budget or
+/// nested calls too deeply. Such results depend on where the evaluation started and
+/// are not memoized.
 /// </param>
 /// <param name="Cost">
 /// The number of instructions the evaluation executed, including nested calls. A
@@ -62,7 +64,8 @@ readonly record struct ConstantEvaluationResult(
 /// <summary>
 /// Evaluates calls of closed methods at compile time, when all arguments are
 /// constants. This lets helper predicates such as <c>IsFloat&lt;T&gt;()</c> fold at
-/// any call depth, so that type tests in callers turn into constant branches.
+/// any call depth, so that type tests in callers turn into constant branches, and
+/// recursive helpers such as <c>Factorial(5)</c> fold to their results.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -83,8 +86,10 @@ readonly record struct ConstantEvaluationResult(
 /// Results are memoized per closed method, argument constants and pointer size.
 /// Re-entering a call that is still being evaluated with the same arguments is
 /// recursion that cannot terminate with constant inputs and is not constant;
-/// recursion over different instantiations terminates through the memo. There is
-/// no depth limit: an instruction budget per evaluation stops runaway loops.
+/// recursion over different instantiations or arguments terminates through the
+/// memo or a base case. An instruction budget per evaluation stops runaway loops,
+/// and a limit of <see cref="MaxCallDepth"/> nested calls keeps deep recursion
+/// from exhausting the stack of the compiler.
 /// </para>
 /// </remarks>
 sealed class ConstantEvaluator
@@ -169,6 +174,15 @@ sealed class ConstantEvaluator
         /// <summary>Whether the instruction budget ran out.</summary>
         public bool IsBudgetExceeded { get; }
     }
+
+    #endregion
+
+    #region Constants
+
+    /// <summary>
+    /// The maximum number of nested calls of one evaluation.
+    /// </summary>
+    public const int MaxCallDepth = 256;
 
     #endregion
 
@@ -283,6 +297,29 @@ sealed class ConstantEvaluator
     }
 
     /// <summary>
+    /// Returns true if the given method calls other methods, which may call it
+    /// again. Methods that call nothing fold just as well after inlining.
+    /// </summary>
+    /// <param name="method">The closed method to check.</param>
+    public bool CallsMethods(MethodBase method)
+    {
+        if (!Intrinsics.TryGetEvaluationTarget(method, out var target) ||
+            _disassemble(target) is not { } body)
+        {
+            return false;
+        }
+        foreach (var instruction in body.Instructions)
+        {
+            if (instruction.InstructionType is
+                ILInstructionType.Call or ILInstructionType.Callvirt)
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /// <summary>
     /// Evaluates a call, consulting and updating the memo.
     /// </summary>
     private object? Call(MethodBase method, object?[] arguments)
@@ -301,6 +338,14 @@ sealed class ConstantEvaluator
             return cached.Value;
         }
 
+        if (_inProgress.Count >= MaxCallDepth ||
+            !RuntimeHelpers.TryEnsureSufficientExecutionStack())
+        {
+            throw new NotConstantException(
+                $"the evaluation nests calls {_inProgress.Count} deep at " +
+                $"'{FrontendDisplay.Format(method)}'",
+                isBudgetExceeded: true);
+        }
         if (!_inProgress.Add((method, argumentKey)))
         {
             throw new NotConstantException(

@@ -75,7 +75,7 @@ IL bytecode ──→ ILFrontend ──→ ModuleBuilder.Seal() ──→ Optimi
 - **Optimizer** — Runs transformation passes (address space inference, inlining, etc.)
 - **`Backend.GenerateCode()`** — IR → target language source (Metal/CUDA/OpenCL/ROCm/CPU C#)
 - **`FailedMethodVerifier`** — after optimization, every surviving call to a helper whose code generation failed (and every unfolded `typeof(T)` value) is a compile error; the frontend still marks such helpers External so that calls optimization removes stay harmless
-- **Type specialization** — `ReflectionFolding` folds `typeof(T)` tests and type properties at IL → IR time, `ConstantEvaluator` evaluates helper predicates with constant arguments, and branch folding prunes unreachable blocks (`PruneUnreachableBlocks`) before anything in them is code-generated
+- **Type specialization** — `ReflectionFolding` folds `typeof(T)` tests and type properties at IL → IR time, `ConstantEvaluator` evaluates calls with constant arguments (helper predicates and recursive helpers such as `Factorial(5)`), and branch folding prunes unreachable blocks (`PruneUnreachableBlocks`) before anything in them is code-generated
 
 ### Roslyn-based `build` command (alternative pipeline)
 
