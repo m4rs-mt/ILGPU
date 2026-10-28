@@ -139,21 +139,29 @@ partial class Intrinsics
     private static Value? Group_GetLocalMemoryBuffer(ref InvocationContext context)
     {
         var builder = context.ModuleBuilder;
+        var location = context.Location;
 
-        // Create local allocation
-        var allocaType = context.GetMethodGenericArguments().First();
+        var allocaType = builder.CreateType(
+            context.GetMethodGenericArguments().First());
         var length = context.Pull();
-        var alloca = builder.CreateGlobal(
-            context.Location,
-            builder.CreateType(allocaType),
-            MemoryAddressSpace.Local,
-            length);
+
+        // A length that is not a constant yet, like the length computed from
+        // the extent of a 2D or 3D allocation, becomes one after inlining:
+        // allocate on the stack until LowerArrayAllocas turns the allocation
+        // into a global of that constant length
+        Value? alloca = length is PrimitiveValue
+            ? builder.CreateGlobal(
+                location,
+                allocaType,
+                MemoryAddressSpace.Local,
+                length)
+            : context.Builder.CreateAlloca(
+                location,
+                allocaType,
+                context.Builder.CreateConvertToInt32(location, length));
 
         // Build view using the same length
-        return context.Builder.CreateNewView(
-            context.Location,
-            alloca,
-            length);
+        return context.Builder.CreateNewView(location, alloca, length);
     }
 
     /// <summary>
