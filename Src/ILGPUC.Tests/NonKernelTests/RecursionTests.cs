@@ -378,6 +378,27 @@ public sealed class RecursionTests
             data[index] = Outputs(data[index], (nint)(&start), 0);
         }
 
+        private unsafe struct Node
+        {
+            public int* Value;
+        }
+
+        private static unsafe int Fields(int n, Node p, int sum)
+        {
+            int x = n;
+            if (n == 0)
+                return sum;
+            return Fields(n - 1, new Node { Value = &x }, sum + *p.Value); // Fields
+        }
+
+        public static unsafe void FieldsKernel(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data)
+        {
+            int start = 0;
+            data[index] = Fields(data[index], new Node { Value = &start }, 0);
+        }
+
         private static unsafe int* AddressOf(ref int value)
         {
             fixed (int* address = &value)
@@ -786,6 +807,7 @@ public sealed class RecursionTests
     [InlineData(nameof(Kernels.LocalsKernel), "Locals")]
     [InlineData(nameof(Kernels.ArgumentsKernel), "Arguments")]
     [InlineData(nameof(Kernels.OutputsKernel), "Outputs")]
+    [InlineData(nameof(Kernels.FieldsKernel), "Fields")]
     [InlineData(nameof(Kernels.SlotsKernel), "Slots")]
     [InlineData(nameof(Kernels.CalleesKernel), "Callees")]
     [InlineData(nameof(Kernels.NestedCalleesKernel), "NestedCallees")]
