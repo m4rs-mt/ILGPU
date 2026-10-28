@@ -260,7 +260,8 @@ sealed class ModuleTransform : ModuleBuilder, IModuleRewriter, ITransform, IType
         // Try to rewrite value
         newValue = oldValue switch
         {
-            Global global => global.Rewrite(this),
+            Global global => _parent.TryApplyConverter(this, global)
+                ?? global.Rewrite(this),
             TypeValue type => _parent.TryApplyConverter(this, type)
                 ?? type.Rewrite(this),
             UndefinedValue _ => UndefinedValue,

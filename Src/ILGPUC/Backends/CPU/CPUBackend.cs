@@ -79,7 +79,13 @@ sealed class CPUBackend(
 
     /// <inheritdoc/>
     protected override ArchitectureSpecification GetArchitectureSpecification() =>
-        new(Capabilities, CurrentWarpSize, new(1, 0), SupportsViews: true);
+        new(
+            Capabilities,
+            CurrentWarpSize,
+            new(1, 0),
+            SupportsViews: true,
+            // Groups that share memory run in the SIMD lanes of one call
+            MaxNumThreadsPerGroup: VectorWidth);
 
     /// <inheritdoc/>
     /// <remarks>

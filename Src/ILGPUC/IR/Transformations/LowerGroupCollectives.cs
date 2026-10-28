@@ -472,26 +472,17 @@ sealed class LowerGroupCollectives(
         var extractTarget = (Method)extractMethod;
 
         // --- Allocate shared data array (group dimension elements) ---
-        // Size the backing storage with a compile-time constant so the CPU
-        // backend (which stackallocs the backing buffer) and any other
-        // backend that requires a static shared-memory size can allocate
-        // correctly. CreateGroupDimensionValue is a runtime value; passing
-        // it as the length falls through to "length unknown → size 1" in
-        // CPUMethodEmitter.EmitGlobalDeclarations, causing out-of-bounds
-        // writes during the cross-lane scatter. On supported backends the
-        // group dimension equals the warp size (CPU: VectorWidth == 1 warp
-        // per group; Metal: simdgroup == threadgroup for small groups), so
-        // _scratchSlots is a safe compile-time upper bound. Runtime-sized
-        // groups that exceed one warp still use the runtime groupDim for
-        // the view, which drives the index computations.
+        // Shared memory is allocated statically: the backing storage holds an
+        // element for every thread of the largest group of the target, while
+        // the view of the runtime group dimension drives the index
+        // computations.
         var groupDim = transform.CreateGroupDimensionValue(location);
-        var staticGroupSize = transform.CreatePrimitiveValue(
-            location, _scratchSlots);
-        var sharedDataGlobal = transform.ModuleBuilder.CreateGlobal(
+        var sharedDataGlobal = transform.ModuleBuilder.CreateScaledGlobal(
             location,
             data.Type,
             MemoryAddressSpace.Shared,
-            staticGroupSize);
+            1,
+            GlobalArrayScale.GroupThreads);
         var sharedData = transform.CreateNewView(
             location, sharedDataGlobal, groupDim).AsNotNull();
 

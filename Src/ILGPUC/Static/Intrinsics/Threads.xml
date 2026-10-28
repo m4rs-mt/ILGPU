@@ -25,8 +25,8 @@
             <Generator Name="GetSharedMemory2D" Target="Group_GetSharedMemory2D" NumArguments="1" />
             <Generator Name="GetSharedMemoryPerThread"
                 Target="Group_GetSharedMemoryElementPerThread" NumArguments="0" />
-            <Generator Name="GetSharedMemoryPerThreadMultiplier"
-                Target="Group_GetSharedMemoryElementPerThreadMultiplier" />
+            <Generator Name="GetSharedMemoryPerThread"
+                Target="Group_GetSharedMemoryElementPerThreadMultiplier" NumArguments="1" />
             <Generator Name="GetSharedMemoryPerWarp" Target="Group_GetSharedMemoryElementPerWarp" />
             <Generator Name="Reduce" Target="Group_Reduce" NumArguments="3" Arguments="GroupReduceKind.Reduce" />
             <Generator Name="AllReduce" Target="Group_Reduce" NumArguments="3" Arguments="GroupReduceKind.AllReduce" />

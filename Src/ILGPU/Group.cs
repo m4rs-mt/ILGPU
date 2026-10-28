@@ -13,7 +13,6 @@ using ILGPU.Intrinsic;
 using ILGPU.RadixSort;
 using ILGPU.Runtime;
 using System;
-using System.Diagnostics;
 using System.Runtime.CompilerServices;
 
 namespace ILGPU;
@@ -256,31 +255,15 @@ public static partial class Group
     /// An allocated region of shared memory holding a set of elements per thread.
     /// </returns>
     /// <remarks>
-    /// The buffer is allocated by a call site in this method, which yields one
-    /// buffer per group and kernel: every call of this method with the same type
-    /// arguments in a kernel returns the same buffer. A kernel that stores to the
-    /// buffer again must wait with a group barrier until all threads have read
-    /// the values of the previous call.
+    /// The multiplier has to be a positive compile-time constant. Each call site
+    /// of this method yields one buffer per group and kernel, also in a helper
+    /// that a kernel calls or inlines more than once: every call of the helper
+    /// returns the same buffer. A helper that stores to its buffer again must
+    /// wait with a group barrier until all threads have read the values of the
+    /// previous call.
     /// </remarks>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static ArrayView<T> GetSharedMemoryPerThread<T>(int multiplier)
-        where T : unmanaged
-    {
-        Trace.Assert(multiplier > 0, "Invalid shared memory multiplier");
-        return GetSharedMemoryPerThreadMultiplier<T>(multiplier);
-    }
-
-    /// <summary>
-    /// Allocates a set of elements of the given element type for each thread in the
-    /// current group.
-    /// </summary>
-    /// <typeparam name="T">The element type.</typeparam>
-    /// <param name="multiplier">The multiplier to use per element.</param>
-    /// <returns>
-    /// An allocated region of shared memory holding a set of elements per thread.
-    /// </returns>
     [GroupIntrinsic]
-    private static ArrayView<T> GetSharedMemoryPerThreadMultiplier<T>(int multiplier)
+    public static ArrayView<T> GetSharedMemoryPerThread<T>(int multiplier)
         where T : unmanaged =>
         throw new InvalidKernelOperationException();
 

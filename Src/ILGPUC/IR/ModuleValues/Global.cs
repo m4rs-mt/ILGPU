@@ -15,6 +15,30 @@ using ILGPUC.IR.Rewriting;
 namespace ILGPUC.IR.ModuleValues;
 
 /// <summary>
+/// Specifies by what the array length of a global is multiplied on the target
+/// accelerator.
+/// </summary>
+enum GlobalArrayScale
+{
+    /// <summary>
+    /// The array length is the number of elements.
+    /// </summary>
+    None,
+
+    /// <summary>
+    /// The array length is the number of elements for every thread of the
+    /// largest group of the target accelerator.
+    /// </summary>
+    GroupThreads,
+
+    /// <summary>
+    /// The array length is the number of elements for every warp of the largest
+    /// group of the target accelerator.
+    /// </summary>
+    GroupWarps,
+}
+
+/// <summary>
 /// Represents an allocation operation in local memory, shared, or global memory.
 /// </summary>
 sealed partial class Global :
@@ -39,6 +63,9 @@ sealed partial class Global :
     /// <param name="valueInitializer">The optional value initializer.</param>
     /// <param name="rawArrayLength">The optional direct array length.</param>
     /// <param name="rawValueInitializer">The optional direct value initializer.</param>
+    /// <param name="arrayScale">
+    /// The scale of the direct array length on the target accelerator.
+    /// </param>
     internal Global(
         in ModuleValueInitializer initializer,
         TypeValue mallocType,
@@ -46,7 +73,8 @@ sealed partial class Global :
         Method? arrayLength,
         Method? valueInitializer,
         PrimitiveValueBox? rawArrayLength = null,
-        PrimitiveValueBox? rawValueInitializer = null)
+        PrimitiveValueBox? rawValueInitializer = null,
+        GlobalArrayScale arrayScale = GlobalArrayScale.None)
         : base(
             initializer,
             initializer.Builder.CreatePointerType(
@@ -74,8 +102,13 @@ sealed partial class Global :
             _initializerMethodIndex = arrayLength is not null ? 1 : 0;
         }
 
+        this.Assert(
+            arrayScale == GlobalArrayScale.None || rawArrayLength.HasValue,
+            "A scaled array length requires a direct array length");
+
         ArrayLength = rawArrayLength;
         ValueInitializer = rawValueInitializer;
+        ArrayScale = arrayScale;
 
         Seal(ref values);
     }
@@ -121,6 +154,13 @@ sealed partial class Global :
     /// </summary>
     public PrimitiveValueBox? ValueInitializer { get; }
 
+    /// <summary>
+    /// Returns the scale of the array length on the target accelerator. The
+    /// array length of a scaled global is not the final number of elements
+    /// until the accelerator specialization resolves the scale.
+    /// </summary>
+    public GlobalArrayScale ArrayScale { get; }
+
     /// <inheritdoc/>
     public Global? Rewrite<TRewriter>(in TRewriter rewriter)
         where TRewriter : IModuleRewriter, allows ref struct =>
@@ -135,6 +175,27 @@ sealed partial class Global :
                 ? rewriter.RewriteAs<Method>(ValueInitializerMethod)
                 : null,
             ArrayLength,
+            ValueInitializer,
+            ArrayScale);
+
+    /// <summary>
+    /// Rewrites this global with the given number of elements, resolving its
+    /// array scale.
+    /// </summary>
+    /// <param name="rewriter">The rewriter to use.</param>
+    /// <param name="arrayLength">The number of elements to allocate.</param>
+    /// <returns>The rewritten global.</returns>
+    public Global? Rewrite<TRewriter>(
+        in TRewriter rewriter,
+        PrimitiveValueBox arrayLength)
+        where TRewriter : IModuleRewriter, allows ref struct =>
+        rewriter.Builder.CreateGlobalDirect(
+            Location,
+            rewriter.RewriteAs<TypeValue>(AllocType),
+            AddressSpace,
+            null,
+            null,
+            arrayLength,
             ValueInitializer);
 
     /// <inheritdoc cref="Value.ToPrefixString"/>
@@ -143,8 +204,11 @@ sealed partial class Global :
     /// <inheritdoc cref="Value.ToArgString()"/>
     protected override string ToArgString()
     {
+        var scaleString = ArrayScale != GlobalArrayScale.None
+            ? $" x {ArrayScale}"
+            : string.Empty;
         var baseString = $"{Type} [{ArrayLengthMethod?.ToReferenceString() ??
-            ArrayLength.ToString() ?? "?"}]";
+            ArrayLength.ToString() ?? "?"}{scaleString}]";
         var initializerString = $"-> {ValueInitializerMethod?.ToReferenceString() ??
             ValueInitializer.ToString() ?? "N/A"}";
         return $"{baseString} {initializerString}";

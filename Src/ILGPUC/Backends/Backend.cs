@@ -112,6 +112,11 @@ abstract class Backend(
     public abstract CompiledKernelEmitter CreateCompiledKernelEmitter();
 
     /// <summary>
+    /// The maximum number of threads in a group of a GPU accelerator.
+    /// </summary>
+    protected const int MaxNumGPUThreadsPerGroup = 1024;
+
+    /// <summary>
     /// Creates a new architecture specification used to specialize a module for this
     /// backend.
     /// </summary>

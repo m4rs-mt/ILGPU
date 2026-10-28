@@ -53,7 +53,12 @@ sealed class CudaBackend(AcceleratorArchitecture arch, CudaInstructionSet isa) :
 
     /// <inheritdoc/>
     protected override ArchitectureSpecification GetArchitectureSpecification() =>
-        new(Capabilities, CurrentWarpSize, arch, SupportsViews: false);
+        new(
+            Capabilities,
+            CurrentWarpSize,
+            arch,
+            SupportsViews: false,
+            MaxNumThreadsPerGroup: MaxNumGPUThreadsPerGroup);
 
     /// <inheritdoc/>
     public override async Task<CompilationResult?> CompileSourceAsync<TManager>(

@@ -37,4 +37,17 @@ public abstract class GroupRadixSortRuntimeExecutionTests : ExecutionTestBase
             ["Kernels.GroupRadixSortAscendingInt32RuntimeKernel"],
             ["1", "2", "3", "4", "5", "6", "7", "8"]);
     }
+
+    /// <summary>
+    /// Group radix sort of scrambled values for several group sizes, of
+    /// several warps where the device allows.
+    /// </summary>
+    [SkippableFact]
+    public async Task GroupRadixSortGroupSizes_ProducesCorrectOutput()
+    {
+        await VerifyProgramOutputAsync(
+            "TestPrograms/GroupRadixSortRuntime/GroupRadixSortGroupSizes.cs",
+            ["Kernels.GroupRadixSortGroupSizesKernel"],
+            ["unsorted 0", "lost 0"]);
+    }
 }

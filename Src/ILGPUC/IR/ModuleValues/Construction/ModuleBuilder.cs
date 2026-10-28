@@ -874,6 +874,7 @@ partial class ModuleBuilder : IGenerationObject
     /// <param name="valueInitializer">The initializer to use.</param>
     /// <param name="rawArrayLength">The raw array length as box.</param>
     /// <param name="rawValueInitializer">The raw value initializer as box.</param>
+    /// <param name="arrayScale">The scale of the raw array length.</param>
     /// <returns>The created node.</returns>
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     internal Global? CreateGlobalDirect(
@@ -883,7 +884,8 @@ partial class ModuleBuilder : IGenerationObject
         Value? arrayLength = null,
         Value? valueInitializer = null,
         PrimitiveValueBox? rawArrayLength = null,
-        PrimitiveValueBox? rawValueInitializer = null)
+        PrimitiveValueBox? rawValueInitializer = null,
+        GlobalArrayScale arrayScale = GlobalArrayScale.None)
     {
         if (mallocType is null) return null;
         if (arrayLength is null && !rawArrayLength.HasValue) return null;
@@ -895,11 +897,35 @@ partial class ModuleBuilder : IGenerationObject
             arrayLength as Method,
             valueInitializer as Method,
             rawArrayLength,
-            rawValueInitializer);
+            rawValueInitializer,
+            arrayScale);
 
         _globals.Add(global);
         return global;
     }
+
+    /// <summary>
+    /// Creates a new global holding the given number of elements for every
+    /// thread or every warp of the largest group of the target accelerator.
+    /// </summary>
+    /// <param name="location">The current location.</param>
+    /// <param name="mallocType">The allocation type.</param>
+    /// <param name="addressSpace">The target address space.</param>
+    /// <param name="count">The number of elements per thread or warp.</param>
+    /// <param name="arrayScale">The scale of the number of elements.</param>
+    /// <returns>The created node.</returns>
+    public Global? CreateScaledGlobal(
+        Location location,
+        TypeValue? mallocType,
+        MemoryAddressSpace addressSpace,
+        int count,
+        GlobalArrayScale arrayScale) =>
+        CreateGlobalDirect(
+            location,
+            mallocType,
+            addressSpace,
+            rawArrayLength: new PrimitiveValueBox(BasicValueType.Int32, count),
+            arrayScale: arrayScale);
 
     #endregion
 

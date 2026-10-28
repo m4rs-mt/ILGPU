@@ -158,4 +158,17 @@ public abstract class GroupExecutionTests : ExecutionTestBase
         Assert.False(result.TimedOut, "Process timed out");
         Assert.Equal(4, result.StdOutLines.Length);
     }
+
+    /// <summary>
+    /// Group.Permute called twice per loop iteration yields a permutation of
+    /// the values of each group, for several group sizes.
+    /// </summary>
+    [SkippableFact]
+    public async Task GroupPermute_ProducesCorrectOutput()
+    {
+        await VerifyProgramOutputAsync(
+            "TestPrograms/Group/GroupPermute.cs",
+            ["Kernels.GroupPermuteKernel"],
+            ["permutation mismatches 0", "moved True"]);
+    }
 }
