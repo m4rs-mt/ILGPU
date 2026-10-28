@@ -1112,15 +1112,7 @@ partial class CodeGenerator
         int offset = method.GetParameterOffset();
         var types = new TypeValue[parameters.Length + offset];
         if (offset > 0)
-        {
-            var declaringType = ModuleBuilder.CreateType(
-                method.DeclaringType.AsNotNull());
-            types[0] = declaringType is PointerType
-                ? declaringType
-                : ModuleBuilder.CreatePointerType(
-                    declaringType,
-                    MemoryAddressSpace.Generic);
-        }
+            types[0] = ModuleBuilder.CreateThisType(method.DeclaringType.AsNotNull());
         for (int i = 0; i < parameters.Length; ++i)
             types[i + offset] = ModuleBuilder.CreateType(parameters[i].ParameterType);
         return types;

@@ -147,56 +147,114 @@ partial class BasicBlockBuilder
     }
 
     /// <summary>
-    /// Attempts to recognize the <see cref="BinaryArithmeticKind"/> from an
-    /// operation value. Handles both <see cref="Method"/> bodies (pre-inlining)
-    /// and direct <see cref="BinaryArithmeticValue"/> nodes (post-inlining).
+    /// Attempts to recognize the <see cref="BinaryArithmeticKind"/> from the
+    /// operation of a collective, which is the <see cref="Method"/> of its lambda
+    /// or method group: the frontend creates every collective with that method,
+    /// and every rebuild of a collective keeps a method.
     /// </summary>
+    /// <remarks>
+    /// A recognized collective computes the operation and nothing else, so only an
+    /// operation that is exactly what the method computes is recognized; any other
+    /// method keeps the custom operation, which the lowering rejects with an error.
+    /// </remarks>
     /// <param name="operation">The operation value to inspect.</param>
+    /// <param name="flags">
+    /// The flags of the recognized operation, which are
+    /// <see cref="ArithmeticFlags.Unsigned"/> for an unsigned minimum or maximum
+    /// and <see cref="ArithmeticFlags.None"/> otherwise.
+    /// </param>
     /// <returns>The recognized kind, or null if unrecognized.</returns>
-    internal static BinaryArithmeticKind? TryRecognizeOperation(Value? operation) =>
-        operation switch
-        {
-            // Pre-inlining: operation is a Method whose compiled body contains
-            // a binary arithmetic as its return expression. Note: do NOT check
-            // NumParameters here — during module rebuilds the Method reference
-            // may point to a fresh declaration whose parameters have not yet
-            // been populated, while the underlying compiled body still exists.
-            Method method when method.HasImplementation =>
-                TryRecognizeMethodBody(method),
+    internal static BinaryArithmeticKind? TryRecognizeOperation(
+        Value? operation,
+        out ArithmeticFlags flags)
+    {
+        flags = ArithmeticFlags.None;
 
-            // Post-inlining or direct: operation might be a
-            // BinaryArithmeticValue itself
-            BinaryArithmeticValue arith => arith.Kind,
-
-            _ => null
-        };
+        // The operation is a Method whose compiled body returns a binary
+        // arithmetic of its parameters. Note: do NOT check NumParameters here —
+        // during module rebuilds the Method reference may point to a fresh
+        // declaration whose parameters have not yet been populated, while the
+        // underlying compiled body still exists.
+        if (operation is not Method method || !method.HasImplementation)
+            return null;
+        if (TryRecognizeMethodBody(method) is not BinaryArithmeticValue arith)
+            return null;
+        flags = GetCollectiveFlags(arith.Kind, arith.Flags);
+        return arith.Kind;
+    }
 
     /// <summary>
-    /// Inspects a method body for a binary arithmetic return value.
-    /// Scans all blocks (the IL frontend may create entry + exit blocks
-    /// even for trivial lambda bodies like <c>(a, b) => a + b</c>).
-    /// Returns null if the method body is not yet compiled (Blocks
-    /// collection uninitialized).
+    /// Returns true if a collective can compute the given operation, which is
+    /// associative and commutative.
     /// </summary>
-    private static BinaryArithmeticKind? TryRecognizeMethodBody(Method method)
+    /// <remarks>
+    /// A minimum or maximum depends on the signedness of its operands, which the
+    /// types of the IR do not carry: a collective keeps the unsigned flag of its
+    /// operation (see <see cref="GetCollectiveFlags"/>) from the recognition to
+    /// its lowering and emission, which compare unsigned operands as unsigned.
+    /// </remarks>
+    private static bool IsCollectiveOperation(BinaryArithmeticKind kind) =>
+        kind is BinaryArithmeticKind.Add
+            or BinaryArithmeticKind.Mul
+            or BinaryArithmeticKind.And
+            or BinaryArithmeticKind.Or
+            or BinaryArithmeticKind.Xor
+            or BinaryArithmeticKind.Min
+            or BinaryArithmeticKind.Max;
+
+    /// <summary>
+    /// Returns the flags that a collective keeps for its operation: the unsigned
+    /// flag of a minimum or maximum, the only operations of a collective whose
+    /// result depends on the signedness of their operands, and no flags for any
+    /// other operation.
+    /// </summary>
+    /// <param name="kind">The operation of the collective.</param>
+    /// <param name="flags">The flags of the operation.</param>
+    /// <returns>The flags of the collective.</returns>
+    internal static ArithmeticFlags GetCollectiveFlags(
+        BinaryArithmeticKind kind,
+        ArithmeticFlags flags) =>
+        kind is BinaryArithmeticKind.Min or BinaryArithmeticKind.Max
+            ? flags & ArithmeticFlags.Unsigned
+            : ArithmeticFlags.None;
+
+    /// <summary>
+    /// Inspects a method body for a binary arithmetic return value: the method
+    /// must return the operation applied to two of its parameters and do nothing
+    /// else, as <c>(a, b) => a + b</c> or <c>Math.Max</c> do. A body such as
+    /// <c>(a, b) => a + b + 1</c>, one with side effects, or one that computes the
+    /// operation on converted parameters is not recognized. Returns null if the
+    /// method body is not yet compiled (Blocks collection uninitialized).
+    /// </summary>
+    private static BinaryArithmeticValue? TryRecognizeMethodBody(Method method)
     {
         try
         {
+            if (method.ExitBlock?.TerminationValue is not BinaryArithmeticValue arith
+                || !IsCollectiveOperation(arith.Kind)
+                || arith.Left is not Parameter left
+                || arith.Right is not Parameter right
+                || left == right
+                || left.Method != method
+                || right.Method != method)
+            {
+                return null;
+            }
+
+            // The IL frontend may create entry + exit blocks even for trivial
+            // lambda bodies; none of them may hold a value with an effect
             foreach (var block in method.Blocks)
             {
-                foreach (var value in block.Values)
-                {
-                    if (value is BinaryArithmeticValue arith)
-                        return arith.Kind;
-                }
+                if (block.FirstValue is not null)
+                    return null;
             }
+            return arith;
         }
         catch (System.InvalidOperationException)
         {
             // Blocks collection not yet initialized (method body not compiled)
             return null;
         }
-        return null;
     }
 
     /// <summary>
@@ -210,12 +268,14 @@ partial class BasicBlockBuilder
             or BinaryArithmeticKind.Or;
 
     /// <summary>
-    /// Creates a warp reduce with a known intrinsic binary operation.
+    /// Creates a warp reduce with a known intrinsic binary operation, of which
+    /// it keeps the flags that the operation depends on.
     /// </summary>
     public Value? CreateWarpReduce(
         Location location,
         Value? data,
         BinaryArithmeticKind intrinsicOp,
+        ArithmeticFlags flags,
         WarpReduceKind kind)
     {
         if (data is null) return null;
@@ -230,6 +290,7 @@ partial class BasicBlockBuilder
             GetInitializer(location),
             data,
             intrinsicOp,
+            GetCollectiveFlags(intrinsicOp, flags),
             kind));
     }
 
@@ -248,9 +309,9 @@ partial class BasicBlockBuilder
         if (data is null || operation is null) return null;
 
         // Try to infer a primitive binary operation
-        var intrinsicOp = TryRecognizeOperation(operation);
+        var intrinsicOp = TryRecognizeOperation(operation, out var flags);
         if (intrinsicOp.HasValue)
-            return CreateWarpReduce(location, data, intrinsicOp.Value, kind);
+            return CreateWarpReduce(location, data, intrinsicOp.Value, flags, kind);
 
         // Custom operation — keep the value reference
         return Append(new WarpReduce(
@@ -261,16 +322,37 @@ partial class BasicBlockBuilder
     }
 
     /// <summary>
-    /// Creates a warp scan with a known intrinsic binary operation.
+    /// Ensures that the identity of a scan or reduction has the type of its
+    /// value, as the lowering splits a structure identity into its fields
+    /// together with the value and widens it with the value below 32 bits.
+    /// </summary>
+    /// <param name="location">The current location.</param>
+    /// <param name="data">The value of the collective.</param>
+    /// <param name="identity">The identity of the collective, or null.</param>
+    private static void VerifyIdentity(Location location, Value data, Value? identity)
+    {
+        if (identity is not null && !identity.Type.Equals(data.Type))
+        {
+            throw location.GetInvalidOperationException(
+                $"Identity {identity} does not have the type {data.Type} of the " +
+                $"value {data} of its collective");
+        }
+    }
+
+    /// <summary>
+    /// Creates a warp scan with a known intrinsic binary operation, of which
+    /// it keeps the flags that the operation depends on.
     /// </summary>
     public Value? CreateWarpScan(
         Location location,
         Value? data,
         BinaryArithmeticKind intrinsicOp,
+        ArithmeticFlags flags,
         WarpScanKind kind,
         Value? identity = null)
     {
         if (data is null) return null;
+        VerifyIdentity(location, data, identity);
 
         if (kind == WarpScanKind.Inclusive
             && IsShuffleOrBroadcastConstant(data, groupLevel: false)
@@ -283,6 +365,7 @@ partial class BasicBlockBuilder
             GetInitializer(location),
             data,
             intrinsicOp,
+            GetCollectiveFlags(intrinsicOp, flags),
             kind,
             identity));
     }
@@ -303,11 +386,20 @@ partial class BasicBlockBuilder
         if (data is null || operation is null) return null;
 
         // Try to infer a primitive binary operation
-        var intrinsicOp = TryRecognizeOperation(operation);
+        var intrinsicOp = TryRecognizeOperation(operation, out var flags);
         if (intrinsicOp.HasValue)
-            return CreateWarpScan(location, data, intrinsicOp.Value, kind, identity);
+        {
+            return CreateWarpScan(
+                location,
+                data,
+                intrinsicOp.Value,
+                flags,
+                kind,
+                identity);
+        }
 
         // Custom operation — keep the value reference
+        VerifyIdentity(location, data, identity);
         return Append(new WarpScan(
             GetInitializer(location),
             data,
@@ -319,16 +411,19 @@ partial class BasicBlockBuilder
     // ---- Group-level collectives ----
 
     /// <summary>
-    /// Creates a group reduce with a known intrinsic binary operation.
+    /// Creates a group reduce with a known intrinsic binary operation, of which
+    /// it keeps the flags that the operation depends on.
     /// </summary>
     public Value? CreateGroupReduce(
         Location location,
         Value? data,
         BinaryArithmeticKind intrinsicOp,
+        ArithmeticFlags flags,
         GroupReduceKind kind,
         Value? identity)
     {
         if (data is null || identity is null) return null;
+        VerifyIdentity(location, data, identity);
 
         if (IsShuffleOrBroadcastConstant(data, groupLevel: true)
             && IsIdempotentOperation(intrinsicOp))
@@ -340,6 +435,7 @@ partial class BasicBlockBuilder
             GetInitializer(location),
             data,
             intrinsicOp,
+            GetCollectiveFlags(intrinsicOp, flags),
             kind,
             identity));
     }
@@ -358,10 +454,19 @@ partial class BasicBlockBuilder
     {
         if (data is null || operation is null || identity is null) return null;
 
-        var intrinsicOp = TryRecognizeOperation(operation);
+        var intrinsicOp = TryRecognizeOperation(operation, out var flags);
         if (intrinsicOp.HasValue)
-            return CreateGroupReduce(location, data, intrinsicOp.Value, kind, identity);
+        {
+            return CreateGroupReduce(
+                location,
+                data,
+                intrinsicOp.Value,
+                flags,
+                kind,
+                identity);
+        }
 
+        VerifyIdentity(location, data, identity);
         return Append(new GroupReduce(
             GetInitializer(location),
             data,
@@ -371,16 +476,19 @@ partial class BasicBlockBuilder
     }
 
     /// <summary>
-    /// Creates a group scan with a known intrinsic binary operation.
+    /// Creates a group scan with a known intrinsic binary operation, of which
+    /// it keeps the flags that the operation depends on.
     /// </summary>
     public Value? CreateGroupScan(
         Location location,
         Value? data,
         BinaryArithmeticKind intrinsicOp,
+        ArithmeticFlags flags,
         GroupScanKind kind,
         Value? identity)
     {
         if (data is null || identity is null) return null;
+        VerifyIdentity(location, data, identity);
 
         if (kind == GroupScanKind.Inclusive
             && IsShuffleOrBroadcastConstant(data, groupLevel: true)
@@ -393,6 +501,7 @@ partial class BasicBlockBuilder
             GetInitializer(location),
             data,
             intrinsicOp,
+            GetCollectiveFlags(intrinsicOp, flags),
             kind,
             identity));
     }
@@ -411,10 +520,19 @@ partial class BasicBlockBuilder
     {
         if (data is null || operation is null || identity is null) return null;
 
-        var intrinsicOp = TryRecognizeOperation(operation);
+        var intrinsicOp = TryRecognizeOperation(operation, out var flags);
         if (intrinsicOp.HasValue)
-            return CreateGroupScan(location, data, intrinsicOp.Value, kind, identity);
+        {
+            return CreateGroupScan(
+                location,
+                data,
+                intrinsicOp.Value,
+                flags,
+                kind,
+                identity);
+        }
 
+        VerifyIdentity(location, data, identity);
         return Append(new GroupScan(
             GetInitializer(location),
             data,

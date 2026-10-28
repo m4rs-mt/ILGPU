@@ -154,6 +154,13 @@ public static partial class Group
     /// </summary>
     /// <typeparam name="T">The element type.</typeparam>
     /// <returns>An allocated element in shared memory.</returns>
+    /// <remarks>
+    /// Each call site of this method yields one buffer per group and kernel, also
+    /// in a helper that a kernel calls or inlines more than once: every call of
+    /// the helper returns the same buffer. A helper that stores to its buffer
+    /// again must wait with a group barrier until all threads have read the
+    /// values of the previous call.
+    /// </remarks>
     [GroupIntrinsic]
     public static ref T GetSharedMemory<T>() where T : unmanaged =>
         throw new InvalidKernelOperationException();
@@ -164,6 +171,13 @@ public static partial class Group
     /// <typeparam name="T">The element type.</typeparam>
     /// <param name="extent">The extent (number of elements to allocate).</param>
     /// <returns>An allocated region of shared memory.</returns>
+    /// <remarks>
+    /// Each call site of this method yields one buffer per group and kernel, also
+    /// in a helper that a kernel calls or inlines more than once: every call of
+    /// the helper returns the same buffer. A helper that stores to its buffer
+    /// again must wait with a group barrier until all threads have read the
+    /// values of the previous call.
+    /// </remarks>
     [GroupIntrinsic]
     public static ArrayView<T> GetSharedMemory<T>(int extent) where T : unmanaged =>
         throw new InvalidKernelOperationException();
@@ -175,6 +189,13 @@ public static partial class Group
     /// <typeparam name="TStride">The shared memory stride.</typeparam>
     /// <param name="extent">The extent (number of elements to allocate).</param>
     /// <returns>An allocated region of shared memory.</returns>
+    /// <remarks>
+    /// Each call site of this method yields one buffer per group and kernel, also
+    /// in a helper that a kernel calls or inlines more than once: every call of
+    /// the helper returns the same buffer. A helper that stores to its buffer
+    /// again must wait with a group barrier until all threads have read the
+    /// values of the previous call.
+    /// </remarks>
     [GroupIntrinsic]
     public static ArrayView2D<T, TStride> GetSharedMemory2D<T, TStride>(Index2D extent)
         where T : unmanaged
@@ -188,6 +209,13 @@ public static partial class Group
     /// <typeparam name="TStride">The shared memory stride.</typeparam>
     /// <param name="extent">The extent (number of elements to allocate).</param>
     /// <returns>An allocated region of shared memory.</returns>
+    /// <remarks>
+    /// The buffer is allocated by a call site in this method, which yields one
+    /// buffer per group and kernel: every call of this method with the same type
+    /// arguments in a kernel returns the same buffer. A kernel that stores to the
+    /// buffer again must wait with a group barrier until all threads have read
+    /// the values of the previous call.
+    /// </remarks>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static ArrayView3D<T, TStride> GetSharedMemory3D<T, TStride>(Index3D extent)
         where T : unmanaged
@@ -207,6 +235,13 @@ public static partial class Group
     /// <returns>
     /// An allocated region of shared memory holding a single element per thread.
     /// </returns>
+    /// <remarks>
+    /// Each call site of this method yields one buffer per group and kernel, also
+    /// in a helper that a kernel calls or inlines more than once: every call of
+    /// the helper returns the same buffer. A helper that stores to its buffer
+    /// again must wait with a group barrier until all threads have read the
+    /// values of the previous call.
+    /// </remarks>
     [GroupIntrinsic]
     public static ArrayView<T> GetSharedMemoryPerThread<T>() where T : unmanaged =>
         throw new InvalidKernelOperationException();
@@ -220,6 +255,13 @@ public static partial class Group
     /// <returns>
     /// An allocated region of shared memory holding a set of elements per thread.
     /// </returns>
+    /// <remarks>
+    /// The buffer is allocated by a call site in this method, which yields one
+    /// buffer per group and kernel: every call of this method with the same type
+    /// arguments in a kernel returns the same buffer. A kernel that stores to the
+    /// buffer again must wait with a group barrier until all threads have read
+    /// the values of the previous call.
+    /// </remarks>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static ArrayView<T> GetSharedMemoryPerThread<T>(int multiplier)
         where T : unmanaged
@@ -250,6 +292,13 @@ public static partial class Group
     /// <returns>
     /// An allocated region of shared memory holding a single element per warp.
     /// </returns>
+    /// <remarks>
+    /// Each call site of this method yields one buffer per group and kernel, also
+    /// in a helper that a kernel calls or inlines more than once: every call of
+    /// the helper returns the same buffer. A helper that stores to its buffer
+    /// again must wait with a group barrier until all threads have read the
+    /// values of the previous call.
+    /// </remarks>
     [GroupIntrinsic]
     public static ArrayView<T> GetSharedMemoryPerWarp<T>() where T : unmanaged =>
         throw new InvalidKernelOperationException();
@@ -266,6 +315,11 @@ public static partial class Group
     /// <returns>
     /// An allocated region of local memory for each thread in the group.
     /// </returns>
+    /// <remarks>
+    /// Each call site of this method yields one buffer per thread and kernel,
+    /// also in a helper that a kernel calls or inlines more than once: every call
+    /// of the helper returns the same buffer.
+    /// </remarks>
     [GroupIntrinsic]
     public static ArrayView<T> GetLocalMemoryPerThread<T>(int extent)
         where T : unmanaged =>
@@ -280,6 +334,11 @@ public static partial class Group
     /// <returns>
     /// An allocated region of local memory for each thread in the group.
     /// </returns>
+    /// <remarks>
+    /// The buffer is allocated by a call site in this method, which yields one
+    /// buffer per thread and kernel: every call of this method with the same type
+    /// arguments in a kernel returns the same buffer.
+    /// </remarks>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static ArrayView2D<T, TStride> GetLocalMemoryPerThread2D<T, TStride>(
         Index2D extent)
@@ -301,6 +360,11 @@ public static partial class Group
     /// <returns>
     /// An allocated region of local memory for each thread in the group.
     /// </returns>
+    /// <remarks>
+    /// The buffer is allocated by a call site in this method, which yields one
+    /// buffer per thread and kernel: every call of this method with the same type
+    /// arguments in a kernel returns the same buffer.
+    /// </remarks>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static ArrayView3D<T, TStride> GetLocalMemoryPerThread3D<T, TStride>(
         Index3D extent)
@@ -333,7 +397,12 @@ public static partial class Group
     /// <typeparam name="T">The value type to reduce.</typeparam>
     /// <param name="value">The value from this thread.</param>
     /// <param name="identity">The identity element for the operation.</param>
-    /// <param name="operation">A binary operation (T, T) -> T.</param>
+    /// <param name="operation">
+    /// The operation, which must return one operation of its two operands: one of
+    /// <c>+</c>, <c>*</c>, <c>&amp;</c>, <c>|</c> and <c>^</c>, or <c>Math.Min</c> or
+    /// <c>Math.Max</c>, as in
+    /// <c>(a, b) =&gt; a + b</c>. A kernel with any other operation does not compile.
+    /// </param>
     /// <returns>The reduced value (valid in thread 0).</returns>
     [GroupIntrinsic]
     public static T Reduce<T>(T value, T identity, Func<T, T, T> operation)
@@ -346,7 +415,12 @@ public static partial class Group
     /// <typeparam name="T">The value type to reduce.</typeparam>
     /// <param name="value">The value from this thread.</param>
     /// <param name="identity">The identity element for the operation.</param>
-    /// <param name="operation">A binary operation (T, T) -> T.</param>
+    /// <param name="operation">
+    /// The operation, which must return one operation of its two operands: one of
+    /// <c>+</c>, <c>*</c>, <c>&amp;</c>, <c>|</c> and <c>^</c>, or <c>Math.Min</c> or
+    /// <c>Math.Max</c>, as in
+    /// <c>(a, b) =&gt; a + b</c>. A kernel with any other operation does not compile.
+    /// </param>
     /// <returns>The reduced value (available on all threads).</returns>
     [GroupIntrinsic]
     public static T AllReduce<T>(T value, T identity, Func<T, T, T> operation)
@@ -363,7 +437,12 @@ public static partial class Group
     /// <typeparam name="T">The value type to scan.</typeparam>
     /// <param name="value">The value from this thread.</param>
     /// <param name="identity">The identity element for the operation.</param>
-    /// <param name="operation">A binary operation (T, T) -> T.</param>
+    /// <param name="operation">
+    /// The operation, which must return one operation of its two operands: one of
+    /// <c>+</c>, <c>*</c>, <c>&amp;</c>, <c>|</c> and <c>^</c>, or <c>Math.Min</c> or
+    /// <c>Math.Max</c>, as in
+    /// <c>(a, b) =&gt; a + b</c>. A kernel with any other operation does not compile.
+    /// </param>
     /// <returns>The scanned value for this thread.</returns>
     [GroupIntrinsic]
     public static T InclusiveScan<T>(T value, T identity, Func<T, T, T> operation)
@@ -377,7 +456,12 @@ public static partial class Group
     /// <typeparam name="T">The value type to scan.</typeparam>
     /// <param name="value">The value from this thread.</param>
     /// <param name="identity">The identity element for the operation.</param>
-    /// <param name="operation">A binary operation (T, T) -> T.</param>
+    /// <param name="operation">
+    /// The operation, which must return one operation of its two operands: one of
+    /// <c>+</c>, <c>*</c>, <c>&amp;</c>, <c>|</c> and <c>^</c>, or <c>Math.Min</c> or
+    /// <c>Math.Max</c>, as in
+    /// <c>(a, b) =&gt; a + b</c>. A kernel with any other operation does not compile.
+    /// </param>
     /// <returns>The scanned value for this thread.</returns>
     [GroupIntrinsic]
     public static T ExclusiveScan<T>(T value, T identity, Func<T, T, T> operation)

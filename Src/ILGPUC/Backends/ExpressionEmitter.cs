@@ -1545,7 +1545,7 @@ sealed class ExpressionEmitter(GenerationContext context, TypeEmitter typeEmitte
                 ?? throw new NotSupportedException(
                     "Custom warp reduce operations must be lowered before codegen"),
             reduce.Kind,
-            reduce.BasicValueType.GetArithmeticBasicValueType(false));
+            reduce.BasicValueType.GetArithmeticBasicValueType(reduce.IsUnsigned));
         return new Emitted(text, Prec.Postfix);
     }
 
@@ -1563,7 +1563,7 @@ sealed class ExpressionEmitter(GenerationContext context, TypeEmitter typeEmitte
                 ?? throw new NotSupportedException(
                     "Custom warp scan operations must be lowered before codegen"),
             scan.Kind,
-            scan.BasicValueType.GetArithmeticBasicValueType(false));
+            scan.BasicValueType.GetArithmeticBasicValueType(scan.IsUnsigned));
         return new Emitted(text, Prec.Postfix);
     }
 

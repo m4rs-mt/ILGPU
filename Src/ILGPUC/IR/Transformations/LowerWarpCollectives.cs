@@ -15,7 +15,6 @@ using ILGPUC.IR.BasicBlockValues;
 using ILGPUC.IR.BasicBlockValues.Construction;
 using ILGPUC.IR.ModuleValues;
 using ILGPUC.IR.PureValues;
-using System;
 using System.Runtime.CompilerServices;
 
 namespace ILGPUC.IR.Transformations;
@@ -52,14 +51,16 @@ sealed class LowerWarpCollectives(
         specification.AcceleratorType switch
         {
             // Metal: simd_sum, simd_min, simd_max, simd_and, simd_or,
-            // simd_xor, simd_product (32-bit and smaller types only)
+            // simd_xor, simd_product (32-bit and smaller types only), with
+            // unsigned operands for an unsigned minimum or maximum
             AcceleratorType.Metal => !Is64Bit(type) && op is
                 BinaryArithmeticKind.Add or BinaryArithmeticKind.Min or
                 BinaryArithmeticKind.Max or BinaryArithmeticKind.And or
                 BinaryArithmeticKind.Or or BinaryArithmeticKind.Xor or
                 BinaryArithmeticKind.Mul,
             // OpenCL: sub_group_reduce_add, sub_group_reduce_min,
-            // sub_group_reduce_max
+            // sub_group_reduce_max, with unsigned operands for an unsigned
+            // minimum or maximum
             AcceleratorType.OpenCL => op is
                 BinaryArithmeticKind.Add or BinaryArithmeticKind.Min or
                 BinaryArithmeticKind.Max,
@@ -107,64 +108,40 @@ sealed class LowerWarpCollectives(
     }
 
     /// <summary>
-    /// Inlines a binary operation, producing a single
-    /// <see cref="BinaryArithmeticValue"/> for intrinsic operations or
-    /// falling back to a <see cref="MethodCall"/> for custom operations.
+    /// Inlines the intrinsic binary operation of a reduce node, producing a
+    /// single <see cref="BinaryArithmeticValue"/>. A custom operation is rejected
+    /// before the node is lowered.
     /// </summary>
     private static Value InlineApply(
         BasicBlockTransform transform,
         Location location,
         WarpReduce source,
         Value left,
-        Value right)
-    {
-        if (source.HasIntrinsicOperation)
-        {
-            return transform.CreateArithmetic(
-                location,
-                left,
-                right,
-                source.IntrinsicOp!.Value).AsNotNull();
-        }
-
-        // Custom operation: the Operation value is a Method — emit a call.
-        // The inliner will inline it in a subsequent pass.
-        throw new NotSupportedException(
-            "Custom warp reduce operations are not yet supported for " +
-            "shuffle-based lowering. Use a recognized binary operation " +
-            "like (a, b) => a + b.");
-    }
+        Value right) =>
+        transform.CreateArithmetic(
+            location,
+            left,
+            right,
+            source.IntrinsicOp!.Value,
+            source.IntrinsicFlags).AsNotNull();
 
     /// <summary>
-    /// Inlines a binary operation for a scan node.
+    /// Inlines the intrinsic binary operation of a scan node. A custom operation
+    /// is rejected before the node is lowered.
     /// </summary>
     private static Value InlineApply(
         BasicBlockTransform transform,
         Location location,
         WarpScan source,
         Value left,
-        Value right)
-    {
-        if (source.HasIntrinsicOperation)
-        {
-            return transform.CreateArithmetic(
-                location,
-                left,
-                right,
-                source.IntrinsicOp!.Value).AsNotNull();
-        }
+        Value right) =>
+        transform.CreateArithmetic(
+            location,
+            left,
+            right,
+            source.IntrinsicOp!.Value,
+            source.IntrinsicFlags).AsNotNull();
 
-        throw new NotSupportedException(
-            "Custom warp scan operations are not yet supported for " +
-            "shuffle-based lowering. Use a recognized binary operation " +
-            "like (a, b) => a + b.");
-    }
-
-    /// <summary>
-    /// Lowers a <see cref="WarpReduce"/> to an unrolled shuffle sequence.
-    /// Skips lowering when the backend supports native emission for the
-    /// recognized intrinsic operation.
-    /// </summary>
     /// <summary>
     /// Attempts late recognition of a custom WarpReduce's operation.
     /// At frontend time, the lambda Method body may not be compiled yet,
@@ -179,7 +156,9 @@ sealed class LowerWarpCollectives(
             return reduce;
 
         // Try late recognition of the custom operation
-        var op = BasicBlockBuilder.TryRecognizeOperation(reduce.Operation);
+        var op = BasicBlockBuilder.TryRecognizeOperation(
+            reduce.Operation,
+            out var flags);
         if (op.HasValue)
         {
             // Create intrinsic variant to replace the custom one
@@ -187,25 +166,25 @@ sealed class LowerWarpCollectives(
                 reduce.Location,
                 transform.Rewrite(reduce.Variable),
                 op.Value,
+                flags,
                 reduce.Kind) as WarpReduce;
         }
 
         return null;
     }
 
+    /// <summary>
+    /// Lowers a <see cref="WarpReduce"/> to an unrolled shuffle sequence.
+    /// Skips lowering when the backend supports native emission for the
+    /// recognized intrinsic operation.
+    /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     private Value? LowerReduce(BasicBlockTransform transform, WarpReduce reduce)
     {
         // Try late recognition for custom operations whose Method body
         // wasn't compiled at frontend time
-        var recognized = TryConvertToIntrinsic(transform, reduce);
-        if (recognized is null)
-        {
-            throw new NotSupportedException(
-                "Cannot recognize the binary operation in the WarpReduce lambda. " +
-                "Use a simple binary operation like (a, b) => a + b.");
-        }
-        reduce = recognized;
+        reduce = TryConvertToIntrinsic(transform, reduce)
+            ?? throw CollectiveDiagnostics.UnsupportedOperation(reduce);
 
         // If the backend supports this operation natively, leave the node
         // for the ExpressionEmitter to emit via IntrinsicEmitter.
@@ -253,13 +232,11 @@ sealed class LowerWarpCollectives(
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     private Value? LowerScan(BasicBlockTransform transform, WarpScan scan)
     {
-        if (scan.HasIntrinsicOperation
-            && SupportsNativeWarpScan(
-                scan.IntrinsicOp!.Value,
-                scan.BasicValueType))
-        {
+        if (!scan.HasIntrinsicOperation)
+            throw CollectiveDiagnostics.UnsupportedOperation(scan);
+
+        if (SupportsNativeWarpScan(scan.IntrinsicOp!.Value, scan.BasicValueType))
             return scan;
-        }
 
         if (!_warpSize.HasValue)
             return scan;

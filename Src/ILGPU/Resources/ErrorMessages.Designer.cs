@@ -1168,6 +1168,24 @@ namespace ILGPU.Resources {
         }
 
         /// <summary>
+        ///   Looks up a localized string similar to The operation of {0} is not supported. It must return one operation of its two operands: one of +, *, &amp;, | and ^, or Math.Min or Math.Max, as in (a, b) =&gt; a + b. Custom operations, including operations on structures, are not supported..
+        /// </summary>
+        internal static string KernelDiagnosticUnsupportedCollectiveOperation {
+            get {
+                return ResourceManager.GetString("KernelDiagnosticUnsupportedCollectiveOperation", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to {0} does not support values of type &apos;{1}&apos;. Only primitive types and structures of primitive types can be broadcast, shuffled, reduced or scanned..
+        /// </summary>
+        internal static string KernelDiagnosticUnsupportedCollectiveType {
+            get {
+                return ResourceManager.GetString("KernelDiagnosticUnsupportedCollectiveType", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to Delegates bound with KernelDelegates.Bind can only be used in kernels compiled by ILGPUC.
         /// </summary>
         internal static string NotSupportedKernelDelegateBind {

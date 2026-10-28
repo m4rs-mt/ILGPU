@@ -271,16 +271,10 @@ sealed partial class CodeGenerator
         // Initialize params
         if (!Method.IsStatic && !Method.IsNotCapturingLambda())
         {
-            var declaringType = ModuleBuilder.CreateType(
+            // The callers pass the address of a value type, and a class, closure
+            // or delegate is already a pointer
+            var declaringType = ModuleBuilder.CreateThisType(
                 Method.DeclaringType.AsNotNull());
-            // Guard against double-wrapping: CreateType already returns a PointerType
-            // for class types (sealed/compiler-generated classes and delegates).
-            if (declaringType is not PointerType)
-            {
-                declaringType = ModuleBuilder.CreatePointerType(
-                    declaringType,
-                    MemoryAddressSpace.Generic);
-            }
             var paramRef = new VariableRef(0, VariableRefType.Argument);
             EntryBlock.SetValue(
                 paramRef,

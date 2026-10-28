@@ -340,6 +340,11 @@ partial class CodeGenerator
     {
         VerifyNoStructMethodGroup(method);
 
+        // A delegate of a remapped method, such as Math.Max, targets the
+        // remapping, which every call of the method invokes, so that the body of
+        // an intrinsic remapping is synthesized below
+        method = Intrinsics.GetRemappedMethod(method);
+
         // Register the method so ILFrontend generates IR for it
         GetMethod(method);
         _pendingLdFunctionMethod = method;

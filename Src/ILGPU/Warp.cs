@@ -236,9 +236,10 @@ public static partial class Warp
     /// <typeparam name="T">The value type to reduce.</typeparam>
     /// <param name="value">The value from this lane.</param>
     /// <param name="operation">
-    /// A binary operation (T, T) -> T. Simple operations like
-    /// <c>(a, b) =&gt; a + b</c> are automatically recognized and may be
-    /// hardware-accelerated on supported backends.
+    /// The operation, which must return one operation of its two operands: one of
+    /// <c>+</c>, <c>*</c>, <c>&amp;</c>, <c>|</c> and <c>^</c>, or <c>Math.Min</c> or
+    /// <c>Math.Max</c>, as in
+    /// <c>(a, b) =&gt; a + b</c>. A kernel with any other operation does not compile.
     /// </param>
     /// <returns>The reduced value (valid in lane 0).</returns>
     [WarpIntrinsic]
@@ -253,9 +254,10 @@ public static partial class Warp
     /// <typeparam name="T">The value type to reduce.</typeparam>
     /// <param name="value">The value from this lane.</param>
     /// <param name="operation">
-    /// A binary operation (T, T) -> T. Simple operations like
-    /// <c>(a, b) =&gt; a + b</c> are automatically recognized and may be
-    /// hardware-accelerated on supported backends.
+    /// The operation, which must return one operation of its two operands: one of
+    /// <c>+</c>, <c>*</c>, <c>&amp;</c>, <c>|</c> and <c>^</c>, or <c>Math.Min</c> or
+    /// <c>Math.Max</c>, as in
+    /// <c>(a, b) =&gt; a + b</c>. A kernel with any other operation does not compile.
     /// </param>
     /// <returns>The reduced value (available on all lanes).</returns>
     [WarpIntrinsic]
@@ -273,9 +275,10 @@ public static partial class Warp
     /// <typeparam name="T">The value type to scan.</typeparam>
     /// <param name="value">The value from this lane.</param>
     /// <param name="operation">
-    /// A binary operation (T, T) -> T. Simple operations like
-    /// <c>(a, b) =&gt; a + b</c> are automatically recognized and may be
-    /// hardware-accelerated on supported backends.
+    /// The operation, which must return one operation of its two operands: one of
+    /// <c>+</c>, <c>*</c>, <c>&amp;</c>, <c>|</c> and <c>^</c>, or <c>Math.Min</c> or
+    /// <c>Math.Max</c>, as in
+    /// <c>(a, b) =&gt; a + b</c>. A kernel with any other operation does not compile.
     /// </param>
     /// <returns>The scanned value for this lane.</returns>
     [WarpIntrinsic]
@@ -293,9 +296,10 @@ public static partial class Warp
     /// The identity element for the operation (e.g. 0 for addition).
     /// </param>
     /// <param name="operation">
-    /// A binary operation (T, T) -> T. Simple operations like
-    /// <c>(a, b) =&gt; a + b</c> are automatically recognized and may be
-    /// hardware-accelerated on supported backends.
+    /// The operation, which must return one operation of its two operands: one of
+    /// <c>+</c>, <c>*</c>, <c>&amp;</c>, <c>|</c> and <c>^</c>, or <c>Math.Min</c> or
+    /// <c>Math.Max</c>, as in
+    /// <c>(a, b) =&gt; a + b</c>. A kernel with any other operation does not compile.
     /// </param>
     /// <returns>The scanned value for this lane.</returns>
     [WarpIntrinsic]

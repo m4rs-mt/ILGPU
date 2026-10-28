@@ -14,7 +14,6 @@ using ILGPU.Util;
 using ILGPUC.IR.BasicBlockValues;
 using ILGPUC.IR.ModuleValues;
 using ILGPUC.IR.PureValues;
-using System;
 using System.Runtime.CompilerServices;
 
 namespace ILGPUC.IR.Transformations;
@@ -29,21 +28,22 @@ namespace ILGPUC.IR.Transformations;
 /// Must run after <see cref="AcceleratorSpecializer"/> (warp size known).
 ///
 /// <para>
-/// Algorithm (2 barriers, no conditional stores, no atomics):
+/// Algorithm (3 barriers, no conditional stores, no atomics):
 /// <list type="number">
 /// <item>Allocate shared[warpDim], init all to identity via benign race</item>
 /// <item>Barrier</item>
 /// <item>Per-warp AllReduce; all lanes store result to shared[warpIdx]</item>
 /// <item>Barrier</item>
-/// <item>Each thread reads shared[laneIdx], warp reduce across results</item>
+/// <item>Each thread reads shared[laneIdx]</item>
+/// <item>Barrier</item>
+/// <item>Warp reduce across the results</item>
 /// </list>
 /// </para>
 /// <para>
-/// No final barrier is emitted: each <see cref="GroupReduce"/> call site
-/// allocates its own unique shared global, so subsequent operations cannot
-/// collide with this call site's shared memory. If the user's kernel has
-/// later code that needs ordering with respect to this reduce, it must
-/// issue its own barrier.
+/// Each call site allocates its own shared global, which the next call from
+/// the same call site, such as in the next iteration of a loop, reuses. The
+/// final barrier keeps a fast warp from storing the identity of that call to
+/// a slot that a slower warp has not read yet.
 /// </para>
 /// </summary>
 /// <param name="args">The transformation args.</param>
@@ -153,11 +153,7 @@ sealed class LowerGroupCollectives(
         GroupReduce reduce)
     {
         if (!reduce.HasIntrinsicOperation)
-        {
-            throw new NotSupportedException(
-                "Custom group reduce operations are not yet supported. " +
-                "Use a recognized binary operation like (a, b) => a + b.");
-        }
+            throw CollectiveDiagnostics.UnsupportedOperation(reduce);
 
         return CreateGroupReduce(
             transform,
@@ -165,13 +161,14 @@ sealed class LowerGroupCollectives(
             transform.Rewrite(reduce.Variable).AsNotNull(),
             transform.Rewrite(reduce.Identity).AsNotNull(),
             reduce.IntrinsicOp!.Value,
+            reduce.IntrinsicFlags,
             reduce.Kind == GroupReduceKind.AllReduce);
     }
 
     /// <summary>
     /// Lowers a group-level <see cref="PredicateBarrier"/> on backends without
     /// a native group vote (Metal) to a group all-reduce over the predicate,
-    /// followed by a barrier.
+    /// which ends with a barrier.
     /// </summary>
     private Value? LowerPredicateBarrier(
         BasicBlockTransform transform,
@@ -198,16 +195,16 @@ sealed class LowerGroupCollectives(
                 (BinaryArithmeticKind.Min, one),
             _ => (BinaryArithmeticKind.Max, zero),
         };
+        // The barrier that ends the group reduction synchronizes all threads of
+        // the group, as a predicate barrier does
         var result = CreateGroupReduce(
             transform,
             location,
             data,
             identity,
             op,
+            ArithmeticFlags.None,
             allReduce: true);
-
-        // A predicate barrier synchronizes all threads of the group
-        transform.CreateBarrier(location, BarrierKind.GroupLevel);
 
         return barrier.PredicateKind == PredicateBarrierPredicateKind.PopCount
             ? result
@@ -220,7 +217,8 @@ sealed class LowerGroupCollectives(
 
     /// <summary>
     /// Emits a group reduction of <paramref name="data"/> using shared memory,
-    /// warp reductions and barriers.
+    /// warp reductions and barriers, which reduce with the operation and its
+    /// flags.
     /// </summary>
     private Value CreateGroupReduce(
         BasicBlockTransform transform,
@@ -228,6 +226,7 @@ sealed class LowerGroupCollectives(
         Value data,
         Value identity,
         BinaryArithmeticKind op,
+        ArithmeticFlags flags,
         bool allReduce)
     {
         // Obtain thread indices
@@ -260,7 +259,7 @@ sealed class LowerGroupCollectives(
         // --- Step 1: Per-warp AllReduce ---
         // All lanes in each warp get their warp's aggregated result.
         var warpResult = transform.CreateWarpReduce(
-            location, data, op, WarpReduceKind.AllReduce).AsNotNull();
+            location, data, op, flags, WarpReduceKind.AllReduce).AsNotNull();
 
         // --- Step 2: Store per-warp result ---
         // All lanes in a warp store the same value to shared[warpIdx].
@@ -283,6 +282,10 @@ sealed class LowerGroupCollectives(
             laneIdx).AsNotNull();
         var val = transform.CreateLoad(location, readAddr).AsNotNull();
 
+        // The next reduce from this call site, such as in the next iteration of
+        // a loop, must not overwrite the slots before all warps have read them
+        transform.CreateBarrier(location, BarrierKind.GroupLevel);
+
         var finalKind = allReduce
             ? WarpReduceKind.AllReduce
             : WarpReduceKind.Reduce;
@@ -290,6 +293,7 @@ sealed class LowerGroupCollectives(
             location,
             val,
             op,
+            flags,
             finalKind).AsNotNull();
 
         return finalResult;
@@ -301,7 +305,7 @@ sealed class LowerGroupCollectives(
     /// </summary>
     /// <remarks>
     /// <para>
-    /// Algorithm (2 barriers):
+    /// Algorithm (3 barriers):
     /// <list type="number">
     /// <item>Allocate shared[warpDim], init all to identity via benign
     /// race</item>
@@ -310,8 +314,9 @@ sealed class LowerGroupCollectives(
     /// <see cref="WarpReduce"/>(AllReduce) for per-warp total; all
     /// lanes store total to shared[warpIdx] (benign race)</item>
     /// <item>Barrier</item>
-    /// <item>Each thread loads shared[laneIdx] (per-warp totals),
-    /// <see cref="WarpScan"/>(Exclusive) for cross-warp prefix,
+    /// <item>Each thread loads shared[laneIdx] (per-warp totals)</item>
+    /// <item>Barrier</item>
+    /// <item><see cref="WarpScan"/>(Exclusive) for cross-warp prefix,
     /// <see cref="Shuffle"/>(Generic) to extract this warp's prefix,
     /// combine with per-warp scan result</item>
     /// </list>
@@ -322,16 +327,13 @@ sealed class LowerGroupCollectives(
         GroupScan scan)
     {
         if (!scan.HasIntrinsicOperation)
-        {
-            throw new NotSupportedException(
-                "Custom group scan operations are not yet supported. " +
-                "Use a recognized binary operation like (a, b) => a + b.");
-        }
+            throw CollectiveDiagnostics.UnsupportedOperation(scan);
 
         var location = scan.Location;
         var data = transform.Rewrite(scan.Variable).AsNotNull();
         var identity = transform.Rewrite(scan.Identity);
         var op = scan.IntrinsicOp!.Value;
+        var flags = scan.IntrinsicFlags;
 
         // Obtain thread indices
         var laneIdx = transform.CreateSubGroupLaneIndexValue(location);
@@ -365,6 +367,7 @@ sealed class LowerGroupCollectives(
             location,
             data,
             op,
+            flags,
             warpScanKind,
             identity).AsNotNull();
 
@@ -375,6 +378,7 @@ sealed class LowerGroupCollectives(
             location,
             data,
             op,
+            flags,
             WarpReduceKind.AllReduce).AsNotNull();
         var storeAddr = transform.CreateLoadElementAddress(
             location,
@@ -390,10 +394,16 @@ sealed class LowerGroupCollectives(
             view,
             laneIdx).AsNotNull();
         var warpTotals = transform.CreateLoad(location, readAddr).AsNotNull();
+
+        // The next scan from this call site, such as in the next iteration of
+        // a loop, must not overwrite the slots before all warps have read them
+        transform.CreateBarrier(location, BarrierKind.GroupLevel);
+
         var exclusivePrefix = transform.CreateWarpScan(
             location,
             warpTotals,
             op,
+            flags,
             WarpScanKind.Exclusive,
             identity).AsNotNull();
 
@@ -410,7 +420,8 @@ sealed class LowerGroupCollectives(
             location,
             myWarpPrefix,
             perWarpResult,
-            op);
+            op,
+            flags);
     }
 
     /// <summary>
@@ -533,10 +544,10 @@ sealed class LowerGroupCollectives(
 
             var warpExclScan = transform.CreateWarpScan(
                 location, isZero, BinaryArithmeticKind.Add,
-                WarpScanKind.Exclusive, zero).AsNotNull();
+                ArithmeticFlags.None, WarpScanKind.Exclusive, zero).AsNotNull();
             var warpTotal = transform.CreateWarpReduce(
                 location, isZero, BinaryArithmeticKind.Add,
-                WarpReduceKind.AllReduce).AsNotNull();
+                ArithmeticFlags.None, WarpReduceKind.AllReduce).AsNotNull();
             var storeScratchAddr = transform.CreateLoadElementAddress(
                 location, sharedScratch, warpIdx).AsNotNull();
             transform.CreateStore(location, storeScratchAddr, warpTotal);
@@ -548,7 +559,7 @@ sealed class LowerGroupCollectives(
                 location, readScratchAddr).AsNotNull();
             var crossWarpPrefix = transform.CreateWarpScan(
                 location, warpTotals, BinaryArithmeticKind.Add,
-                WarpScanKind.Exclusive, zero).AsNotNull();
+                ArithmeticFlags.None, WarpScanKind.Exclusive, zero).AsNotNull();
             var myWarpPrefix = transform.CreateShuffle(
                 location, crossWarpPrefix, warpIdx,
                 ShuffleKind.Generic).AsNotNull();
@@ -566,7 +577,7 @@ sealed class LowerGroupCollectives(
                 location, readReduceAddr).AsNotNull();
             var totalZeros = transform.CreateWarpReduce(
                 location, reduceVal, BinaryArithmeticKind.Add,
-                WarpReduceKind.AllReduce).AsNotNull();
+                ArithmeticFlags.None, WarpReduceKind.AllReduce).AsNotNull();
 
             // --- Step 5: Compute target position ---
             // key==0: target = rank0

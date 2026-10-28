@@ -356,6 +356,21 @@ static unsafe partial class Intrinsics
     }
 
     /// <summary>
+    /// Returns the method that a call of the given method invokes: its intrinsic
+    /// remapping (e.g. <c>Math.Max</c> to <c>XMath.Max</c>), specialized like the
+    /// method, or the method itself if it has none.
+    /// </summary>
+    /// <param name="method">The method.</param>
+    /// <returns>The remapped method, or the method itself.</returns>
+    internal static MethodBase GetRemappedMethod(MethodBase method)
+    {
+        if (!TryGetIntrinsicRemapping(method, out var remapped))
+            return method;
+        var genericContext = GenericContext.TryGet(method);
+        return genericContext?.GetSpecializedMethod(remapped) ?? remapped;
+    }
+
+    /// <summary>
     /// Tries to generate code for a specific invocation context. This method
     /// can generate custom code instead of default method-invocation flow.
     /// </summary>

@@ -33,10 +33,12 @@ namespace ILGPUC.IR.Transformations;
 /// This pass runs after the <see cref="Inliner"/> (which ensures all Method
 /// bodies are available) and <b>before</b> <see cref="DeadLoadElimination"/>
 /// (which would remove unused Method references). It calls
-/// <see cref="BasicBlockBuilder.TryRecognizeOperation"/> to scan the Method's
-/// blocks for a single <see cref="BinaryArithmeticValue"/> and, if found,
-/// replaces the custom node with an intrinsic variant that stores the
-/// <see cref="BinaryArithmeticKind"/> directly. This enables downstream
+/// <see cref="BasicBlockBuilder.TryRecognizeOperation"/>, which recognizes a
+/// Method that returns one <see cref="BinaryArithmeticValue"/> of its two
+/// parameters and has no other effect, and, if recognized, replaces the custom
+/// node with an intrinsic variant that stores the
+/// <see cref="BinaryArithmeticKind"/> directly, together with the unsigned flag
+/// of an unsigned minimum or maximum. This enables downstream
 /// lowering passes (<see cref="LowerWarpCollectives"/>,
 /// <see cref="LowerGroupCollectives"/>) and backend emitters to generate
 /// efficient code without inspecting the lambda body at codegen time.
@@ -69,7 +71,9 @@ sealed class RecognizeCollectiveOps(TransformationArgs args) : Transformation(ar
         if (value.HasIntrinsicOperation)
             return value;
 
-        var op = BasicBlockBuilder.TryRecognizeOperation(value.Operation);
+        var op = BasicBlockBuilder.TryRecognizeOperation(
+            value.Operation,
+            out var flags);
         if (!op.HasValue)
             return value;
 
@@ -77,6 +81,7 @@ sealed class RecognizeCollectiveOps(TransformationArgs args) : Transformation(ar
             value.Location,
             transform.Rewrite(value.Variable),
             op.Value,
+            flags,
             value.Kind);
     }
 
@@ -89,7 +94,9 @@ sealed class RecognizeCollectiveOps(TransformationArgs args) : Transformation(ar
         if (value.HasIntrinsicOperation)
             return value;
 
-        var op = BasicBlockBuilder.TryRecognizeOperation(value.Operation);
+        var op = BasicBlockBuilder.TryRecognizeOperation(
+            value.Operation,
+            out var flags);
         if (!op.HasValue)
             return value;
 
@@ -97,6 +104,7 @@ sealed class RecognizeCollectiveOps(TransformationArgs args) : Transformation(ar
             value.Location,
             transform.Rewrite(value.Variable),
             op.Value,
+            flags,
             value.Kind,
             value.Identity is not null
                 ? transform.Rewrite(value.Identity)
@@ -114,7 +122,9 @@ sealed class RecognizeCollectiveOps(TransformationArgs args) : Transformation(ar
         if (value.HasIntrinsicOperation)
             return value;
 
-        var op = BasicBlockBuilder.TryRecognizeOperation(value.Operation);
+        var op = BasicBlockBuilder.TryRecognizeOperation(
+            value.Operation,
+            out var flags);
         if (!op.HasValue)
             return value;
 
@@ -122,6 +132,7 @@ sealed class RecognizeCollectiveOps(TransformationArgs args) : Transformation(ar
             value.Location,
             transform.Rewrite(value.Variable),
             op.Value,
+            flags,
             value.Kind,
             transform.Rewrite(value.Identity));
     }
@@ -137,7 +148,9 @@ sealed class RecognizeCollectiveOps(TransformationArgs args) : Transformation(ar
         if (value.HasIntrinsicOperation)
             return value;
 
-        var op = BasicBlockBuilder.TryRecognizeOperation(value.Operation);
+        var op = BasicBlockBuilder.TryRecognizeOperation(
+            value.Operation,
+            out var flags);
         if (!op.HasValue)
             return value;
 
@@ -145,6 +158,7 @@ sealed class RecognizeCollectiveOps(TransformationArgs args) : Transformation(ar
             value.Location,
             transform.Rewrite(value.Variable),
             op.Value,
+            flags,
             value.Kind,
             transform.Rewrite(value.Identity));
     }

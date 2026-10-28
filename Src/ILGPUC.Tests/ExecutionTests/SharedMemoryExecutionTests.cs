@@ -46,6 +46,36 @@ public abstract class SharedMemoryExecutionTests : ExecutionTestBase
             ["neighbour mismatches 0", "warp mismatches 0"]);
     }
 
+    /// <summary>
+    /// A shared memory buffer returned by an inlined helper is the same buffer in
+    /// the kernel and in a helper that is not inlined.
+    /// </summary>
+    [SkippableFact]
+    public async Task SharedBufferAcrossCall_ProducesCorrectOutput()
+    {
+        await VerifyProgramOutputAsync(
+            "TestPrograms/SharedMemory/SharedBufferAcrossCall.cs",
+            ["Kernels.SharedBufferAcrossCallKernel"],
+            ["neighbour mismatches 0"]);
+    }
+
+    /// <summary>
+    /// A shared memory call site yields one buffer per kernel, also in a helper
+    /// that two calls inline, and in two kernels that inline the same helper, in
+    /// groups of several warps.
+    /// </summary>
+    [SkippableFact]
+    public async Task SharedBufferInlinedTwice_ProducesCorrectOutput()
+    {
+        await VerifyProgramOutputAsync(
+            "TestPrograms/SharedMemory/SharedBufferInlinedTwice.cs",
+            [
+                "Kernels.SharedTwiceKernel",
+                "Kernels.SharedOtherKernel",
+            ],
+            ["shared twice mismatches 0", "other kernel mismatches 0"]);
+    }
+
     [SkippableFact]
     public async Task SharedMemoryArray_ProducesOutput()
     {

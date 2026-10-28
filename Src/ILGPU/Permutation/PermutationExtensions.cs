@@ -75,7 +75,13 @@ partial class Group
 
         // Sort all lanes appropriately
         int index = RadixSort<int, AscendingInt32>(threadValue);
-        return sharedMemory[index];
+        var result = sharedMemory[index];
+
+        // The buffer of this call site is the buffer of every call of this
+        // method in a kernel: wait until all threads have read it before a
+        // later call stores to it
+        Barrier();
+        return result;
     }
 }
 

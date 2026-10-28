@@ -276,18 +276,9 @@ sealed partial class Block
             if (instanceValue == null)
             {
                 var baseDeclaringType = methodBase.DeclaringType.AsNotNull();
-                var declaringType = ModuleBuilder.CreateType(baseDeclaringType);
-                if (!baseDeclaringType.IsIntrinsicArrayType())
-                {
-                    // For class types, CreateType already returns PointerType;
-                    // avoid creating a double pointer.
-                    if (declaringType is not PointerType)
-                    {
-                        declaringType = ModuleBuilder.CreatePointerType(
-                            declaringType,
-                            MemoryAddressSpace.Generic);
-                    }
-                }
+                var declaringType = baseDeclaringType.IsIntrinsicArrayType()
+                    ? ModuleBuilder.CreateType(baseDeclaringType)
+                    : ModuleBuilder.CreateThisType(baseDeclaringType);
                 instanceValue = Pop(
                     declaringType,
                     ConvertFlags.None);

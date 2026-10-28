@@ -421,6 +421,22 @@ partial class ModuleBuilder : IGenerationObject
         : UnifyType(new ArrayType(GetInitializer(), elementType, dimensions));
 
     /// <summary>
+    /// Creates the type of the this parameter of an instance method declared by
+    /// the given type: a pointer to a value type, also when its only field is a
+    /// pointer or reference, which is the IR type of such a value type, and the
+    /// type of a class, which is already a pointer.
+    /// </summary>
+    /// <param name="declaringType">The type declaring the method.</param>
+    /// <returns>The IR type of the this parameter.</returns>
+    public TypeValue CreateThisType(Type declaringType)
+    {
+        var type = CreateType(declaringType);
+        return declaringType.IsValueType || type is not PointerType
+            ? CreatePointerType(type, MemoryAddressSpace.Generic)
+            : type;
+    }
+
+    /// <summary>
     /// Creates a new type based on a type from the .Net world.
     /// </summary>
     /// <param name="type">The source type.</param>

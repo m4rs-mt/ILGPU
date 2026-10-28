@@ -42,13 +42,33 @@ partial class CodeGenerator
     }
 
     /// <summary>
+    /// Returns true if the given source of a field load is an address: an object
+    /// reference or the address of a value type, not the value type itself. A value
+    /// type whose only field is a pointer or reference has the IR type of that
+    /// pointer, so its values are pointers, too, which point to the field's element
+    /// type and never to the value type as its addresses do.
+    /// </summary>
+    /// <param name="field">The field.</param>
+    /// <param name="source">The source of the field load.</param>
+    /// <returns>True if the field is loaded from the source address.</returns>
+    private bool IsFieldLoadAddress(FieldInfo field, Value source)
+    {
+        if (source.Type is not PointerType sourceType)
+            return false;
+        var declaringType = field.DeclaringType.AsNotNull();
+        return !declaringType.IsValueType ||
+            ModuleBuilder.CreateType(declaringType) is not PointerType valueType ||
+            !valueType.ElementType.Equals(sourceType.ElementType);
+    }
+
+    /// <summary>
     /// Loads the value of a field specified by the given metadata token.
     /// </summary>
     /// <param name="field">The field.</param>
     private void MakeLoadField(FieldInfo field)
     {
         var fieldValue = Block.Pop();
-        if (fieldValue.Type is PointerType)
+        if (IsFieldLoadAddress(field, fieldValue))
         {
             // Load field from address
             Block.Push(fieldValue);
