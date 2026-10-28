@@ -574,7 +574,27 @@
     <comment/>
   </data>
   <data name="KernelDiagnosticDelegateRecursion" xml:space="preserve">
-    <value>Method '{0}' calls itself while passing delegates, directly or through the delegates passed to it. Recursion is not supported in kernels.</value>
+    <value>Method '{0}' calls itself while passing delegates, directly or through the delegates passed to it, which is not supported in kernels.</value>
+    <comment/>
+  </data>
+  <data name="KernelDiagnosticRecursion" xml:space="preserve">
+    <value>Method {0} calls itself and is compiled as a recursive function instead of being inlined. Deep recursion can exhaust the stack of a thread.</value>
+    <comment/>
+  </data>
+  <data name="KernelDiagnosticMutualRecursion" xml:space="preserve">
+    <value>Methods {0} call each other and are compiled as recursive functions instead of being inlined. Deep recursion can exhaust the stack of a thread.</value>
+    <comment/>
+  </data>
+  <data name="KernelDiagnosticUnsupportedRecursion" xml:space="preserve">
+    <value>Recursive calls of {0} are not supported by the {1} backend.</value>
+    <comment/>
+  </data>
+  <data name="KernelDiagnosticKernelRecursion" xml:space="preserve">
+    <value>Kernel '{0}' calls itself, directly or through other methods, which is not supported. Move the code that calls itself into a helper method that the kernel calls.</value>
+    <comment/>
+  </data>
+  <data name="KernelDiagnosticGenericNesting" xml:space="preserve">
+    <value>Method '{0}' calls '{1}' with type arguments nested more than {2} levels deep, as a generic method does that calls itself with a type argument wrapping its own. Such calls create new instantiations without end, which is not supported in kernels.</value>
     <comment/>
   </data>
   <data name="NotSupportedKernelDelegateBind" xml:space="preserve">

@@ -68,21 +68,35 @@ sealed class Inliner(TransformationArgs args) : Transformation(args)
     }
 
     /// <summary>
+    /// Returns true if the given call can be inlined into the given caller: its
+    /// target is marked inline, its body is loaded and it is not the caller
+    /// itself. The frontend does not mark methods calling themselves inline,
+    /// directly or through other methods, as inlining them would never end.
+    /// </summary>
+    /// <param name="call">The call.</param>
+    /// <param name="caller">The method containing the call.</param>
+    /// <returns>True if the call can be inlined.</returns>
+    internal static bool CanInline(MethodCall call, Method caller) =>
+        // Skip methods whose blocks haven't been loaded (e.g., external method
+        // references that couldn't be resolved). Check Count > 0 before
+        // accessing EntryBlock to avoid an assertion failure on methods with
+        // empty value lists.
+        call.Target.IsInline
+        && call.Target != caller
+        && call.Target.Count > 0
+        && call.Target.EntryBlock is not null;
+
+    /// <summary>
     /// Tries to inline method calls.
     /// </summary>
     protected override void OnTransform(MethodTransform transform)
     {
         base.OnTransform(transform);
 
-        transform.OldMethod.ForEachValue<MethodCall>(call =>
+        var caller = transform.OldMethod;
+        caller.ForEachValue<MethodCall>(call =>
         {
-            // Skip methods whose blocks haven't been loaded (e.g.,
-            // external method references that couldn't be resolved).
-            // Check Count > 0 before accessing EntryBlock to avoid
-            // an assertion failure on methods with empty value lists.
-            if (call.Target.IsInline
-                && call.Target.Count > 0
-                && call.Target.EntryBlock is not null)
+            if (CanInline(call, caller))
                 transform.SpecializeMethodCall(call);
         });
     }
@@ -98,8 +112,8 @@ sealed class Inliner(TransformationArgs args) : Transformation(args)
 sealed class IterativeInliner(TransformationArgs args) : Transformation(args)
 {
     /// <summary>
-    /// Safety cap to prevent infinite iteration in pathological cases
-    /// (e.g., recursive methods that are marked inline).
+    /// Safety cap to prevent infinite iteration in pathological cases. Recursive
+    /// methods are not among them, as they are never marked inline.
     /// </summary>
     private const int MaxIterations = 32;
 
@@ -145,17 +159,12 @@ sealed class IterativeInliner(TransformationArgs args) : Transformation(args)
     {
         foreach (var method in module.Methods)
         {
+            // Use the Inliner's actual criteria: otherwise a call it skips, such
+            // as one of a bodyless inline target, keeps reporting pending work
+            // and spins the loop until MaxIterations.
             bool hasCalls = false;
             method.ForEachValue<MethodCall>(call =>
-            {
-                // Mirror the Inliner's actual criteria (see Inliner.OnTransform):
-                // the target must be marked inline AND have a loaded body.
-                // Otherwise a bodyless inline target keeps reporting pending
-                // work and spins the loop until MaxIterations.
-                hasCalls |= call.Target.IsInline
-                    && call.Target.Count > 0
-                    && call.Target.EntryBlock is not null;
-            });
+                hasCalls |= Inliner.CanInline(call, method));
             if (hasCalls) return true;
         }
         return false;

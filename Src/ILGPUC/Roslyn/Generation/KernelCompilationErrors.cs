@@ -41,7 +41,8 @@ sealed class KernelDiagnosticException(
 }
 
 /// <summary>
-/// Converts errors of the kernel compiler into diagnostics of ilgpuc builds.
+/// Converts errors and warnings of the kernel compiler into diagnostics of ilgpuc
+/// builds.
 /// </summary>
 static class KernelCompilationErrors
 {
@@ -101,6 +102,23 @@ static class KernelCompilationErrors
     }
 
     /// <summary>
+    /// Converts the given warning about kernel code into a diagnostic. Warnings
+    /// without a source location are reported at the given launch site, if any.
+    /// </summary>
+    /// <param name="warning">The warning.</param>
+    /// <param name="launchSite">
+    /// The location of the launch site whose kernel was compiled, if known.
+    /// </param>
+    /// <returns>The created diagnostic.</returns>
+    public static BuildDiagnostic CreateWarning(
+        KernelCompilationWarning warning,
+        RoslynLocation? launchSite) =>
+        BuildDiagnostic.Warning(
+            warning.Id,
+            GetFileLocation(warning.Location) ?? launchSite,
+            warning.Message);
+
+    /// <summary>
     /// Returns the source location of a diagnostic: the given location if it
     /// refers to a file, and the given launch site otherwise.
     /// </summary>
@@ -109,10 +127,18 @@ static class KernelCompilationErrors
     /// <returns>The source location to report the diagnostic at.</returns>
     private static RoslynLocation GetLocation(
         Location? location,
-        RoslynLocation launchSite)
+        RoslynLocation launchSite) =>
+        GetFileLocation(location) ?? launchSite;
+
+    /// <summary>
+    /// Returns the source location of the given location if it refers to a file.
+    /// </summary>
+    /// <param name="location">The location.</param>
+    /// <returns>The source location, or null.</returns>
+    private static RoslynLocation? GetFileLocation(Location? location)
     {
         if (location is not FileLocation fileLocation)
-            return launchSite;
+            return null;
 
         // Sequence points use one-based lines and columns
         var start = new LinePosition(

@@ -10,7 +10,7 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.Resources;
-using ILGPUC.IR;
+using ILGPUC.IR.Analyses;
 using ILGPUC.IR.ModuleValues;
 using ILGPUC.IR.ModuleValues.Construction;
 using ILGPUC.Roslyn.Analysis;
@@ -48,80 +48,43 @@ sealed class DelegateSpecializations(ModuleBuilder moduleBuilder)
     private readonly Dictionary<MethodBase, List<DelegateSpecialization>>
         _specializations = [];
     private readonly Queue<DelegateSpecialization> _pending = new();
-    private readonly Dictionary<Method, List<(Method Callee, Location Location)>>
-        _calls = [];
-
-    /// <summary>
-    /// Records a call of the given method from the code of the given caller,
-    /// which lets <see cref="VerifyNoRecursion"/> detect recursive calls of
-    /// specializations.
-    /// </summary>
-    /// <param name="callee">The called method.</param>
-    /// <param name="caller">The calling method.</param>
-    /// <param name="location">The location of the call.</param>
-    public void RecordCall(Method callee, Method caller, Location location)
-    {
-        if (!_calls.TryGetValue(caller, out var calls))
-        {
-            calls = [];
-            _calls.Add(caller, calls);
-        }
-        calls.Add((callee, location));
-    }
 
     /// <summary>
     /// Rejects specializations that call themselves, directly or through the
-    /// methods they call. Kernels cannot recurse, and the delegates of all
-    /// recursive calls would be bound to the same targets.
+    /// methods they call: the delegates of all recursive calls would be bound
+    /// to the same targets.
     /// </summary>
-    public void VerifyNoRecursion()
+    /// <param name="cycles">The cycles of the call graph.</param>
+    public void VerifyNoRecursion(List<CallCycle> cycles)
     {
-        foreach (var specializations in _specializations.Values)
+        if (cycles.Count < 1)
+            return;
+
+        var specializations = new Dictionary<Method, DelegateSpecialization>();
+        foreach (var list in _specializations.Values)
         {
-            foreach (var specialization in specializations)
+            foreach (var specialization in list)
+                specializations.Add(specialization.Builder.Method, specialization);
+        }
+
+        foreach (var cycle in cycles)
+        {
+            for (int i = 0; i < cycle.Methods.Length; ++i)
             {
-                var method = specialization.Builder.Method;
-                if (!TryFindCall(method, method, [], out var location))
+                if (!specializations.TryGetValue(
+                    cycle.Methods[i],
+                    out var specialization))
+                {
                     continue;
+                }
                 throw new KernelCompilationException(
                     KernelDiagnostic.DelegateRecursionId,
                     string.Format(
                         ErrorMessages.KernelDiagnosticDelegateRecursion,
                         specialization.Source.GetDisplayName()),
-                    location);
+                    cycle.Calls[i].Location);
             }
         }
-    }
-
-    /// <summary>
-    /// Tries to find a call of the given target that is reachable from the
-    /// given caller.
-    /// </summary>
-    /// <param name="caller">The calling method.</param>
-    /// <param name="target">The method to find calls of.</param>
-    /// <param name="visited">The methods visited so far.</param>
-    /// <param name="location">The location of the found call.</param>
-    /// <returns>True if a call of the target is reachable.</returns>
-    private bool TryFindCall(
-        Method caller,
-        Method target,
-        HashSet<Method> visited,
-        [NotNullWhen(true)] out Location? location)
-    {
-        location = null;
-        if (!visited.Add(caller) || !_calls.TryGetValue(caller, out var calls))
-            return false;
-        foreach (var (callee, callLocation) in calls)
-        {
-            if (callee == target)
-            {
-                location = callLocation;
-                return true;
-            }
-            if (TryFindCall(callee, target, visited, out location))
-                return true;
-        }
-        return false;
     }
 
     /// <summary>

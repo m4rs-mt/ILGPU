@@ -10,12 +10,16 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU;
+using ILGPU.Resources;
 using ILGPU.Util;
 using ILGPUC.Backends;
 using ILGPUC.Frontend.DebugInformation;
 using ILGPUC.Frontend.Intrinsic;
+using ILGPUC.IR.Analyses;
 using ILGPUC.IR.ModuleValues;
 using ILGPUC.IR.ModuleValues.Construction;
+using ILGPUC.Roslyn.Analysis;
+using ILGPUC.Util;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -88,6 +92,7 @@ sealed class ILFrontend
         _referencedAssemblies = new(16);
     private readonly Dictionary<MethodBase, DisassembledMethod?> _methods = new(1024);
     private readonly Dictionary<MethodBase, Exception> _failedMethods = [];
+    private readonly List<KernelCompilationWarning> _warnings = [];
     private readonly Stack<HashSet<MethodBase>> _methodsStack = new(2);
 
     /// <summary>
@@ -167,6 +172,11 @@ sealed class ILFrontend
     /// <see cref="FailedMethodVerifier"/>.
     /// </summary>
     public IReadOnlyDictionary<MethodBase, Exception> FailedMethods => _failedMethods;
+
+    /// <summary>
+    /// Returns the warnings about the kernel code generated so far.
+    /// </summary>
+    public IReadOnlyList<KernelCompilationWarning> Warnings => _warnings;
 
     #endregion
 
@@ -591,7 +601,12 @@ sealed class ILFrontend
             // gets disassembled before code generation needs it.
             foreach (var instruction in disassembled.Instructions)
             {
-                if (instruction.Argument is MethodBase calledMethod)
+                // Methods whose type arguments are nested too deeply are left to
+                // code generation, which rejects calls of them, as walking them
+                // could create new instantiations without end
+                if (instruction.Argument is MethodBase calledMethod &&
+                    calledMethod.GetTypeArgumentNesting() <=
+                        MethodExtensions.MaxTypeArgumentNesting)
                 {
                     queue.Enqueue(calledMethod);
 
@@ -760,6 +775,7 @@ sealed class ILFrontend
 
         var queue = new Queue<MethodBase>(capacity: 32);
         var processed = new HashSet<MethodBase>();
+        var entryPoints = new HashSet<Method>();
         var specializations = new DelegateSpecializations(moduleBuilder);
         var closureCaptures = new ClosureCaptures(moduleBuilder);
         var evaluator = new ConstantEvaluator(
@@ -778,6 +794,8 @@ sealed class ILFrontend
             // Get IR method and check for external declaration flags
             var declaration = moduleBuilder.CreateMethodDeclaration(method);
             var methodBuilder = moduleBuilder.GetOrCreateMethod(declaration);
+            if (isEntryPoint)
+                entryPoints.Add(methodBuilder.Method);
             GenerateCodeForBuilder(method, methodBuilder, isEntryPoint);
         }
 
@@ -943,9 +961,59 @@ sealed class ILFrontend
 
         // Closures and recursion can be verified once all calls are known
         closureCaptures.Verify();
-        specializations.VerifyNoRecursion();
+        var cycles = CallCycle.FindAll(moduleBuilder.GetMethods());
+        foreach (var cycle in cycles)
+            VerifyNoKernelRecursion(cycle, entryPoints);
+        specializations.VerifyNoRecursion(cycles);
+        foreach (var cycle in cycles)
+            ExcludeFromInlining(cycle);
 
         return processed.Count > 0;
+    }
+
+    /// <summary>
+    /// Rejects a call cycle through a kernel: a call of a kernel would call its
+    /// entry point, which takes the arguments of a launch instead of the
+    /// parameters of the method.
+    /// </summary>
+    /// <param name="cycle">The call cycle.</param>
+    /// <param name="entryPoints">The methods of all kernels.</param>
+    private static void VerifyNoKernelRecursion(
+        CallCycle cycle,
+        HashSet<Method> entryPoints)
+    {
+        for (int i = 0; i < cycle.Methods.Length; ++i)
+        {
+            var method = cycle.Methods[i];
+            if (!entryPoints.Contains(method))
+                continue;
+            throw new KernelCompilationException(
+                KernelDiagnostic.KernelRecursionId,
+                string.Format(
+                    ErrorMessages.KernelDiagnosticKernelRecursion,
+                    method.Source?.GetDisplayName() ?? method.Name),
+                cycle.Calls[i].Location);
+        }
+    }
+
+    /// <summary>
+    /// Keeps the methods of a call cycle from being inlined, as inlining them into
+    /// each other would never end, and warns that they are compiled as recursive
+    /// functions.
+    /// </summary>
+    /// <param name="cycle">The call cycle.</param>
+    private void ExcludeFromInlining(CallCycle cycle)
+    {
+        foreach (var method in cycle.Methods)
+            method.RemoveFlags(MethodFlags.Inline);
+
+        var message = cycle.Methods.Length == 1
+            ? ErrorMessages.KernelDiagnosticRecursion
+            : ErrorMessages.KernelDiagnosticMutualRecursion;
+        _warnings.Add(new KernelCompilationWarning(
+            KernelDiagnostic.RecursionId,
+            string.Format(message, cycle.FormatMethodNames()),
+            cycle.Calls[0].Location));
     }
 
     #endregion

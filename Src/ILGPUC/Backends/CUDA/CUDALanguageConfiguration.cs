@@ -143,6 +143,7 @@ class CudaLanguageConfiguration : LanguageConfiguration
             LanguageFeature.Atomics => true,
             LanguageFeature.Barriers => true,
             LanguageFeature.InlineFunctions => true,
+            LanguageFeature.Recursion => true,
             _ => false
         };
 

@@ -382,4 +382,9 @@ enum LanguageFeature
     /// Support for broadcast operations on the group level.
     /// </summary>
     BroadcastGroupLevel,
+
+    /// <summary>
+    /// Support for recursive function calls.
+    /// </summary>
+    Recursion,
 }

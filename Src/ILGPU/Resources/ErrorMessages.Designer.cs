@@ -1114,11 +1114,56 @@ namespace ILGPU.Resources {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Method &apos;{0}&apos; calls itself while passing delegates, directly or through the delegates passed to it. Recursion is not supported in kernels..
+        ///   Looks up a localized string similar to Method &apos;{0}&apos; calls itself while passing delegates, directly or through the delegates passed to it, which is not supported in kernels..
         /// </summary>
         internal static string KernelDiagnosticDelegateRecursion {
             get {
                 return ResourceManager.GetString("KernelDiagnosticDelegateRecursion", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Method {0} calls itself and is compiled as a recursive function instead of being inlined. Deep recursion can exhaust the stack of a thread..
+        /// </summary>
+        internal static string KernelDiagnosticRecursion {
+            get {
+                return ResourceManager.GetString("KernelDiagnosticRecursion", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Methods {0} call each other and are compiled as recursive functions instead of being inlined. Deep recursion can exhaust the stack of a thread..
+        /// </summary>
+        internal static string KernelDiagnosticMutualRecursion {
+            get {
+                return ResourceManager.GetString("KernelDiagnosticMutualRecursion", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Recursive calls of {0} are not supported by the {1} backend..
+        /// </summary>
+        internal static string KernelDiagnosticUnsupportedRecursion {
+            get {
+                return ResourceManager.GetString("KernelDiagnosticUnsupportedRecursion", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Kernel &apos;{0}&apos; calls itself, directly or through other methods, which is not supported. Move the code that calls itself into a helper method that the kernel calls..
+        /// </summary>
+        internal static string KernelDiagnosticKernelRecursion {
+            get {
+                return ResourceManager.GetString("KernelDiagnosticKernelRecursion", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Method &apos;{0}&apos; calls &apos;{1}&apos; with type arguments nested more than {2} levels deep, as a generic method does that calls itself with a type argument wrapping its own. Such calls create new instantiations without end, which is not supported in kernels..
+        /// </summary>
+        internal static string KernelDiagnosticGenericNesting {
+            get {
+                return ResourceManager.GetString("KernelDiagnosticGenericNesting", resourceCulture);
             }
         }
 

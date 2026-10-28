@@ -2,9 +2,16 @@
 
 Kernels are `static` functions that can work on value types and can invoke other functions that work on value types.
 `class` (reference) types are currently **not supported** in the scope of kernels.
-Note that exception handling, boxing and recursive programs are also **not supported** and will be rejected by the ILGPU
-compiler. Throwing an exception is fine in a branch that is removed at compile time, as described in
+Note that exception handling and boxing are also **not supported** and will be rejected by the ILGPU compiler.
+Throwing an exception is fine in a branch that is removed at compile time, as described in
 [Type-Specialized Generic Code](#type-specialized-generic-code).
+Methods that call themselves, directly or through other methods, are compiled as recursive functions instead of being
+inlined, and the build reports each of them with warning `ILGPU1210`.
+Every recursive call uses stack memory of its thread, so keep the depth of the recursion small.
+The CPU, Cuda and ROCm backends run recursive calls; the Metal and OpenCL backends reject them with error `ILGPU1211`,
+unless optimization removes the calls.
+A kernel must not call itself, directly or through other methods; every backend rejects this with error `ILGPU1212`.
+Move the code that calls itself into a helper method that the kernel calls.
 Kernels and the functions they call must also be able to return: a function in which every path loops forever, such as
 a `while (true)` loop without a `return` or `break`, is rejected with the error "'X' never returns".
 Such a kernel could only be stopped by resetting the device.
@@ -75,6 +82,9 @@ line in the form `File.cs(line,column): error ILGPU12xx: message`:
 | `ILGPU1207` | Delegates created from instance methods of structs, such as `Func<int, int> f = value.Add` |
 | `ILGPU1208` | Lambdas and local functions whose closure is allocated inside a loop, such as a lambda capturing a variable declared in the loop body |
 | `ILGPU1209` | Methods taking delegates that call themselves, directly or through the delegates passed to them |
+| `ILGPU1211` | Methods that call themselves, directly or through other methods, on the Metal and OpenCL backends |
+| `ILGPU1212` | Kernels that call themselves, directly or through other methods |
+| `ILGPU1213` | Calls of methods whose type arguments are nested more than 32 levels deep, such as a generic method `F<T>` calling `F<Wrap<T>>`, which would create new instantiations without end |
 
 Invoking a delegate variable that is still `null` on some path, without a null test, is undefined behavior in kernels.
 To call an optional operation, pass a separate flag instead of testing the delegate for null.

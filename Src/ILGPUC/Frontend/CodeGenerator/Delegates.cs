@@ -830,9 +830,7 @@ partial class CodeGenerator
 
         var specializations = _specializations ??
             throw Location.GetInvalidOperationException();
-        var specialized = specializations.GetOrCreate(method, delegateTargets);
-        specializations.RecordCall(specialized, MethodBuilder.Method, Location);
-        return specialized;
+        return specializations.GetOrCreate(method, delegateTargets);
     }
 
     /// <summary>
