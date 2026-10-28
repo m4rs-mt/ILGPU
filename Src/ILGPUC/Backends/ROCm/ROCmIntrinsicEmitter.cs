@@ -344,6 +344,7 @@ sealed class ROCmIntrinsicEmitter : IntrinsicEmitter
         BasicValueType targetType) =>
         sourceType switch
         {
+            BasicValueType.Float16 => $"__half_as_short({arg})",
             BasicValueType.Float32 => $"__float_as_int({arg})",
             BasicValueType.Float64 => $"__double_as_longlong({arg})",
             _ => throw new NotSupportedException(
@@ -357,6 +358,7 @@ sealed class ROCmIntrinsicEmitter : IntrinsicEmitter
         BasicValueType targetType) =>
         targetType switch
         {
+            BasicValueType.Float16 => $"__short_as_half({arg})",
             BasicValueType.Float32 => $"__int_as_float({arg})",
             BasicValueType.Float64 => $"__longlong_as_double({arg})",
             _ => throw new NotSupportedException(

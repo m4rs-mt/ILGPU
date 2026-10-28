@@ -176,6 +176,7 @@ public abstract class VectorArithmeticExecutionTests : ExecutionTestBase
     [SkippableFact]
     public async Task HalfArithmetic_ProducesCorrectOutput()
     {
+        RequireCapability(Backend, BackendCapability.Float16);
         await VerifyProgramOutputAsync(
             "TestPrograms/VectorArithmetic/HalfArithmetic.cs",
             ["Kernels.HalfArithmeticKernel"],

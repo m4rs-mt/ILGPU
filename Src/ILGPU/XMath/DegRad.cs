@@ -9,6 +9,7 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
+using System;
 using System.Runtime.CompilerServices;
 
 namespace ILGPU;
@@ -40,6 +41,14 @@ partial class XMath
     }
 
     /// <summary>
+    /// Converts the given value in degrees to radians.
+    /// </summary>
+    /// <param name="degrees">The value in degrees to convert.</param>
+    /// <returns>The converted value in radians.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Half DegToRad(Half degrees) => (Half)DegToRad((float)degrees);
+
+    /// <summary>
     /// Converts the given value in radians to degrees.
     /// </summary>
     /// <param name="radians">The value in radians to convert.</param>
@@ -62,4 +71,12 @@ partial class XMath
         const float _180OverPi = 180.0f / PI;
         return radians * _180OverPi;
     }
+
+    /// <summary>
+    /// Converts the given value in radians to degrees.
+    /// </summary>
+    /// <param name="radians">The value in radians to convert.</param>
+    /// <returns>The converted value in degrees.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Half RadToDeg(Half radians) => (Half)RadToDeg((float)radians);
 }

@@ -81,8 +81,6 @@ ILGPU also provides Source Link support for a better debugging experience. Make 
     - Matthias Braun, Sebastian Buchwald, Sebastian Hack, Roland Leissa, Christoph Mallon and Andreas Zwinkau
 * A Simple, Fast Dominance Algorithm
     - Keith D. Cooper, Timothy J. Harvey and Ken Kennedy
-* Fast Half Float Conversions
-    - Jeroen van der Zijp
 * Identifying Loops In Almost Linear Time
     - G. Ramalingam
 

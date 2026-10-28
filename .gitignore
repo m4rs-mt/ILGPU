@@ -260,7 +260,6 @@ ModelManifest.xml
 # Ignore specific template outputs
 Src/ILGPU/AtomicFunctions.cs
 Src/ILGPU/FixedPrecision/FixedInts.cs
-Src/ILGPU/HalfConversion.cs
 Src/ILGPU/IndexTypes.cs
 Src/ILGPU/Interop.Generated.cs
 Src/ILGPU/RadixSort/RadixSortOperations.cs

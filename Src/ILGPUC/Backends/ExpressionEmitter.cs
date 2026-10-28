@@ -19,7 +19,6 @@ using ILGPUC.IR.MethodValues;
 using ILGPUC.IR.ModuleValues;
 using ILGPUC.IR.PureValues;
 using ILGPUC.Util;
-using Half = ILGPU.Half;
 
 namespace ILGPUC.Backends;
 
@@ -533,7 +532,8 @@ sealed class ExpressionEmitter(GenerationContext context, TypeEmitter typeEmitte
                 "(-9223372036854775807L - 1)",
             BasicValueType.Int64 => primitive.Int64Value.ToString() + "L",
             BasicValueType.Float16 =>
-                IntrinsicEmitter.EmitHalfConstant(primitive.Float16Value.RawValue),
+                IntrinsicEmitter.EmitHalfConstant(
+                    BitConverter.HalfToUInt16Bits(primitive.Float16Value)),
             BasicValueType.Float32 => FormatFloat(primitive.Float32Value),
             BasicValueType.Float64 => FormatFloat(primitive.Float64Value),
             _ => "0"
@@ -585,32 +585,64 @@ sealed class ExpressionEmitter(GenerationContext context, TypeEmitter typeEmitte
         var left = Emit(binary.Left);
         var right = Emit(binary.Right);
 
+        // Half operations other than the basic arithmetic are evaluated in
+        // single precision (see WidenHalf)
+        if (binary.ArithmeticBasicValueType == ArithmeticBasicValueType.Float16 &&
+            binary.Kind is not (BinaryArithmeticKind.Add or BinaryArithmeticKind.Sub
+                or BinaryArithmeticKind.Mul or BinaryArithmeticKind.Div))
+        {
+            return NarrowToHalf(EmitBinaryArithmetic(
+                binary.Kind,
+                WidenHalf(left),
+                WidenHalf(right),
+                ArithmeticBasicValueType.Float32,
+                isUnsigned: false));
+        }
+
+        return EmitBinaryArithmetic(
+            binary.Kind,
+            left,
+            right,
+            binary.ArithmeticBasicValueType,
+            binary.IsUnsigned);
+    }
+
+    /// <summary>
+    /// Emits a binary arithmetic operation on the given operands.
+    /// </summary>
+    private Emitted EmitBinaryArithmetic(
+        BinaryArithmeticKind kind,
+        Emitted left,
+        Emitted right,
+        ArithmeticBasicValueType basicType,
+        bool isUnsigned)
+    {
         // Intrinsic function calls (Min, Max, Pow, Atan2)
-        if (IsBinaryIntrinsic(binary.Kind))
-            return EmitBinaryIntrinsicCall(binary.Kind, left, right,
-                binary.ArithmeticBasicValueType);
+        if (IsBinaryIntrinsic(kind))
+            return EmitBinaryIntrinsicCall(kind, left, right, basicType);
 
         // Floating-point remainder maps to fmod on C-family languages
-        if (binary.Kind == BinaryArithmeticKind.Rem &&
-            binary.BasicValueType.IsFloat() &&
+        if (kind == BinaryArithmeticKind.Rem &&
+            basicType is ArithmeticBasicValueType.Float32 or
+                ArithmeticBasicValueType.Float64 &&
             IntrinsicEmitter.EmitFloatRem(
                 left.Text,
                 right.Text,
-                binary.ArithmeticBasicValueType) is string rem)
+                basicType) is string rem)
         {
             return new Emitted(rem, Prec.Postfix);
         }
 
         // Simple operators (+, -, *, /, etc.)
-        var simpleOp = GetBinaryOperator(binary.Kind);
+        var simpleOp = GetBinaryOperator(kind);
         if (simpleOp is not null)
         {
             // For sign-sensitive operators (>>, /, %), cast operands to the
             // correct unsigned type when the operation is flagged unsigned
-            if (binary.IsUnsigned && IsSignSensitiveOperator(binary.Kind))
+            if (isUnsigned && IsSignSensitiveOperator(kind))
             {
-                left = EmitUnsignedCast(left, binary.ArithmeticBasicValueType);
-                right = EmitUnsignedCast(right, binary.ArithmeticBasicValueType);
+                left = EmitUnsignedCast(left, basicType);
+                right = EmitUnsignedCast(right, basicType);
             }
 
             var prec = GetOperatorPrecedence(simpleOp);
@@ -620,8 +652,7 @@ sealed class ExpressionEmitter(GenerationContext context, TypeEmitter typeEmitte
         }
 
         // Special cases
-        return EmitNonIntrinsicBinaryOp(binary.Kind, left, right,
-            binary.ArithmeticBasicValueType);
+        return EmitNonIntrinsicBinaryOp(kind, left, right, basicType);
     }
 
     /// <summary>
@@ -810,15 +841,54 @@ sealed class ExpressionEmitter(GenerationContext context, TypeEmitter typeEmitte
             return new Emitted($"{simpleOp}{inner}", Prec.Unary);
         }
 
-        // Intrinsic function calls (Sin, Cos, Sqrt, etc.)
-        if (IsUnaryIntrinsic(unary.Kind))
-            return EmitUnaryIntrinsicCall(unary.Kind, operand,
-                unary.ArithmeticBasicValueType);
+        if (unary.ArithmeticBasicValueType == ArithmeticBasicValueType.Float16)
+        {
+            var result = EmitUnaryArithmetic(
+                unary.Kind,
+                WidenHalf(operand),
+                ArithmeticBasicValueType.Float32);
+            return unary.BasicValueType == BasicValueType.Float16
+                ? NarrowToHalf(result)
+                : result;
+        }
 
-        // Non-intrinsic special cases
-        return EmitNonIntrinsicUnaryOp(unary.Kind, operand,
+        return EmitUnaryArithmetic(
+            unary.Kind,
+            operand,
             unary.ArithmeticBasicValueType);
     }
+
+    /// <summary>
+    /// Emits a unary arithmetic operation that is not a simple operator.
+    /// </summary>
+    private Emitted EmitUnaryArithmetic(
+        UnaryArithmeticKind kind,
+        Emitted operand,
+        ArithmeticBasicValueType basicType) =>
+        // Intrinsic function calls (Sin, Cos, Sqrt, etc.) or non-intrinsic
+        // special cases
+        IsUnaryIntrinsic(kind)
+            ? EmitUnaryIntrinsicCall(kind, operand, basicType)
+            : EmitNonIntrinsicUnaryOp(kind, operand, basicType);
+
+    /// <summary>
+    /// Widens a half operand to single precision. Half operations other than
+    /// negation and the four basic arithmetic operations are evaluated in
+    /// single precision and rounded back to half precision, which is exact
+    /// for the operands and matches how <see cref="Half"/> implements them.
+    /// </summary>
+    private static Emitted WidenHalf(Emitted operand) =>
+        new($"(float){Parenthesize(operand, Prec.Unary)}", Prec.Unary);
+
+    /// <summary>
+    /// Rounds a single-precision result of a widened half operation back to
+    /// half precision.
+    /// </summary>
+    private Emitted NarrowToHalf(Emitted value) =>
+        new(
+            $"({typeEmitter.GetTypeName(ArithmeticBasicValueType.Float16)})" +
+            Parenthesize(value, Prec.Unary),
+            Prec.Unary);
 
     /// <summary>
     /// Returns the prefix operator string for a unary arithmetic kind, or null if not
@@ -903,7 +973,8 @@ sealed class ExpressionEmitter(GenerationContext context, TypeEmitter typeEmitte
             {
                 ArithmeticBasicValueType.Float64 => "1.0",
                 ArithmeticBasicValueType.Float32 => "1.0f",
-                _ => IntrinsicEmitter.EmitHalfConstant(Half.One.RawValue)
+                _ => IntrinsicEmitter.EmitHalfConstant(
+                    BitConverter.HalfToUInt16Bits(Half.One))
             };
             var oneEmitted = new Emitted(one, Prec.Atom);
             var l = Parenthesize(oneEmitted, Prec.Multiplicative);
@@ -982,6 +1053,16 @@ sealed class ExpressionEmitter(GenerationContext context, TypeEmitter typeEmitte
 
         if (ternary.Kind == TernaryArithmeticKind.MultiplyAdd)
         {
+            if (ternary.ArithmeticBasicValueType == ArithmeticBasicValueType.Float16)
+            {
+                var widened = IntrinsicEmitter.EmitMultiplyAdd(
+                    WidenHalf(first).Text,
+                    WidenHalf(second).Text,
+                    WidenHalf(third).Text,
+                    ArithmeticBasicValueType.Float32);
+                return NarrowToHalf(new Emitted(widened, Prec.Postfix));
+            }
+
             var text = IntrinsicEmitter.EmitMultiplyAdd(
                 first.Text, second.Text, third.Text,
                 ternary.ArithmeticBasicValueType);

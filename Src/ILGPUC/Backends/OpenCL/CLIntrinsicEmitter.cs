@@ -331,6 +331,7 @@ sealed class CLIntrinsicEmitter(CLVendor vendor) : IntrinsicEmitter
         BasicValueType targetType) =>
         sourceType switch
         {
+            BasicValueType.Float16 => $"as_short({arg})",
             BasicValueType.Float32 => $"as_int({arg})",
             BasicValueType.Float64 => $"as_long({arg})",
             _ => throw new NotSupportedException(
@@ -344,6 +345,7 @@ sealed class CLIntrinsicEmitter(CLVendor vendor) : IntrinsicEmitter
         BasicValueType targetType) =>
         targetType switch
         {
+            BasicValueType.Float16 => $"as_half({arg})",
             BasicValueType.Float32 => $"as_float({arg})",
             BasicValueType.Float64 => $"as_double({arg})",
             _ => throw new NotSupportedException(

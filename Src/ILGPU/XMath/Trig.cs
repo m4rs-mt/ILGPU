@@ -36,6 +36,15 @@ partial class XMath
     public static float Sin(float value) => MathF.Sin(value);
 
     /// <summary>
+    /// Computes sin(value).
+    /// </summary>
+    /// <param name="value">The value in radians.</param>
+    /// <returns>sin(value).</returns>
+    [MathIntrinsic]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Half Sin(Half value) => (Half)Sin((float)value);
+
+    /// <summary>
     /// Computes asin(value).
     /// </summary>
     /// <param name="value">The value in radians.</param>
@@ -54,6 +63,15 @@ partial class XMath
     public static float Asin(float value) => MathF.Asin(value);
 
     /// <summary>
+    /// Computes asin(value).
+    /// </summary>
+    /// <param name="value">The value in radians.</param>
+    /// <returns>asin(value).</returns>
+    [MathIntrinsic]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Half Asin(Half value) => (Half)Asin((float)value);
+
+    /// <summary>
     /// Computes asinh(value).
     /// </summary>
     /// <param name="value">The value in radians.</param>
@@ -61,6 +79,15 @@ partial class XMath
     [MathIntrinsic]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static float Asinh(float value) => MathF.Asinh(value);
+
+    /// <summary>
+    /// Computes asinh(value).
+    /// </summary>
+    /// <param name="value">The value in radians.</param>
+    /// <returns>asinh(value).</returns>
+    [MathIntrinsic]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Half Asinh(Half value) => (Half)Asinh((float)value);
 
     /// <summary>
     /// Computes asinh(value).
@@ -90,6 +117,15 @@ partial class XMath
     public static float Sinh(float value) => MathF.Sinh(value);
 
     /// <summary>
+    /// Computes sinh(value).
+    /// </summary>
+    /// <param name="value">The value in radians.</param>
+    /// <returns>sinh(value).</returns>
+    [MathIntrinsic]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Half Sinh(Half value) => (Half)Sinh((float)value);
+
+    /// <summary>
     /// Computes cos(value).
     /// </summary>
     /// <param name="value">The value in radians.</param>
@@ -106,6 +142,15 @@ partial class XMath
     [MathIntrinsic]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static float Cos(float value) => MathF.Cos(value);
+
+    /// <summary>
+    /// Computes cos(value).
+    /// </summary>
+    /// <param name="value">The value in radians.</param>
+    /// <returns>cos(value).</returns>
+    [MathIntrinsic]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Half Cos(Half value) => (Half)Cos((float)value);
 
     /// <summary>
     /// Computes cosh(value).
@@ -126,6 +171,15 @@ partial class XMath
     public static float Cosh(float value) => MathF.Cosh(value);
 
     /// <summary>
+    /// Computes cosh(value).
+    /// </summary>
+    /// <param name="value">The value in radians.</param>
+    /// <returns>cosh(value).</returns>
+    [MathIntrinsic]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Half Cosh(Half value) => (Half)Cosh((float)value);
+
+    /// <summary>
     /// Computes acos(value).
     /// </summary>
     /// <param name="value">The value in radians.</param>
@@ -142,6 +196,15 @@ partial class XMath
     [MathIntrinsic]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static float Acos(float value) => MathF.Acos(value);
+
+    /// <summary>
+    /// Computes acos(value).
+    /// </summary>
+    /// <param name="value">The value in radians.</param>
+    /// <returns>acos(value).</returns>
+    [MathIntrinsic]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Half Acos(Half value) => (Half)Acos((float)value);
 
     /// <summary>
     /// Computes acosh(value).
@@ -162,6 +225,15 @@ partial class XMath
     public static float Acosh(float value) => MathF.Acosh(value);
 
     /// <summary>
+    /// Computes acosh(value).
+    /// </summary>
+    /// <param name="value">The value in radians.</param>
+    /// <returns>acosh(value).</returns>
+    [MathIntrinsic]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Half Acosh(Half value) => (Half)Acosh((float)value);
+
+    /// <summary>
     /// Computes tan(value).
     /// </summary>
     /// <param name="value">The value in radians.</param>
@@ -178,6 +250,15 @@ partial class XMath
     [MathIntrinsic]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static float Tan(float value) => MathF.Tan(value);
+
+    /// <summary>
+    /// Computes tan(value).
+    /// </summary>
+    /// <param name="value">The value in radians.</param>
+    /// <returns>tan(value).</returns>
+    [MathIntrinsic]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Half Tan(Half value) => (Half)Tan((float)value);
 
     /// <summary>
     /// Computes tanh(value).
@@ -204,7 +285,7 @@ partial class XMath
     /// <returns>tanh(value).</returns>
     [MathIntrinsic]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Half Tanh(Half value) => HalfExtensions.TanhFP32(value);
+    public static Half Tanh(Half value) => (Half)Tanh((float)value);
 
     /// <summary>
     /// Computes atan(value).
@@ -225,6 +306,15 @@ partial class XMath
     public static float Atan(float value) => MathF.Atan(value);
 
     /// <summary>
+    /// Computes atan(value).
+    /// </summary>
+    /// <param name="value">The value in radians.</param>
+    /// <returns>atan(value).</returns>
+    [MathIntrinsic]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Half Atan(Half value) => (Half)Atan((float)value);
+
+    /// <summary>
     /// Computes atanh(value).
     /// </summary>
     /// <param name="value">The value in radians.</param>
@@ -241,6 +331,15 @@ partial class XMath
     [MathIntrinsic]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static float Atanh(float value) => MathF.Atanh(value);
+
+    /// <summary>
+    /// Computes atanh(value).
+    /// </summary>
+    /// <param name="value">The value in radians.</param>
+    /// <returns>atanh(value).</returns>
+    [MathIntrinsic]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Half Atanh(Half value) => (Half)Atanh((float)value);
 
     /// <summary>
     /// Computes atan2(y, x).
@@ -261,6 +360,16 @@ partial class XMath
     [MathIntrinsic]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static float Atan2(float y, float x) => MathF.Atan2(y, x);
+
+    /// <summary>
+    /// Computes atan2(y, x).
+    /// </summary>
+    /// <param name="y">The y value in radians.</param>
+    /// <param name="x">The x value in radians.</param>
+    /// <returns>atan2(y, x).</returns>
+    [MathIntrinsic]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Half Atan2(Half y, Half x) => (Half)Atan2((float)y, (float)x);
 
     /// <summary>
     /// Computes sin(value) and cos(value).
@@ -290,4 +399,12 @@ partial class XMath
     /// <returns>The sin/cos result of the given value.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static (float, float) SinCos(float value) => (Sin(value), Cos(value));
+
+    /// <summary>
+    /// Computes sin(value) and cos(value).
+    /// </summary>
+    /// <param name="value">The value in radians.</param>
+    /// <returns>The sin/cos result of the given value.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static (Half, Half) SinCos(Half value) => (Sin(value), Cos(value));
 }

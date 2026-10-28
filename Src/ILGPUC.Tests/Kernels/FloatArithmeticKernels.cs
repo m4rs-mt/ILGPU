@@ -85,10 +85,10 @@ static class FloatArithmeticKernels
 
     public static void HalfAbsIsNaNKernel(
         Index1D index,
-        ArrayView1D<ILGPU.Half, Stride1D.Dense> data,
+        ArrayView1D<System.Half, Stride1D.Dense> data,
         ArrayView1D<int, Stride1D.Dense> result)
     {
-        result[index] = ILGPU.Half.IsNaN(data[index]) ? 1 : 0;
-        data[index] = ILGPU.Half.Abs(data[index]);
+        result[index] = System.Half.IsNaN(data[index]) ? 1 : 0;
+        data[index] = System.Half.Abs(data[index]);
     }
 }

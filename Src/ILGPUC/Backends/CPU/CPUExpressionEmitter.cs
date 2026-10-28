@@ -706,7 +706,9 @@ sealed class CPUExpressionEmitter(
         {
             var r = CastScalar(right, storageType, opType);
             var function = binary.Kind == BinaryArithmeticKind.Max ? "Max" : "Min";
-            expr = $"System.Math.{function}({l}, {r})";
+            // System.Math has no System.Half overloads
+            var math = opType == "System.Half" ? opType : "System.Math";
+            expr = $"{math}.{function}({l}, {r})";
         }
         else if (binary.Kind is BinaryArithmeticKind.Pow
             or BinaryArithmeticKind.CopySign
@@ -789,46 +791,53 @@ sealed class CPUExpressionEmitter(
         if (analysis.IsScalar(unary.Value))
         {
             // Scalar unary operations use plain C# operators or Math calls;
-            // float operands use MathF so that the result stays a float.
-            bool isFloat = unary.BasicValueType == BasicValueType.Float32;
+            // float operands use MathF so that the result stays a float. Half
+            // operands other than negations are evaluated in single precision
+            // and rounded back, like on the GPU backends.
+            bool isHalf = unary.BasicValueType == BasicValueType.Float16 &&
+                unary.Kind != UnaryArithmeticKind.Neg;
+            bool isFloat = isHalf || unary.BasicValueType == BasicValueType.Float32;
             var math = isFloat ? "MathF" : "Math";
             var one = isFloat ? "1.0f" : "1.0";
             var two = isFloat ? "2.0f" : "2.0";
+            var value = isHalf ? $"(float){operand}" : operand;
             var expr = unary.Kind switch
             {
-                UnaryArithmeticKind.Neg => $"-{operand}",
+                UnaryArithmeticKind.Neg => $"-{value}",
                 // `~` does not compile on C# bool; logical Not must use `!`.
                 UnaryArithmeticKind.Not =>
                     unary.BasicValueType == BasicValueType.Int1
-                        ? $"!{operand}"
-                        : $"~{operand}",
-                UnaryArithmeticKind.Abs => $"{math}.Abs({operand})",
-                UnaryArithmeticKind.Sqrt => $"{math}.Sqrt({operand})",
-                UnaryArithmeticKind.Sin => $"{math}.Sin({operand})",
-                UnaryArithmeticKind.Cos => $"{math}.Cos({operand})",
-                UnaryArithmeticKind.Tan => $"{math}.Tan({operand})",
-                UnaryArithmeticKind.Asin => $"{math}.Asin({operand})",
-                UnaryArithmeticKind.Acos => $"{math}.Acos({operand})",
-                UnaryArithmeticKind.Atan => $"{math}.Atan({operand})",
-                UnaryArithmeticKind.Sinh => $"{math}.Sinh({operand})",
-                UnaryArithmeticKind.Cosh => $"{math}.Cosh({operand})",
-                UnaryArithmeticKind.Tanh => $"{math}.Tanh({operand})",
-                UnaryArithmeticKind.Asinh => $"{math}.Asinh({operand})",
-                UnaryArithmeticKind.Acosh => $"{math}.Acosh({operand})",
-                UnaryArithmeticKind.Atanh => $"{math}.Atanh({operand})",
-                UnaryArithmeticKind.Exp => $"{math}.Exp({operand})",
-                UnaryArithmeticKind.Exp2 => $"{math}.Pow({two}, {operand})",
-                UnaryArithmeticKind.Log => $"{math}.Log({operand})",
-                UnaryArithmeticKind.Log2 => $"{math}.Log2({operand})",
-                UnaryArithmeticKind.Log10 => $"{math}.Log10({operand})",
-                UnaryArithmeticKind.Floor => $"{math}.Floor({operand})",
-                UnaryArithmeticKind.Ceiling => $"{math}.Ceiling({operand})",
-                UnaryArithmeticKind.Rcp => $"({one} / {operand})",
-                UnaryArithmeticKind.Rsqrt => $"({one} / {math}.Sqrt({operand}))",
+                        ? $"!{value}"
+                        : $"~{value}",
+                UnaryArithmeticKind.Abs => $"{math}.Abs({value})",
+                UnaryArithmeticKind.Sqrt => $"{math}.Sqrt({value})",
+                UnaryArithmeticKind.Sin => $"{math}.Sin({value})",
+                UnaryArithmeticKind.Cos => $"{math}.Cos({value})",
+                UnaryArithmeticKind.Tan => $"{math}.Tan({value})",
+                UnaryArithmeticKind.Asin => $"{math}.Asin({value})",
+                UnaryArithmeticKind.Acos => $"{math}.Acos({value})",
+                UnaryArithmeticKind.Atan => $"{math}.Atan({value})",
+                UnaryArithmeticKind.Sinh => $"{math}.Sinh({value})",
+                UnaryArithmeticKind.Cosh => $"{math}.Cosh({value})",
+                UnaryArithmeticKind.Tanh => $"{math}.Tanh({value})",
+                UnaryArithmeticKind.Asinh => $"{math}.Asinh({value})",
+                UnaryArithmeticKind.Acosh => $"{math}.Acosh({value})",
+                UnaryArithmeticKind.Atanh => $"{math}.Atanh({value})",
+                UnaryArithmeticKind.Exp => $"{math}.Exp({value})",
+                UnaryArithmeticKind.Exp2 => $"{math}.Pow({two}, {value})",
+                UnaryArithmeticKind.Log => $"{math}.Log({value})",
+                UnaryArithmeticKind.Log2 => $"{math}.Log2({value})",
+                UnaryArithmeticKind.Log10 => $"{math}.Log10({value})",
+                UnaryArithmeticKind.Floor => $"{math}.Floor({value})",
+                UnaryArithmeticKind.Ceiling => $"{math}.Ceiling({value})",
+                UnaryArithmeticKind.Rcp => $"({one} / {value})",
+                UnaryArithmeticKind.Rsqrt => $"({one} / {math}.Sqrt({value}))",
                 _ => null
             };
             if (expr != null)
             {
+                if (isHalf)
+                    expr = $"(System.Half)({expr})";
                 context.WriteLine($"{Declare(result)} = {expr};");
                 return;
             }
@@ -899,7 +908,7 @@ sealed class CPUExpressionEmitter(
     /// <summary>
     /// Emits a vectorized multiply-add lane by lane, as its operands may mix
     /// uniform and per-lane values. Like the scalar emission, it computes
-    /// a * b + c.
+    /// a * b + c, and half operands are evaluated in single precision.
     /// </summary>
     public void EmitTernaryOp(TernaryArithmeticValue ternary)
     {
@@ -912,11 +921,16 @@ sealed class CPUExpressionEmitter(
         string Lane(Value operand)
         {
             var name = ResolveOperand(operand);
-            return analysis.IsScalar(operand) ? name : $"{name}[_bi]";
+            var lane = analysis.IsScalar(operand) ? name : $"{name}[_bi]";
+            return ternary.BasicValueType == BasicValueType.Float16
+                ? $"(float){lane}"
+                : lane;
         }
 
         var expr = $"{Lane(ternary.First)} * {Lane(ternary.Second)} + " +
             Lane(ternary.Third);
+        if (ternary.BasicValueType == BasicValueType.Float16)
+            expr = $"(System.Half)({expr})";
         context.WriteLine(
             $"for (int _bi = 0; _bi < SIMDWidth; _bi++) " +
             $"{context.GetValueName(ternary)}[_bi] = {expr};");
@@ -1174,6 +1188,7 @@ sealed class CPUExpressionEmitter(
         var srcBvt = cast.Source.BasicValueType;
         var scalarHelper = srcBvt switch
         {
+            BasicValueType.Float16 => "BitConverter.HalfToInt16Bits",
             BasicValueType.Float32 => "BitConverter.SingleToInt32Bits",
             BasicValueType.Float64 => "BitConverter.DoubleToInt64Bits",
             _ => null
@@ -1215,6 +1230,7 @@ sealed class CPUExpressionEmitter(
         var tgtBvt = cast.BasicValueType;
         var scalarHelper = tgtBvt switch
         {
+            BasicValueType.Float16 => "BitConverter.Int16BitsToHalf",
             BasicValueType.Float32 => "BitConverter.Int32BitsToSingle",
             BasicValueType.Float64 => "BitConverter.Int64BitsToDouble",
             _ => null

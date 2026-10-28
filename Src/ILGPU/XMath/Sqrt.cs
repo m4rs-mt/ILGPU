@@ -36,6 +36,15 @@ partial class XMath
     public static float Sqrt(float value) => MathF.Sqrt(value);
 
     /// <summary>
+    /// Computes sqrt(value).
+    /// </summary>
+    /// <param name="value">The value.</param>
+    /// <returns>sqrt(value).</returns>
+    [MathIntrinsic]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Half Sqrt(Half value) => (Half)Sqrt((float)value);
+
+    /// <summary>
     /// Computes 1/sqrt(value).
     /// </summary>
     /// <param name="value">The value.</param>
@@ -54,6 +63,15 @@ partial class XMath
     public static float Rsqrt(float value) => Rcp(Sqrt(value));
 
     /// <summary>
+    /// Computes 1/sqrt(value).
+    /// </summary>
+    /// <param name="value">The value.</param>
+    /// <returns>1/sqrt(value).</returns>
+    [MathIntrinsic]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Half Rsqrt(Half value) => (Half)Rsqrt((float)value);
+
+    /// <summary>
     /// Computes cbrt(value).
     /// </summary>
     /// <param name="value">The value.</param>
@@ -70,4 +88,12 @@ partial class XMath
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static float Cbrt(float value) =>
         CopySign(Pow(Abs(value), 1.0f / 3.0f), value);
+
+    /// <summary>
+    /// Computes cbrt(value).
+    /// </summary>
+    /// <param name="value">The value.</param>
+    /// <returns>cbrt(value).</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Half Cbrt(Half value) => (Half)Cbrt((float)value);
 }

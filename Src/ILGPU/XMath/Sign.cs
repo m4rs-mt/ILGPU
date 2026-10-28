@@ -85,6 +85,16 @@ partial class XMath
         Utilities.Select(value < 0.0f, -1, Utilities.Select(value > 0.0f, 1, 0));
 
     /// <summary>
+    /// Computes the sign of the provided value.
+    /// Sign will return 0 for NaN, Infinity or 0 values.
+    /// </summary>
+    /// <param name="value">The value.</param>
+    /// <returns>-1 for negative value, 1 for positive values, and 0 for
+    /// 0, NaN or Infinity.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static int Sign(Half value) => Sign((float)value);
+
+    /// <summary>
     /// Returns a value with the magnitude of x and the sign of y.
     /// </summary>
     /// <param name="x">A number whose magnitude is used in the result.</param>
@@ -105,4 +115,14 @@ partial class XMath
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static float CopySign(float x, float y) =>
         MathF.CopySign(x, y);
+
+    /// <summary>
+    /// Returns a value with the magnitude of x and the sign of y.
+    /// </summary>
+    /// <param name="x">A number whose magnitude is used in the result.</param>
+    /// <param name="y">A number whose sign is the used in the result.</param>
+    /// <returns>A value with the magnitude of x and the sign of y.</returns>
+    [MathIntrinsic]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Half CopySign(Half x, Half y) => (Half)CopySign((float)x, (float)y);
 }

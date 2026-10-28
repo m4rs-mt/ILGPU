@@ -18,6 +18,22 @@
                 Target="PlatformSupport.BitConverter.Int32BitsToSingle">
                 <Specialization Type="int" />
             </Remap>
+            <Remap Name="HalfToInt16Bits"
+                Target="PlatformSupport.BitConverter.HalfToInt16Bits">
+                <Specialization Type="System.Half" />
+            </Remap>
+            <Remap Name="HalfToUInt16Bits"
+                Target="PlatformSupport.BitConverter.HalfToUInt16Bits">
+                <Specialization Type="System.Half" />
+            </Remap>
+            <Remap Name="Int16BitsToHalf"
+                Target="PlatformSupport.BitConverter.Int16BitsToHalf">
+                <Specialization Type="short" />
+            </Remap>
+            <Remap Name="UInt16BitsToHalf"
+                Target="PlatformSupport.BitConverter.UInt16BitsToHalf">
+                <Specialization Type="ushort" />
+            </Remap>
         </Remapping>
     </Type>
 </Intrinsics>

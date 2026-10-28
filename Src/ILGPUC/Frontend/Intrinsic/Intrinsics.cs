@@ -324,6 +324,29 @@ static unsafe partial class Intrinsics
     }
 
     /// <summary>
+    /// Returns true if <paramref name="method"/> is a member of <see cref="Half"/>
+    /// that has no kernel implementation: neither a remapping nor a code generator,
+    /// or a conversion from or to <see cref="decimal"/>, <see cref="Int128"/> or
+    /// <see cref="UInt128"/>, which kernels do not support. The BCL implementations
+    /// of these members are not compiled, as they may produce wrong results in
+    /// kernels; a call that remains after optimization is a compile error.
+    /// </summary>
+    /// <param name="method">The method to test.</param>
+    /// <returns>True, if calls to the method are not supported in kernels.</returns>
+    internal static bool IsUnsupportedMethod(MethodBase method)
+    {
+        if (method.DeclaringType != typeof(Half) || HasIntrinsicRemapping(method))
+            return false;
+        if (!HasIntrinsicGenerator(method))
+            return true;
+        static bool IsUnsupportedType(Type type) =>
+            type == typeof(decimal) || type == typeof(Int128) || type == typeof(UInt128);
+        return method is MethodInfo methodInfo &&
+            (IsUnsupportedType(methodInfo.ReturnType) ||
+            methodInfo.GetParameters().Any(p => IsUnsupportedType(p.ParameterType)));
+    }
+
+    /// <summary>
     /// Returns the method whose IL the constant evaluator interprets for a call of
     /// <paramref name="method"/>: the method itself, or its remapping (which makes
     /// constants such as <c>Sse.IsSupported</c> evaluable). Intrinsics that are
@@ -337,6 +360,8 @@ static unsafe partial class Intrinsics
         [NotNullWhen(true)] out MethodBase? target)
     {
         target = null;
+        if (IsUnsupportedMethod(method))
+            return false;
         if (TryGetIntrinsicRemapping(method, out var remapped))
         {
             var genericContext = GenericContext.TryGet(method);

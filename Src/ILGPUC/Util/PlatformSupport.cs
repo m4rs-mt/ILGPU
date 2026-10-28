@@ -73,6 +73,30 @@ static class PlatformSupport
         /// </summary>
         public static float Int32BitsToSingle(int value) =>
             Interop.IntAsFloat((uint)value);
+
+        /// <summary>
+        /// Converts halves to shorts.
+        /// </summary>
+        public static short HalfToInt16Bits(Half value) =>
+            (short)Interop.FloatAsInt(value);
+
+        /// <summary>
+        /// Converts halves to unsigned shorts.
+        /// </summary>
+        public static ushort HalfToUInt16Bits(Half value) =>
+            Interop.FloatAsInt(value);
+
+        /// <summary>
+        /// Converts shorts to halves.
+        /// </summary>
+        public static Half Int16BitsToHalf(short value) =>
+            Interop.IntAsFloat((ushort)value);
+
+        /// <summary>
+        /// Converts unsigned shorts to halves.
+        /// </summary>
+        public static Half UInt16BitsToHalf(ushort value) =>
+            Interop.IntAsFloat(value);
     }
 
     /// <summary>

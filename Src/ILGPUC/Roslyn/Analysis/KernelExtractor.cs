@@ -1213,7 +1213,9 @@ sealed class KernelExtractor(
             SpecialType.System_Single => true,
             SpecialType.System_Double => true,
             SpecialType.System_Char => true,
-            _ => type.Name is "Half" or "Int128" or "UInt128",
+            _ => type.Name is "Half" or "Int128" or "UInt128" &&
+                type.ContainingNamespace is
+                { Name: "System", ContainingNamespace.IsGlobalNamespace: true },
         };
 
     /// <summary>

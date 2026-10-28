@@ -18,6 +18,7 @@
 <#@ output extension=".cs" #>
 
 using ILGPU.Util;
+using System;
 using System.Runtime.CompilerServices;
 
 // disable: max_line_length

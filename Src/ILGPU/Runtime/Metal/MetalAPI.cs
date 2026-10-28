@@ -62,6 +62,11 @@ public enum MetalError
     /// Failed to allocate a GPU buffer.
     /// </summary>
     BufferAllocationFailed = 7,
+
+    /// <summary>
+    /// A command buffer failed to execute.
+    /// </summary>
+    CommandBufferFailed = 8,
 }
 
 /// <summary>
@@ -276,6 +281,8 @@ public static unsafe partial class MetalAPI
         SelRegisterName("commit");
     private static readonly IntPtr SelWaitUntilCompleted =
         SelRegisterName("waitUntilCompleted");
+    private static readonly IntPtr SelStatus = SelRegisterName("status");
+    private static readonly IntPtr SelError = SelRegisterName("error");
     private static readonly IntPtr SelNewLibraryWithSource =
         SelRegisterName("newLibraryWithSource:options:error:");
     private static readonly IntPtr SelNewLibraryWithURL =
@@ -306,6 +313,7 @@ public static unsafe partial class MetalAPI
     // NSError
     private static readonly IntPtr SelLocalizedDescription =
         SelRegisterName("localizedDescription");
+    private static readonly IntPtr SelCode = SelRegisterName("code");
 
     // Device properties
     private static readonly IntPtr SelName = SelRegisterName("name");
@@ -413,6 +421,15 @@ public static unsafe partial class MetalAPI
         var descNSString = ObjcMsgSend(nsError, SelLocalizedDescription);
         return GetNSString(descNSString);
     }
+
+    /// <summary>
+    /// Gets the error code of an NSError object.
+    /// </summary>
+    /// <param name="nsError">The NSError handle.</param>
+    /// <returns>The error code.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static long GetNSErrorCode(IntPtr nsError) =>
+        (long)ObjcMsgSendUlong(nsError, SelCode);
 
     #endregion
 
@@ -833,6 +850,26 @@ public static unsafe partial class MetalAPI
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void WaitUntilCompleted(IntPtr commandBuffer) =>
         ObjcMsgSendVoid(commandBuffer, SelWaitUntilCompleted);
+
+    /// <summary>
+    /// Returns the execution status of the command buffer (MTLCommandBufferStatus).
+    /// </summary>
+    /// <param name="commandBuffer">The command buffer handle.</param>
+    /// <returns>The status value.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static ulong GetCommandBufferStatus(IntPtr commandBuffer) =>
+        ObjcMsgSendUlong(commandBuffer, SelStatus);
+
+    /// <summary>
+    /// Returns the NSError of a failed command buffer.
+    /// </summary>
+    /// <param name="commandBuffer">The command buffer handle.</param>
+    /// <returns>
+    /// The NSError handle, or IntPtr.Zero if the command buffer has not failed.
+    /// </returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static IntPtr GetCommandBufferError(IntPtr commandBuffer) =>
+        ObjcMsgSend(commandBuffer, SelError);
 
     #endregion
 }

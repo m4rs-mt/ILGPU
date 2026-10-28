@@ -168,4 +168,23 @@ public abstract class ConvertExecutionTests : ExecutionTestBase
             ["Kernels.SignExtendKernel"],
             ["-10", "-10", "-10", "-10"]);
     }
+
+    /// <summary>
+    /// Chars in buffers and kernel parameters are unsigned 16-bit integers, so
+    /// values from 0x8000 widen, shift, compare, divide and convert to float as
+    /// unsigned values.
+    /// </summary>
+    [SkippableFact]
+    public async Task CharUnsigned_ProducesCorrectOutput()
+    {
+        await VerifyProgramOutputAsync(
+            "TestPrograms/ConvertInt/CharUnsigned.cs",
+            ["Kernels.CharUnsignedKernel"],
+            [
+                "65 4 0 21 32834 65",
+                "32767 2047 0 10922 0 32767",
+                "32768 2048 1 10922 1 32768",
+                "65535 4095 1 21845 32768 65535",
+            ]);
+    }
 }

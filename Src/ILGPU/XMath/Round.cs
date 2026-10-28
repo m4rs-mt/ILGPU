@@ -39,6 +39,14 @@ partial class XMath
     /// Rounds the value to the nearest value (halfway cases are rounded to even).
     /// </summary>
     /// <param name="value">The value.</param>
+    /// <returns>The nearest value.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Half Round(Half value) => (Half)Round((float)value);
+
+    /// <summary>
+    /// Rounds the value to the nearest value (halfway cases are rounded to even).
+    /// </summary>
+    /// <param name="value">The value.</param>
     /// <param name="digits">
     /// The number of fractional digits in the return value.
     /// </param>
@@ -58,6 +66,17 @@ partial class XMath
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static float Round(float value, int digits) =>
         Round(value, digits, MidpointRounding.ToEven);
+
+    /// <summary>
+    /// Rounds the value to the nearest value (halfway cases are rounded to even).
+    /// </summary>
+    /// <param name="value">The value.</param>
+    /// <param name="digits">
+    /// The number of fractional digits in the return value.
+    /// </param>
+    /// <returns>The nearest value.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Half Round(Half value, int digits) => (Half)Round((float)value, digits);
 
     /// <summary>
     /// Rounds the value to the nearest value.
@@ -82,6 +101,18 @@ partial class XMath
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static float Round(float value, MidpointRounding mode) =>
         Round(value, 0, mode);
+
+    /// <summary>
+    /// Rounds the value to the nearest value.
+    /// </summary>
+    /// <param name="value">The value.</param>
+    /// <param name="mode">
+    /// Specifies how to round value if it is midway between two numbers.
+    /// </param>
+    /// <returns>The nearest value.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Half Round(Half value, MidpointRounding mode) =>
+        (Half)Round((float)value, mode);
 
     /// <summary>
     /// Rounds the value to the nearest value.
@@ -114,6 +145,21 @@ partial class XMath
         RoundingModes.Round(value, digits, mode);
 
     /// <summary>
+    /// Rounds the value to the nearest value.
+    /// </summary>
+    /// <param name="value">The value.</param>
+    /// <param name="digits">
+    /// The number of fractional digits in the return value.
+    /// </param>
+    /// <param name="mode">
+    /// Specifies how to round value if it is midway between two numbers.
+    /// </param>
+    /// <returns>The nearest value.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Half Round(Half value, int digits, MidpointRounding mode) =>
+        (Half)Round((float)value, digits, mode);
+
+    /// <summary>
     /// Rounds the value to the nearest value (halfway cases are rounded away from
     /// zero).
     /// </summary>
@@ -134,6 +180,16 @@ partial class XMath
         RoundingModes.RoundAwayFromZero(value);
 
     /// <summary>
+    /// Rounds the value to the nearest value (halfway cases are rounded away from
+    /// zero).
+    /// </summary>
+    /// <param name="value">The value.</param>
+    /// <returns>The nearest value.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Half RoundAwayFromZero(Half value) =>
+        (Half)RoundAwayFromZero((float)value);
+
+    /// <summary>
     /// Rounds the value to the nearest value (halfway cases are rounded to even).
     /// </summary>
     /// <param name="value">The value.</param>
@@ -152,6 +208,14 @@ partial class XMath
         RoundingModes.RoundToEven(value);
 
     /// <summary>
+    /// Rounds the value to the nearest value (halfway cases are rounded to even).
+    /// </summary>
+    /// <param name="value">The value.</param>
+    /// <returns>The nearest value.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Half RoundToEven(Half value) => (Half)RoundToEven((float)value);
+
+    /// <summary>
     /// Truncates the given value.
     /// </summary>
     /// <param name="value">The value to truncate.</param>
@@ -168,4 +232,12 @@ partial class XMath
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static float Truncate(float value) =>
         Utilities.Select(value < 0.0f, Ceiling(value), Floor(value));
+
+    /// <summary>
+    /// Truncates the given value.
+    /// </summary>
+    /// <param name="value">The value to truncate.</param>
+    /// <returns>The truncated value.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Half Truncate(Half value) => (Half)Truncate((float)value);
 }

@@ -499,7 +499,7 @@ sealed class CompiledKernelGenerator : DisposeBase
             BasicValueType.Int16 => "short",
             BasicValueType.Int32 => "int",
             BasicValueType.Int64 => "long",
-            BasicValueType.Float16 => "Half",
+            BasicValueType.Float16 => "System.Half",
             BasicValueType.Float32 => "float",
             BasicValueType.Float64 => "double",
             _ => "int",
@@ -527,7 +527,7 @@ sealed class CompiledKernelGenerator : DisposeBase
             or "short" or "ushort" or "char"
             or "int" or "uint" or "nint" or "nuint"
             or "long" or "ulong"
-            or "Half" or "float" or "double";
+            or "System.Half" or "float" or "double";
 
     /// <summary>
     /// Returns the generated user-facing struct name for a structure type.

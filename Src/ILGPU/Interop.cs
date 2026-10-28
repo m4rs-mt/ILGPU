@@ -197,7 +197,7 @@ public static partial class Interop
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [InteropIntrinsic]
     public static ushort FloatAsInt(Half value) =>
-        value.RawValue;
+        BitConverter.HalfToUInt16Bits(value);
 
     /// <summary>
     /// Casts the given float to an int via a reinterpret cast.
@@ -226,7 +226,8 @@ public static partial class Interop
     /// <returns>The float value.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [InteropIntrinsic]
-    public static Half IntAsFloat(ushort value) => new(value);
+    public static Half IntAsFloat(ushort value) =>
+        BitConverter.UInt16BitsToHalf(value);
 
     /// <summary>
     /// Casts the given int to a float via a reinterpret cast.
