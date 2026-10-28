@@ -50,4 +50,16 @@ public abstract class GroupRadixSortRuntimeExecutionTests : ExecutionTestBase
             ["Kernels.GroupRadixSortGroupSizesKernel"],
             ["unsorted 0", "lost 0"]);
     }
+
+    /// <summary>
+    /// Float keys sort negative values by magnitude before positive ones.
+    /// </summary>
+    [SkippableFact]
+    public async Task GroupRadixSortFloat_Runtime_ProducesCorrectOutput()
+    {
+        await VerifyProgramOutputAsync(
+            "TestPrograms/GroupRadixSortRuntime/GroupRadixSortFloatRuntime.cs",
+            ["Kernels.GroupRadixSortFloatRuntimeKernel"],
+            ["-100.25", "-2", "-1", "-0.5", "-0", "2", "3.5", "7"]);
+    }
 }

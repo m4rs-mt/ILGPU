@@ -47,4 +47,63 @@ public abstract class WarpRadixSortRuntimeExecutionTests : ExecutionTestBase
             ["Kernels.WarpRadixSortDescendingInt32RuntimeKernel"],
             ["8", "7", "6", "5", "4", "3", "2", "1"]);
     }
+
+    /// <summary>
+    /// Float keys sort negative values by magnitude before positive ones, in both
+    /// directions.
+    /// </summary>
+    [SkippableFact]
+    public async Task WarpRadixSortFloat_Runtime_ProducesCorrectOutput()
+    {
+        await VerifyProgramOutputAsync(
+            "TestPrograms/WarpRadixSortRuntime/WarpRadixSortFloatRuntime.cs",
+            [
+                "Kernels.WarpRadixSortFloatRuntimeAscendingKernel",
+                "Kernels.WarpRadixSortFloatRuntimeDescendingKernel"
+            ],
+            [
+                "-100.25", "-2", "-1", "-0.5", "-0", "2", "3.5", "7",
+                "7", "3.5", "2", "-0", "-0.5", "-1", "-2", "-100.25"
+            ]);
+    }
+
+    /// <summary>
+    /// Double keys sort negative values by magnitude before positive ones, in both
+    /// directions.
+    /// </summary>
+    [SkippableFact]
+    public async Task WarpRadixSortDouble_Runtime_ProducesCorrectOutput()
+    {
+        RequireCapability(Backend, BackendCapability.Float64);
+        await VerifyProgramOutputAsync(
+            "TestPrograms/WarpRadixSortRuntime/WarpRadixSortDoubleRuntime.cs",
+            [
+                "Kernels.WarpRadixSortDoubleRuntimeAscendingKernel",
+                "Kernels.WarpRadixSortDoubleRuntimeDescendingKernel"
+            ],
+            [
+                "-100.25", "-2", "-1", "-0.5", "-0", "2", "3.5", "7",
+                "7", "3.5", "2", "-0", "-0.5", "-1", "-2", "-100.25"
+            ]);
+    }
+
+    /// <summary>
+    /// Half keys sort negative values by magnitude before positive ones, in both
+    /// directions.
+    /// </summary>
+    [SkippableFact]
+    public async Task WarpRadixSortHalf_Runtime_ProducesCorrectOutput()
+    {
+        RequireCapability(Backend, BackendCapability.Float16);
+        await VerifyProgramOutputAsync(
+            "TestPrograms/WarpRadixSortRuntime/WarpRadixSortHalfRuntime.cs",
+            [
+                "Kernels.WarpRadixSortHalfRuntimeAscendingKernel",
+                "Kernels.WarpRadixSortHalfRuntimeDescendingKernel"
+            ],
+            [
+                "-100.25", "-2", "-1", "-0.5", "-0", "2", "3.5", "7",
+                "7", "3.5", "2", "-0", "-0.5", "-1", "-2", "-100.25"
+            ]);
+    }
 }
