@@ -174,6 +174,7 @@ sealed class TypeInformationManager
     #region Instance
 
     private readonly Dictionary<Type, TypeInformation> _typeInfoMapping = [];
+    private readonly HashSet<Type> _compoundTypesInProgress = [];
 
     /// <summary>
     /// Constructs a new type context.
@@ -260,7 +261,28 @@ sealed class TypeInformationManager
         bool isBlittable,
         bool isValidKernelParameter)
     {
-        var result = new TypeInformation(
+        var result = CreatePrimitiveTypeInfo(
+            type,
+            isBlittable,
+            isValidKernelParameter);
+        _typeInfoMapping.Add(type, result);
+        return result;
+    }
+
+    /// <summary>
+    /// Creates primitive type information without registering it.
+    /// </summary>
+    /// <param name="type">The type.</param>
+    /// <param name="isBlittable">True, if this type is blittable.</param>
+    /// <param name="isValidKernelParameter">
+    /// True, if a valid kernel parameter.
+    /// </param>
+    /// <returns>The created type information instance.</returns>
+    private TypeInformation CreatePrimitiveTypeInfo(
+        Type type,
+        bool isBlittable,
+        bool isValidKernelParameter) =>
+        new(
             this,
             type,
             0,
@@ -270,9 +292,6 @@ sealed class TypeInformationManager
             1,
             isBlittable,
             isValidKernelParameter);
-        _typeInfoMapping.Add(type, result);
-        return result;
-    }
 
     /// <summary>
     /// Creates new type information and registers the created object
@@ -287,7 +306,14 @@ sealed class TypeInformationManager
         // Check for pointers and arrays
         if (type.IsPointer || type.IsByRef || type.IsArray)
         {
-            var elementInfo = GetTypeInfoInternal(type.GetElementType().AsNotNull());
+            // A structure that points to itself through its fields is blittable
+            // if its other fields are: the information about such a pointer is
+            // registered once the information about the structure is complete
+            var elementType = type.GetElementType().AsNotNull();
+            if (_compoundTypesInProgress.Contains(elementType))
+                return CreatePrimitiveTypeInfo(type, true, true);
+
+            var elementInfo = GetTypeInfoInternal(elementType);
             result = AddTypeInfo(type, elementInfo.IsBlittable);
         }
         // Check for enum types
@@ -304,7 +330,15 @@ sealed class TypeInformationManager
         }
         else
         {
-            result = CreateCompoundTypeInfo(type);
+            _compoundTypesInProgress.Add(type);
+            try
+            {
+                result = CreateCompoundTypeInfo(type);
+            }
+            finally
+            {
+                _compoundTypesInProgress.Remove(type);
+            }
             _typeInfoMapping.Add(type, result);
         }
 

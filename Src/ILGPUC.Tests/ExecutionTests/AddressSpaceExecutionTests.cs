@@ -14,6 +14,7 @@ using ILGPUC.Tests.Framework;
 using System.Threading.Tasks;
 using Xunit;
 using Xunit.Abstractions;
+using RoslynOptimizationLevel = Microsoft.CodeAnalysis.OptimizationLevel;
 
 namespace ILGPUC.Tests.ExecutionTests;
 
@@ -171,5 +172,47 @@ public abstract class AddressSpaceExecutionTests : ExecutionTestBase
             "TestPrograms/AddressSpace/MixedSpaceRef.cs",
             ["Kernels.MixedSpaceRefKernel"],
             ["11", "22", "33", "44"]);
+    }
+
+    /// <summary>
+    /// Constant and variable offsets are added to and subtracted from pointers to
+    /// int, long and 12-byte structure elements.
+    /// </summary>
+    [SkippableTheory]
+    [InlineData(OptimizationLevel.O0, RoslynOptimizationLevel.Release)]
+    [InlineData(OptimizationLevel.O1, RoslynOptimizationLevel.Release)]
+    [InlineData(OptimizationLevel.O2, RoslynOptimizationLevel.Release)]
+    [InlineData(OptimizationLevel.O1, RoslynOptimizationLevel.Debug)]
+    public async Task PointerArithmetic_ProducesCorrectOutput(
+        OptimizationLevel level,
+        RoslynOptimizationLevel programOptimization)
+    {
+        await VerifyProgramOutputAsync(
+            "TestPrograms/AddressSpace/PointerArithmetic.cs",
+            ["Kernels.IntKernel", "Kernels.LongKernel", "Kernels.TripleKernel"],
+            [
+                "40201 30202 20203 10204",
+                "80401 70402 60403 50404",
+                "20700 20601 20502 20403",
+            ],
+            new CompilationProperties { OptimizationLevel = level },
+            programOptimization);
+    }
+
+    /// <summary>
+    /// A pointer joins the address of an element with null, and the kernel reads
+    /// the element through the pointer if it is not null.
+    /// </summary>
+    [SkippableTheory]
+    [InlineData(OptimizationLevel.O0)]
+    [InlineData(OptimizationLevel.O1)]
+    [InlineData(OptimizationLevel.O2)]
+    public async Task PointerSelect_ProducesCorrectOutput(OptimizationLevel level)
+    {
+        await VerifyProgramOutputAsync(
+            "TestPrograms/AddressSpace/PointerSelect.cs",
+            ["Kernels.PointerSelectKernel"],
+            ["1 -1 3 -1"],
+            new CompilationProperties { OptimizationLevel = level });
     }
 }

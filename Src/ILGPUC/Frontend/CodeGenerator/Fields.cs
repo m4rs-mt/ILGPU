@@ -62,6 +62,19 @@ partial class CodeGenerator
     }
 
     /// <summary>
+    /// Returns true if a field of the given type has an opaque pointer type in its
+    /// structure type: structure types cannot contain themselves, so the fields
+    /// through which a structure points to itself are opaque pointers, and their
+    /// values are converted when they are loaded and stored.
+    /// </summary>
+    /// <param name="layoutType">The type of the field in its structure type.</param>
+    /// <param name="fieldType">The type of the field.</param>
+    /// <returns>True if the field is an opaque pointer in its structure type.</returns>
+    private static bool IsOpaqueFieldPointer(TypeValue layoutType, TypeValue fieldType) =>
+        layoutType is PointerType { ElementType: VoidType } &&
+        fieldType is PointerType { ElementType: not VoidType };
+
+    /// <summary>
     /// Loads the value of a field specified by the given metadata token.
     /// </summary>
     /// <param name="field">The field.</param>
@@ -75,10 +88,19 @@ partial class CodeGenerator
             MakeLoadFieldAddress(field);
             var fieldAddress = Block.Pop();
             var fieldType = ModuleBuilder.CreateType(field.FieldType);
-            Block.Push(CreateLoad(
-                fieldAddress,
-                fieldType,
-                field.FieldType.ToTargetUnsignedFlags()));
+            var layoutType = fieldAddress.GetTypeAs<PointerType>().ElementType;
+            if (IsOpaqueFieldPointer(layoutType, fieldType))
+            {
+                var pointer = Builder.CreateLoad(Location, fieldAddress);
+                Block.Push(CreateConversion(pointer, fieldType, ConvertFlags.None));
+            }
+            else
+            {
+                Block.Push(CreateLoad(
+                    fieldAddress,
+                    fieldType,
+                    field.FieldType.ToTargetUnsignedFlags()));
+            }
         }
         else
         {
@@ -92,6 +114,14 @@ partial class CodeGenerator
                 fieldSpan).AsNotNull();
             if (fieldSpan.Span == 1)
             {
+                var fieldType = ModuleBuilder.CreateType(field.FieldType);
+                if (IsOpaqueFieldPointer(getField.Type, fieldType))
+                {
+                    getField = CreateConversion(
+                        getField,
+                        fieldType,
+                        ConvertFlags.None);
+                }
                 Block.Push(LoadOntoEvaluationStack(
                     getField,
                     field.FieldType.ToTargetUnsignedFlags()));
@@ -246,6 +276,9 @@ partial class CodeGenerator
             field.FieldType.ToTargetUnsignedFlags());
         MakeLoadFieldAddress(field);
         var address = Block.Pop();
+        var layoutType = address.GetTypeAs<PointerType>().ElementType;
+        if (IsOpaqueFieldPointer(layoutType, fieldType))
+            value = CreateConversion(value, layoutType, ConvertFlags.None);
         CreateStore(address, value);
     }
 

@@ -268,4 +268,50 @@ public abstract class StructureExecutionTests : ExecutionTestBase
             new CompilationProperties { OptimizationLevel = level },
             programOptimization);
     }
+
+    /// <summary>
+    /// Fields of structs are padded to their alignment, such as in structs holding
+    /// a pointer and an int or ints and longs, and the fields of the second of two
+    /// such structs in a local struct are read through a pointer to the first one.
+    /// </summary>
+    [SkippableTheory]
+    [InlineData(OptimizationLevel.O0)]
+    [InlineData(OptimizationLevel.O1)]
+    [InlineData(OptimizationLevel.O2)]
+    public async Task PointerFieldPadding_ProducesCorrectOutput(OptimizationLevel level)
+    {
+        await VerifyProgramOutputAsync(
+            "TestPrograms/Structure/PointerFieldPadding.cs",
+            ["Kernels.HelperKernel", "Kernels.LocalKernel", "Kernels.IntLongKernel"],
+            ["7 8 9 10", "7 8 9 10", "7 8 9 10"],
+            new CompilationProperties { OptimizationLevel = level });
+    }
+
+    /// <summary>
+    /// Structs point to their own type, directly or through another struct, and
+    /// kernels follow these pointers to locals, also from struct values and
+    /// through a struct whose only field points to itself.
+    /// </summary>
+    [SkippableTheory]
+    [InlineData(OptimizationLevel.O0, RoslynOptimizationLevel.Release)]
+    [InlineData(OptimizationLevel.O1, RoslynOptimizationLevel.Release)]
+    [InlineData(OptimizationLevel.O2, RoslynOptimizationLevel.Release)]
+    [InlineData(OptimizationLevel.O1, RoslynOptimizationLevel.Debug)]
+    public async Task SelfReferentialPointer_ProducesCorrectOutput(
+        OptimizationLevel level,
+        RoslynOptimizationLevel programOptimization)
+    {
+        RequireCapability(Backend, BackendCapability.GenericAddressSpace);
+        await VerifyProgramOutputAsync(
+            "TestPrograms/Structure/SelfReferentialPointer.cs",
+            [
+                "Kernels.ListKernel",
+                "Kernels.ValueKernel",
+                "Kernels.SelfKernel",
+                "Kernels.MutualKernel",
+            ],
+            ["111 112 113 114", "7 8 9 10", "0 2 4 6", "100 101 102 103"],
+            new CompilationProperties { OptimizationLevel = level },
+            programOptimization);
+    }
 }

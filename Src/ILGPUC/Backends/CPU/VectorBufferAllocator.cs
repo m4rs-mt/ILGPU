@@ -234,8 +234,10 @@ sealed class VectorBufferAllocator
                 default:
                     if (positions.TryGetValue(target, out int usePos))
                         last = System.Math.Max(last, usePos);
+                    // Loads and stores through views read the views and the
+                    // indices of their element addresses again
                     bool inlined = target is LoadElementAddress lea
-                        ? IsLeaFusable(lea)
+                        ? IsLeaFusable(lea) || lea.IsViewAccess
                         : target is PureValue && target.Uses.HasExactlyOne
                             && _analysis.IsScalar(target);
                     if (inlined && depth < 16)

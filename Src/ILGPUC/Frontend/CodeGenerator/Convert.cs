@@ -9,6 +9,7 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
+using ILGPU.Resources;
 using ILGPU.Util;
 using ILGPUC.IR;
 using ILGPUC.IR.ModuleValues;
@@ -55,7 +56,24 @@ partial class CodeGenerator
     {
         if (value.Type is AddressSpaceType)
         {
-            var otherType = targetType.AsNotNullCast<AddressSpaceType>();
+            // Native integers are pointers: conversions to other primitive
+            // types convert their integer values
+            if (value.Type is PointerType && targetType is PrimitiveType)
+            {
+                var integer = Builder.CreatePointerAsIntCast(
+                    Location,
+                    value,
+                    ModuleBuilder.IntPointerType.BasicValueType);
+                return Builder.CreateConvert(Location, integer, targetType, flags);
+            }
+            if (targetType is not AddressSpaceType otherType)
+            {
+                throw Location.GetNotSupportedException(
+                    ErrorMessages.NotSupportedConversion,
+                    value.Type,
+                    targetType);
+            }
+
             var source = value;
             value = Builder.CreateAddressSpaceCast(
                 Location,

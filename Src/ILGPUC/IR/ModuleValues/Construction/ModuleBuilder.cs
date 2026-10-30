@@ -61,6 +61,7 @@ partial class ModuleBuilder : IGenerationObject
     private readonly Dictionary<(Type, MemoryAddressSpace), TypeValue> _typeMapping = [];
     private readonly Dictionary<Type, TypeValue> _classStructCache = new(8);
     private readonly HashSet<Type> _classStructInProgress = new(4);
+    private readonly HashSet<Type> _structureTypesInProgress = new(4);
     private DelegateHandleType? _delegateHandleType;
 
     private InlineList<Global> _globals = InlineList<Global>.Create(32);
@@ -469,6 +470,15 @@ partial class ModuleBuilder : IGenerationObject
         }
         else if (type.IsArray)
         {
+            // Arrays hold their elements, which cannot be structures that
+            // contain these arrays
+            if (_structureTypesInProgress.Contains(type.GetElementType().AsNotNull()))
+            {
+                throw new NotSupportedException(
+                    string.Format(
+                        ErrorMessages.NotSupportedRecursiveReferenceType,
+                        type));
+            }
             var arrayElementType = CreateType(
                 type.GetElementType().AsNotNull(),
                 addressSpace);
@@ -496,11 +506,18 @@ partial class ModuleBuilder : IGenerationObject
         }
         else if (type.IsByRef || type.IsPointer)
         {
+            // A structure cannot contain its own type: the fields through which
+            // it points to itself are opaque pointers, which loads from these
+            // fields convert back to the pointer type
+            var pointerElementType = type.GetElementType().AsNotNull();
+            if (_structureTypesInProgress.Contains(pointerElementType))
+                return CreatePointerType(VoidType, addressSpace);
+
             return Map(
                 type,
                 addressSpace,
                 CreatePointerType(
-                    CreateType(type.GetElementType().AsNotNull(), addressSpace),
+                    CreateType(pointerElementType, addressSpace),
                     addressSpace));
         }
         else if (type.IsClass)
@@ -629,8 +646,16 @@ partial class ModuleBuilder : IGenerationObject
             this,
             typeInfo.NumFlattenedFields,
             typeInfo.Size);
-        foreach (var field in typeInfo.Fields)
-            builder.Add(CreateType(field.FieldType, addressSpace));
+        _structureTypesInProgress.Add(type);
+        try
+        {
+            foreach (var field in typeInfo.Fields)
+                builder.Add(CreateType(field.FieldType, addressSpace));
+        }
+        finally
+        {
+            _structureTypesInProgress.Remove(type);
+        }
     }
 
     /// <summary>

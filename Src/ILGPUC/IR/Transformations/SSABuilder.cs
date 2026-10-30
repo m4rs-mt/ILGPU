@@ -272,6 +272,8 @@ sealed class SSABuilder<TVariable> where TVariable : notnull
         private TypeValue GetPhiType(TVariable var, ref MarkerProvider markerProvider)
         {
             var type = PeekValue(var, markerProvider.CreateMarker()).AsNotNull().Type;
+            if (type is PointerType)
+                return GetPointerPhiType(var, type, ref markerProvider);
             if (type.BasicValueType != BasicValueType.Int1)
                 return type;
             foreach (var predecessor in Block.Predecessors)
@@ -292,6 +294,45 @@ sealed class SSABuilder<TVariable> where TVariable : notnull
                 }
             }
             return type;
+        }
+
+        /// <summary>
+        /// Returns the type of a new phi joining pointers. IL stack slots join
+        /// typed pointers with untyped ones, such as null pointers and pointers
+        /// converted to native integers: the phi points to the element type of
+        /// the first typed pointer, into the address space of all pointers that
+        /// are not null, or into the generic address space if these differ.
+        /// </summary>
+        /// <param name="var">The variable reference.</param>
+        /// <param name="type">The type of the first value found.</param>
+        /// <param name="markerProvider">A provider of new marker values.</param>
+        /// <returns>The phi type.</returns>
+        private TypeValue GetPointerPhiType(
+            TVariable var,
+            TypeValue type,
+            ref MarkerProvider markerProvider)
+        {
+            TypeValue? elementType = null;
+            MemoryAddressSpace? addressSpace = null;
+            foreach (var predecessor in Block.Predecessors)
+            {
+                var value = Parent[predecessor].PeekValue(
+                    var,
+                    markerProvider.CreateMarker());
+                if (value is NullValue || value?.Type is not PointerType pointer)
+                    continue;
+                if (elementType is null or VoidType)
+                    elementType = pointer.ElementType;
+                addressSpace = addressSpace is null ||
+                    addressSpace == pointer.AddressSpace
+                    ? pointer.AddressSpace
+                    : MemoryAddressSpace.Generic;
+            }
+            return elementType is null || addressSpace is null
+                ? type
+                : Builder.ModuleBuilder.CreatePointerType(
+                    elementType,
+                    addressSpace.Value);
         }
 
         //
@@ -381,6 +422,24 @@ sealed class SSABuilder<TVariable> where TVariable : notnull
                         incompletePhi.Location,
                         value,
                         primitiveType).AsNotNull();
+                }
+                else if (
+                    incompletePhi.PhiType is PointerType pointerType &&
+                    value.Type is PointerType valueType &&
+                    !valueType.Equals(pointerType) &&
+                    (value is NullValue ||
+                    valueType.AddressSpace == pointerType.AddressSpace ||
+                    pointerType.AddressSpace == MemoryAddressSpace.Generic))
+                {
+                    // Use the predecessor block to cast the pointer
+                    var builder = valueContainer.Builder;
+                    value = builder.CreatePointerCast(
+                        incompletePhi.Location,
+                        builder.CreateAddressSpaceCast(
+                            incompletePhi.Location,
+                            value,
+                            pointerType.AddressSpace),
+                        pointerType.ElementType).AsNotNull();
                 }
 
                 // Set argument value — transform the predecessor to the
