@@ -161,4 +161,24 @@ public abstract class StructureExecutionTests : ExecutionTestBase
             new CompilationProperties { OptimizationLevel = level },
             programOptimization);
     }
+
+    /// <summary>
+    /// A struct with a pointer field and a second field is carried through a loop
+    /// that assigns the address of a local to its pointer field.
+    /// </summary>
+    [SkippableTheory]
+    [InlineData(OptimizationLevel.O1, RoslynOptimizationLevel.Release)]
+    [InlineData(OptimizationLevel.O2, RoslynOptimizationLevel.Release)]
+    [InlineData(OptimizationLevel.O1, RoslynOptimizationLevel.Debug)]
+    public async Task PointerFieldLoop_ProducesCorrectOutput(
+        OptimizationLevel level,
+        RoslynOptimizationLevel programOptimization)
+    {
+        await VerifyProgramOutputAsync(
+            "TestPrograms/Structure/PointerFieldLoop.cs",
+            ["Kernels.AssignKernel", "Kernels.SelectKernel"],
+            ["1 12 23 34 45 56 67 78", "1 12 16 28 35 48 58 72"],
+            new CompilationProperties { OptimizationLevel = level },
+            programOptimization);
+    }
 }
