@@ -478,6 +478,20 @@ abstract class Backend(
         Task.FromResult<CompilationResult?>(null);
 
     /// <summary>
+    /// Returns the native compiler flag that disables multiply-add fusion
+    /// if <see cref="CompilationProperties.FusedMultiplyAddMode"/> turns it off.
+    /// </summary>
+    /// <param name="properties">The compilation properties.</param>
+    /// <param name="flag">The flag of the native compiler.</param>
+    /// <returns>The flag, or an empty string if fusion is allowed.</returns>
+    protected static string GetFusionFlag(
+        CompilationProperties properties,
+        string flag) =>
+        properties.FusedMultiplyAddMode == FusedMultiplyAddMode.Off
+            ? flag
+            : string.Empty;
+
+    /// <summary>
     /// Translates an ILGPU <see cref="OptimizationLevel"/> to the corresponding
     /// <see cref="NativeOptimizationLevel"/>. ILGPU exposes O0..O2; we offset by one
     /// (O0 → native O1, O1 → native O2, O2 → native O3) so even an "unoptimized" IR

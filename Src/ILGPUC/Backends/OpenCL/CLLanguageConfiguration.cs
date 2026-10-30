@@ -252,7 +252,8 @@ sealed class CLLanguageConfiguration(CLVendor vendor = CLVendor.Intel) : Languag
     }
 
     /// <inheritdoc/>
-    public override IEnumerable<string> GetPragmas()
+    public override IEnumerable<string> GetPragmas(
+        FusedMultiplyAddMode fusedMultiplyAdd)
     {
         // cl_khr_fp64 is required for any kernel that uses `double` —
         // OpenCL C disallows it without an explicit enable pragma.
@@ -271,6 +272,11 @@ sealed class CLLanguageConfiguration(CLVendor vendor = CLVendor.Intel) : Languag
             yield return "#pragma OPENCL EXTENSION cl_intel_subgroups : enable";
         else
             yield return "#pragma OPENCL EXTENSION cl_khr_subgroup_shuffle : enable";
+
+        // OpenCL C allows fusion by default; the pragma disables it for
+        // the offline compilers and for builds of the source at runtime
+        if (fusedMultiplyAdd == FusedMultiplyAddMode.Off)
+            yield return "#pragma OPENCL FP_CONTRACT OFF";
     }
 
     /// <inheritdoc/>

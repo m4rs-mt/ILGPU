@@ -491,4 +491,20 @@ abstract class IntrinsicEmitter
     public abstract string EmitHalfConstant(ushort rawBits);
 
     #endregion
+
+    #region Precise Arithmetic
+
+    /// <summary>
+    /// Emits a correctly rounded Half (Float16) division by a constant divisor,
+    /// which is used if fusion is turned off and no fast math mode is
+    /// requested.
+    /// </summary>
+    /// <param name="left">The dividend expression.</param>
+    /// <param name="divisor">The constant divisor.</param>
+    /// <returns>
+    /// The backend-specific division, or null to emit the division operator.
+    /// </returns>
+    public virtual string? EmitPreciseHalfDivision(string left, Half divisor) => null;
+
+    #endregion
 }

@@ -132,7 +132,11 @@ abstract class LanguageConfiguration
     /// <summary>
     /// Gets language-specific pragmas or attributes.
     /// </summary>
-    public virtual IEnumerable<string> GetPragmas() => [];
+    /// <param name="fusedMultiplyAdd">
+    /// Whether multiplications and additions may be fused into multiply-adds.
+    /// </param>
+    public virtual IEnumerable<string> GetPragmas(
+        FusedMultiplyAddMode fusedMultiplyAdd) => [];
 
     /// <summary>
     /// Formats a constant in the target language, or returns null to use the

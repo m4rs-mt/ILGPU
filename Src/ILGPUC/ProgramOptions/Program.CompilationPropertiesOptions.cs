@@ -20,7 +20,7 @@ sealed partial class Program
     /// <summary>
     /// Registers compilation properties command-line switches.
     /// </summary>
-    sealed class CompilationPropertiesOptions
+    internal sealed class CompilationPropertiesOptions
     {
         /// <summary>Debug symbols mode to embed in generated code.</summary>
         readonly Option<DebugSymbolsMode> _debugSymbolsOption = new("--debug-symbols")
@@ -64,6 +64,13 @@ sealed partial class Program
         {
             Description = "Specifies math operations mode to use",
             DefaultValueFactory = static _ => MathMode.Default
+        };
+
+        /// <summary>Controls the fusion of multiplications and additions into multiply-adds.</summary>
+        readonly Option<FusedMultiplyAddMode> _fusedMultiplyAddOption = new("--fma")
+        {
+            Description = "Specifies whether multiplications and additions may be fused into multiply-adds (Fast, the default) or not (Off)",
+            DefaultValueFactory = static _ => FusedMultiplyAddMode.Fast
         };
 
         /// <summary>Forces floating-point math to flush denormal values to zero.</summary>
@@ -133,6 +140,7 @@ sealed partial class Program
 
             command.Add(_inliningModeOption);
             command.Add(_mathModeOption);
+            command.Add(_fusedMultiplyAddOption);
             command.Add(_mathFlushToZeroOption);
             command.Add(_staticFieldModeOption);
             command.Add(_arrayModeOption);
@@ -158,6 +166,7 @@ sealed partial class Program
 
                 InliningMode = result.GetValue(_inliningModeOption),
                 MathMode = result.GetValue(_mathModeOption),
+                FusedMultiplyAddMode = result.GetValue(_fusedMultiplyAddOption),
                 EnableMathFlushToZero = result.GetValue(_mathFlushToZeroOption),
                 StaticFieldMode = result.GetValue(_staticFieldModeOption),
                 ArrayMode = result.GetValue(_arrayModeOption),

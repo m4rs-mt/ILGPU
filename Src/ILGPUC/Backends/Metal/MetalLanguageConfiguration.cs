@@ -134,6 +134,32 @@ sealed class MetalLanguageConfiguration : LanguageConfiguration
         yield return "    }";
         yield return "    return metal::signbit(x) ? -r : r;";
         yield return "}";
+
+        // Correctly rounded half division by a constant divisor c with the
+        // single-precision reciprocal r of c. The quotient in single precision
+        // is corrected by its exact remainder and rounds to the correctly
+        // rounded half quotient. Zeros, infinities and NaN keep the first
+        // quotient, whose remainder is zero or not finite.
+        yield return "inline half ilgpu_div_half(half x, float c, float r) {";
+        yield return "    float a = (float)x;";
+        yield return "    float q = a * r;";
+        yield return "    float e = metal::fma(-q, c, a);";
+        yield return "    return (half)(e != 0.0f && metal::isfinite(e) " +
+            "? metal::fma(e, r, q) : q);";
+        yield return "}";
+    }
+
+    /// <summary>
+    /// Disables the multiply-add fusion of the Metal compiler, which fuses
+    /// multiplications and additions within an expression by default, if
+    /// fusion is turned off. The pragma also applies when the source is
+    /// compiled at runtime.
+    /// </summary>
+    public override IEnumerable<string> GetPragmas(
+        FusedMultiplyAddMode fusedMultiplyAdd)
+    {
+        if (fusedMultiplyAdd == FusedMultiplyAddMode.Off)
+            yield return "#pragma STDC FP_CONTRACT OFF";
     }
 
     /// <summary>

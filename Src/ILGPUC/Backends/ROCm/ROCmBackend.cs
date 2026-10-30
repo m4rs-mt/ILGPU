@@ -76,7 +76,8 @@ sealed class ROCmBackend(string arch) :
             OptimizationLevel = GetNativeOptLevel(properties.OptimizationLevel),
             // AMD GPUs have no PTX-style JIT fallback: the code object must
             // be built for the exact gfx target it will run on.
-            ExtraFlags = $"--offload-arch={arch}",
+            ExtraFlags = $"--offload-arch={arch}" +
+                GetFusionFlag(properties, " -ffp-contract=off"),
         }, ct).ConfigureAwait(false);
     }
 }

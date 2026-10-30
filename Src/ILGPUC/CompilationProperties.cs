@@ -87,6 +87,11 @@ public enum MathMode
     /// <summary>
     /// Use fast math functions that are less precise.
     /// </summary>
+    /// <remarks>
+    /// On Metal, this mode enables the fast math of the Metal compiler: half and
+    /// float divisions are approximated and the fast variants of the math
+    /// functions are used.
+    /// </remarks>
     Fast,
 
     /// <summary>
@@ -96,6 +101,45 @@ public enum MathMode
     /// might cause precision loss.
     /// </summary>
     Fast32BitOnly
+}
+
+/// <summary>
+/// Specifies whether floating-point multiplications and additions may be fused
+/// into multiply-adds.
+/// </summary>
+/// <remarks>
+/// A fused multiply-add rounds once instead of twice, so expressions like
+/// <c>a * b - c * d</c> may differ from the host in the last bit, and the NaN of
+/// an infinite difference may become an infinity. CPU kernels are C# code that
+/// the .NET JIT compiles without ever fusing multiplications and additions, so
+/// they match the host in both modes.
+/// </remarks>
+public enum FusedMultiplyAddMode
+{
+    /// <summary>
+    /// The native compilers may fuse multiplications and additions into
+    /// multiply-adds on all GPU backends for the best performance.
+    /// </summary>
+    /// <remarks>
+    /// This is the default setting (<c>--fma Fast</c>).
+    /// </remarks>
+    Fast,
+
+    /// <summary>
+    /// Multiplications and additions are never fused into multiply-adds, so that
+    /// every operation rounds like it does on the host.
+    /// </summary>
+    /// <remarks>
+    /// This mode (<c>--fma Off</c>) passes <c>--fmad=false</c> to nvcc on
+    /// CUDA and <c>-ffp-contract=off</c> to hipcc on ROCm and to the Metal
+    /// compiler. OpenCL and Metal sources start with
+    /// <c>#pragma OPENCL FP_CONTRACT OFF</c> and
+    /// <c>#pragma STDC FP_CONTRACT OFF</c>, which also apply when the runtime
+    /// compiles the embedded source. Unless a fast math mode is requested, Metal
+    /// kernels additionally divide half values by constants with correct
+    /// rounding instead of multiplying with the reciprocal of the constant.
+    /// </remarks>
+    Off,
 }
 
 /// <summary>
@@ -158,6 +202,10 @@ public enum ArrayMode
 /// <param name="OptimizationLevel">Optimization level to use.</param>
 /// <param name="InliningMode">Inlining mode to use.</param>
 /// <param name="MathMode">Math mode to use.</param>
+/// <param name="FusedMultiplyAddMode">
+/// Specifies whether multiplications and additions may be fused into
+/// multiply-adds.
+/// </param>
 /// <param name="StaticFieldMode">Static field mode to use.</param>
 /// <param name="ArrayMode">Array mode to use.</param>
 /// <param name="ConstantEvaluationBudget">
@@ -173,6 +221,7 @@ public sealed record class CompilationProperties(
     OptimizationLevel OptimizationLevel = OptimizationLevel.O1,
     InliningMode InliningMode = InliningMode.Aggressive,
     MathMode MathMode = MathMode.Default,
+    FusedMultiplyAddMode FusedMultiplyAddMode = FusedMultiplyAddMode.Fast,
     StaticFieldMode StaticFieldMode = StaticFieldMode.Default,
     ArrayMode ArrayMode = ArrayMode.Default,
     int ConstantEvaluationBudget = CompilationProperties.DefaultConstantEvaluationBudget)
