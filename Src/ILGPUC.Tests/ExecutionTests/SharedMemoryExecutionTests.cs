@@ -115,4 +115,52 @@ public abstract class SharedMemoryExecutionTests : ExecutionTestBase
                 "per warp mismatches 0",
             ]);
     }
+
+    /// <summary>
+    /// References to a shared variable and to a shared array element returned by
+    /// inlined helpers, passed into helpers by ref, loaded, stored and added to
+    /// atomically, also in loops.
+    /// </summary>
+    [SkippableFact]
+    public async Task SharedVariableRefs_ProducesCorrectOutput()
+    {
+        await VerifyProgramOutputAsync(
+            "TestPrograms/SharedMemory/SharedVariableRefs.cs",
+            [
+                "Kernels.CounterKernel",
+                "Kernels.SlotKernel",
+                "Kernels.RefArgumentKernel",
+                "Kernels.LoopKernel",
+            ],
+            [
+                "counter mismatches 0",
+                "slot mismatches 0",
+                "ref argument mismatches 0",
+                "loop mismatches 0",
+            ]);
+    }
+
+    /// <summary>
+    /// References to a shared variable and to a shared array element returned by
+    /// helpers that are not inlined, which return them as generic pointers.
+    /// </summary>
+    [SkippableFact]
+    public async Task SharedVariableRefCalls_ProducesCorrectOutput()
+    {
+        Skip.If(
+            Backend is BackendType.Metal or BackendType.OpenCL,
+            $"{Backend} does not support generic pointers");
+        await VerifyProgramOutputAsync(
+            "TestPrograms/SharedMemory/SharedVariableRefCalls.cs",
+            [
+                "Kernels.CounterCallKernel",
+                "Kernels.SlotCallKernel",
+                "Kernels.CallArgumentKernel",
+            ],
+            [
+                "counter call mismatches 0",
+                "slot call mismatches 0",
+                "call argument mismatches 0",
+            ]);
+    }
 }

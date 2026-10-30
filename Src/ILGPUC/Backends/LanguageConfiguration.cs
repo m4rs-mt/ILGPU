@@ -145,6 +145,12 @@ abstract class LanguageConfiguration
     public virtual string? FormatPrimitive(PrimitiveValue value) => null;
 
     /// <summary>
+    /// Formats the address of a global in the target language, or returns null
+    /// to use the name of the global.
+    /// </summary>
+    public virtual string? FormatGlobalAddress(Global global, string name) => null;
+
+    /// <summary>
     /// Formats a null literal for a given type name.
     /// Default: C-style <c>TypeNULL</c>. CPU override: <c>default</c>.
     /// </summary>

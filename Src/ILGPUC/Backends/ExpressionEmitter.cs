@@ -201,8 +201,7 @@ sealed class ExpressionEmitter(GenerationContext context, TypeEmitter typeEmitte
             // Parameters and globals
             Parameter param => new Emitted(
                 context.GetValueName(param), Prec.Atom),
-            Global global => new Emitted(
-                context.GetValueName(global), Prec.Atom),
+            Global global => EmitGlobal(global),
 
             // Pure values
             BinaryArithmeticValue binary => EmitBinaryArithmetic(binary),
@@ -510,6 +509,21 @@ sealed class ExpressionEmitter(GenerationContext context, TypeEmitter typeEmitte
             $"Unsafe.BitCast<CPURuntimeView<{sourceElem}>, " +
             $"CPURuntimeView<{targetElem}>>({source.Text})",
             Prec.Postfix);
+    }
+
+    #endregion
+
+    #region Globals
+
+    /// <summary>
+    /// Emits the address of a global.
+    /// </summary>
+    private Emitted EmitGlobal(Global global)
+    {
+        var name = context.GetValueName(global);
+        return context.LanguageConfig.FormatGlobalAddress(global, name) is string text
+            ? new Emitted(text, Prec.Unary)
+            : new Emitted(name, Prec.Atom);
     }
 
     #endregion
