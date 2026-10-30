@@ -37,11 +37,14 @@ var accumulationTypes = new Dictionary<string, string[]>()
     {"UInt64", new string[]
         { "byte", "ushort", "uint", "ulong", "float", "double" }},
 
+    {"Half",   new string[]
+        { "Half", "byte", "sbyte" }},
     {"Float",  new string[]
-        { "float", "byte", "sbyte", "short", "ushort", "int", "uint", "long", "ulong" }},
-    {"Double", new string[]
-        { "float", "double", "byte", "sbyte", "short", "ushort", "int", "uint", "long",
+        { "float", "Half", "byte", "sbyte", "short", "ushort", "int", "uint", "long",
             "ulong" }},
+    {"Double", new string[]
+        { "float", "double", "Half", "byte", "sbyte", "short", "ushort", "int", "uint",
+            "long", "ulong" }},
 };
 
 var vectorLengths = new int[] { 2, 4, 8 };
@@ -92,6 +95,14 @@ namespace ILGPU.Vectors;
 /// <summary>
 /// Represents a vectorized <#= type.Type #> type with length <#= vectorLength #>.
 /// </summary>
+<#          if (isHalf) { #>
+/// <remarks>
+/// Accumulating many values in half precision quickly loses precision. Use
+/// <see cref="<#= GetTypeNameByName("float", vectorLength) #>"/> or
+/// <see cref="<#= GetTypeNameByName("double", vectorLength) #>"/> as the accumulation
+/// type of <#= typeName #> values in this case.
+/// </remarks>
+<#          } #>
 public readonly record struct <#= typeName #>(
     <#= string.Join(", ", vectorItemNames
         .Take(vectorLength)
@@ -315,7 +326,55 @@ public readonly record struct <#= typeName #>(
         new <#= typeName #>(<#= string.Join(", ",
             Enumerable.Range(0, vectorLength).Select(_ => "scalar")) #>);
 
-<#          if (accumulations.Length > 0) { #>
+<#          if (accumulations.Length > 0 && isHalf) { #>
+    /// <summary>
+    /// Atomically adds two vectors. Each pair of adjacent elements is updated by a
+    /// single 32-bit compare-and-swap loop, which requires the target to be aligned
+    /// to four bytes (as all elements of views are).
+    /// </summary>
+    /// <param name="target">The target memory address.</param>
+    /// <param name="value">The current value to add.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void AtomicAdd(ref <#= typeName #> target, <#= typeName #> value)
+    {
+        ref var wordRef = ref Unsafe.As<<#= typeName #>, uint>(ref target);
+<#              for (int i = 0; i < vectorLength; i += 2) { #>
+        AtomicAddPair(
+            ref Unsafe.Add(ref wordRef, <#= i / 2 #>),
+            value.<#= vectorItemNames[i] #>,
+            value.<#= vectorItemNames[i + 1] #>);
+<#              } #>
+    }
+
+    /// <summary>
+    /// Atomically adds two half values to the two halves of the given word.
+    /// </summary>
+    /// <param name="target">The target word containing two half values.</param>
+    /// <param name="low">The value to add to the lower half.</param>
+    /// <param name="high">The value to add to the upper half.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void AtomicAddPair(ref uint target, Half low, Half high) =>
+        Atomic.MakeAtomic(
+            ref target,
+            Interop.FloatAsInt(low) | ((uint)Interop.FloatAsInt(high) << 16),
+            static (current, value) =>
+                Interop.FloatAsInt(
+                    Interop.IntAsFloat((ushort)current) +
+                    Interop.IntAsFloat((ushort)value)) |
+                ((uint)Interop.FloatAsInt(
+                    Interop.IntAsFloat((ushort)(current >> 16)) +
+                    Interop.IntAsFloat((ushort)(value >> 16))) << 16),
+            Atomic.CompareExchange);
+
+    /// <summary>
+    /// Computes the average while using the provided denominator.
+    /// </summary>
+    /// <param name="denominator">The denominator to use.</param>
+    /// <returns>The computed average.</returns>
+    public <#= typeName #> ComputeAverage(long denominator) =>
+        this / FromScalar((<#= type.Type #>)denominator);
+
+<#          } else if (accumulations.Length > 0) { #>
     /// <summary>
     /// Atomically adds two vectors.
     /// </summary>
@@ -328,9 +387,7 @@ public readonly record struct <#= typeName #>(
             ref target);
 <#              for (int i = 0; i < vectorLength; ++i) { #>
         Atomic.Add(
-            ref Unsafe.AddByteOffset(
-                ref elementRef,
-                OffsetPtr<#= vectorItemNames[i] #>),
+            ref Unsafe.Add(ref elementRef, <#= i #>),
             value.<#= vectorItemNames[i] #>);
 <#              } #>
     }
