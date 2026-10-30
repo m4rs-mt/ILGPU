@@ -450,15 +450,11 @@ sealed class CodePlacement
     }
 
     /// <summary>
-    /// Returns true if evaluating the given pure value can fault at runtime:
-    /// an integer div/rem whose divisor is not a non-zero constant.
+    /// Returns true if evaluating the given pure value can fault at runtime
+    /// (see <see cref="BinaryArithmeticValue.CanFault"/>).
     /// </summary>
     private static bool CanFault(PureValue pureValue) =>
-        pureValue is BinaryArithmeticValue binary &&
-        (binary.Kind == BinaryArithmeticKind.Div ||
-         binary.Kind == BinaryArithmeticKind.Rem) &&
-        binary.BasicValueType.IsInt() &&
-        !(binary.Right is PrimitiveValue divisor && divisor.RawValue != 0);
+        pureValue is BinaryArithmeticValue { CanFault: true };
 
     /// <summary>
     /// Places all values in their respective blocks in the correct order.
