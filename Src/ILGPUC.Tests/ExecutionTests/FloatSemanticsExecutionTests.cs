@@ -249,4 +249,23 @@ public abstract class FloatSemanticsExecutionTests : ExecutionTestBase
                 "1073741824"
             ]);
     }
+
+    /// <summary>
+    /// MathF.IEEERemainder matches .NET bit for bit on large quotients, on
+    /// quotients close to halfway between two integers, on halfway quotients
+    /// and on special values.
+    /// </summary>
+    [SkippableFact]
+    public async Task IEEERemainder_ProducesCorrectOutput()
+    {
+        await VerifyProgramOutputAsync(
+            "TestPrograms/FloatSemantics/IEEERemainder.cs",
+            ["Kernels.IEEERemainderKernel"],
+            [
+                "large quotients: mismatches 0",
+                "near halfway: mismatches 0",
+                "halfway: mismatches 0",
+                "special values: mismatches 0",
+            ]);
+    }
 }

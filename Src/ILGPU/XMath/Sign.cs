@@ -125,4 +125,52 @@ partial class XMath
     [MathIntrinsic]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Half CopySign(Half x, Half y) => (Half)CopySign((float)x, (float)y);
+
+    /// <summary>
+    /// Returns a value with the magnitude of x and the sign of y.
+    /// CopySign will return <see cref="sbyte.MinValue"/> in kernels for
+    /// x = sbyte.MinValue and a non-negative y, as its negation wraps around.
+    /// </summary>
+    /// <param name="x">A number whose magnitude is used in the result.</param>
+    /// <param name="y">A number whose sign is the used in the result.</param>
+    /// <returns>A value with the magnitude of x and the sign of y.</returns>
+    [MathIntrinsic]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static sbyte CopySign(sbyte x, sbyte y) => sbyte.CopySign(x, y);
+
+    /// <summary>
+    /// Returns a value with the magnitude of x and the sign of y.
+    /// CopySign will return <see cref="short.MinValue"/> in kernels for
+    /// x = short.MinValue and a non-negative y, as its negation wraps around.
+    /// </summary>
+    /// <param name="x">A number whose magnitude is used in the result.</param>
+    /// <param name="y">A number whose sign is the used in the result.</param>
+    /// <returns>A value with the magnitude of x and the sign of y.</returns>
+    [MathIntrinsic]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static short CopySign(short x, short y) => short.CopySign(x, y);
+
+    /// <summary>
+    /// Returns a value with the magnitude of x and the sign of y.
+    /// CopySign will return <see cref="int.MinValue"/> in kernels for
+    /// x = int.MinValue and a non-negative y, as its negation wraps around.
+    /// </summary>
+    /// <param name="x">A number whose magnitude is used in the result.</param>
+    /// <param name="y">A number whose sign is the used in the result.</param>
+    /// <returns>A value with the magnitude of x and the sign of y.</returns>
+    [MathIntrinsic]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static int CopySign(int x, int y) => int.CopySign(x, y);
+
+    /// <summary>
+    /// Returns a value with the magnitude of x and the sign of y.
+    /// CopySign will return <see cref="long.MinValue"/> in kernels for
+    /// x = long.MinValue and a non-negative y, as its negation wraps around.
+    /// </summary>
+    /// <param name="x">A number whose magnitude is used in the result.</param>
+    /// <param name="y">A number whose sign is the used in the result.</param>
+    /// <returns>A value with the magnitude of x and the sign of y.</returns>
+    [MathIntrinsic]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static long CopySign(long x, long y) => long.CopySign(x, y);
 }

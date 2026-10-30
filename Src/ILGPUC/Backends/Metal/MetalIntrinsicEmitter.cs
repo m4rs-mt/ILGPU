@@ -98,14 +98,15 @@ sealed class MetalIntrinsicEmitter : IntrinsicEmitter
 
     /// <inheritdoc/>
     /// <remarks>
-    /// The Metal standard library has no remainder function. The quotient is
-    /// rounded to the nearest even integer by <c>rint</c>.
+    /// The Metal standard library has no remainder function. The helper function
+    /// <c>ilgpu_remainder</c> of <see cref="MetalLanguageConfiguration"/>
+    /// computes the exact remainder.
     /// </remarks>
     public override string EmitIEEERemainder(
         string x,
         string y,
         ArithmeticBasicValueType type) =>
-        $"(({x}) - ({y}) * metal::rint(({x}) / ({y})))";
+        $"ilgpu_remainder({x}, {y})";
 
     /// <inheritdoc/>
     public override string EmitPopCount(string arg, ArithmeticBasicValueType type) =>

@@ -1,5 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Intrinsics>
+    <Type Name="sbyte">
+        <Remapping>
+            <!-- Binary -->
+            <Remap Name="CopySign" Target="XMath.CopySign" ReflectParamType="2" />
+        </Remapping>
+    </Type>
+    <Type Name="short">
+        <Remapping>
+            <!-- Binary -->
+            <Remap Name="CopySign" Target="XMath.CopySign" ReflectParamType="2" />
+        </Remapping>
+    </Type>
     <Type Name="int">
         <Remapping>
             <!-- Unary -->
@@ -678,8 +690,7 @@
                 Arguments="BinaryArithmeticKind.Atan2" />
             <Generator Name="Log" Target="Math_BinaryOperation" NumArguments="2"
                 Arguments="BinaryArithmeticKind.BinaryLog" />
-            <Generator Name="CopySign" Target="Math_BinaryOperation"
-                Arguments="BinaryArithmeticKind.CopySign" />
+            <Generator Name="CopySign" Target="Math_CopySign" />
             <Generator Name="IEEERemainder" Target="Math_BinaryOperation"
                 Arguments="BinaryArithmeticKind.IEEERemainder" />
             <Generator Name="Max" Target="Math_BinaryOperation" Arguments="BinaryArithmeticKind.Max" />
