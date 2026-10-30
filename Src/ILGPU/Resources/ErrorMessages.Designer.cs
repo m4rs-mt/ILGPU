@@ -511,7 +511,7 @@ namespace ILGPU.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Not supported inline PTX format argument type &apos;{1} in &apos;{0}&apos;.
+        ///   Looks up a localized string similar to Not supported inline PTX format argument type &apos;{1}&apos; in &apos;{0}&apos;.
         /// </summary>
         internal static string NotSupportedInlinePTXFormatArgumentType {
             get {
@@ -862,7 +862,7 @@ namespace ILGPU.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Not supported write format argument type &apos;{1} in &apos;{0}&apos;.
+        ///   Looks up a localized string similar to Not supported write format argument type &apos;{1}&apos; in &apos;{0}&apos;.
         /// </summary>
         internal static string NotSupportedWriteFormatArgumentType {
             get {

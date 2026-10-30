@@ -512,4 +512,26 @@ public abstract class HalfPrecisionExecutionTests : ExecutionTestBase
                 "49536", "48128", "-2375", "-1000", "750", "1000"
             ]);
     }
+
+    /// <summary>
+    /// One expression combining all classification predicates of a Float16x8
+    /// and of a Float32x8 compiles to a chain of thousands of blocks and matches
+    /// the predicates on the host.
+    /// </summary>
+    [SkippableFact]
+    public async Task HalfVectorPredicates_ProducesCorrectOutput()
+    {
+        RequireCapability(Backend, BackendCapability.Float16);
+        await VerifyProgramOutputAsync(
+            "TestPrograms/HalfPrecision/HalfVectorPredicates.cs",
+            ["Kernels.Float16x8FlagsKernel", "Kernels.Float32x8FlagsKernel"],
+            [
+                "329", "89", "840", "585", "585", "841", "2", "2", "2", "712", "712",
+                "712", "8", "8", "8", "4356", "2068", "4356", "25", "265", "265", "2052",
+                "4100", "4100", "585", "585", "4356", "6148", "6148", "4356", "329", "89",
+                "840", "585", "585", "841", "2", "2", "2", "712", "712", "712", "8", "8",
+                "8", "4356", "2068", "4356", "25", "265", "265", "2052", "4100", "4100",
+                "585", "585", "841", "73", "73", "4356"
+            ]);
+    }
 }
