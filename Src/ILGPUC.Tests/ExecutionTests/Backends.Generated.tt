@@ -74,6 +74,7 @@ var testClasses = new[]
     "Matrix4x4ExecutionTests",
     "TypeSpecializationExecutionTests",
     "RecursionExecutionTests",
+    "NativeCompilationExecutionTests",
 };
 
 var backends = new[] { "CPU", "Metal", "Cuda", "ROCm", "OpenCL" };
