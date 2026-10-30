@@ -9,10 +9,14 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
+using ILGPU.Resources;
 using ILGPUC.IR;
+using ILGPUC.IR.BasicBlockValues;
 using ILGPUC.IR.MethodValues;
 using ILGPUC.IR.ModuleValues;
 using ILGPUC.IR.PureValues;
+using ILGPUC.Roslyn.Analysis;
+using ILGPUC.Util;
 using System;
 using System.Collections.Generic;
 
@@ -28,10 +32,50 @@ partial class CodeGenerator
         var returnType = MethodBuilder.Method.Type;
 
         if (returnType is VoidType)
+        {
             Builder.CreateReturnTermination();
-        else
-            Builder.CreateReturnTermination(Block.Pop(returnType, ConvertFlags.None));
+            return;
+        }
+
+        var returnValue = Block.Pop(returnType, ConvertFlags.None);
+        VerifyNoLocalAddress(returnValue);
+        Builder.CreateReturnTermination(returnValue);
     }
+
+    /// <summary>
+    /// Rejects a returned address of a local variable of this method, which no
+    /// longer exists once the method returns. This is checked before any method is
+    /// inlined, which would move the variable into the caller and hide the error.
+    /// </summary>
+    /// <param name="returnValue">The returned value.</param>
+    private void VerifyNoLocalAddress(Value returnValue)
+    {
+        if (!IsLocalAddress(returnValue))
+            return;
+        throw new KernelCompilationException(
+            KernelDiagnostic.UnsupportedConstructId,
+            string.Format(
+                ErrorMessages.KernelDiagnosticReturnedLocalAddress,
+                Method.GetDisplayName()),
+            returnValue.Location.IsKnown ? returnValue.Location : Location);
+    }
+
+    /// <summary>
+    /// Returns true if the given value is the address of a local variable, including
+    /// a parameter whose address is taken, or the address of a field or an element of
+    /// it, in any address space and as a pointer to any type.
+    /// </summary>
+    /// <param name="value">The value to test.</param>
+    /// <returns>True if the value is the address of a local variable.</returns>
+    private static bool IsLocalAddress(Value value) =>
+        value switch
+        {
+            Alloca => true,
+            LoadFieldAddress address => IsLocalAddress(address.Source),
+            LoadElementAddress address => IsLocalAddress(address.Source),
+            BaseAddressSpaceCast cast => IsLocalAddress(cast.Source),
+            _ => false,
+        };
 
     /// <summary>
     /// Realizes an unconditional branch instruction.

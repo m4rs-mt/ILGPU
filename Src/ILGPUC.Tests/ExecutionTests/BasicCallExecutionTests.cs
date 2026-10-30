@@ -146,4 +146,22 @@ public abstract class BasicCallExecutionTests : ExecutionTestBase
             ["Kernels.LoopHelperCalledTwiceKernel"],
             ["2", "5", "6"]);
     }
+
+    /// <summary>
+    /// Helpers that return references and pointers to parameters passed by reference,
+    /// to fields of structures passed by reference, to memory behind a pointer passed
+    /// in, to view elements and to shared memory, written through by the kernel.
+    /// </summary>
+    [SkippableTheory]
+    [InlineData(OptimizationLevel.O0)]
+    [InlineData(OptimizationLevel.O1)]
+    [InlineData(OptimizationLevel.O2)]
+    public async Task ReturnedReferences_ProducesCorrectOutput(OptimizationLevel level)
+    {
+        await VerifyProgramOutputAsync(
+            "TestPrograms/BasicCall/ReturnedReferences.cs",
+            ["Kernels.ReturnedReferencesKernel"],
+            ["1118", "1121", "1124", "1127"],
+            new CompilationProperties { OptimizationLevel = level });
+    }
 }

@@ -323,21 +323,105 @@ public sealed class KernelDiagnosticTests
             Func<int, int> f = x => x + 1;
             data[index] = f.Equals(null) ? 1 : 0; // DelegateMember
         }
+
+        private struct Pair
+        {
+            public int First;
+            public int Second;
+        }
+
+        private static unsafe int* AddressOfLocal(int value)
+        {
+            int local = value;
+            return &local; // ReturnedLocalAddress
+        }
+
+        private static unsafe int* AddressOfField(int value)
+        {
+            var pair = new Pair { First = value, Second = value + 1 };
+            return &pair.Second; // ReturnedFieldAddress
+        }
+
+        private static unsafe byte* CastAddressOfLocal(int value)
+        {
+            int local = value;
+            return (byte*)&local; // ReturnedCastAddress
+        }
+
+        private static unsafe ref int ReferenceToLocal(int value)
+        {
+            int local = value;
+            return ref *&local; // ReturnedReferenceToLocal
+        }
+
+        private static unsafe int* AddressOfParameter(int value)
+        {
+            return &value; // ReturnedParameterAddress
+        }
+
+        public static unsafe void ReturnedLocalAddressKernel(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data)
+        {
+            data[index] = *AddressOfLocal(data[index]);
+        }
+
+        public static unsafe void ReturnedFieldAddressKernel(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data)
+        {
+            data[index] = *AddressOfField(data[index]);
+        }
+
+        public static unsafe void ReturnedCastAddressKernel(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data)
+        {
+            data[index] = *CastAddressOfLocal(data[index]);
+        }
+
+        public static void ReturnedReferenceToLocalKernel(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data)
+        {
+            data[index] = ReferenceToLocal(data[index]);
+        }
+
+        public static unsafe void ReturnedParameterAddressKernel(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data)
+        {
+            data[index] = *AddressOfParameter(data[index]);
+        }
     }
 
     /// <summary>
     /// Compiles the given kernel, which must be rejected with a diagnostic.
     /// </summary>
-    private static KernelCompilationException Compile(string kernelName)
+    private static KernelCompilationException Compile(string kernelName) =>
+        Compile(kernelName, BackendType.CPU, new CompilationProperties());
+
+    /// <summary>
+    /// Compiles the given kernel for the given backend and optimization level, which
+    /// must be rejected with a diagnostic.
+    /// </summary>
+    private static KernelCompilationException Compile(
+        string kernelName,
+        BackendType backend,
+        CompilationProperties properties)
     {
-        using var helper = new CompilationHelper(BackendType.CPU);
+        using var helper = new CompilationHelper(backend);
         var kernel = typeof(Kernels).GetMethod(
             kernelName,
             BindingFlags.Public | BindingFlags.Static)
             ?? throw new InvalidOperationException(
                 $"Kernel method '{kernelName}' not found.");
         return Assert.Throws<KernelCompilationException>(() =>
-            helper.GetNormalizedIR(kernel, IRDumpPoint.AfterBackendTransforms));
+            helper.GetNormalizedIR(
+                kernel,
+                IRDumpPoint.AfterBackendTransforms,
+                properties,
+                backend));
     }
 
     /// <summary>
@@ -889,6 +973,59 @@ public sealed class KernelDiagnosticTests
             out var diagnostic));
         Assert.Equal("ILGPU1200", diagnostic!.Id);
         Assert.Contains("Expression`1", diagnostic.Message);
+    }
+
+    #endregion
+
+    #region Returned Local Addresses (ILGPU1200)
+
+    /// <summary>
+    /// A helper that returns the address of one of its locals, of a field of a local
+    /// structure or of a parameter it receives by value, or a pointer or reference
+    /// derived from it, is rejected at the returned address on every backend and at
+    /// every optimization level, before inlining moves the local into its caller.
+    /// </summary>
+    [Theory]
+    [InlineData(
+        nameof(Kernels.ReturnedLocalAddressKernel),
+        "AddressOfLocal",
+        "ReturnedLocalAddress")]
+    [InlineData(
+        nameof(Kernels.ReturnedFieldAddressKernel),
+        "AddressOfField",
+        "ReturnedFieldAddress")]
+    [InlineData(
+        nameof(Kernels.ReturnedCastAddressKernel),
+        "CastAddressOfLocal",
+        "ReturnedCastAddress")]
+    [InlineData(
+        nameof(Kernels.ReturnedReferenceToLocalKernel),
+        "ReferenceToLocal",
+        "ReturnedReferenceToLocal")]
+    [InlineData(
+        nameof(Kernels.ReturnedParameterAddressKernel),
+        "AddressOfParameter",
+        "ReturnedParameterAddress")]
+    public void ReturnedLocalAddress_Reports1200(
+        string kernelName,
+        string methodName,
+        string marker)
+    {
+        foreach (var backend in new[] { BackendType.CPU, BackendType.Metal })
+        {
+            foreach (var level in Enum.GetValues<OptimizationLevel>())
+            {
+                AssertDiagnostic(
+                    Compile(
+                        kernelName,
+                        backend,
+                        new CompilationProperties { OptimizationLevel = level }),
+                    "ILGPU1200",
+                    $"Method '{methodName}' returns the address of one of its " +
+                    "local variables",
+                    marker);
+            }
+        }
     }
 
     #endregion

@@ -11,7 +11,6 @@
 
 using ILGPU.Util;
 using ILGPUC.IR.BasicBlockValues;
-using ILGPUC.IR.MethodValues;
 using ILGPUC.IR.ModuleValues;
 using ILGPUC.IR.ModuleValues.Construction;
 using ILGPUC.IR.PureValues;
@@ -181,12 +180,12 @@ abstract class SSAAllocations(GlobalValueMap<SSAValueFieldRef>? valueRefs) :
     private static bool IsStoreTarget(Use use) => use.Index == 0;
 
     /// <summary>
-    /// Returns true if the given use requires an explicit address in memory.
+    /// Returns true if the given use requires an explicit address in memory. An
+    /// address used by a block, which returns it from the method, escapes as well.
     /// </summary>
     private static bool RequiresAddressForUse(Use use) =>
         use.Target switch
         {
-            BasicBlock _ => false,
             Load _ => false,
             Store _ => !IsStoreTarget(use),
             LoadFieldAddress lfa => RequiresAddress(lfa),

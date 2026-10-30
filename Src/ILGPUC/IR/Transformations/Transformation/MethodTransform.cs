@@ -440,14 +440,16 @@ sealed class MethodTransform :
                 {
                     blockTransform = _overrideBlockTransform;
                 }
-                else if (_currentDemandBlock is not null
-                    && _relinkedBlocks.TryGetValue(bbv, out var relinkedBlock))
+                else if (_relinkedBlocks.TryGetValue(bbv, out var relinkedBlock))
                 {
                     // This value was moved to another block by AppendTo, for
-                    // example to the exit block of an inlined call, and may be
-                    // demanded from a different block (e.g. as an argument
-                    // of a call inlined later). Create it in the block it was
-                    // moved to; outside of inlining, it is queued there as a
+                    // example to the exit block of an inlined call or of a
+                    // lowered atomic, and may be demanded from a different
+                    // block (e.g. as an argument of a call inlined later) or
+                    // before any block is rebuilt (e.g. as an operand of an
+                    // atomic lowered later). Create it in the block it was
+                    // moved to, whose rebuild keeps it in place; outside of
+                    // inlining, a demanding block queues it there as a
                     // cross-block value.
                     blockTransform = relinkedBlock;
                 }
