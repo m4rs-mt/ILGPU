@@ -285,12 +285,17 @@ sealed class CPULauncherEmitter : LauncherEmitter
 
         ctx.WriteLine($"var {marshaledVar} = default({qualifiedType});");
 
+        // Padding fields that fill explicitly sized structures have no user
+        // accessor, so user accessors are counted separately
+        int accessorIndex = 0;
         for (int i = 0; i < structType.NumFields; i++)
         {
             var fieldType = structType.Fields[i];
             var irFieldName = StructureType.GetFieldName(i);
-            var userAccessor = accessors is not null && i < accessors.Length
-                ? $"{param.Name}.{accessors[i]}"
+            int userIndex = fieldType is PaddingType ? -1 : accessorIndex++;
+            var userAccessor = accessors is not null && userIndex >= 0
+                && userIndex < accessors.Length
+                ? $"{param.Name}.{accessors[userIndex]}"
                 : $"{param.Name}.{irFieldName}";
 
             if (fieldType is ViewType vt)
@@ -346,16 +351,21 @@ sealed class CPULauncherEmitter : LauncherEmitter
             }
             else
             {
-                // Primitive fields — direct assignment via implicit
-                // conversions (e.g., LongIndex1D → long).
+                // Primitive fields — assignment via conversions (e.g.,
+                // LongIndex1D → long), cast to the IR type, which differs
+                // from the user field type in signedness (e.g., sbyte and
+                // ushort fields map to byte and short).
                 // For view-containing structs, skip small fields that
                 // come from zero-size stride types (Stride1D.Dense → byte)
                 // since the user accessor type doesn't match the IR type.
                 if (param.Kind == ParameterKind.StructWithViews
                     && fieldType is PrimitiveType pt && pt.Size <= 2)
                     continue;
-                ctx.WriteLine(
-                    $"{marshaledVar}.{irFieldName} = {userAccessor};");
+                var value = fieldType is PrimitiveType
+                    ? $"unchecked(({GetPrimitiveTypeName(fieldType, ctx)})" +
+                        $"{userAccessor})"
+                    : userAccessor;
+                ctx.WriteLine($"{marshaledVar}.{irFieldName} = {value};");
             }
         }
 

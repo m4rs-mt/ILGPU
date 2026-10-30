@@ -683,6 +683,12 @@ partial class ModuleBuilder : IGenerationObject
 
         if (type is StructureType structureType)
         {
+            // Rebuilding the flattened fields would place the fields of nested
+            // structures at their natural offsets instead of the offsets the
+            // alignment and the explicit size of a nested structure give them
+            if (!HasAddressSpaceField(structureType))
+                return null;
+
             var structBuilder = CreateStructureType(structureType.NumFields);
 
             // All fields are flat - just specialize each field's address space
@@ -708,6 +714,21 @@ partial class ModuleBuilder : IGenerationObject
         }
 
         return null;
+    }
+
+    /// <summary>
+    /// Returns true if any field of the given structure type has an address space.
+    /// </summary>
+    /// <param name="structureType">The structure type.</param>
+    /// <returns>True if any field has an address space.</returns>
+    private static bool HasAddressSpaceField(StructureType structureType)
+    {
+        foreach (var fieldType in structureType.Fields)
+        {
+            if (fieldType is AddressSpaceType)
+                return true;
+        }
+        return false;
     }
 
     /// <summary>

@@ -42,6 +42,31 @@ public abstract class StructureExecutionTests : ExecutionTestBase
     }
 
     /// <summary>
+    /// Struct parameters with signed byte and unsigned fields are passed by value.
+    /// </summary>
+    [SkippableFact]
+    public async Task StructPassByValueFields_ProducesCorrectOutput()
+    {
+        await VerifyProgramOutputAsync(
+            "TestPrograms/Structure/StructPassByValueFields.cs",
+            ["Kernels.StructPassByValueFieldsKernel"],
+            ["8000059693", "8000059694", "8000059695", "8000059696"]);
+    }
+
+    /// <summary>
+    /// Struct parameters that contain an explicitly sized struct are passed by
+    /// value with the host offsets of the fields behind the nested struct.
+    /// </summary>
+    [SkippableFact]
+    public async Task StructPassByValueSized_ProducesCorrectOutput()
+    {
+        await VerifyProgramOutputAsync(
+            "TestPrograms/Structure/StructPassByValueSized.cs",
+            ["Kernels.StructPassByValueSizedKernel"],
+            ["6543", "6544", "6545", "6546"]);
+    }
+
+    /// <summary>
     /// Tests local struct construction with per-field writes.
     /// Exercises LoadFieldAddress on local alloca — the vectorized LFA
     /// path on CPU. GPU backends handle this through the shared code generator.
@@ -69,6 +94,19 @@ public abstract class StructureExecutionTests : ExecutionTestBase
     }
 
     /// <summary>
+    /// In-place updates of struct fields behind alignment padding go through
+    /// field addresses that include the padding.
+    /// </summary>
+    [SkippableFact]
+    public async Task StructFieldAddressPadding_ProducesCorrectOutput()
+    {
+        await VerifyProgramOutputAsync(
+            "TestPrograms/Structure/StructFieldAddressPadding.cs",
+            ["Kernels.StructFieldAddressPaddingKernel"],
+            ["11 3000 18 130", "12 3003 19 131", "13 3006 20 132", "14 3009 21 133"]);
+    }
+
+    /// <summary>
     /// A nested struct keeps its alignment within the flattened outer struct
     /// so that device and host layouts agree.
     /// </summary>
@@ -79,6 +117,37 @@ public abstract class StructureExecutionTests : ExecutionTestBase
             "TestPrograms/Structure/NestedStructLayout.cs",
             ["Kernels.NestedStructLayoutKernel"],
             ["7", "1", "2", "3", "9", "7", "2", "4", "6", "9"]);
+    }
+
+    /// <summary>
+    /// Structures whose packing and explicit sizes keep all fields at their
+    /// natural alignments have the host layout on the device, in views and as
+    /// by-value parameters.
+    /// </summary>
+    [SkippableFact]
+    public async Task PackedStructLayout_ProducesCorrectOutput()
+    {
+        await VerifyProgramOutputAsync(
+            "TestPrograms/Structure/PackedStructLayout.cs",
+            [
+                "Kernels.Pack4NaturalKernel",
+                "Kernels.Pack1BytesKernel",
+                "Kernels.Pack8Kernel",
+                "Kernels.WithPack1IntsKernel",
+                "Kernels.WithSizedKernel",
+                "Kernels.FieldAddressKernel",
+                "Kernels.ByValueKernel",
+            ],
+            [
+                "12 4 24 12 32",
+                "Pack4NaturalKernel ok",
+                "Pack1BytesKernel ok",
+                "Pack8Kernel ok",
+                "WithPack1IntsKernel ok",
+                "WithSizedKernel ok",
+                "FieldAddressKernel ok",
+                "ByValueKernel ok",
+            ]);
     }
 
     /// <summary>
