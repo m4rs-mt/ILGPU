@@ -243,7 +243,8 @@ sealed class IntegrationProjectFixture : IDisposable
                 dllPath);
         }
 
-        var result = await ProcessRunner.RunAsync(dllPath).ConfigureAwait(false);
+        var result = await DeviceProgramLimiter.RunAsync(Backend, dllPath)
+            .ConfigureAwait(false);
         _output.WriteLine($"Run exit code: {result.ExitCode}, " +
                           $"timed out: {result.TimedOut}");
         if (result.StdOutLines.Length > 0)
