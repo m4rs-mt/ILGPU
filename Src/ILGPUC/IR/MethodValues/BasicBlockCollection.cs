@@ -13,6 +13,7 @@ using ILGPU.Util;
 using ILGPUC.IR.Analyses;
 using ILGPUC.IR.BasicBlockValues;
 using ILGPUC.IR.ModuleValues;
+using ILGPUC.IR.PureValues;
 using System;
 using System.Collections;
 using System.Collections.Immutable;
@@ -166,7 +167,7 @@ readonly struct BasicBlockCollection<TOrder, TDirection> :
     public void ForEachValue<TValue>(Action<TValue> callback)
         where TValue : Value<Method>
     {
-        ValueSet<Method, TValue>? set = null;
+        ValueSet<Method, PureValue>? set = null;
         ForEachValue(callback, ref set);
     }
 
@@ -175,11 +176,11 @@ readonly struct BasicBlockCollection<TOrder, TDirection> :
     /// </summary>
     /// <typeparam name="TValue">The value to match.</typeparam>
     /// <param name="callback">The callback.</param>
-    /// <param name="set">The value set to ensure values are visited once.</param>
+    /// <param name="set">The set of visited pure values.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void ForEachValue<TValue>(
         Action<TValue> callback,
-        ref ValueSet<Method, TValue>? set)
+        ref ValueSet<Method, PureValue>? set)
         where TValue : Value<Method>
     {
         foreach (var block in this)

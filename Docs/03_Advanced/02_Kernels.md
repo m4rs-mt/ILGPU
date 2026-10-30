@@ -84,7 +84,7 @@ line in the form `File.cs(line,column): error ILGPU12xx: message`:
 
 | Diagnostic | Rejected kernel code |
 |---|---|
-| `ILGPU1200` | Other constructs kernels do not support, such as `Expression<Func<...>>` or `object`, and `DynamicInvoke`, whose argument array is an `object[]` |
+| `ILGPU1200` | Other constructs kernels do not support, such as `Expression<Func<...>>` or `object`, and `DynamicInvoke`, whose argument array is an `object[]`, and expressions nested too deeply for the stack of the compiling thread, such as unrolled chains of thousands of operations |
 | `ILGPU1201` | Null tests and comparisons of delegates (`f?.Invoke(x)`, `f != null`, `f == null`, `f == g`, `Equals`), casts and type tests to delegate types, and delegate members other than `Invoke`, such as `+=`/`Delegate.Combine`, `Method` or `Target` |
 | `ILGPU1202` | Invoking a delegate, or passing it to a method, that cannot be traced to a lambda or a static method in kernel code, such as a delegate returned from a method |
 | `ILGPU1203` | Delegate variables passed as `ref`, `out` or `in` arguments, or used through a reference |

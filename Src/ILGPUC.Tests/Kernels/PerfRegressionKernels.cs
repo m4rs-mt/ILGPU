@@ -50,4 +50,169 @@ static class PerfRegressionKernels
     {
         a[index] = b[index] + c[index];
     }
+
+    /// <summary>
+    /// Hashes every element with 64 rounds of <c>x = x * 31 + 7; x ^= x &gt;&gt; 3</c>.
+    /// Every round reads its intermediate value twice, so the number of operand
+    /// paths through the pure values of this kernel doubles with every round.
+    /// </summary>
+    public static void SharedOperandChain(
+        Index1D index,
+        ArrayView1D<uint, Stride1D.Dense> input,
+        ArrayView1D<uint, Stride1D.Dense> output)
+    {
+        uint x = input[index];
+        x = x * 31 + 7; x ^= x >> 3;
+        x = x * 31 + 7; x ^= x >> 3;
+        x = x * 31 + 7; x ^= x >> 3;
+        x = x * 31 + 7; x ^= x >> 3;
+        x = x * 31 + 7; x ^= x >> 3;
+        x = x * 31 + 7; x ^= x >> 3;
+        x = x * 31 + 7; x ^= x >> 3;
+        x = x * 31 + 7; x ^= x >> 3;
+        x = x * 31 + 7; x ^= x >> 3;
+        x = x * 31 + 7; x ^= x >> 3;
+        x = x * 31 + 7; x ^= x >> 3;
+        x = x * 31 + 7; x ^= x >> 3;
+        x = x * 31 + 7; x ^= x >> 3;
+        x = x * 31 + 7; x ^= x >> 3;
+        x = x * 31 + 7; x ^= x >> 3;
+        x = x * 31 + 7; x ^= x >> 3;
+        x = x * 31 + 7; x ^= x >> 3;
+        x = x * 31 + 7; x ^= x >> 3;
+        x = x * 31 + 7; x ^= x >> 3;
+        x = x * 31 + 7; x ^= x >> 3;
+        x = x * 31 + 7; x ^= x >> 3;
+        x = x * 31 + 7; x ^= x >> 3;
+        x = x * 31 + 7; x ^= x >> 3;
+        x = x * 31 + 7; x ^= x >> 3;
+        x = x * 31 + 7; x ^= x >> 3;
+        x = x * 31 + 7; x ^= x >> 3;
+        x = x * 31 + 7; x ^= x >> 3;
+        x = x * 31 + 7; x ^= x >> 3;
+        x = x * 31 + 7; x ^= x >> 3;
+        x = x * 31 + 7; x ^= x >> 3;
+        x = x * 31 + 7; x ^= x >> 3;
+        x = x * 31 + 7; x ^= x >> 3;
+        x = x * 31 + 7; x ^= x >> 3;
+        x = x * 31 + 7; x ^= x >> 3;
+        x = x * 31 + 7; x ^= x >> 3;
+        x = x * 31 + 7; x ^= x >> 3;
+        x = x * 31 + 7; x ^= x >> 3;
+        x = x * 31 + 7; x ^= x >> 3;
+        x = x * 31 + 7; x ^= x >> 3;
+        x = x * 31 + 7; x ^= x >> 3;
+        x = x * 31 + 7; x ^= x >> 3;
+        x = x * 31 + 7; x ^= x >> 3;
+        x = x * 31 + 7; x ^= x >> 3;
+        x = x * 31 + 7; x ^= x >> 3;
+        x = x * 31 + 7; x ^= x >> 3;
+        x = x * 31 + 7; x ^= x >> 3;
+        x = x * 31 + 7; x ^= x >> 3;
+        x = x * 31 + 7; x ^= x >> 3;
+        x = x * 31 + 7; x ^= x >> 3;
+        x = x * 31 + 7; x ^= x >> 3;
+        x = x * 31 + 7; x ^= x >> 3;
+        x = x * 31 + 7; x ^= x >> 3;
+        x = x * 31 + 7; x ^= x >> 3;
+        x = x * 31 + 7; x ^= x >> 3;
+        x = x * 31 + 7; x ^= x >> 3;
+        x = x * 31 + 7; x ^= x >> 3;
+        x = x * 31 + 7; x ^= x >> 3;
+        x = x * 31 + 7; x ^= x >> 3;
+        x = x * 31 + 7; x ^= x >> 3;
+        x = x * 31 + 7; x ^= x >> 3;
+        x = x * 31 + 7; x ^= x >> 3;
+        x = x * 31 + 7; x ^= x >> 3;
+        x = x * 31 + 7; x ^= x >> 3;
+        x = x * 31 + 7; x ^= x >> 3;
+        output[index] = x;
+    }
+
+    /// <summary>
+    /// The hash state of <see cref="SharedOperandFieldChain"/>.
+    /// </summary>
+    private struct HashState
+    {
+        public uint Hash;
+        public uint Factor;
+    }
+
+    /// <summary>
+    /// Computes the hash of <see cref="SharedOperandChain"/> in a field of a local
+    /// structure. The loads of the field become pure values when the structure is
+    /// promoted to SSA values, and every round reads the field twice.
+    /// </summary>
+    public static void SharedOperandFieldChain(
+        Index1D index,
+        ArrayView1D<uint, Stride1D.Dense> input,
+        ArrayView1D<uint, Stride1D.Dense> output)
+    {
+        var state = new HashState { Hash = input[index], Factor = 31 };
+        state.Hash = state.Hash * state.Factor + 7; state.Hash ^= state.Hash >> 3;
+        state.Hash = state.Hash * state.Factor + 7; state.Hash ^= state.Hash >> 3;
+        state.Hash = state.Hash * state.Factor + 7; state.Hash ^= state.Hash >> 3;
+        state.Hash = state.Hash * state.Factor + 7; state.Hash ^= state.Hash >> 3;
+        state.Hash = state.Hash * state.Factor + 7; state.Hash ^= state.Hash >> 3;
+        state.Hash = state.Hash * state.Factor + 7; state.Hash ^= state.Hash >> 3;
+        state.Hash = state.Hash * state.Factor + 7; state.Hash ^= state.Hash >> 3;
+        state.Hash = state.Hash * state.Factor + 7; state.Hash ^= state.Hash >> 3;
+        state.Hash = state.Hash * state.Factor + 7; state.Hash ^= state.Hash >> 3;
+        state.Hash = state.Hash * state.Factor + 7; state.Hash ^= state.Hash >> 3;
+        state.Hash = state.Hash * state.Factor + 7; state.Hash ^= state.Hash >> 3;
+        state.Hash = state.Hash * state.Factor + 7; state.Hash ^= state.Hash >> 3;
+        state.Hash = state.Hash * state.Factor + 7; state.Hash ^= state.Hash >> 3;
+        state.Hash = state.Hash * state.Factor + 7; state.Hash ^= state.Hash >> 3;
+        state.Hash = state.Hash * state.Factor + 7; state.Hash ^= state.Hash >> 3;
+        state.Hash = state.Hash * state.Factor + 7; state.Hash ^= state.Hash >> 3;
+        state.Hash = state.Hash * state.Factor + 7; state.Hash ^= state.Hash >> 3;
+        state.Hash = state.Hash * state.Factor + 7; state.Hash ^= state.Hash >> 3;
+        state.Hash = state.Hash * state.Factor + 7; state.Hash ^= state.Hash >> 3;
+        state.Hash = state.Hash * state.Factor + 7; state.Hash ^= state.Hash >> 3;
+        state.Hash = state.Hash * state.Factor + 7; state.Hash ^= state.Hash >> 3;
+        state.Hash = state.Hash * state.Factor + 7; state.Hash ^= state.Hash >> 3;
+        state.Hash = state.Hash * state.Factor + 7; state.Hash ^= state.Hash >> 3;
+        state.Hash = state.Hash * state.Factor + 7; state.Hash ^= state.Hash >> 3;
+        state.Hash = state.Hash * state.Factor + 7; state.Hash ^= state.Hash >> 3;
+        state.Hash = state.Hash * state.Factor + 7; state.Hash ^= state.Hash >> 3;
+        state.Hash = state.Hash * state.Factor + 7; state.Hash ^= state.Hash >> 3;
+        state.Hash = state.Hash * state.Factor + 7; state.Hash ^= state.Hash >> 3;
+        state.Hash = state.Hash * state.Factor + 7; state.Hash ^= state.Hash >> 3;
+        state.Hash = state.Hash * state.Factor + 7; state.Hash ^= state.Hash >> 3;
+        state.Hash = state.Hash * state.Factor + 7; state.Hash ^= state.Hash >> 3;
+        state.Hash = state.Hash * state.Factor + 7; state.Hash ^= state.Hash >> 3;
+        state.Hash = state.Hash * state.Factor + 7; state.Hash ^= state.Hash >> 3;
+        state.Hash = state.Hash * state.Factor + 7; state.Hash ^= state.Hash >> 3;
+        state.Hash = state.Hash * state.Factor + 7; state.Hash ^= state.Hash >> 3;
+        state.Hash = state.Hash * state.Factor + 7; state.Hash ^= state.Hash >> 3;
+        state.Hash = state.Hash * state.Factor + 7; state.Hash ^= state.Hash >> 3;
+        state.Hash = state.Hash * state.Factor + 7; state.Hash ^= state.Hash >> 3;
+        state.Hash = state.Hash * state.Factor + 7; state.Hash ^= state.Hash >> 3;
+        state.Hash = state.Hash * state.Factor + 7; state.Hash ^= state.Hash >> 3;
+        state.Hash = state.Hash * state.Factor + 7; state.Hash ^= state.Hash >> 3;
+        state.Hash = state.Hash * state.Factor + 7; state.Hash ^= state.Hash >> 3;
+        state.Hash = state.Hash * state.Factor + 7; state.Hash ^= state.Hash >> 3;
+        state.Hash = state.Hash * state.Factor + 7; state.Hash ^= state.Hash >> 3;
+        state.Hash = state.Hash * state.Factor + 7; state.Hash ^= state.Hash >> 3;
+        state.Hash = state.Hash * state.Factor + 7; state.Hash ^= state.Hash >> 3;
+        state.Hash = state.Hash * state.Factor + 7; state.Hash ^= state.Hash >> 3;
+        state.Hash = state.Hash * state.Factor + 7; state.Hash ^= state.Hash >> 3;
+        state.Hash = state.Hash * state.Factor + 7; state.Hash ^= state.Hash >> 3;
+        state.Hash = state.Hash * state.Factor + 7; state.Hash ^= state.Hash >> 3;
+        state.Hash = state.Hash * state.Factor + 7; state.Hash ^= state.Hash >> 3;
+        state.Hash = state.Hash * state.Factor + 7; state.Hash ^= state.Hash >> 3;
+        state.Hash = state.Hash * state.Factor + 7; state.Hash ^= state.Hash >> 3;
+        state.Hash = state.Hash * state.Factor + 7; state.Hash ^= state.Hash >> 3;
+        state.Hash = state.Hash * state.Factor + 7; state.Hash ^= state.Hash >> 3;
+        state.Hash = state.Hash * state.Factor + 7; state.Hash ^= state.Hash >> 3;
+        state.Hash = state.Hash * state.Factor + 7; state.Hash ^= state.Hash >> 3;
+        state.Hash = state.Hash * state.Factor + 7; state.Hash ^= state.Hash >> 3;
+        state.Hash = state.Hash * state.Factor + 7; state.Hash ^= state.Hash >> 3;
+        state.Hash = state.Hash * state.Factor + 7; state.Hash ^= state.Hash >> 3;
+        state.Hash = state.Hash * state.Factor + 7; state.Hash ^= state.Hash >> 3;
+        state.Hash = state.Hash * state.Factor + 7; state.Hash ^= state.Hash >> 3;
+        state.Hash = state.Hash * state.Factor + 7; state.Hash ^= state.Hash >> 3;
+        state.Hash = state.Hash * state.Factor + 7; state.Hash ^= state.Hash >> 3;
+        output[index] = state.Hash;
+    }
 }

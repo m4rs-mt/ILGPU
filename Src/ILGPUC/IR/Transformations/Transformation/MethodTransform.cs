@@ -245,6 +245,10 @@ sealed class MethodTransform :
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     public Value? Rewrite(Value oldValue)
     {
+        // Rebuilding a value rebuilds its operands first, recursing once per
+        // nesting level of an expression
+        StackGuard.EnsureSufficientStack(oldValue, OldMethod);
+
         // Cycle detection: if we're already resolving this value, check for a
         // pre-registered replacement (e.g. phi placeholder from RebuildAndMemoize).
         // This breaks replacement chain cycles for loop phis: A→B where B's

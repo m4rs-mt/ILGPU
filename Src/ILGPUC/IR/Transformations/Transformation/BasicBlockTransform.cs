@@ -174,6 +174,7 @@ sealed class BasicBlockTransform :
         allValues.Reverse();
         var finalValues = InlineList<BasicBlockValue>.Create(allValues.Count);
         visited.Clear(); // reuse for deduplication
+        ValueSet<Method, PureValue>? visitedPureValues = null;
 
         // Build set of chain member IDs. Values that were physically in the
         // block's chain (via Previous/TryGetRelinked) should always be
@@ -273,7 +274,12 @@ sealed class BasicBlockTransform :
                 // inlined method call replaced by its return value), the
                 // PureValue's BasicBlockValue operands need to be in this
                 // block's chain. Collect them recursively.
-                CollectBBVDependencies(resultPV, finalValues, visited);
+                visitedPureValues ??= BasicBlock.Method.CreateSet<PureValue>();
+                CollectBBVDependencies(
+                    resultPV,
+                    finalValues,
+                    visited,
+                    visitedPureValues.Value);
             }
         }
         _parent._overrideBlockTransform = null;
@@ -296,14 +302,20 @@ sealed class BasicBlockTransform :
     /// Recursively collects BasicBlockValue operands from a PureValue tree
     /// that belong to this block's method. Used when a chain member rewrites
     /// to a PureValue (e.g., inlined method return value) whose dependencies
-    /// (MethodCalls, etc.) need to be in this block's chain.
+    /// (MethodCalls, etc.) need to be in this block's chain. Pure values
+    /// share operands, so each of them is traversed once per block
+    /// (<paramref name="visitedPureValues"/>) instead of once per path.
     /// </summary>
     internal void CollectBBVDependencies<TSet>(
         PureValue pv,
         InlineList<BasicBlockValue> finalValues,
-        TSet visited)
+        TSet visited,
+        ValueSet<Method, PureValue> visitedPureValues)
         where TSet : ISet<BasicBlockValue>
     {
+        if (!visitedPureValues.Add(pv))
+            return;
+        StackGuard.EnsureSufficientStack(pv, BasicBlock.Method);
         foreach (var operand in pv.Values)
         {
             if (operand is BasicBlockValue bbOp
@@ -313,7 +325,13 @@ sealed class BasicBlockTransform :
                 finalValues.Add(bbOp);
             }
             if (operand is PureValue childPV)
-                CollectBBVDependencies(childPV, finalValues, visited);
+            {
+                CollectBBVDependencies(
+                    childPV,
+                    finalValues,
+                    visited,
+                    visitedPureValues);
+            }
         }
     }
 

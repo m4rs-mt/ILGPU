@@ -1177,6 +1177,15 @@ namespace ILGPU.Resources {
         }
 
         /// <summary>
+        ///   Looks up a localized string similar to An expression in method &apos;{0}&apos; is nested too deeply to be compiled. Compute long chains of operations in a loop instead of unrolling them, or split them across methods marked with MethodImplOptions.NoInlining..
+        /// </summary>
+        internal static string KernelDiagnosticExpressionNesting {
+            get {
+                return ResourceManager.GetString("KernelDiagnosticExpressionNesting", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to The operation of {0} is not supported. It must return one operation of its two operands: one of +, *, &amp;, | and ^, or Math.Min or Math.Max, as in (a, b) =&gt; a + b. Custom operations, including operations on structures, are not supported..
         /// </summary>
         internal static string KernelDiagnosticUnsupportedCollectiveOperation {

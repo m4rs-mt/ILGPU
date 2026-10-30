@@ -379,7 +379,8 @@ abstract partial class Transformation(TransformationArgs args)
             return transform.Seal(module.EntryPointHandle);
 #if DEBUG
         }
-        catch (Exception ex) when (ex is not IRVerificationException)
+        catch (Exception ex) when (
+            ex is not (IRVerificationException or KernelCompilationException))
         {
             // Add transformation name context and run verifier for detailed report
             try
