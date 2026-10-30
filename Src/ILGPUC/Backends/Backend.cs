@@ -238,10 +238,10 @@ abstract class Backend(
     /// <summary>
     /// Rejects generic pointers and references into shared or local memory,
     /// which this backend cannot express: they remain generic when they can
-    /// point to several address spaces or are returned by a helper method.
-    /// Generic pointers into global memory or with an unknown address space (for
-    /// example, pointers loaded from memory) are emitted in the backend's
-    /// default (global) address space and are not rejected.
+    /// point to several address spaces, are returned by a helper method or are
+    /// stored to memory. Generic pointers into global memory or with an unknown
+    /// address space (for example, pointers loaded from memory) are emitted in
+    /// the backend's default (global) address space and are not rejected.
     /// </summary>
     /// <param name="module">The final module after all transformations.</param>
     private void VerifyNoGenericAddressSpaces(Module module)
@@ -273,6 +273,8 @@ abstract class Backend(
                 if (value is Method or TypeValue or BasicBlock || !visited.Add(value))
                     continue;
                 VerifyNotGeneric(module, results, method, value);
+                if (value is Store store)
+                    VerifyNotStoredGeneric(module, results, method, store);
                 foreach (var operand in value.Values)
                     worklist.Push(operand);
             }
@@ -315,18 +317,79 @@ abstract class Backend(
         if (!severalSpaces && !crossesMethod)
             return;
 
-        var kernel = module.EntryPoint;
-        var where = method == kernel
-            ? string.Empty
-            : $" in '{GetDisplayName(method)}'";
         var reason = severalSpaces
             ? $"can point to {FormatSpaces(flags)} memory"
             : $"points to {FormatSpaces(flags)} memory but is passed to or " +
                 "returned from a helper method as a generic pointer";
-        var message = value.Location.FormatErrorMessage(
+        throw GetGenericPointerException(module, method, value.Location, reason);
+    }
+
+    /// <summary>
+    /// Throws if the given store writes a generic pointer or view into shared or
+    /// local memory to memory, directly or as a structure field: a pointer loaded
+    /// from memory points into the backend's default (global) address space.
+    /// </summary>
+    private void VerifyNotStoredGeneric(
+        Module module,
+        AddressSpaceResults results,
+        Method method,
+        Store store)
+    {
+        static bool IsGeneric(TypeValue type) =>
+            type is AddressSpaceType
+            {
+                AddressSpace: MemoryAddressSpace.Generic
+            };
+
+        var value = store.Value;
+        var info = results.GetAnalysisValue(value);
+        var flags = AddressSpaceFlags.None;
+        if (IsGeneric(value.Type))
+        {
+            flags = info.Data.Flags;
+        }
+        else if (value.Type is StructureType structureType)
+        {
+            for (int i = 0; i < structureType.NumFields; ++i)
+            {
+                if (!IsGeneric(structureType[i]))
+                    continue;
+                flags |= info.IsStructure && i < info.NumFields
+                    ? info[i].Flags
+                    : info.Data.Flags;
+            }
+        }
+
+        flags &= AddressSpaceFlags.Shared | AddressSpaceFlags.Local;
+        if (flags == AddressSpaceFlags.None)
+            return;
+
+        throw GetGenericPointerException(
+            module,
+            method,
+            store.Location,
+            $"points to {FormatSpaces(flags)} memory but is stored to memory " +
+            "as a generic pointer");
+    }
+
+    /// <summary>
+    /// Returns the exception rejecting a generic pointer or reference of the
+    /// given method for the given reason.
+    /// </summary>
+    private NotSupportedException GetGenericPointerException(
+        Module module,
+        Method method,
+        Location location,
+        string reason)
+    {
+        var kernel = module.EntryPoint;
+        var where = method == kernel
+            ? string.Empty
+            : $" in '{GetDisplayName(method)}'";
+        var message = location.FormatErrorMessage(
             $"Kernel '{GetDisplayName(kernel)}': a pointer or reference{where} " +
             reason);
-        throw new NotSupportedException(
+        return new NotSupportedException(
             $"{message}. {BackendType} does not support generic pointers; make " +
             "each pointer or reference point into a single address space.");
     }

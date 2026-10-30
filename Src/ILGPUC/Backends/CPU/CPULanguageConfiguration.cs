@@ -125,7 +125,14 @@ sealed class CPULanguageConfiguration(int vectorWidth) : LanguageConfiguration
     public override bool SupportsExplicitFieldOffsets => true;
 
     /// <inheritdoc/>
+    public override string PointerStorageTypeName => "nint";
+
+    /// <inheritdoc/>
     public override string FormatNullLiteral(string typeName) =>
+        "default";
+
+    /// <inheritdoc/>
+    public override string FormatNullPointer(string typeName) =>
         "default";
 
     /// <inheritdoc/>

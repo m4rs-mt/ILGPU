@@ -121,6 +121,47 @@ public abstract class AddressSpaceExecutionTests : ExecutionTestBase
     }
 
     [SkippableFact]
+    public async Task LocalPointerAddress_ProducesCorrectOutput()
+    {
+        // A local pointer into global memory is changed and read through a
+        // pointer to it, directly and in a helper; a helper reads through a
+        // local array of pointers
+        await VerifyProgramOutputAsync(
+            "TestPrograms/AddressSpace/LocalPointerAddress.cs",
+            ["Kernels.DirectKernel", "Kernels.HelperKernel", "Kernels.ArrayKernel"],
+            ["22 8 8 22", "1 8 15 22", "1 8 15 22"]);
+    }
+
+    [SkippableFact]
+    public async Task LocalAddressInMemory_ProducesCorrectOutput()
+    {
+        // The addresses of local variables and of shared memory are stored to
+        // memory and read back: in a local pointer whose address is taken, in a
+        // view of nint and in a view of structs holding a pointer
+        RequireCapability(Backend, BackendCapability.GenericAddressSpace);
+        await VerifyProgramOutputAsync(
+            "TestPrograms/AddressSpace/LocalAddressInMemory.cs",
+            [
+                "Kernels.LocalPointerKernel",
+                "Kernels.AddressViewKernel",
+                "Kernels.SharedAddressKernel",
+            ],
+            ["3 9 31 23", "2 9 16 23", "2 3 4 5"]);
+    }
+
+    [SkippableFact]
+    public async Task NullPointerLoop_ProducesCorrectOutput()
+    {
+        // x = t + 1, y = 10 * (t + 1); a pointer alternates between x and y
+        // until it becomes null after t + 1 iterations
+        RequireCapability(Backend, BackendCapability.GenericAddressSpace);
+        await VerifyProgramOutputAsync(
+            "TestPrograms/AddressSpace/NullPointerLoop.cs",
+            ["Kernels.NullPointerLoopKernel"],
+            ["1 22 36 88"]);
+    }
+
+    [SkippableFact]
     public async Task MixedSpaceRef_ProducesCorrectOutput()
     {
         // Even threads increment shared[t] = 10 * (t + 1), odd threads data[t] = t;

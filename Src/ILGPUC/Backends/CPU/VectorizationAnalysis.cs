@@ -86,6 +86,8 @@ sealed class VectorizationAnalysis
             GetField gf => IsScalar(gf.Source),
             // Address space casts keep the address (or view) of their source
             AddressSpaceCast cast => IsScalar(cast.Source),
+            // A uniform integer is a uniform address (e.g. a null pointer)
+            IntAsPointerCast cast => IsScalar(cast.Source),
             // An element address with a uniform offset into a uniform pointer
             // or view is uniform, unless it addresses a local array that every
             // lane owns privately
@@ -546,7 +548,7 @@ sealed class VectorizationAnalysis
         if (baseType is ViewType view)
         {
             var viewType =
-                $"CPURuntimeView<{GetScalarTypeName(view.ElementType, config)}>";
+                $"CPURuntimeView<{GetElementTypeName(view.ElementType, config)}>";
             return IsLaneArrayView(value) ? viewType : viewType + "[]";
         }
 
@@ -573,7 +575,7 @@ sealed class VectorizationAnalysis
         else if (type is VoidType)
             return "void";
         else if (type is ViewType view)
-            return $"CPURuntimeView<{GetScalarTypeName(view.ElementType, config)}>";
+            return $"CPURuntimeView<{GetElementTypeName(view.ElementType, config)}>";
         else if (type is StructureType structure)
             return $"struct_{structure.Id}";
         else if (type is StringType)
@@ -590,4 +592,15 @@ sealed class VectorizationAnalysis
             throw new System.NotSupportedException(
                 $"Unsupported type in CPU backend: {type.GetType().Name}");
     }
+
+    /// <summary>
+    /// Gets the type name of the elements of a view: pointers are stored as
+    /// addresses, as C# cannot use pointer types as type arguments.
+    /// </summary>
+    public static string GetElementTypeName(
+        TypeValue elementType,
+        CPULanguageConfiguration config) =>
+        elementType is PointerType
+            ? config.PointerStorageTypeName
+            : GetScalarTypeName(elementType, config);
 }

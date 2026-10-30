@@ -139,11 +139,12 @@ partial class GenerationContext
             foreach (var global in GetHelperScopeGlobals(method))
             {
                 var keyword = LanguageConfig.GetAddressSpaceKeyword(global.AddressSpace);
-                var typeName = typeEmitter.GetTypeName(global.AllocType);
+                var typeName = LanguageConfig.GetQualifiedTypeName(
+                    typeEmitter.GetTypeName(global.AllocType),
+                    keyword);
                 var name = GetValueName(global);
-                var prefix = string.IsNullOrEmpty(keyword) ? "" : keyword + " ";
                 parameters.Add(new(
-                    $"{prefix}{typeName}* {name}",
+                    $"{typeName}* {name}",
                     global.ArrayLength.HasValue ? name : "&" + name));
             }
             if (parameters.Count > 0)

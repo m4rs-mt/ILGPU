@@ -17,6 +17,23 @@ using System.Runtime.CompilerServices;
 namespace ILGPUC.Tests.Kernels;
 
 /// <summary>
+/// A struct whose only field is a pointer: the IR represents it as a pointer.
+/// </summary>
+unsafe struct PointerHolder
+{
+    public int* P;
+}
+
+/// <summary>
+/// A struct holding a pointer and a tag.
+/// </summary>
+unsafe struct TaggedPointer
+{
+    public int* P;
+    public int Tag;
+}
+
+/// <summary>
 /// Kernel definitions for address space inference: references into shared,
 /// local and global memory that flow through phis and helper methods.
 /// </summary>
@@ -35,6 +52,25 @@ static class AddressSpaceKernels
     /// </summary>
     [MethodImpl(MethodImplOptions.NoInlining)]
     static ref int Next(ref int value) => ref Unsafe.Add(ref value, 1);
+
+    /// <summary>
+    /// Advances the pointer the given pointer points to. Never inlined: the
+    /// pointer stays in local memory.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    static unsafe void Advance(int** pointer, int steps) => *pointer += steps;
+
+    /// <summary>
+    /// Reads an element through a local array of pointers. Never inlined: the
+    /// kernel declares the local array of the helper method and passes it on.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    static unsafe int ReadThroughLocalArray(int* pointer, int slot)
+    {
+        var addresses = new nint[2];
+        addresses[slot] = (nint)pointer;
+        return *(int*)addresses[slot];
+    }
 
     /// <summary>
     /// Advances a reference through shared memory: the loop-carried reference
@@ -164,5 +200,138 @@ static class AddressSpaceKernels
 
         if (groupIdx < 32)
             data[index] = shared[groupIdx + 1];
+    }
+
+    /// <summary>
+    /// Takes the address of a local pointer into global memory: the pointer
+    /// lives in local memory, and is changed and read through a pointer to
+    /// it, directly and in a helper method.
+    /// </summary>
+    public static unsafe void LocalPointerAddressKernel(
+        Index1D index,
+        ArrayView1D<int, Stride1D.Dense> input,
+        ArrayView1D<int, Stride1D.Dense> data)
+    {
+        fixed (int* own = &input[index])
+        fixed (int* mirrored = &input[3 - index])
+        {
+            int* p = own;
+            int** pp = &p;
+            if (index % 2 == 0)
+                *pp = mirrored;
+            Advance(pp, 0);
+            data[index] = **pp;
+        }
+    }
+
+    /// <summary>
+    /// Stores the address of an input element in a local array of pointers
+    /// that a helper method allocates, and in a local array of the kernel.
+    /// </summary>
+    public static unsafe void LocalPointerArrayKernel(
+        Index1D index,
+        ArrayView1D<int, Stride1D.Dense> input,
+        ArrayView1D<int, Stride1D.Dense> data)
+    {
+        var addresses = new nint[2];
+        fixed (int* element = &input[index])
+        {
+            addresses[index % 2] = (nint)element;
+            data[index] = ReadThroughLocalArray(element, index % 2) +
+                *(int*)addresses[index % 2];
+        }
+    }
+
+    /// <summary>
+    /// Stores the address of an input element into a view of structs holding
+    /// a pointer and into a view of nint addresses, and reads the element back
+    /// through both views.
+    /// </summary>
+    public static unsafe void PointerViewKernel(
+        Index1D index,
+        ArrayView1D<int, Stride1D.Dense> input,
+        ArrayView1D<PointerHolder, Stride1D.Dense> holders,
+        ArrayView1D<nint, Stride1D.Dense> addresses,
+        ArrayView1D<int, Stride1D.Dense> data)
+    {
+        fixed (int* p = &input[index])
+        {
+            holders[index] = new PointerHolder { P = p };
+            addresses[index] = (nint)p;
+        }
+        data[index] = *holders[index].P + *(int*)addresses[index];
+    }
+
+    /// <summary>
+    /// Compares a pointer into global memory that is null in every other
+    /// thread with null.
+    /// </summary>
+    public static unsafe void NullPointerKernel(
+        Index1D index, ArrayView1D<int, Stride1D.Dense> data)
+    {
+        fixed (int* element = &data[index])
+        {
+            int* p = element;
+            if (index % 2 == 0)
+                p = null;
+            if (p != null)
+                *p += 1;
+        }
+    }
+
+    /// <summary>
+    /// Stores the address of a local variable in a local pointer whose address
+    /// is taken, and reads the variable through the pointer to the pointer.
+    /// </summary>
+    [RequiresCapability(BackendCapability.GenericAddressSpace)]
+    public static unsafe void LocalAddressInLocalPointerKernel(
+        Index1D index, ArrayView1D<int, Stride1D.Dense> data)
+    {
+        int x = data[index];
+        int y = 2 * x;
+        int* p = &x;
+        int** pp = &p;
+        if (index % 2 == 0)
+            *pp = &y;
+        data[index] = **pp + 1;
+    }
+
+    /// <summary>
+    /// Stores the address of a local variable in a view of nint addresses and
+    /// reads the variable through the view.
+    /// </summary>
+    [RequiresCapability(BackendCapability.GenericAddressSpace)]
+    public static unsafe void LocalAddressInViewKernel(
+        Index1D index,
+        ArrayView1D<nint, Stride1D.Dense> addresses,
+        ArrayView1D<int, Stride1D.Dense> data)
+    {
+        int x = data[index] + 1;
+        addresses[index] = (nint)(&x);
+        data[index] = *(int*)addresses[index];
+    }
+
+    /// <summary>
+    /// Stores the address of an element of shared memory in a view of structs
+    /// holding a pointer and reads the element through the view.
+    /// </summary>
+    [RequiresCapability(BackendCapability.GenericAddressSpace)]
+    public static unsafe void SharedAddressInViewKernel(
+        Index1D index,
+        ArrayView1D<TaggedPointer, Stride1D.Dense> pointers,
+        ArrayView1D<int, Stride1D.Dense> data)
+    {
+        var shared = Group.GetSharedMemory<int>(32);
+        int groupIdx = Group.Index;
+        if (groupIdx < 32)
+            shared[groupIdx] = index.X + 1;
+        Group.Barrier();
+
+        if (groupIdx < 32)
+        {
+            fixed (int* p = &shared[groupIdx])
+                pointers[index] = new TaggedPointer { P = p, Tag = 1 };
+            data[index] = *pointers[index].P + pointers[index].Tag;
+        }
     }
 }

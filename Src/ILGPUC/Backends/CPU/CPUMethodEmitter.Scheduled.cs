@@ -73,7 +73,7 @@ partial class CPUMethodEmitter
             PointerType => "nint",
             StructureType st => $"struct_{st.Id}",
             ViewType view => "CPURuntimeView<" +
-                VectorizationAnalysis.GetScalarTypeName(
+                VectorizationAnalysis.GetElementTypeName(
                     view.ElementType,
                     (CPULanguageConfiguration)context.LanguageConfig) + ">",
             _ => null

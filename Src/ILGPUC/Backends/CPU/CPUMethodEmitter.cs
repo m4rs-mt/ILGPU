@@ -636,6 +636,8 @@ sealed partial class CPUMethodEmitter(
             PrimitiveType pt => ((CPULanguageConfiguration)context.LanguageConfig)
                 .GetPrimitiveTypeName(pt.BasicValueType),
             StructureType st => $"struct_{st.Id}",
+            PointerType => ((CPULanguageConfiguration)context.LanguageConfig)
+                .PointerStorageTypeName,
             _ => "byte",
         };
 
@@ -914,9 +916,13 @@ sealed partial class CPUMethodEmitter(
                     if (lScalar != rScalar)
                     {
                         // Broadcast temp uses the operand type, not bool
-                        var operandType = cmp.Left.Type is PrimitiveType cpt
-                            ? config.GetPrimitiveTypeName(cpt.BasicValueType)
-                            : "int";
+                        var operandType = cmp.Left.Type switch
+                        {
+                            PrimitiveType cpt =>
+                                config.GetPrimitiveTypeName(cpt.BasicValueType),
+                            PointerType => "nint",
+                            _ => "int",
+                        };
                         context.WriteLine(
                             $"var _bcast_tmp_{value.Id} = " +
                             $"new {operandType}[SIMDWidth];");
@@ -1456,7 +1462,7 @@ sealed partial class CPUMethodEmitter(
         var length = GetLaneOperand(newView.Length, analysis);
         if (!analysis.IsScalar(newView.Length))
             length += "[_si]";
-        var elemType = VectorizationAnalysis.GetScalarTypeName(
+        var elemType = VectorizationAnalysis.GetElementTypeName(
             newView.ViewElementType,
             (CPULanguageConfiguration)context.LanguageConfig);
         context.WriteLine("for (int _si = 0; _si < SIMDWidth; _si++)");

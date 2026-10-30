@@ -263,12 +263,21 @@ sealed class TypeEmitter(GenerationContext context)
     /// </remarks>
     private string GetViewTypeName(ViewType view)
     {
-        var elementTypeName = GetTypeName(view.ElementType);
+        var elementTypeName = GetStorageTypeName(view.ElementType);
         var addrSpaceKeyword = context.LanguageConfig.GetAddressSpaceKeyword(
             view.AddressSpace);
         return context.LanguageConfig.GetViewTypeName(
             elementTypeName, addrSpaceKeyword);
     }
+
+    /// <summary>
+    /// Gets the name of a type stored in a view element.
+    /// </summary>
+    private string GetStorageTypeName(TypeValue type) =>
+        type is PointerType &&
+        context.LanguageConfig.PointerStorageTypeName is string pointerName
+        ? pointerName
+        : GetTypeName(type);
 
     /// <summary>
     /// Performs a topological sort of types based on dependencies.

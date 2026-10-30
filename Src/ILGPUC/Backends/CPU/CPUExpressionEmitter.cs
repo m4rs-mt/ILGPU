@@ -99,7 +99,7 @@ sealed class CPUExpressionEmitter(
     /// Returns the C# type name of a view of the given type.
     /// </summary>
     private string GetViewTypeName(ViewType view) =>
-        "CPURuntimeView<" + VectorizationAnalysis.GetScalarTypeName(
+        "CPURuntimeView<" + VectorizationAnalysis.GetElementTypeName(
             view.ElementType,
             (CPULanguageConfiguration)context.LanguageConfig) + ">";
 
@@ -123,7 +123,7 @@ sealed class CPUExpressionEmitter(
         context.WriteLine($"var {buffer} = new {typeName}[SIMDWidth];");
         if (GetLaneArrayLength(view) is int laneStride)
         {
-            var elemType = VectorizationAnalysis.GetScalarTypeName(
+            var elemType = VectorizationAnalysis.GetElementTypeName(
                 viewType.ElementType,
                 (CPULanguageConfiguration)context.LanguageConfig);
             context.WriteLine(
@@ -142,7 +142,7 @@ sealed class CPUExpressionEmitter(
     /// Returns the element type name of a view.
     /// </summary>
     private string GetViewElementTypeName(Value view) =>
-        VectorizationAnalysis.GetScalarTypeName(
+        VectorizationAnalysis.GetElementTypeName(
             view.GetTypeAs<ViewType>().ElementType,
             (CPULanguageConfiguration)context.LanguageConfig);
 
@@ -261,6 +261,10 @@ sealed class CPUExpressionEmitter(
 
         if (store.Target is LoadElementAddress lea && lea.IsViewAccess)
         {
+            // Uniform pointers are stored as addresses
+            if (analysis.IsScalar(store.Value))
+                value = ToLaneElement(value, GetViewElementTypeName(lea.Source));
+
             if (analysis.IsPerLaneView(lea.Source))
             {
                 // Every active lane stores through its own view
@@ -338,7 +342,8 @@ sealed class CPUExpressionEmitter(
             {
                 context.WriteLine(
                     $"CPUVectorIntrinsics.PointerStoreFill<{storeValType}>(" +
-                    $"{target}, {value}, {ActiveMaskName});");
+                    $"{target}, {ToLaneElement(value, storeValType)}, " +
+                    $"{ActiveMaskName});");
             }
             else
             {
@@ -956,7 +961,10 @@ sealed class CPUExpressionEmitter(
         bool unordered = isFloat && compare.IsUnsignedOrUnordered;
         bool isOrdering = compare.Kind is not (
             CompareKind.Equal or CompareKind.NotEqual);
-        var storageType = GetStorageType(leftBvt);
+        // Per-lane pointers are stored as addresses
+        var storageType = compare.Left.Type is PointerType
+            ? "nint"
+            : GetStorageType(leftBvt);
         var opType = !isFloat && isOrdering
             ? GetSemanticType(compare.CompareType)
             : storageType;
@@ -1031,7 +1039,7 @@ sealed class CPUExpressionEmitter(
             var bcast = GetBroadcastName(compare);
             context.WriteLine(
                 $"CPUVectorIntrinsics.Broadcast<{storageType}>(" +
-                $"{bcast}, {left});");
+                $"{bcast}, {ToLaneElement(left, storageType)});");
             left = bcast;
         }
         else if (rScalar)
@@ -1039,7 +1047,7 @@ sealed class CPUExpressionEmitter(
             var bcast = GetBroadcastName(compare);
             context.WriteLine(
                 $"CPUVectorIntrinsics.Broadcast<{storageType}>(" +
-                $"{bcast}, {right});");
+                $"{bcast}, {ToLaneElement(right, storageType)});");
             right = bcast;
         }
 

@@ -159,7 +159,9 @@ sealed class CLLanguageConfiguration(CLVendor vendor = CLVendor.Intel) : Languag
     /// </remarks>
     /// <remarks>
     /// OpenCL C forbids bool kernel arguments: bools are passed as one byte
-    /// and converted in the prologue.
+    /// and converted in the prologue. Kernel arguments pointing to pointers
+    /// are forbidden as well: buffers of pointers are passed as byte
+    /// pointers and converted in the prologue.
     /// </remarks>
     public override string EmitNonFlattenedKernelParam(
         TypeValue type,
@@ -168,6 +170,9 @@ sealed class CLLanguageConfiguration(CLVendor vendor = CLVendor.Intel) : Languag
         int bufferIndex) =>
         type switch
         {
+            AddressSpaceType { ElementType: AddressSpaceType } =>
+                $"global char* {paramName}{PointerBufferSuffix}, " +
+                $"long {paramName}{BufferOffsetSuffix}",
             AddressSpaceType =>
                 $"{typeName} {paramName}, long {paramName}{BufferOffsetSuffix}",
             PrimitiveType { BasicValueType: BasicValueType.Int1 } =>
@@ -182,6 +187,10 @@ sealed class CLLanguageConfiguration(CLVendor vendor = CLVendor.Intel) : Languag
         string paramName) =>
         type switch
         {
+            AddressSpaceType { ElementType: AddressSpaceType } =>
+                $"  {typeName} {paramName} = ({typeName})" +
+                $"({paramName}{PointerBufferSuffix} + " +
+                $"{paramName}{BufferOffsetSuffix});",
             AddressSpaceType =>
                 $"  {paramName} = ({typeName})" +
                 $"((global char*){paramName} + {paramName}{BufferOffsetSuffix});",

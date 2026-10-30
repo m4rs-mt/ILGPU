@@ -73,6 +73,22 @@ abstract class LanguageConfiguration
     public abstract string GetPrimitiveTypeName(ArithmeticBasicValueType basicType);
 
     /// <summary>
+    /// Returns the given type name qualified with an address-space keyword
+    /// (possibly empty). Default implementation prefixes the keyword
+    /// (<c>threadgroup int</c>), but appends it to a pointer type name
+    /// (<c>device int* thread</c>): a leading keyword would qualify the
+    /// element type of the pointer instead of the pointer itself.
+    /// </summary>
+    public virtual string GetQualifiedTypeName(
+        string typeName,
+        string addressSpaceKeyword) =>
+        string.IsNullOrEmpty(addressSpaceKeyword)
+            ? typeName
+            : typeName.EndsWith('*')
+                ? $"{typeName} {addressSpaceKeyword}"
+                : $"{addressSpaceKeyword} {typeName}";
+
+    /// <summary>
     /// Returns the type name for a view type given its element type name
     /// and address-space keyword (possibly empty).
     /// Default implementation returns pointer syntax with an optional
@@ -82,9 +98,7 @@ abstract class LanguageConfiguration
     public virtual string GetViewTypeName(
         string elementTypeName,
         string addressSpaceKeyword) =>
-        string.IsNullOrEmpty(addressSpaceKeyword)
-            ? elementTypeName + "*"
-            : $"{addressSpaceKeyword} {elementTypeName}*";
+        GetQualifiedTypeName(elementTypeName, addressSpaceKeyword) + "*";
 
     /// <summary>
     /// Returns the type name for a pointer type given its element type name
@@ -103,9 +117,7 @@ abstract class LanguageConfiguration
     public virtual string GetPointerTypeName(
         string elementTypeName,
         string addressSpaceKeyword) =>
-        string.IsNullOrEmpty(addressSpaceKeyword)
-            ? elementTypeName + "*"
-            : $"{addressSpaceKeyword} {elementTypeName}*";
+        GetQualifiedTypeName(elementTypeName, addressSpaceKeyword) + "*";
 
     /// <summary>
     /// Returns true if this language supports a specific feature.
@@ -134,6 +146,14 @@ abstract class LanguageConfiguration
     /// </summary>
     public virtual string FormatNullLiteral(string typeName) =>
         $"(({typeName}){{}})";  // Zero-initialized struct/value
+
+    /// <summary>
+    /// Formats a null pointer for a given pointer type name.
+    /// Default: C-style <c>((Type)0)</c>, as OpenCL C compilers reject empty
+    /// initializers of scalars. CPU override: <c>default</c>.
+    /// </summary>
+    public virtual string FormatNullPointer(string typeName) =>
+        $"(({typeName})0)";
 
     /// <summary>
     /// Returns the field name used to access a view's length.
@@ -173,6 +193,13 @@ abstract class LanguageConfiguration
     /// (OpenCL C) store bools as one byte to match the host layout.
     /// </summary>
     public virtual string? BoolStorageTypeName => null;
+
+    /// <summary>
+    /// Returns the type name used to store pointers in views and arrays, or
+    /// null to use the regular pointer type name. C# cannot use pointer types
+    /// as type arguments, and the CPU backend stores pointers as addresses.
+    /// </summary>
+    public virtual string? PointerStorageTypeName => null;
 
     /// <summary>
     /// Formats a default-initialized value for the given type name.
@@ -261,6 +288,14 @@ abstract class LanguageConfiguration
         string typeName,
         string paramName) =>
         null;
+
+    /// <summary>
+    /// The suffix of a kernel parameter that receives a buffer of pointers
+    /// as a byte pointer, for languages that reject pointers to pointers as
+    /// kernel parameter types (Metal, OpenCL C). The prologue converts it
+    /// into the parameter of the pointer type.
+    /// </summary>
+    public const string PointerBufferSuffix = "_buffer";
 
     /// <summary>
     /// Returns true if the kernel entry point's first parameter (the thread index)
