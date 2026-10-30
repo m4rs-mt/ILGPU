@@ -78,6 +78,24 @@ partial class CodeGenerator
             return value;
         }
         else if (
+            targetType is PointerType { ElementType: VoidType } &&
+            value.Type is PrimitiveType)
+        {
+            // Integer casts to pointers extend integers with their signs, while
+            // conv.u extends them with zeros, which differs for negative values
+            if ((flags & ConvertFlags.SourceUnsigned) != ConvertFlags.None &&
+                value.BasicValueType < ModuleBuilder.IntPointerType.BasicValueType &&
+                value is not PrimitiveValue { Int64Value: >= 0 })
+            {
+                value = Builder.CreateConvert(
+                    Location,
+                    value,
+                    ModuleBuilder.IntPointerType,
+                    flags);
+            }
+            return Builder.CreateIntAsPointerCast(Location, value);
+        }
+        else if (
             targetType is PointerType targetPointerType &&
             targetPointerType.ElementType is KindType)
         {

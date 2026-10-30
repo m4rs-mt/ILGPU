@@ -86,6 +86,52 @@ public abstract class ConvertExecutionTests : ExecutionTestBase
             ["4000000001", "4000000001", "4000000001", "4000000001"]);
     }
 
+    /// <summary>
+    /// Unsigned 32-bit offsets widened to long zero-extend in element addresses.
+    /// </summary>
+    [SkippableFact]
+    public async Task UnsignedElementOffset_ProducesCorrectOutput()
+    {
+        await VerifyProgramOutputAsync(
+            "TestPrograms/ConvertInt/UnsignedElementOffset.cs",
+            ["Kernels.UnsignedElementOffsetKernel"],
+            ["10 11 12 13"]);
+    }
+
+    /// <summary>
+    /// Unsigned 32-bit offsets converted to nuint zero-extend in element
+    /// addresses, both per-thread and constant offsets.
+    /// </summary>
+    [SkippableFact]
+    public async Task NativeUnsignedOffset_ProducesCorrectOutput()
+    {
+        await VerifyProgramOutputAsync(
+            "TestPrograms/ConvertInt/NativeUnsignedOffset.cs",
+            ["Kernels.NativeUnsignedOffsetKernel"],
+            ["10 12", "11 12", "12 12", "13 12"]);
+    }
+
+    /// <summary>
+    /// 8 and 16-bit values converted to uint extend with their own signs before
+    /// they are zero-extended to ulong and nuint, as on the host.
+    /// </summary>
+    [SkippableFact]
+    public async Task NarrowUnsignedWidening_ProducesCorrectOutput()
+    {
+        await VerifyProgramOutputAsync(
+            "TestPrograms/ConvertInt/NarrowUnsignedWidening.cs",
+            ["Kernels.NarrowUnsignedWideningKernel"],
+            [
+                "4294967295 4294967295 255 65535 4294967295 4294967295 255 65535 " +
+                    "-1 4294967295 13 13",
+                "4294967168 4294934528 128 32768 0 4294934528 0 32768 " +
+                    "-128 4294967295 12 12",
+                "127 32767 127 32767 4294967168 4294967168 128 65408 " +
+                    "127 4294967295 11 11",
+                "5 5 5 5 5 5 5 5 5 4294967295 10 10",
+            ]);
+    }
+
     [SkippableFact]
     public async Task FloatToDouble_ProducesCorrectOutput()
     {

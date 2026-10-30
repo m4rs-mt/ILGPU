@@ -161,4 +161,10 @@ public abstract class RecursionExecutionTests : ExecutionTestBase
     [SkippableFact]
     public Task ConstantRecursion_ProducesCorrectOutput() =>
         VerifyWithoutRecursionAsync("ConstantRecursion", "1120 1121 1122 1123");
+
+    [SkippableFact]
+    public Task ConstantNativeWidening_ProducesCorrectOutput() =>
+        VerifyWithoutRecursionAsync(
+            "ConstantNativeWidening",
+            "2147483648 4294967295 2147483648 4294967295");
 }

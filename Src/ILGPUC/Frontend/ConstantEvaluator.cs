@@ -1564,7 +1564,8 @@ sealed class ConstantEvaluator
             _ when targetType == typeof(ushort) => (int)unchecked((ushort)signed),
             _ when targetType == typeof(int) || targetType == typeof(uint) =>
                 unchecked((int)signed),
-            _ when targetType == typeof(ulong) || targetType == typeof(nuint) =>
+            _ when targetType == typeof(ulong) || targetType == typeof(nuint) ||
+                unsigned && targetType == Disassembler.NativePtrType =>
                 (object)(isInt32 ? (long)unsignedValue : signed),
             _ => (object)signed,
         };

@@ -421,7 +421,7 @@ namespace ILGPUC.Frontend
                     AppendInstructionWithFlags(ILInstructionType.Conv, ILInstructionFlags.None, typeof(ulong));
                     return true;
                 case ILOpCode.Conv_U:
-                    AppendInstructionWithFlags(ILInstructionType.Conv, ILInstructionFlags.None, NativePtrType);
+                    AppendInstructionWithFlags(ILInstructionType.Conv, ILInstructionFlags.Unsigned, NativePtrType);
                     return true;
                 case ILOpCode.Conv_Ovf_U1:
                     AppendInstructionWithFlags(ILInstructionType.Conv, ILInstructionFlags.Overflow, typeof(byte));
