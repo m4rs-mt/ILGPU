@@ -124,14 +124,17 @@ partial class Intrinsics
         context.Arguments.CopyTo(ref arguments, 1);
 
         // Valid all argument types
+        var parameters = context.Method.GetParameters();
+        int argumentIndex = 0;
         foreach (var arg in arguments)
         {
+            ++argumentIndex;
             if (arg.Type is PointerType || arg.BasicValueType != BasicValueType.None)
                 continue;
             throw location.GetNotSupportedException(
                 ErrorMessages.NotSupportedWriteFormatArgumentType,
                 formatExpression,
-                arg.Type.ToString());
+                TypeDisplay.Format(parameters[argumentIndex].ParameterType));
         }
 
         // Create the output writer

@@ -159,14 +159,20 @@ public sealed class HalfMemberTests
         {
             output[index] = (long)(Int128)data[index];
         }
+
+        public static void Parse(
+            Index1D index,
+            ArrayView1D<Half, Stride1D.Dense> output)
+        {
+            output[index] = Half.Parse("1.5");
+        }
     }
 
     /// <summary>
     /// A call to a rejected member is a compile error that names the member.
     /// </summary>
     [Theory]
-    [InlineData(nameof(ErrorKernels.ToDecimal), "op_Explicit")]
-    [InlineData(nameof(ErrorKernels.ToInt128), "op_Explicit")]
+    [InlineData(nameof(ErrorKernels.Parse), "Parse")]
     public void RejectedMember_IsCompileError(string kernelName, string memberName)
     {
         var kernel = typeof(ErrorKernels).GetMethod(
@@ -187,5 +193,29 @@ public sealed class HalfMemberTests
         var text = string.Join("\n", messages);
         Assert.Contains("Not supported runtime method", text, StringComparison.Ordinal);
         Assert.Contains(memberName, text, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// A conversion between Half and decimal, Int128 or UInt128 is rejected as a
+    /// computation with that type, like any other operation on these types.
+    /// </summary>
+    [Theory]
+    [InlineData(nameof(ErrorKernels.ToDecimal), "decimal")]
+    [InlineData(nameof(ErrorKernels.ToInt128), "Int128")]
+    public void NumericConversion_IsRejected(string kernelName, string type)
+    {
+        var kernel = typeof(ErrorKernels).GetMethod(
+            kernelName,
+            BindingFlags.Public | BindingFlags.Static)!;
+        using var helper = new CompilationHelper(BackendType.CPU);
+        var exception = Assert.Throws<KernelCompilationException>(() =>
+            helper.GenerateBackendCode(kernel, BackendType.CPU));
+
+        Assert.Equal("ILGPU1200", exception.Id);
+        Assert.StartsWith(
+            $"Kernel code cannot call 'Half.op_Explicit', which computes with " +
+            $"values of type '{type}'.",
+            exception.Message,
+            StringComparison.Ordinal);
     }
 }

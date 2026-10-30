@@ -1193,6 +1193,15 @@ namespace ILGPU.Resources {
                 return ResourceManager.GetString("KernelDiagnosticUnsupportedCollectiveType", resourceCulture);
             }
         }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Kernel code cannot call &apos;{0}&apos;, which computes with values of type &apos;{1}&apos;. Kernels can store and copy Int128, UInt128 and decimal values, but cannot compute with them or convert them; use long, ulong or double instead..
+        /// </summary>
+        internal static string KernelDiagnosticUnsupportedNumericOperation {
+            get {
+                return ResourceManager.GetString("KernelDiagnosticUnsupportedNumericOperation", resourceCulture);
+            }
+        }
 
         /// <summary>
         ///   Looks up a localized string similar to Delegates bound with KernelDelegates.Bind can only be used in kernels compiled by ILGPUC.

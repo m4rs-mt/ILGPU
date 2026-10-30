@@ -609,6 +609,10 @@
     <value>{0} does not support values of type '{1}'. Only primitive types and structures of primitive types can be broadcast, shuffled, reduced or scanned.</value>
     <comment/>
   </data>
+  <data name="KernelDiagnosticUnsupportedNumericOperation" xml:space="preserve">
+    <value>Kernel code cannot call '{0}', which computes with values of type '{1}'. Kernels can store and copy Int128, UInt128 and decimal values, but cannot compute with them or convert them; use long, ulong or double instead.</value>
+    <comment/>
+  </data>
   <data name="NotSupportedKernelDelegateBind" xml:space="preserve">
     <value>Delegates bound with KernelDelegates.Bind can only be used in kernels compiled by ILGPUC.</value>
     <comment/>

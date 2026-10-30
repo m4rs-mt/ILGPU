@@ -151,6 +151,7 @@ partial class CodeGenerator
                 type.Name);
         }
 
+        VerifyNoNumericOperation(constructor);
         var typeNode = ModuleBuilder.CreateType(type);
         var alloca = CreateTempAlloca(typeNode);
 

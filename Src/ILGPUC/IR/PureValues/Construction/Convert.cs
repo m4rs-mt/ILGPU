@@ -107,8 +107,8 @@ partial class PureValueBuilder
         {
             throw location.GetNotSupportedException(
                 ErrorMessages.NotSupportedConversion,
-                node.Type,
-                targetType);
+                TypeDisplay.Format(node.Type),
+                TypeDisplay.Format(targetType));
         }
 
         bool isSourceUnsigned = (flags & ConvertFlags.SourceUnsigned) ==
@@ -296,8 +296,8 @@ partial class PureValueBuilder
                                     : value.Int64Value,
                                 _ => throw location.GetNotSupportedException(
                                     ErrorMessages.NotSupportedConversion,
-                                    value.BasicValueType,
-                                    targetBasicValueType)
+                                    TypeDisplay.Format(value.BasicValueType),
+                                    TypeDisplay.Format(targetBasicValueType))
                             };
                             return CreatePrimitiveValue(
                                 location,
@@ -336,8 +336,8 @@ partial class PureValueBuilder
                     }
                     throw location.GetNotSupportedException(
                         ErrorMessages.NotSupportedConversion,
-                        value.BasicValueType,
-                        targetBasicValueType);
+                        TypeDisplay.Format(value.BasicValueType),
+                        TypeDisplay.Format(targetBasicValueType));
                 case BasicValueType.Float32:
                     switch (targetBasicValueType)
                     {
@@ -370,8 +370,8 @@ partial class PureValueBuilder
                     }
                     throw location.GetNotSupportedException(
                         ErrorMessages.NotSupportedConversion,
-                        value.BasicValueType,
-                        targetBasicValueType);
+                        TypeDisplay.Format(value.BasicValueType),
+                        TypeDisplay.Format(targetBasicValueType));
                 case BasicValueType.Float64:
                     switch (targetBasicValueType)
                     {
@@ -400,13 +400,13 @@ partial class PureValueBuilder
                     }
                     throw location.GetNotSupportedException(
                         ErrorMessages.NotSupportedConversion,
-                        value.BasicValueType,
-                        targetBasicValueType);
+                        TypeDisplay.Format(value.BasicValueType),
+                        TypeDisplay.Format(targetBasicValueType));
                 default:
                     throw location.GetNotSupportedException(
                         ErrorMessages.NotSupportedConversion,
-                        value.Type,
-                        targetType);
+                        TypeDisplay.Format(value.Type),
+                        TypeDisplay.Format(targetType));
             }
         }
 

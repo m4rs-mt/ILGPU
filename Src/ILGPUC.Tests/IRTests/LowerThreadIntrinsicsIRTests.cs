@@ -444,7 +444,7 @@ public sealed class LowerThreadIntrinsicsIRTests
             () => transformer.Apply(properties, helper.TypeManager, module));
         Assert.Equal("ILGPU1200", exception.Id);
         Assert.Equal(
-            $"{collective} does not support values of type 'ptr<void, Generic>'. " +
+            $"{collective} does not support values of type 'void*'. " +
             "Only primitive types and structures of primitive types can be " +
             "broadcast, shuffled, reduced or scanned.",
             exception.Message);

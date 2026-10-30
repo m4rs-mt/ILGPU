@@ -100,6 +100,72 @@ partial class CodeGenerator
     }
 
     /// <summary>
+    /// Returns the type without kernel operations that the given method computes
+    /// with: <see cref="Int128"/>, <see cref="UInt128"/> or <see cref="decimal"/>
+    /// if it is a member of one of these types, such as a constructor, an operator
+    /// or a conversion, or a library method converting from or to them, such as
+    /// a conversion of <see cref="Half"/>.
+    /// </summary>
+    /// <param name="method">The called method.</param>
+    /// <returns>The type, or null if the method may be called in kernels.</returns>
+    private static Type? GetUnsupportedNumericType(MethodBase method)
+    {
+        static bool IsUnsupported(Type? type) =>
+            type == typeof(Int128) ||
+            type == typeof(UInt128) ||
+            type == typeof(decimal);
+
+        if (IsUnsupported(method.DeclaringType))
+            return method.DeclaringType;
+        if (method.Module.Assembly != typeof(object).Assembly)
+            return null;
+
+        // Library methods that only pass values of a type argument through,
+        // such as Unsafe.As<T>, take the type argument in their definitions
+        var definition = method.Module.ResolveMethod(method.MetadataToken)
+            ?? method;
+        if (definition is MethodInfo { ReturnType: var returnType } &&
+            IsUnsupported(returnType))
+        {
+            return returnType;
+        }
+        foreach (var parameter in definition.GetParameters())
+        {
+            var parameterType = parameter.ParameterType;
+            if (parameterType.IsByRef)
+                parameterType = parameterType.GetElementType();
+            if (IsUnsupported(parameterType))
+                return parameterType;
+        }
+        return null;
+    }
+
+    /// <summary>
+    /// Rejects a call that computes with <see cref="Int128"/>,
+    /// <see cref="UInt128"/> or <see cref="decimal"/> values, which kernels can
+    /// only store and copy (see <see cref="GetUnsupportedNumericType"/>). The call
+    /// is reported at its location in code with source locations; in code without
+    /// them, such as library code, it fails the calling method, so that a call to
+    /// that method that remains after optimization is reported at the call.
+    /// </summary>
+    /// <param name="method">The called method.</param>
+    private void VerifyNoNumericOperation(MethodBase method)
+    {
+        if (GetUnsupportedNumericType(method) is not { } type)
+            return;
+        var message = string.Format(
+            ErrorMessages.KernelDiagnosticUnsupportedNumericOperation,
+            FrontendDisplay.Format(method),
+            TypeDisplay.Format(type));
+        if (!Location.IsKnown)
+            throw Location.GetException(new NotSupportedException(message));
+        throw new KernelCompilationException(
+            KernelDiagnostic.UnsupportedConstructId,
+            message,
+            Location);
+    }
+
+    /// <summary>
     /// Implements a call return value.
     /// </summary>
     /// <param name="method">The method that was called.</param>
@@ -173,6 +239,7 @@ partial class CodeGenerator
         // typeof(T) comparisons and type properties are folded to constants
         if (TryMakeReflectionCall(target) || TryMakeGetType(target, null))
             return;
+        VerifyNoNumericOperation(target);
         var delegateArguments = PeekDelegateArguments(target);
         var values = Block.PopMethodArgs(Location, target, null);
         CreateCall(target, ref values, delegateArguments);

@@ -16,6 +16,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Text;
 
@@ -439,6 +440,12 @@ sealed partial class StructureType : ObjectType
             span.HasSpan && span.Span < NumFields,
             $"Slice span out of range: HasSpan={span.HasSpan}, Span={span.Span}," +
             $" NumFields={NumFields}");
+        // A span covering exactly one nested structure has the type of that
+        // structure, which keeps its own alignment (such as the 16 bytes of
+        // Int128) instead of the natural alignment of its fields
+        if (TryGetNestedStructure(span.Index, span.Span, out var nested))
+            return nested;
+
         var builder = moduleBuilder.CreateStructureType(span.Span);
 
         // Slice all field types into the builder
@@ -446,6 +453,45 @@ sealed partial class StructureType : ObjectType
         SliceRecursive(ref builder, ref index, span);
 
         return builder.Seal();
+    }
+
+    /// <summary>
+    /// Finds the nested structure whose fields are exactly the given span of
+    /// flattened fields, at any nesting level.
+    /// </summary>
+    /// <param name="index">The index of the first flattened field.</param>
+    /// <param name="span">The number of flattened fields.</param>
+    /// <param name="nested">The nested structure, if any.</param>
+    /// <returns>True if a nested structure covers exactly the span.</returns>
+    private bool TryGetNestedStructure(
+        int index,
+        int span,
+        [NotNullWhen(true)] out StructureType? nested)
+    {
+        int offset = 0;
+        foreach (var type in DirectFields)
+        {
+            int numFields = GetNumFields(type);
+            if (index >= offset &&
+                index + span <= offset + numFields &&
+                type is StructureType structureType)
+            {
+                if (index == offset && span == numFields)
+                {
+                    nested = structureType;
+                    return true;
+                }
+                return structureType.TryGetNestedStructure(
+                    index - offset,
+                    span,
+                    out nested);
+            }
+            offset += numFields;
+            if (offset > index)
+                break;
+        }
+        nested = null;
+        return false;
     }
 
     /// <summary>
@@ -490,6 +536,10 @@ sealed partial class StructureType : ObjectType
     public override TypeValue? Rewrite<TRewriter>(in TRewriter rewriter)
     {
         var structureBuilder = rewriter.ModuleBuilder.CreateStructureType(Count);
+
+        // Keep an alignment beyond the alignments of the fields, such as the
+        // 16 bytes of Int128
+        structureBuilder.Alignment = Alignment;
         foreach (var element in DirectFields)
             structureBuilder.Add(rewriter.Rewrite(element));
         return structureBuilder.Seal();

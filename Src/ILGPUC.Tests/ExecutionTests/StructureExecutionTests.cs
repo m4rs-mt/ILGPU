@@ -32,6 +32,19 @@ public abstract class StructureExecutionTests : ExecutionTestBase
             ["142", "142", "142", "142"]);
     }
 
+    /// <summary>
+    /// Int128, UInt128 and decimal values, and structures holding them, are
+    /// copied unchanged through views, locals, fields, parameters and helpers.
+    /// </summary>
+    [SkippableFact]
+    public async Task WideValueCopies_ProducesCorrectOutput()
+    {
+        await VerifyProgramOutputAsync(
+            "TestPrograms/Structure/WideValueCopies.cs",
+            ["Kernels.CopyKernel", "Kernels.BuildKernel", "Kernels.StructKernel"],
+            ["True", "True", "True"]);
+    }
+
     [SkippableFact]
     public async Task StructPassByValue_ProducesCorrectOutput()
     {

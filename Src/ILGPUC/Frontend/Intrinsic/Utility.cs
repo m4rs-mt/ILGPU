@@ -138,7 +138,7 @@ partial class Intrinsics
                     throw location.GetNotSupportedException(
                         ErrorMessages.NotSupportedInlinePTXFormatArgumentType,
                         ptxExpression,
-                        genericArg.ToString());
+                        TypeDisplay.Format(genericArg));
                 }
             }
             else
@@ -151,14 +151,16 @@ partial class Intrinsics
         }
 
         // Valid all argument types
+        int argumentIndex = 0;
         foreach (var arg in arguments)
         {
+            ++argumentIndex;
             if (arg.BasicValueType != BasicValueType.None)
                 continue;
             throw location.GetNotSupportedException(
                 ErrorMessages.NotSupportedInlinePTXFormatArgumentType,
                 ptxExpression,
-                arg.Type.ToString());
+                TypeDisplay.Format(methodParams[argumentIndex].ParameterType));
         }
 
         // Create the language statement

@@ -275,6 +275,16 @@ sealed class CPULauncherEmitter : LauncherEmitter
     {
         var structType = (StructureType)param.Type;
         var entryTypeName = param.EntryPointTypeName!;
+
+        // Int128, UInt128 and decimal values have the layout of their kernel
+        // structures, whose fields are not accessible to the launcher
+        if (param.LaunchTypeName is "System.Int128" or "System.UInt128" or
+            "decimal" or "System.Decimal")
+        {
+            return $"Unsafe.BitCast<{param.LaunchTypeName}, {entryTypeName}>" +
+                $"({param.Name})";
+        }
+
         var accessors = param.UserFieldAccessors;
         var marshaledVar = $"_m_{param.Name}";
 
