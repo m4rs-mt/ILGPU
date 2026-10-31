@@ -78,6 +78,8 @@ partial class CodeGenerator
     {
         if (TryFoldReferenceCompare(left, right, compareKind, out bool constant))
             return Builder.CreatePrimitiveValue(Location, constant);
+        if (left.Type is ArrayType || right.Type is ArrayType)
+            return CreateArrayCompare(left, right, compareKind, flags);
 
         var convertFlags = ConvertFlags.None;
         if ((flags & CompareFlags.UnsignedOrUnordered) ==

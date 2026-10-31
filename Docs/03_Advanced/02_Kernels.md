@@ -29,6 +29,17 @@ a `while (true)` loop without a `return` or `break`, is rejected with the error 
 Such a kernel could only be stopped by resetting the device.
 Loops like `while (true)` that are left through a `return` or `break` are supported.
 
+Arrays created in kernels, such as `new int[4]`, can be `null` (e.g. `c ? new int[4] : null` or `a ?? b`) and can be
+tested for `null` like in .NET.
+Arrays are compared by their buffers, and every allocation site has a single buffer per thread: two arrays allocated by
+the same `new` expression, such as in a loop or in a helper method called twice, are equal.
+`Array.Empty<T>()` returns the same array for the same `T` and different arrays for different types, also for `int` and
+`uint`, as in .NET.
+Unlike in .NET, the `Length` of a `null` array is 0, and accessing an element of a `null` array is undefined behavior on
+GPUs (the CPU accelerator throws a `NullReferenceException`).
+Accesses to the elements of arrays created in kernels are not bounds-checked: accessing an element outside of an array
+is undefined behavior on every accelerator.
+
 The type of the first parameter must always be a supported index type in the case of implicitly grouped kernels (see
 below).
 In the case of explicitly grouped kernels, the first parameter is manually defined by the programmer (see below)
@@ -47,6 +58,22 @@ marshalled automatically by ILGPU when launching kernels.
 Arrays created in kernels, such as `new int[4]`, can be pinned with `fixed` statements, such as
 `fixed (int* p = array)`; the pointer of an empty array is `null`, as in .NET.
 Leaving such a `fixed` statement through `break`, `continue` or `goto` is not supported.
+
+Some Metal devices, such as the Apple Paravirtual device of macOS virtual machines, place the first thread-private
+object of a kernel at address 0, where an array created in the kernel or the address of a local would compare equal
+to `null`.
+Metal kernels therefore start such arrays and locals one element into a longer array by default.
+To save this element, turn it off with `--metal-null-safe-locals false`, for instance in the project file:
+
+```xml
+<PropertyGroup>
+  <ILGPUCompilationOptions>--metal-null-safe-locals false</ILGPUCompilationOptions>
+</PropertyGroup>
+```
+
+or with `EnableMetalNullSafeLocals = false` in the `CompilationProperties` passed to the compiler.
+The Metal runtime then writes a warning to `System.Diagnostics.Trace` when it loads such a kernel on the Apple
+Paravirtual device.
 
 ## Lambdas and Delegates
 

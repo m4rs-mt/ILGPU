@@ -13,6 +13,7 @@
 // disable: max_line_length
 using ILGPU.Runtime;
 using ILGPU.Runtime.Metal;
+using System.Collections.Generic;
 
 namespace ILGPUC.Backends.Metal;
 
@@ -37,23 +38,29 @@ sealed class MetalCompiledKernelEmitter(
 
     public override void EmitPlatformConstructorArgs(LauncherEmissionContext ctx)
     {
-        ctx.WriteLine($"MetalTargetOS.{targetOS},");
-        // In source fallback mode, pass KernelSource to the constructor
-        if (ctx.ActiveEmbedMode == KernelEmbedMode.Source)
-            ctx.WriteLine($"MetalGPUFamily.{gpuFamily},");
-        else
-            ctx.WriteLine($"MetalGPUFamily.{gpuFamily})");
+        List<string> args =
+        [
+            $"MetalTargetOS.{targetOS}",
+            $"MetalGPUFamily.{gpuFamily}",
+        ];
 
+        // In source fallback mode, pass KernelSource to the constructor.
         // Source compiled at runtime defaults to strict math; the fast math
         // modes opt into the Metal compiler's fast math.
         if (ctx.ActiveEmbedMode == KernelEmbedMode.Source)
         {
-            ctx.WriteLine(ctx.MathMode == MathMode.Default
-                ? "KernelSource)"
-                : "KernelSource,");
+            args.Add("KernelSource");
             if (ctx.MathMode != MathMode.Default)
-                ctx.WriteLine("fastMath: true)");
+                args.Add("fastMath: true");
         }
+
+        // Kernels whose thread storage may start at address 0 tell the
+        // runtime, which warns on devices that place it there
+        if (!ctx.NullSafeLocals)
+            args.Add("nullSafeLocals: false");
+
+        for (int i = 0; i < args.Count; i++)
+            ctx.WriteLine(args[i] + (i + 1 < args.Count ? "," : ")"));
     }
 
     public override void EmitRequiredCapabilitiesProperty(LauncherEmissionContext ctx)

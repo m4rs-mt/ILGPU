@@ -54,6 +54,11 @@ partial class CodeGenerator
     /// </param>
     public Value CreateConversion(Value value, TypeValue targetType, ConvertFlags flags)
     {
+        // The null reference of ldnull becomes the null array, such as a null
+        // array stored to a local or passed to a parameter
+        if (targetType is ArrayType && value is NullValue)
+            return Builder.CreateNull(Location, targetType);
+
         if (value.Type is AddressSpaceType)
         {
             // Native integers are pointers: conversions to other primitive

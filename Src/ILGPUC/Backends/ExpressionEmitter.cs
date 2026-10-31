@@ -239,8 +239,7 @@ sealed class ExpressionEmitter(GenerationContext context, TypeEmitter typeEmitte
             // NewView from a Global → resolve to the global's CPURuntimeView.
             // The global is declared as a CPURuntimeView<T> backed by stackalloc
             // in CPUMethodEmitter.EmitGlobalDeclarations().
-            NewView nv when nv.Pointer is Global g => new Emitted(
-                context.GetValueName(g), Prec.Atom),
+            NewView nv when nv.Pointer is Global g => EmitGlobalView(nv, g),
 
             // Basic block values
             PhiValue phi => new Emitted(
@@ -332,7 +331,24 @@ sealed class ExpressionEmitter(GenerationContext context, TypeEmitter typeEmitte
         // Emit the storage array
         var storageTypeName = context.LanguageConfig.GetQualifiedTypeName(
             elemTypeName, addrSpace);
-        sb.Append($"{storageTypeName} {storageName}[{GetAllocaLength(alloca)}];");
+        int length = GetAllocaLength(alloca);
+        if (pointerType.AddressSpace == MemoryAddressSpace.Local &&
+            context.OffsetsLocalArrays)
+        {
+            // Start the storage one element into a longer zeroed array, which
+            // keeps it away from address 0, the null pointer. Without zeroing
+            // the unused element, the Metal compiler read the first bytes of
+            // the storage through byte pointers as zero.
+            sb.Append($"{storageTypeName} {storageName}_base[{length + 1}] = {{}};");
+            sb.Append('\n');
+            sb.Append(
+                context.LanguageConfig.GetPointerTypeName(elemTypeName, addrSpace));
+            sb.Append($" {storageName} = {storageName}_base + 1;");
+        }
+        else
+        {
+            sb.Append($"{storageTypeName} {storageName}[{length}];");
+        }
 
         // Emit the pointer variable. Build the pointer type via the
         // language config so backends that don't carry an address-space
@@ -1315,6 +1331,23 @@ sealed class ExpressionEmitter(GenerationContext context, TypeEmitter typeEmitte
         var inner = Parenthesize(source, Prec.Atom);
         var fieldName = context.LanguageConfig.ViewLengthFieldName;
         return new Emitted($"{inner}.{fieldName}", Prec.Atom);
+    }
+
+    /// <summary>
+    /// Emits the view of a global: the declared view of the global, or a view
+    /// of its first elements if the view is shorter, such as the view of an
+    /// empty array, whose global has a single element.
+    /// </summary>
+    private Emitted EmitGlobalView(NewView view, Global global)
+    {
+        var name = context.GetValueName(global);
+        if (global.ArrayLength is not { } arrayLength ||
+            view.Length is not PrimitiveValue length ||
+            length.Int64Value == arrayLength.Int64Value)
+        {
+            return new Emitted(name, Prec.Atom);
+        }
+        return new Emitted($"{name}.SubView(0, {length.Int64Value})", Prec.Atom);
     }
 
     /// <summary>

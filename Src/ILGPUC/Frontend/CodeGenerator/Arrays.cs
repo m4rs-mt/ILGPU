@@ -194,11 +194,80 @@ partial class CodeGenerator
     }
 
     /// <summary>
+    /// Compares two array references, such as an array with null. Every array
+    /// has a buffer of its own, also an empty array, while the null array has
+    /// none: arrays are compared by the addresses of their first elements.
+    /// </summary>
+    /// <param name="left">The left operand.</param>
+    /// <param name="right">The right operand.</param>
+    /// <param name="kind">The comparison kind.</param>
+    /// <param name="flags">The comparison flags.</param>
+    private Value CreateArrayCompare(
+        Value left,
+        Value right,
+        CompareKind kind,
+        CompareFlags flags)
+    {
+        // The null reference of ldnull is the null array of the other operand
+        if (left.Type is not ArrayType)
+            left = CreateConversion(left, right.Type, ConvertFlags.None);
+        if (right.Type is not ArrayType)
+            right = CreateConversion(right, left.Type, ConvertFlags.None);
+
+        // A reference is greater than null if it is not null (cgt.un)
+        bool unsigned = (flags & CompareFlags.UnsignedOrUnordered) ==
+            CompareFlags.UnsignedOrUnordered;
+        if (unsigned &&
+            (kind == CompareKind.GreaterThan && right is NullValue ||
+            kind == CompareKind.LessThan && left is NullValue))
+        {
+            kind = CompareKind.NotEqual;
+        }
+
+        var leftAddress = CreateArrayAddress(left);
+        var rightAddress = CreateArrayAddress(right);
+        if (!leftAddress.Type.Equals(rightAddress.Type))
+        {
+            rightAddress = Builder.CreatePointerCast(
+                Location,
+                rightAddress,
+                left.GetTypeAs<ArrayType>().ElementType);
+        }
+        return Builder.CreateCompare(
+            Location,
+            leftAddress,
+            rightAddress,
+            kind,
+            flags).ThrowIfNull();
+    }
+
+    /// <summary>
+    /// Creates the address of the first element of the given array.
+    /// </summary>
+    /// <param name="array">The array instance.</param>
+    private Value CreateArrayAddress(Value array)
+    {
+        var laeaBuilder = Builder.CreateLoadArrayElementAddress(Location, array);
+        for (int i = 0, e = laeaBuilder.ArrayType.NumDimensions; i < e; ++i)
+            laeaBuilder.Add(Builder.CreatePrimitiveValue(Location, 0));
+        return laeaBuilder.Seal();
+    }
+
+    /// <summary>
     /// Realizes an array length value.
     /// </summary>
     private void MakeLoadArrayLength()
     {
         var array = Block.Pop();
+
+        // The length of the null reference of ldnull, such as of a null local
+        // in a Release build, is the length 0 of the null array
+        if (array is NullValue && array.Type is not ArrayType)
+        {
+            Block.Push(Builder.CreatePrimitiveValue(Location, 0));
+            return;
+        }
+
         var length = Builder.CreateGetArrayLength(
             Location,
             array).AsNotNull();

@@ -228,6 +228,12 @@ sealed class LauncherEmissionContext
     public MathMode MathMode { get; init; }
 
     /// <summary>
+    /// True if the kernel keeps its thread storage away from address 0, which
+    /// the Metal runtime checks when it loads the kernel.
+    /// </summary>
+    public bool NullSafeLocals { get; init; } = true;
+
+    /// <summary>
     /// Number of index dimensions (1 = scalar, 2 = Index2D, 3 = Index3D).
     /// Used by the CPU backend to decompose linear indices into multi-dim
     /// struct fields. Set by CompiledKernelGenerator from the entry point's

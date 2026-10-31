@@ -51,7 +51,8 @@ public class MetalCompiledKernel(
     MetalTargetOS targetOS,
     MetalGPUFamily gpuFamily,
     string? source = null,
-    bool fastMath = false) :
+    bool fastMath = false,
+    bool nullSafeLocals = true) :
     CompiledKernel(guid, kernelName, kernelType, sharedMemoryMode),
     ICompiledKernelKind
 {
@@ -80,6 +81,13 @@ public class MetalCompiledKernel(
     /// assumes there are no NaNs, infinities or signed zeros.
     /// </summary>
     public bool FastMath { get; } = fastMath;
+
+    /// <summary>
+    /// Returns true if the kernel keeps local arrays and the locals it takes the
+    /// address of away from address 0, which some devices give to the first
+    /// thread-private object of a kernel and which compares equal to null.
+    /// </summary>
+    public bool NullSafeLocals { get; } = nullSafeLocals;
 
     /// <inheritdoc/>
     public override AcceleratorCapabilities RequiredCapabilities =>
