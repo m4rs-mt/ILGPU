@@ -109,6 +109,12 @@ sealed partial class CodeGenerator
     private readonly Dictionary<VariableRef, Value> _constantLocals = [];
 
     /// <summary>
+    /// The pinned array locals of <c>fixed</c> statements on arrays; see
+    /// <see cref="StoreVariable"/>.
+    /// </summary>
+    private readonly HashSet<VariableRef> _pinnedArrayLocals = [];
+
+    /// <summary>
     /// Maps the addresses of boxed values to the boxed value type; see
     /// <see cref="MakeBox"/>.
     /// </summary>
@@ -370,6 +376,9 @@ sealed partial class CodeGenerator
             {
                 SetupDelegateTag(localRef, target: null);
             }
+
+            if (variable.IsPinned && variableType is ArrayType)
+                _pinnedArrayLocals.Add(localRef);
 
             EntryBlock.SetValue(localRef, initValue);
             _variableTypes[localRef] = (

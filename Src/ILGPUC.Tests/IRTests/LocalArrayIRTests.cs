@@ -50,6 +50,21 @@ public sealed class LocalArrayIRTests : CompilationTestBase
         VerifyAfterFrontend(GetKernel(
             typeof(LocalArrayKernels), nameof(LocalArrayKernels.FloatArrayKernel)));
 
+    [Fact]
+    public void Fixed_AfterFrontend() =>
+        VerifyAfterFrontend(GetKernel(
+            typeof(LocalArrayKernels), nameof(LocalArrayKernels.FixedKernel)));
+
+    [Fact]
+    public void FixedNull_AfterFrontend() =>
+        VerifyAfterFrontend(GetKernel(
+            typeof(LocalArrayKernels), nameof(LocalArrayKernels.FixedNullKernel)));
+
+    [Fact]
+    public void FixedSelect_AfterFrontend() =>
+        VerifyAfterFrontend(GetKernel(
+            typeof(LocalArrayKernels), nameof(LocalArrayKernels.FixedSelectKernel)));
+
     // --- AfterGlobalOpt ---
 
     [Theory]
@@ -81,6 +96,24 @@ public sealed class LocalArrayIRTests : CompilationTestBase
     public void FloatArray_AfterGlobalOpt(OptimizationLevel opt, CompilationMode mode) =>
         VerifyAfterGlobalOpt(GetKernel(
             typeof(LocalArrayKernels), nameof(LocalArrayKernels.FloatArrayKernel)), opt, mode);
+
+    [Theory]
+    [MemberData(nameof(TestTypes.OptLevelsAndModes), MemberType = typeof(TestTypes))]
+    public void Fixed_AfterGlobalOpt(OptimizationLevel opt, CompilationMode mode) =>
+        VerifyAfterGlobalOpt(GetKernel(
+            typeof(LocalArrayKernels), nameof(LocalArrayKernels.FixedKernel)), opt, mode);
+
+    [Theory]
+    [MemberData(nameof(TestTypes.OptLevelsAndModes), MemberType = typeof(TestTypes))]
+    public void FixedNull_AfterGlobalOpt(OptimizationLevel opt, CompilationMode mode) =>
+        VerifyAfterGlobalOpt(GetKernel(
+            typeof(LocalArrayKernels), nameof(LocalArrayKernels.FixedNullKernel)), opt, mode);
+
+    [Theory]
+    [MemberData(nameof(TestTypes.OptLevelsAndModes), MemberType = typeof(TestTypes))]
+    public void FixedSelect_AfterGlobalOpt(OptimizationLevel opt, CompilationMode mode) =>
+        VerifyAfterGlobalOpt(GetKernel(
+            typeof(LocalArrayKernels), nameof(LocalArrayKernels.FixedSelectKernel)), opt, mode);
 
     // --- AfterBackendTransforms ---
 
@@ -118,4 +151,26 @@ public sealed class LocalArrayIRTests : CompilationTestBase
         VerifyAfterBackendTransforms(GetKernel(
             typeof(LocalArrayKernels), nameof(LocalArrayKernels.FloatArrayKernel)),
             backend, opt, mode);
+
+    [Theory]
+    [MemberData(nameof(TestTypes.BackendTypesAndOptLevelsAndModes), MemberType = typeof(TestTypes))]
+    public void Fixed_AfterBackendTransforms(BackendType backend, OptimizationLevel opt, CompilationMode mode) =>
+        VerifyAfterBackendTransforms(GetKernel(
+            typeof(LocalArrayKernels), nameof(LocalArrayKernels.FixedKernel)),
+            backend, opt, mode);
+
+    /// <summary>
+    /// At O0, Metal and OpenCL infer the address spaces once more after
+    /// LowerArrays for the pinned pointer of an array whose length is not a
+    /// constant.
+    /// </summary>
+    [Theory]
+    [InlineData(BackendType.Metal, CompilationMode.Debug)]
+    [InlineData(BackendType.Metal, CompilationMode.Release)]
+    [InlineData(BackendType.OpenCL, CompilationMode.Debug)]
+    [InlineData(BackendType.OpenCL, CompilationMode.Release)]
+    public void FixedSelect_AfterBackendTransforms(BackendType backend, CompilationMode mode) =>
+        VerifyAfterBackendTransforms(GetKernel(
+            typeof(LocalArrayKernels), nameof(LocalArrayKernels.FixedSelectKernel)),
+            backend, OptimizationLevel.O0, mode);
 }

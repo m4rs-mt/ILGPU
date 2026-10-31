@@ -56,6 +56,17 @@ partial class PureValueBuilder
         }
 
         location.Assert(node.BasicValueType.IsInt());
+
+        // The integer zero is the null pointer, such as the null of p == null,
+        // which C# emits as ldc.i4.0; conv.u
+        if (node is PrimitiveValue { IsZero: true })
+        {
+            return CreateNull(
+                location,
+                ModuleBuilder.CreatePointerType(
+                    ModuleBuilder.VoidType,
+                    MemoryAddressSpace.Generic));
+        }
         return Append(new IntAsPointerCast(
             GetInitializer(location),
             node));

@@ -497,7 +497,8 @@ partial class CPUMethodEmitter
         if (assignments.Count < 1)
             return;
 
-        var exprEmitter = new ExpressionEmitter(context, new TypeEmitter(context));
+        var typeEmitter = new TypeEmitter(context);
+        var exprEmitter = new ExpressionEmitter(context, typeEmitter);
         var targetPhis = new HashSet<Value>();
         foreach (var (phi, _) in assignments)
             targetPhis.Add(phi);
@@ -513,9 +514,15 @@ partial class CPUMethodEmitter
                 var expr = exprEmitter.EmitExpression(arg);
                 if (parallel)
                 {
-                    // Null literals have no type to infer the temporary from
+                    // Null literals have no type to infer the temporary from:
+                    // a uniform phi has the scalar type (such as a pointer),
+                    // a per-lane phi the type of its lane elements
                     var tmp = $"_pc_{_phiCopyCounter++}";
-                    var type = expr == "default" ? GetVectorElementType(arg) : null;
+                    var type = expr != "default"
+                        ? null
+                        : analysis.IsScalar(phi)
+                            ? typeEmitter.GetTypeName(phi.Type)
+                            : GetVectorElementType(arg);
                     context.WriteLine($"{type ?? "var"} {tmp} = {expr};");
                     expr = tmp;
                 }

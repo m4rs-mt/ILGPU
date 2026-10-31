@@ -9,6 +9,7 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
+using ILGPUC.IR.BasicBlockValues;
 using ILGPUC.IR.ModuleValues;
 using ILGPUC.IR.PureValues;
 using System.Runtime.CompilerServices;
@@ -238,10 +239,13 @@ sealed class LowerArrays(TransformationArgs args) : LowerTypes<ArrayType>(args)
         if (numDims == 1)
         {
             // 1D: direct element address into the view
-            return transform.CreateLoadElementAddress(
-                location,
-                loweredArray,
-                transform.Rewrite(value.Dimensions[0]));
+            return KeepAddressSpace(
+                transform,
+                value,
+                transform.CreateLoadElementAddress(
+                    location,
+                    loweredArray,
+                    transform.Rewrite(value.Dimensions[0])));
         }
 
         // nD: extract the view from field 0
@@ -273,10 +277,83 @@ sealed class LowerArrays(TransformationArgs args) : LowerTypes<ArrayType>(args)
                 BinaryArithmeticKind.Add)!;
         }
 
-        return transform.CreateLoadElementAddress(
-            location,
-            view,
-            linearIdx);
+        return KeepAddressSpace(
+            transform,
+            value,
+            transform.CreateLoadElementAddress(
+                location,
+                view,
+                linearIdx));
+    }
+
+    /// <summary>
+    /// Converts a lowered element address into the local view of an array back
+    /// to the address space of the original element address if it flows into a
+    /// phi, such as a reference that selects one of two elements of a local
+    /// array (c ? ref a[1] : ref a[2]) at O0. A phi keeps its type, so all of
+    /// its arguments must keep their types as well.
+    /// </summary>
+    /// <param name="transform">The current transformation.</param>
+    /// <param name="value">The original element address.</param>
+    /// <param name="address">The lowered element address.</param>
+    /// <returns>The element address to use.</returns>
+    private static Value? KeepAddressSpace(
+        PureValueTransform transform,
+        LoadArrayElementAddress value,
+        Value? address)
+    {
+        if (value.Type is not PointerType { AddressSpace: var addressSpace } ||
+            address?.Type is not PointerType loweredType ||
+            loweredType.AddressSpace == addressSpace ||
+            !FlowsIntoPhi(value))
+        {
+            return address;
+        }
+        return transform.CreateAddressSpaceCast(
+            value.Location,
+            address,
+            addressSpace);
+    }
+
+    /// <summary>
+    /// Returns true if the given module, whose arrays have been lowered, casts
+    /// the address of an element of a local array back to the generic address
+    /// space (see <see cref="KeepAddressSpace"/>). The address of the first
+    /// element is the global of the array or the pointer of its lowered view.
+    /// </summary>
+    /// <param name="module">The module to test.</param>
+    public static bool CastsElementAddressesToGeneric(Module module)
+    {
+        bool result = false;
+        foreach (var method in module.Methods)
+        {
+            method.ForEachValue<AddressSpaceCast>(cast =>
+                result |= cast.TargetAddressSpace == MemoryAddressSpace.Generic &&
+                    cast.Source is LoadElementAddress or GetField or Global &&
+                    cast.SourceType.AddressSpace == MemoryAddressSpace.Local);
+        }
+        return result;
+    }
+
+    /// <summary>
+    /// Returns true if the given address flows into a phi directly or through
+    /// addresses derived from it, whose types follow the type of the address.
+    /// </summary>
+    /// <param name="address">The address to test.</param>
+    private static bool FlowsIntoPhi(Value address)
+    {
+        foreach (var use in address.Uses)
+        {
+            switch (use.Target)
+            {
+                case PhiValue:
+                    return true;
+                case PointerCast or LoadElementAddress or LoadFieldAddress
+                    when use.Index == 0 && FlowsIntoPhi(use.Target):
+                    return true;
+            }
+        }
+        return false;
     }
 
     /// <summary>

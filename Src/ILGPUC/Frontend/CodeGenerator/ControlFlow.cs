@@ -107,13 +107,22 @@ partial class CodeGenerator
     /// <param name="kind">The current compare kind.</param>
     private void MakeIntrinsicBranch(CompareKind kind)
     {
-        var comparisonValue = Block.PopCompareValue(Location, ConvertFlags.None);
+        // The null test of a fixed statement on an array branches to the same
+        // null pointer as its test for an empty array that follows. Arrays have
+        // no null value of their own: null arrays are empty, so the null test
+        // always falls through to the test for an empty array, which keeps the
+        // result of the statement.
+        bool isFixedArrayNullTest = IsFixedArrayNullTest();
+        var comparisonValue = isFixedArrayNullTest
+            ? Block.Pop()
+            : Block.PopCompareValue(Location, ConvertFlags.None);
 
         var successors = Block.GetPendingSuccessors(2);
 
         // A boxed value type is never null (Roslyn tests "box !!T; brtrue" to
-        // find out whether T is a reference type)
-        if (_boxedTypes.ContainsKey(comparisonValue))
+        // find out whether T is a reference type), and neither is the array of
+        // a fixed statement (see above)
+        if (isFixedArrayNullTest || _boxedTypes.ContainsKey(comparisonValue))
         {
             bool taken = kind == CompareKind.NotEqual;
             if (!TryFoldBranch(
@@ -173,6 +182,28 @@ partial class CodeGenerator
             kind,
             CompareFlags.None);
         CreateConditionalBranch(condition, successors[0], successors[1]);
+    }
+
+    /// <summary>
+    /// Returns true if the current branch is the null test of a fixed statement
+    /// on an array, which C# emits as <c>dup; stloc pinned; brfalse</c>
+    /// followed by a test for an empty array:
+    /// <c>p = array == null || array.Length == 0 ? null : &amp;array[0]</c>.
+    /// </summary>
+    private bool IsFixedArrayNullTest()
+    {
+        int index = CurrentInstructionIndex;
+        if (index - 2 < Block.InstructionOffset ||
+            Block.PeekType(Location) is not ArrayType ||
+            DisassembledMethod[index - 2].InstructionType != ILInstructionType.Dup)
+        {
+            return false;
+        }
+        var store = DisassembledMethod[index - 1];
+        return store.InstructionType == ILInstructionType.Stloc &&
+            _pinnedArrayLocals.Contains(new VariableRef(
+                store.GetArgumentAs<int>(),
+                VariableRefType.Local));
     }
 
     /// <summary>
