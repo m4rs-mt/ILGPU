@@ -38,6 +38,19 @@ partial class PureValueBuilder
             return CreatePrimitiveValue(location, instance);
         if (managedType.IsEnum)
             return CreateEnumValue(location, instance);
+
+        // Native integers are void pointers in the IR, whose type information
+        // has no fields to read the value from
+        if (instance is nint or nuint)
+        {
+            long rawValue = instance is nint signed ? signed : (long)(nuint)instance;
+            return CreateIntAsPointerCast(
+                location,
+                CreatePrimitiveValue(
+                    location,
+                    ModuleBuilder.IntPointerType.BasicValueType,
+                    rawValue)).AsNotNull();
+        }
         if (managedType.IsArray || managedType.IsImmutableArray(out _))
             throw location.GetArgumentException(nameof(instance));
 

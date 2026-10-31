@@ -376,8 +376,19 @@ public sealed class RecursiveTypeTests
         Assert.Equal(
             "Kernel code uses an unsupported construct: " + message,
             diagnostic.Message);
+        AssertLocation(exception.SourceLocation, marker, sourcePath);
+    }
 
-        var location = Assert.IsAssignableFrom<FileLocation>(exception.SourceLocation);
+    /// <summary>
+    /// Asserts that the given location is the line of the given source file
+    /// marked with the given comment.
+    /// </summary>
+    private static void AssertLocation(
+        Location? sourceLocation,
+        string marker,
+        string sourcePath)
+    {
+        var location = Assert.IsAssignableFrom<FileLocation>(sourceLocation);
         Assert.Equal(
             Path.GetFileName(sourcePath),
             Path.GetFileName(location.FileName));
@@ -389,13 +400,29 @@ public sealed class RecursiveTypeTests
         Assert.Equal(line, location.StartLine);
     }
 
+    /// <summary>
+    /// A static field holding a structure with an array of itself is rejected
+    /// for the array it holds before the recursive type is created.
+    /// </summary>
     [Fact]
-    public void StaticTree_ReportsRecursiveType() =>
-        AssertRecursiveType(
-            nameof(Kernels.StaticTreeKernel),
-            "Recursive type 'TreeNode' is not supported in GPU kernels: " +
-            "it refers to itself through 'TreeNode.Children'.",
-            "StaticTree");
+    public void StaticTree_ReportsHeldArray()
+    {
+        using var helper = new CompilationHelper(BackendType.CPU);
+        var kernel = typeof(Kernels).GetMethod(nameof(Kernels.StaticTreeKernel))!;
+        var exception = Assert.Throws<KernelCompilationException>(() =>
+            helper.GetNormalizedIR(kernel, IRDumpPoint.AfterBackendTransforms));
+        Assert.Equal("ILGPU1214", exception.Id);
+        Assert.Contains(
+            "Static field 'Kernels.Tree' of type 'TreeNode' contains the field " +
+            "'TreeNode.Children' of type 'TreeNode[]', which holds a reference that " +
+            "kernels cannot load",
+            exception.Message,
+            StringComparison.Ordinal);
+        AssertLocation(exception.Location, "StaticTree", GetSourcePath());
+    }
+
+    private static string GetSourcePath([CallerFilePath] string sourcePath = "") =>
+        sourcePath;
 
     [Fact]
     public void CapturedClass_ReportsRecursiveType() =>

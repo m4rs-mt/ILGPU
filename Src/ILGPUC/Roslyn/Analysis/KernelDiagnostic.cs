@@ -158,6 +158,13 @@ record KernelDiagnostic(string Id, string Message, Location Location)
     public const string GenericNestingId = "ILGPU1213";
 
     /// <summary>
+    /// Kernel code loads a static field whose value refers to memory, such as a
+    /// view, a pointer or a structure containing one, a string or a class
+    /// instance, or an array, a string or a class instance inside a structure.
+    /// </summary>
+    public const string StaticMemoryReferenceFieldId = "ILGPU1214";
+
+    /// <summary>
     /// A launching method whose delegate parameter is captured by an inline
     /// kernel is virtual or implements an interface member.
     /// </summary>

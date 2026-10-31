@@ -15,6 +15,7 @@ using ILGPUC.Backends;
 using ILGPUC.IR;
 using ILGPUC.Roslyn.Generation;
 using ILGPUC.Tests.Framework;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Text;
 using System;
 using System.IO;
@@ -23,6 +24,7 @@ using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using Xunit;
 using RoslynLocation = Microsoft.CodeAnalysis.Location;
+using RoslynOptimizationLevel = Microsoft.CodeAnalysis.OptimizationLevel;
 
 namespace ILGPUC.Tests.NonKernelTests;
 
@@ -266,6 +268,16 @@ public sealed class KernelDiagnosticTests
             data[index] = StaticOperation(data[index]); // DelegateStaticField
         }
 
+        private static readonly ArrayView<int> StaticView = default;
+
+        // A static readonly view compiled to a load from a null pointer
+        public static void StaticViewFieldKernel(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data)
+        {
+            data[index] = StaticView[index]; // StaticViewField
+        }
+
         private struct Adder
         {
             public int K;
@@ -459,7 +471,54 @@ public sealed class KernelDiagnosticTests
     private static async Task AssertBuildErrorAsync(
         string kernelClass,
         string id,
-        string message)
+        string message,
+        RoslynOptimizationLevel optimizationLevel = RoslynOptimizationLevel.Release)
+    {
+        var (source, compilation, analysis) = AnalyzeBuild(
+            kernelClass,
+            optimizationLevel);
+        var exception = await Assert.ThrowsAsync<KernelDiagnosticException>(() =>
+            MainKernelProvider.CreateAsync(
+                compilation,
+                analysis,
+                [CompilationHelper.CreateBackend(BackendType.CPU)],
+                new KernelCompiler()));
+        int line = Array.FindIndex(
+            source.Split('\n'),
+            l => l.TrimEnd().EndsWith("// error", StringComparison.Ordinal)) + 1;
+        Assert.True(line > 0, "Marker '// error' not found");
+        var diagnostic = exception.Diagnostic.ToString();
+        Assert.StartsWith($"source0.cs({line},", diagnostic, StringComparison.Ordinal);
+        Assert.Contains($"): error {id}: ", diagnostic, StringComparison.Ordinal);
+        Assert.Contains(message, diagnostic, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// Builds the given kernel class <c>K</c> like
+    /// <see cref="AssertBuildErrorAsync"/> and asserts that the build succeeds.
+    /// </summary>
+    private static async Task AssertBuildSucceedsAsync(
+        string kernelClass,
+        RoslynOptimizationLevel optimizationLevel)
+    {
+        var (_, compilation, analysis) = AnalyzeBuild(kernelClass, optimizationLevel);
+        await MainKernelProvider.CreateAsync(
+            compilation,
+            analysis,
+            [CompilationHelper.CreateBackend(BackendType.CPU)],
+            new KernelCompiler());
+    }
+
+    /// <summary>
+    /// Creates and analyzes the program launching <c>K.Kern</c> on four
+    /// elements.
+    /// </summary>
+    private static (
+        string Source,
+        CSharpCompilation Compilation,
+        AnalysisResult Analysis) AnalyzeBuild(
+        string kernelClass,
+        RoslynOptimizationLevel optimizationLevel)
     {
         var source = $$"""
             using System;
@@ -485,24 +544,11 @@ public sealed class KernelDiagnosticTests
             """;
         var compilation = RoslynCompiler.CreateCompilation(
             [source],
-            "KernelDiagnosticTest");
+            "KernelDiagnosticTest",
+            optimizationLevel: optimizationLevel);
         var analysis = CompilationRewriter.Analyze(compilation);
         Assert.Empty(analysis.Diagnostics);
-
-        var exception = await Assert.ThrowsAsync<KernelDiagnosticException>(() =>
-            MainKernelProvider.CreateAsync(
-                compilation,
-                analysis,
-                [CompilationHelper.CreateBackend(BackendType.CPU)],
-                new KernelCompiler()));
-        int line = Array.FindIndex(
-            source.Split('\n'),
-            l => l.TrimEnd().EndsWith("// error", StringComparison.Ordinal)) + 1;
-        Assert.True(line > 0, "Marker '// error' not found");
-        var diagnostic = exception.Diagnostic.ToString();
-        Assert.StartsWith($"source0.cs({line},", diagnostic, StringComparison.Ordinal);
-        Assert.Contains($"): error {id}: ", diagnostic, StringComparison.Ordinal);
-        Assert.Contains(message, diagnostic, StringComparison.Ordinal);
+        return (source, compilation, analysis);
     }
 
     /// <summary>
@@ -878,7 +924,7 @@ public sealed class KernelDiagnosticTests
 
     #endregion
 
-    #region Delegate Storage and Other Frontend Diagnostics (ILGPU1205-1209, 1200)
+    #region Delegate Storage and Other Frontend Diagnostics (ILGPU1205-1209, 1214, 1200)
 
     [Fact]
     public void ClosureCapturesDelegate_Reports1205() =>
@@ -957,6 +1003,139 @@ public sealed class KernelDiagnosticTests
             "ILGPU1209",
             "Method 'SumOver' calls itself while passing delegates",
             "DelegateRecursion");
+
+    [Fact]
+    public void StaticViewField_Reports1214() =>
+        AssertDiagnostic(
+            Compile(nameof(Kernels.StaticViewFieldKernel)),
+            "ILGPU1214",
+            "Static field 'Kernels.StaticView' of type 'ArrayView<int>' holds a " +
+            "view or a pointer, which kernels cannot load",
+            "StaticViewField");
+
+    // A static readonly view compiled to a load from a null pointer
+    [Fact]
+    public Task StaticViewField_FailsBuild() =>
+        AssertBuildErrorAsync(
+            """
+            static class K
+            {
+                static readonly ArrayView1D<int, Stride1D.Dense> Table;
+                public static void Kern(Index1D i, ArrayView1D<int, Stride1D.Dense> d) =>
+                    d[i] = Table[i]; // error
+            }
+            """,
+            "ILGPU1214",
+            "Static field 'K.Table' of type 'ArrayView1D<int, Dense>' holds a " +
+            "view or a pointer, which kernels cannot load");
+
+    // An internal compiler error while inlining the array in the structure
+    [Fact]
+    public Task StaticArrayHolder_FailsBuild() =>
+        AssertBuildErrorAsync(
+            """
+            struct H { public int V; public int[] A; }
+            static class K
+            {
+                static readonly H Holder = new() { V = 1, A = [1, 2] };
+                public static void Kern(Index1D i, ArrayView1D<int, Stride1D.Dense> d) =>
+                    d[i] = Holder.V; // error
+            }
+            """,
+            "ILGPU1214",
+            "Static field 'K.Holder' of type 'H' contains the field 'H.A' of type " +
+            "'int[]', which holds a reference that kernels cannot load, even if it " +
+            "is null");
+
+    // An unnamed error that the class type String is not supported
+    [Theory]
+    [InlineData(RoslynOptimizationLevel.Debug)]
+    [InlineData(RoslynOptimizationLevel.Release)]
+    public Task StaticString_FailsBuild(RoslynOptimizationLevel optimizationLevel) =>
+        AssertBuildErrorAsync(
+            """
+            static class K
+            {
+                static readonly string Name = "abc";
+                public static void Kern(Index1D i, ArrayView1D<int, Stride1D.Dense> d) =>
+                    d[i] = Name.Length; // error
+            }
+            """,
+            "ILGPU1214",
+            "Static field 'K.Name' has the reference type 'string', which " +
+            "kernels cannot load, even if the field is null",
+            optimizationLevel);
+
+    // A call to a getter that could not be compiled, since the class type C
+    // is not supported. The error points at the call, as the location of the
+    // generated getter is the declaration of the property.
+    [Theory]
+    [InlineData(RoslynOptimizationLevel.Debug)]
+    [InlineData(RoslynOptimizationLevel.Release)]
+    public Task StaticClassProperty_FailsBuild(
+        RoslynOptimizationLevel optimizationLevel) =>
+        AssertBuildErrorAsync(
+            """
+            sealed class C { public int V = 2; }
+            static class K
+            {
+                static C Box { get; } = new();
+                public static void Kern(Index1D i, ArrayView1D<int, Stride1D.Dense> d) =>
+                    d[i] = Box.V; // error
+            }
+            """,
+            "ILGPU1214",
+            "Static field 'K.Box' has the reference type 'C', which kernels " +
+            "cannot load, even if the field is null",
+            optimizationLevel);
+
+    // Failed with ILGPU1214 although optimization removes the calls to Fail and
+    // Bad, as it removes calls to helpers failing with other errors. Only the IR
+    // optimizer folds the tuple elements, not the constant evaluator of the
+    // frontend, so the helpers are generated.
+    [Theory]
+    [InlineData(RoslynOptimizationLevel.Debug)]
+    [InlineData(RoslynOptimizationLevel.Release)]
+    public Task StaticStringInRemovedHelper_Compiles(
+        RoslynOptimizationLevel optimizationLevel) =>
+        AssertBuildSucceedsAsync(
+            """
+            sealed class C { public int V = 2; }
+            static class K
+            {
+                static readonly string Name = "abc";
+                static readonly C Box = new();
+                static int Fail() => throw new InvalidOperationException(Name);
+                static int CheckedArg(int m) => m >= 0 ? m : Fail();
+                static int Bad() => Name.Length + Box.V;
+                static int Pick(int m) => m == 0 ? 1 : Bad();
+                public static void Kern(Index1D i, ArrayView1D<int, Stride1D.Dense> d) =>
+                    d[i] = CheckedArg((((int a, int b))(5, i.X)).a) +
+                        Pick((((int a, int b))(0, i.X)).a);
+            }
+            """,
+            optimizationLevel);
+
+    [Theory]
+    [InlineData(RoslynOptimizationLevel.Debug)]
+    [InlineData(RoslynOptimizationLevel.Release)]
+    public Task StaticStringInSurvivingHelper_FailsBuild(
+        RoslynOptimizationLevel optimizationLevel) =>
+        AssertBuildErrorAsync(
+            """
+            static class K
+            {
+                static readonly string Name = "abc";
+                static int Bad() => Name.Length; // error
+                static int Pick(int m) => m == 0 ? 1 : Bad();
+                public static void Kern(Index1D i, ArrayView1D<int, Stride1D.Dense> d) =>
+                    d[i] = Pick(i);
+            }
+            """,
+            "ILGPU1214",
+            "Static field 'K.Name' has the reference type 'string', which " +
+            "kernels cannot load, even if the field is null",
+            optimizationLevel);
 
     [Fact]
     public void Expression_ReportsUnsupportedConstruct()

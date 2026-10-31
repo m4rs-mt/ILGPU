@@ -18,9 +18,11 @@ namespace ILGPUC;
 /// <summary>
 /// The exception that is thrown when kernel code uses a construct that ILGPUC
 /// rejects with a diagnostic, such as an unsupported use of a delegate. Unlike
-/// other code generation errors, it is never hidden by turning the failing
-/// method into an external declaration, and ilgpuc builds report it in the
-/// canonical <c>file(line,column): error ID: message</c> form.
+/// other code generation errors, it is reported right away instead of turning
+/// the failing method into an external declaration, except for static fields
+/// that kernels cannot load, which are reported only if a call to the failing
+/// method survives optimization. ilgpuc builds report it in the canonical
+/// <c>file(line,column): error ID: message</c> form.
 /// </summary>
 [SuppressMessage(
     "Design",
