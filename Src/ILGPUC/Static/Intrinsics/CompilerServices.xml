@@ -10,6 +10,7 @@
             <Generator Name="Add" Target="Unsafe_Add" />
             <Generator Name="AsPointer" Target="Unsafe_AsPointer" />
             <Generator Name="BitCast" Target="Unsafe_BitCast" />
+            <Generator Name="NullRef" Target="Unsafe_NullRef" />
         </Generators>
     </Type>
 </Intrinsics>

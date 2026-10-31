@@ -44,15 +44,17 @@ public abstract class CompilationTestBase(ITestOutputHelper output) : DisposeBas
     /// Intended for assertion-style tests that don't compare against a
     /// committed snapshot — for example, "this IR must contain the
     /// <c>llvm.abs</c> intrinsic emission" rather than "this IR must
-    /// match this exact .il file".
+    /// match this exact .il file". The backend selects the transforms of
+    /// <see cref="IRDumpPoint.AfterBackendTransforms"/> (default: CPU).
     /// </summary>
     internal string DumpIRString(
         MethodInfo kernel,
         IRDumpPoint point,
-        CompilationProperties? props = null)
+        CompilationProperties? props = null,
+        BackendType? backend = null)
     {
         var ir = AssertionRecorder.Run(
-            () => _helper.GetNormalizedIR(kernel, point, props));
+            () => _helper.GetNormalizedIR(kernel, point, props, backend));
         WriteIR(ir);
         return ir;
     }
