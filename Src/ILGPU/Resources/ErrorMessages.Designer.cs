@@ -1312,6 +1312,15 @@ namespace ILGPU.Resources {
         }
 
         /// <summary>
+        ///   Looks up a localized string similar to Method &apos;{0}&apos; compares a pointer to {1} memory with a pointer to {2} memory, which {3} does not support: without generic pointers, addresses in different address spaces cannot be compared. Compare pointers into the same address space instead..
+        /// </summary>
+        internal static string KernelDiagnosticPointerComparison {
+            get {
+                return ResourceManager.GetString("KernelDiagnosticPointerComparison", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to Delegates bound with KernelDelegates.Bind can only be used in kernels compiled by ILGPUC.
         /// </summary>
         internal static string NotSupportedKernelDelegateBind {

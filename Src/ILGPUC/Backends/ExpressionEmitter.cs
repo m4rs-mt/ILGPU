@@ -1612,7 +1612,54 @@ sealed class ExpressionEmitter(GenerationContext context, TypeEmitter typeEmitte
         var target = Emit(store.Target);
         var value = Emit(store.Value);
         var deref = Parenthesize(target, Prec.Unary);
+        if (IsVolatileStore(store))
+        {
+            var pointerType = store.Target.GetTypeAs<PointerType>();
+            var pointerTypeName = context.LanguageConfig.GetPointerTypeName(
+                typeEmitter.GetTypeName(pointerType.ElementType),
+                context.LanguageConfig.GetAddressSpaceKeyword(
+                    MemoryAddressSpace.Local));
+            return $"*(volatile {pointerTypeName}){deref} = {value.Text};";
+        }
         return $"*{deref} = {value.Text};";
+    }
+
+    /// <summary>
+    /// Returns true if <paramref name="store"/> writes a primitive value to
+    /// local memory through a pointer that is based on a phi or a parameter,
+    /// such as a pointer moved in a loop, and the language emits such stores
+    /// as volatile stores.
+    /// </summary>
+    private bool IsVolatileStore(Store store)
+    {
+        if (!context.LanguageConfig.VolatileIndirectLocalStores ||
+            store.Target.Type is not PointerType
+            {
+                AddressSpace: MemoryAddressSpace.Local,
+                ElementType: PrimitiveType,
+            })
+        {
+            return false;
+        }
+
+        var current = store.Target;
+        while (true)
+        {
+            switch (current)
+            {
+                case LoadElementAddress lea:
+                    current = lea.Source;
+                    break;
+                case LoadFieldAddress lfa:
+                    current = lfa.Source;
+                    break;
+                case BaseAddressSpaceCast cast:
+                    current = cast.Source;
+                    break;
+                default:
+                    return current is PhiValue or Parameter;
+            }
+        }
     }
 
     #endregion

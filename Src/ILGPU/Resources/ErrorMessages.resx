@@ -641,6 +641,10 @@
     <value>Method '{0}' returns the address of one of its local variables, of a field of one, or of a parameter it receives by value, which no longer exists once the method returns. Return the value instead, or an address of memory that the caller provides, such as a parameter passed by reference or an element of a view.</value>
     <comment/>
   </data>
+  <data name="KernelDiagnosticPointerComparison" xml:space="preserve">
+    <value>Method '{0}' compares a pointer to {1} memory with a pointer to {2} memory, which {3} does not support: without generic pointers, addresses in different address spaces cannot be compared. Compare pointers into the same address space instead.</value>
+    <comment/>
+  </data>
   <data name="NotSupportedKernelDelegateBind" xml:space="preserve">
     <value>Delegates bound with KernelDelegates.Bind can only be used in kernels compiled by ILGPUC.</value>
     <comment/>

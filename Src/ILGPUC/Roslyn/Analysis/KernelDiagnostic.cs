@@ -171,6 +171,12 @@ record KernelDiagnostic(string Id, string Message, Location Location)
     public const string IntegerToPointerId = "ILGPU1215";
 
     /// <summary>
+    /// Kernel code compares pointers into different address spaces on a backend
+    /// without generic pointers.
+    /// </summary>
+    public const string PointerComparisonId = "ILGPU1216";
+
+    /// <summary>
     /// A launching method whose delegate parameter is captured by an inline
     /// kernel is virtual or implements an interface member.
     /// </summary>

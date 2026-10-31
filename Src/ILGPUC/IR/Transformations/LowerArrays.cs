@@ -297,7 +297,9 @@ sealed class LowerArrays(TransformationArgs args) : LowerTypes<ArrayType>(args)
 
     /// <summary>
     /// Returns true if the given address flows into a phi directly or through
-    /// addresses derived from it, whose types follow the type of the address.
+    /// addresses derived from it, whose types follow the type of the address,
+    /// such as the selected values of predicates (the pointer of a fixed
+    /// statement or the null pointer).
     /// </summary>
     /// <param name="address">The address to test.</param>
     private static bool FlowsIntoPhi(Value address)
@@ -310,6 +312,8 @@ sealed class LowerArrays(TransformationArgs args) : LowerTypes<ArrayType>(args)
                     return true;
                 case PointerCast or LoadElementAddress or LoadFieldAddress
                     when use.Index == 0 && FlowsIntoPhi(use.Target):
+                    return true;
+                case Predicate when use.Index > 0 && FlowsIntoPhi(use.Target):
                     return true;
             }
         }

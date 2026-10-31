@@ -9,6 +9,7 @@
 // Source License. See LICENSE.txt for details.
 // ---------------------------------------------------------------------------------------
 
+using ILGPU.Util;
 using ILGPUC.IR.ModuleValues;
 
 namespace ILGPUC.IR.PureValues.Construction;
@@ -136,16 +137,34 @@ partial class PureValueBuilder
 
         // A null pointer is null in every address space: compared with a
         // pointer into a specific address space, such as &x == null, it takes
-        // the type of that pointer
+        // the type of that pointer. Pointers into different address spaces
+        // (e.g. a pointer into a local structure whose type has been
+        // specialized and a pointer loaded from memory) are compared as
+        // generic pointers.
         if (left.Type is PointerType leftPointer &&
             right.Type is PointerType rightPointer &&
             !leftPointer.Equals(rightPointer) &&
             leftPointer.ElementType.Equals(rightPointer.ElementType))
         {
             if (right is NullValue)
+            {
                 right = CreateNull(location, leftPointer);
+            }
             else if (left is NullValue)
+            {
                 left = CreateNull(location, rightPointer);
+            }
+            else
+            {
+                left = CreateAddressSpaceCast(
+                    location,
+                    left,
+                    MemoryAddressSpace.Generic).AsNotNull();
+                right = CreateAddressSpaceCast(
+                    location,
+                    right,
+                    MemoryAddressSpace.Generic).AsNotNull();
+            }
         }
 
         return Append(new CompareValue(
