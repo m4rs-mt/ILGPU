@@ -22,6 +22,190 @@ namespace ILGPUC.Frontend;
 partial class CodeGenerator
 {
     /// <summary>
+    /// Returns the sign-extended value of the given integer constant.
+    /// </summary>
+    /// <param name="value">The integer constant.</param>
+    /// <returns>The value of the constant.</returns>
+    private static long GetIntValue(PrimitiveValue value) =>
+        value.BasicValueType == BasicValueType.Int64
+        ? value.Int64Value
+        : value.Int32Value;
+
+    /// <summary>
+    /// Returns the given index of a pointer moved by <paramref name="kind"/>.
+    /// Indices to move backward by are negated on 64 bits, as the negation of
+    /// int.MinValue overflows on 32 bits.
+    /// </summary>
+    /// <param name="index">The index to move the pointer forward by.</param>
+    /// <param name="kind">Add or Sub to move forward or backward.</param>
+    /// <returns>The index to move the pointer by.</returns>
+    private Value GetMoveIndex(Value index, BinaryArithmeticKind kind)
+    {
+        if (index is IntAsPointerCast cast)
+            index = cast.Source;
+        if (kind == BinaryArithmeticKind.Sub)
+        {
+            index = Builder.CreateArithmetic(
+                Location,
+                CreateConversion(
+                    index,
+                    ModuleBuilder.GetPrimitiveType(BasicValueType.Int64),
+                    ConvertFlags.None),
+                UnaryArithmeticKind.Neg).AsNotNull();
+        }
+
+        // Keep constant indices that fit 32 bits as 32-bit indices
+        return index is PrimitiveValue constant &&
+            constant.BasicValueType == BasicValueType.Int64 &&
+            constant.Int64Value is >= int.MinValue and <= int.MaxValue
+            ? Builder.CreatePrimitiveValue(Location, (int)constant.Int64Value)
+            : index;
+    }
+
+    /// <summary>
+    /// Returns the constant factor of the given scaled byte offset, such as 16
+    /// of <c>(nint)i * 16</c> or <c>(nint)i &lt;&lt; 4</c>, or 0 if the offset
+    /// is not scaled by a constant.
+    /// </summary>
+    /// <param name="offset">The byte offset.</param>
+    /// <returns>The factor of the offset, or 0.</returns>
+    private static long GetScale(BinaryArithmeticValue offset)
+    {
+        if (offset.Kind is not (BinaryArithmeticKind.Mul or BinaryArithmeticKind.Shl) ||
+            offset.Right is not PrimitiveValue factor ||
+            !offset.Left.BasicValueType.IsInt())
+        {
+            return 0;
+        }
+        long scale = GetIntValue(factor);
+        if (offset.Kind == BinaryArithmeticKind.Shl)
+            scale = scale is >= 0 and < 32 ? 1L << (int)scale : 0;
+        return scale;
+    }
+
+    /// <summary>
+    /// Returns true if the given byte offset is a multiple of the given element
+    /// size that is known without a division: a constant, an offset scaled by
+    /// a constant, or a sum or difference of such offsets.
+    /// </summary>
+    /// <param name="offset">The byte offset.</param>
+    /// <param name="elementSize">The element size in bytes.</param>
+    /// <returns>True, if the offset is a multiple of the element size.</returns>
+    private static bool IsElementOffset(Value offset, int elementSize)
+    {
+        switch (offset)
+        {
+            case PrimitiveValue constant when constant.BasicValueType.IsInt():
+                return GetIntValue(constant) % elementSize == 0;
+            case BinaryArithmeticValue
+            {
+                Kind: BinaryArithmeticKind.Add or BinaryArithmeticKind.Sub
+            } binary:
+                return IsElementOffset(binary.Left, elementSize) &&
+                    IsElementOffset(binary.Right, elementSize);
+            case BinaryArithmeticValue binary:
+                long scale = GetScale(binary);
+                return scale != 0 && scale % elementSize == 0;
+            default:
+                return false;
+        }
+    }
+
+    /// <summary>
+    /// Creates the element index of the given byte offset, which
+    /// <see cref="IsElementOffset(Value, int)"/> accepts.
+    /// </summary>
+    /// <param name="offset">The byte offset.</param>
+    /// <param name="elementSize">The element size in bytes.</param>
+    /// <returns>The element index.</returns>
+    private Value CreateElementIndex(Value offset, int elementSize)
+    {
+        switch (offset)
+        {
+            case PrimitiveValue constant:
+                return Builder.CreatePrimitiveValue(
+                    Location,
+                    constant.BasicValueType,
+                    GetIntValue(constant) / elementSize);
+            case BinaryArithmeticValue
+            {
+                Kind: BinaryArithmeticKind.Add or BinaryArithmeticKind.Sub
+            } binary:
+                return Builder.CreateArithmetic(
+                    Location,
+                    CreateElementIndex(binary.Left, elementSize),
+                    CreateElementIndex(binary.Right, elementSize),
+                    binary.Kind,
+                    binary.Flags).AsNotNull();
+            default:
+                var scaled = (BinaryArithmeticValue)offset;
+                long scale = GetScale(scaled);
+                return scale == elementSize
+                    ? scaled.Left
+                    : Builder.CreateArithmetic(
+                        Location,
+                        scaled.Left,
+                        Builder.CreatePrimitiveValue(
+                            Location,
+                            scaled.Left.BasicValueType,
+                            scale / elementSize),
+                        BinaryArithmeticKind.Mul,
+                        scaled.Flags).AsNotNull();
+        }
+    }
+
+    /// <summary>
+    /// Creates the address of a pointer moved by the given byte offset: by
+    /// elements if the offset is a multiple of the element size that is known
+    /// without a division, such as <c>(nint)i * sizeof(T)</c>, or through a
+    /// byte pointer otherwise, as in <c>(byte*)p + 1</c> on an int pointer p,
+    /// whose IL does not convert the pointer, and for untyped addresses, such
+    /// as <c>(nint)&amp;s.A + 4</c>. Pointers moved by bytes are cast back to
+    /// their pointer types, so that conditions can select them together with
+    /// other pointers of these types.
+    /// </summary>
+    /// <param name="pointer">The pointer to move.</param>
+    /// <param name="offset">The byte offset.</param>
+    /// <param name="kind">Add or Sub to move forward or backward.</param>
+    /// <returns>The moved pointer.</returns>
+    private Value CreatePointerOffset(
+        Value pointer,
+        Value offset,
+        BinaryArithmeticKind kind)
+    {
+        var elementType = pointer.GetTypeAs<PointerType>().ElementType;
+
+        int elementSize = elementType is VoidType ? 1 : elementType.Size;
+        if (elementSize > 0 &&
+            (elementSize == 1 || IsElementOffset(offset, elementSize)))
+        {
+            var index = elementSize == 1
+                ? offset
+                : CreateElementIndex(offset, elementSize);
+            if (elementType is not VoidType)
+            {
+                return Builder.CreateLoadElementAddress(
+                    Location,
+                    pointer,
+                    GetMoveIndex(index, kind)).AsNotNull();
+            }
+        }
+
+        var bytePointer = Builder.CreatePointerCast(
+            Location,
+            pointer,
+            ModuleBuilder.GetPrimitiveType(BasicValueType.Int8));
+        var moved = Builder.CreateLoadElementAddress(
+            Location,
+            bytePointer,
+            GetMoveIndex(offset, kind));
+        return Builder.CreatePointerCast(
+            Location,
+            moved,
+            elementType).AsNotNull();
+    }
+
+    /// <summary>
     /// Tries to determine the stride in bytes of the given address offset: an
     /// element index multiplied or shifted by a constant.
     /// </summary>
@@ -90,10 +274,7 @@ partial class CodeGenerator
 
         if (negate)
         {
-            index = Builder.CreateArithmetic(
-                Location,
-                index is IntAsPointerCast cast ? cast.Source : index,
-                UnaryArithmeticKind.Neg).AsNotNull();
+            index = GetMoveIndex(index, BinaryArithmeticKind.Sub);
         }
         result = Builder.CreateLoadElementAddress(
             Location,
@@ -135,56 +316,6 @@ partial class CodeGenerator
         value is not (IntAsPointerCast or NullValue or BinaryArithmeticValue);
 
     /// <summary>
-    /// Returns the given address moved by the given number of bytes: untyped
-    /// addresses move by bytes, as void pointers have no element size, and
-    /// typed addresses by elements.
-    /// </summary>
-    /// <param name="address">The address.</param>
-    /// <param name="offset">The offset in bytes.</param>
-    /// <param name="negate">True to move the address backwards.</param>
-    /// <returns>The moved address.</returns>
-    private Value CreateByteOffset(Value address, Value offset, bool negate)
-    {
-        var pointerType = address.GetTypeAs<PointerType>();
-        bool untyped = pointerType.ElementType is VoidType;
-        if (!untyped)
-        {
-            offset = Builder.CreateArithmetic(
-                Location,
-                offset,
-                Builder.CreateSizeOf(Location, pointerType.ElementType),
-                BinaryArithmeticKind.Div).AsNotNull();
-        }
-        if (negate)
-        {
-            offset = Builder.CreateArithmetic(
-                Location,
-                offset,
-                UnaryArithmeticKind.Neg).AsNotNull();
-        }
-        if (!untyped)
-        {
-            return Builder.CreateLoadElementAddress(
-                Location,
-                address,
-                offset).AsNotNull();
-        }
-
-        var bytePointer = Builder.CreatePointerCast(
-            Location,
-            address,
-            ModuleBuilder.GetPrimitiveType(BasicValueType.Int8));
-        var movedPointer = Builder.CreateLoadElementAddress(
-            Location,
-            bytePointer,
-            offset);
-        return Builder.CreatePointerCast(
-            Location,
-            movedPointer,
-            ModuleBuilder.VoidType).AsNotNull();
-    }
-
-    /// <summary>
     /// Realizes an arithmetic operation.
     /// </summary>
     /// <param name="kind">The kind of the arithmetic operation.</param>
@@ -221,34 +352,10 @@ partial class CodeGenerator
             bool isOffset = kind == BinaryArithmeticKind.Add ||
                 kind == BinaryArithmeticKind.Sub && !swapped;
 
-            // Check for raw combinations of two pointer values
-            if (
-                right.Type is not PointerType &&
-                // Check whether this can be safely converted into a LEA value
-                isOffset)
+            // Move the pointer by the byte offset, such as p + 4 or p - 4
+            if (right.Type is not PointerType && isOffset)
             {
-                // Check the size of the element type and divide the raw offset
-                // by the element size to retrieve the actual element index.
-                var elementType = left.GetTypeAs<PointerType>().ElementType;
-                var elementSize = Builder.CreateSizeOf(Location, elementType);
-
-                // Create the actual address computation
-                var leaIndex = Builder.CreateArithmetic(
-                    Location,
-                    right,
-                    elementSize,
-                    BinaryArithmeticKind.Div);
-                if (kind == BinaryArithmeticKind.Sub)
-                {
-                    leaIndex = Builder.CreateArithmetic(
-                        Location,
-                        leaIndex,
-                        UnaryArithmeticKind.Neg);
-                }
-                result = Builder.CreateLoadElementAddress(
-                    Location,
-                    left,
-                    leaIndex);
+                result = CreatePointerOffset(left, right, kind);
             }
             // Check whether this operation on pointer values can be converted
             // into a LEA instruction
@@ -273,10 +380,7 @@ partial class CodeGenerator
                 IsAddress(left) &&
                 right is IntAsPointerCast byteOffset)
             {
-                result = CreateByteOffset(
-                    left,
-                    byteOffset.Source,
-                    kind == BinaryArithmeticKind.Sub);
+                result = CreatePointerOffset(left, byteOffset.Source, kind);
             }
             // Native integers are pointers: all other operations on them
             // compute on their integer values, except for the strides of
