@@ -33,6 +33,24 @@ static unsafe class PointerLoopKernels
     }
 
     /// <summary>
+    /// A pointer and a count.
+    /// </summary>
+    public struct Cursor
+    {
+        public int* P;
+        public int N;
+    }
+
+    /// <summary>
+    /// A count and a pointer that is not the first field.
+    /// </summary>
+    public struct CountedCursor
+    {
+        public int N;
+        public int* P;
+    }
+
+    /// <summary>
     /// The sum of the fields of a local structure: a pointer moved up to an end
     /// pointer (p &lt; end).
     /// </summary>
@@ -191,6 +209,150 @@ static unsafe class PointerLoopKernels
         while (p != end && *p <= 20)
             ++p;
         data[index] = p == end ? -1 : (int)(p - first);
+    }
+
+    /// <summary>
+    /// The sum of the fields of a local structure: a pointer field of a local
+    /// structure moved up to an end pointer (c.P &lt; end), counting the
+    /// steps.
+    /// </summary>
+    public static void FieldLessKernel(
+        Index1D index,
+        ArrayView1D<int, Stride1D.Dense> data)
+    {
+        Quad q;
+        q.A = data[index];
+        q.B = 2;
+        q.C = 3;
+        q.D = 4;
+        Cursor c;
+        c.P = &q.A;
+        c.N = 0;
+        int* end = &q.A + 4;
+        int sum = 0;
+        for (; c.P < end; c.P++)
+        {
+            sum += *c.P;
+            c.N++;
+        }
+        data[index] = sum * 10 + c.N;
+    }
+
+    /// <summary>
+    /// The sum of every second field of a local structure: a pointer in the
+    /// second field of a local structure moved up to an end pointer.
+    /// </summary>
+    public static void TrailingFieldLessKernel(
+        Index1D index,
+        ArrayView1D<int, Stride1D.Dense> data)
+    {
+        Quad q;
+        q.A = data[index];
+        q.B = 2;
+        q.C = 3;
+        q.D = 4;
+        CountedCursor c;
+        c.N = 0;
+        c.P = &q.A;
+        int* end = &q.A + 4;
+        int sum = 0;
+        for (; c.P < end; c.P += 2)
+        {
+            sum += *c.P;
+            c.N++;
+        }
+        data[index] = sum * 10 + c.N;
+    }
+
+    /// <summary>
+    /// The sum of the fields of a local structure: a pointer local moved up to
+    /// an end pointer through a pointer to it (*pp &lt; end).
+    /// </summary>
+    public static void PointerToPointerLessKernel(
+        Index1D index,
+        ArrayView1D<int, Stride1D.Dense> data)
+    {
+        Quad q;
+        q.A = data[index];
+        q.B = 2;
+        q.C = 3;
+        q.D = 4;
+        int* p = &q.A;
+        int** pp = &p;
+        int* end = &q.A + 4;
+        int sum = 0;
+        while (*pp < end)
+        {
+            sum += **pp;
+            (*pp)++;
+        }
+        data[index] = sum;
+    }
+
+    /// <summary>
+    /// Pointers to two pointer locals compared with each other (a == b,
+    /// a != b).
+    /// </summary>
+    public static void PointerToPointerCompareKernel(
+        Index1D index,
+        ArrayView1D<int, Stride1D.Dense> data)
+    {
+        int x = data[index];
+        int y = 2;
+        int* q = &x;
+        int* r = &y;
+        int** a = &q;
+        int** b = &r;
+        **a += 1;
+        data[index] = (a == b ? 1000 : 0) + (a != b ? 100 : 0) + x + 10 * **b;
+    }
+
+    /// <summary>
+    /// A pointer field of a local structure that points to a local on the
+    /// first iteration and to a view element or the local on the next ones
+    /// (CPU, CUDA and ROCm only: Metal and OpenCL reject pointers that can
+    /// point to global and local memory).
+    /// </summary>
+    [RequiresCapability(BackendCapability.GenericAddressSpace)]
+    public static void MixedFieldLoopKernel(
+        Index1D index,
+        ArrayView1D<int, Stride1D.Dense> data)
+    {
+        int x = data[index];
+        Cursor c;
+        c.P = &x;
+        c.N = 0;
+        int sum = 0;
+        for (int k = 0; k < 3; ++k)
+        {
+            sum += *c.P;
+            c.P = (k & 1) == 0 ? (int*)Unsafe.AsPointer(ref data[index]) : &x;
+            c.N++;
+        }
+        data[index] = sum + c.N;
+    }
+
+    /// <summary>
+    /// A pointer local written through a pointer to it that points to a local
+    /// on the first iteration and to a view element or the local on the next
+    /// ones (CPU, CUDA and ROCm only: Metal and OpenCL reject pointers to local
+    /// memory stored in memory that holds generic pointers).
+    /// </summary>
+    [RequiresCapability(BackendCapability.GenericAddressSpace)]
+    public static void MixedPointerLoopKernel(
+        Index1D index,
+        ArrayView1D<int, Stride1D.Dense> data)
+    {
+        int x = data[index];
+        int* p = &x;
+        int** pp = &p;
+        int sum = 0;
+        for (int k = 0; k < 3; ++k)
+        {
+            sum += **pp;
+            *pp = (k & 1) == 0 ? (int*)Unsafe.AsPointer(ref data[index]) : &x;
+        }
+        data[index] = sum;
     }
 
     private static int SumRange(int* first, int* end)

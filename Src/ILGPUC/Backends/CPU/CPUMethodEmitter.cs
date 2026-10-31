@@ -1003,14 +1003,18 @@ sealed partial class CPUMethodEmitter(
 
     /// <summary>
     /// Returns true if a LoadElementAddress is only consumed by Load/Store
-    /// and can be fused into those operations.
+    /// as their address and can be fused into those operations.
     /// </summary>
     private static bool IsLeaFusable(LoadElementAddress lea)
     {
         foreach (var use in lea.Uses)
         {
-            if (use.Target is not (Load or Store))
+            // Storing the address itself needs the address
+            if (use.Target is not (Load or Store) ||
+                use.Target is Store && use.Index != 0)
+            {
                 return false;
+            }
         }
         return true;
     }

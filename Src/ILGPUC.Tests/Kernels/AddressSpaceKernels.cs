@@ -283,7 +283,6 @@ static class AddressSpaceKernels
     /// Stores the address of a local variable in a local pointer whose address
     /// is taken, and reads the variable through the pointer to the pointer.
     /// </summary>
-    [RequiresCapability(BackendCapability.GenericAddressSpace)]
     public static unsafe void LocalAddressInLocalPointerKernel(
         Index1D index, ArrayView1D<int, Stride1D.Dense> data)
     {

@@ -106,6 +106,49 @@ public sealed class PointerLoopIRTests(ITestOutputHelper output)
         Assert.DoesNotMatch(@"\*\(volatile device ", source);
     }
 
+    // Pointer fields moved up to an end pointer and a pointer local moved
+    // through a pointer to it point to local memory: storing pointers derived
+    // from their own values (c.P++, (*pp)++) no longer keeps the structure or
+    // the pointer local generic, which made Metal and OpenCL reject comparing
+    // them with the end pointer as comparing pointers to global and local
+    // memory
+    [Theory]
+    [InlineData(nameof(PointerLoopKernels.FieldLessKernel), BackendType.Metal, OptimizationLevel.O0)]
+    [InlineData(nameof(PointerLoopKernels.FieldLessKernel), BackendType.OpenCL, OptimizationLevel.O1)]
+    [InlineData(nameof(PointerLoopKernels.TrailingFieldLessKernel), BackendType.Metal, OptimizationLevel.O2)]
+    [InlineData(nameof(PointerLoopKernels.TrailingFieldLessKernel), BackendType.OpenCL, OptimizationLevel.O0)]
+    [InlineData(nameof(PointerLoopKernels.PointerToPointerLessKernel), BackendType.Metal, OptimizationLevel.O1)]
+    [InlineData(nameof(PointerLoopKernels.PointerToPointerLessKernel), BackendType.OpenCL, OptimizationLevel.O0)]
+    public void StoredLoopPointer_PointsToLocalMemory(
+        string kernelName,
+        BackendType backend,
+        OptimizationLevel opt)
+    {
+        var ir = DumpLoopKernel(kernelName, backend, opt);
+        Assert.Matches(@"icmp ult ptr<(i32|void)> addrspace\(local\) %\d+, %\d+", ir);
+        Assert.DoesNotMatch(@"alloca ptr<i32>, ", ir);
+        Assert.DoesNotMatch(@"type \{ (i32, )?ptr<i32>(, i32)? \}", ir);
+    }
+
+    // Pointers to two pointer locals compared with each other point to local
+    // memory and so do the pointer locals
+    [Theory]
+    [InlineData(BackendType.Metal, OptimizationLevel.O0)]
+    [InlineData(BackendType.OpenCL, OptimizationLevel.O1)]
+    public void PointerToPointerCompare_ComparesPointersToLocalMemory(
+        BackendType backend,
+        OptimizationLevel opt)
+    {
+        var ir = DumpLoopKernel(
+            nameof(PointerLoopKernels.PointerToPointerCompareKernel),
+            backend,
+            opt);
+        Assert.Matches(
+            @"icmp eq ptr<ptr<i32> addrspace\(local\)> addrspace\(local\) %\d+, %\d+",
+            ir);
+        Assert.DoesNotMatch(@"alloca ptr<i32>, ", ir);
+    }
+
     // With generic pointers, the address of a local is compared with the address
     // of a view element as a generic pointer
     [Theory]

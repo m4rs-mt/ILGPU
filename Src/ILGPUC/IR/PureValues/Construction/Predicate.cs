@@ -66,6 +66,15 @@ partial class PureValueBuilder
                         MemoryAddressSpace.Generic),
                     truePointer.ElementType).AsNotNull();
             }
+            else if (trueValue.Type is StructureType trueStructure &&
+                falseValue.Type is StructureType falseStructure)
+            {
+                // Structures holding pointers into different address spaces
+                // are selected as structures holding generic pointers
+                var type = GetGenericStructureType(trueStructure, falseStructure);
+                trueValue = CreateStructureCast(location, trueValue, type);
+                falseValue = CreateStructureCast(location, falseValue, type);
+            }
             else
             {
                 falseValue = CreateConvert(
@@ -134,5 +143,55 @@ partial class PureValueBuilder
                 condition,
                 trueValue,
                 falseValue));
+    }
+
+    /// <summary>
+    /// Returns the type of the given structure types that differ in the address
+    /// spaces of their pointers and views only, whose differing fields are
+    /// generic.
+    /// </summary>
+    private StructureType GetGenericStructureType(
+        StructureType first,
+        StructureType second)
+    {
+        var builder = ModuleBuilder.CreateStructureType(first.NumFields);
+        for (int i = 0; i < first.NumFields; ++i)
+        {
+            builder.Add(
+                first[i].Equals(second[i]) || first[i] is not AddressSpaceType field
+                    ? first[i]
+                    : ModuleBuilder.SpecializeAddressSpaceType(
+                        field,
+                        MemoryAddressSpace.Generic));
+        }
+        return builder.Seal().As<StructureType>();
+    }
+
+    /// <summary>
+    /// Casts the pointers and views of the given structure value into the
+    /// address spaces of the given structure type.
+    /// </summary>
+    private Value CreateStructureCast(
+        Location location,
+        Value value,
+        StructureType type)
+    {
+        if (value.Type.Equals(type))
+            return value;
+
+        var instance = CreateStructure(location, type);
+        for (int i = 0; i < type.NumFields; ++i)
+        {
+            var field = CreateGetField(location, value, new FieldSpan(i)).AsNotNull();
+            if (type[i] is AddressSpaceType fieldType && !field.Type.Equals(fieldType))
+            {
+                field = CreateAddressSpaceCast(
+                    location,
+                    field,
+                    fieldType.AddressSpace).AsNotNull();
+            }
+            instance.Add(field);
+        }
+        return instance.Seal();
     }
 }

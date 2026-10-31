@@ -246,11 +246,11 @@ abstract class Backend(
     /// the backend's default (global) address space and are not rejected.
     /// </summary>
     /// <remarks>
-    /// Comparisons are verified after all other values. Pointers of unknown
-    /// origin, such as pointers loaded from memory, are treated as pointers
-    /// to global memory, so a pointer into shared or local memory that was
-    /// stored to memory and loaded back is reported as a pointer to global
-    /// memory.
+    /// Comparisons and generic pointers merged with pointers of unknown origin
+    /// are verified last: once no pointer into shared or local memory is stored
+    /// in memory that holds generic pointers, held in a generic structure field
+    /// or passed across methods as a generic pointer, generic pointers of
+    /// unknown origin point to global memory.
     /// </remarks>
     /// <param name="module">The final module after all transformations.</param>
     private void VerifyNoGenericAddressSpaces(Module module)
@@ -261,7 +261,7 @@ abstract class Backend(
         var visited = new HashSet<Value>();
         var worklist = new Stack<Value>();
         Dictionary<Method, List<MethodCall>>? calls = null;
-        var comparisons = new List<(Method Method, CompareValue Compare)>();
+        var deferred = new List<(Method Method, Value Value)>();
         foreach (var method in module.Methods)
         {
             if (!method.HasImplementation)
@@ -309,14 +309,23 @@ abstract class Backend(
                         address.Location,
                         ref calls);
                 }
-                if (value is CompareValue compare)
-                    comparisons.Add((method, compare));
+                if (value is CompareValue ||
+                    (results[value].Flags & AddressSpaceFlags.Generic) !=
+                    AddressSpaceFlags.None)
+                {
+                    deferred.Add((method, value));
+                }
                 foreach (var operand in value.Values)
                     worklist.Push(operand);
             }
         }
-        foreach (var (method, compare) in comparisons)
-            VerifyPointerComparison(results, method, compare);
+        foreach (var (method, value) in deferred)
+        {
+            if (value is CompareValue compare)
+                VerifyPointerComparison(results, method, compare);
+            else
+                VerifyNotGeneric(module, results, method, value, unknownIsGlobal: true);
+        }
     }
 
     /// <summary>
@@ -324,14 +333,31 @@ abstract class Backend(
     /// memory in a way the target cannot express: it can point to several
     /// address spaces, or it crosses a method boundary as a parameter or call
     /// result. A generic value that provably points into a single address space
-    /// inside a method is emitted in that address space.
+    /// inside a method is emitted in that address space, except phis created
+    /// after address space inference, which are emitted as pointers to global
+    /// memory. Generic fields of structure values are emitted as pointers to
+    /// global memory and must not point to shared or local memory.
     /// </summary>
+    /// <param name="module">The final module.</param>
+    /// <param name="results">The address spaces of all values.</param>
+    /// <param name="method">The method of the value.</param>
+    /// <param name="value">The value to verify.</param>
+    /// <param name="unknownIsGlobal">
+    /// True if pointers of unknown origin point to global memory, which holds
+    /// once all other values have been verified.
+    /// </param>
     private void VerifyNotGeneric(
         Module module,
         AddressSpaceResults results,
         Method method,
-        Value value)
+        Value value,
+        bool unknownIsGlobal = false)
     {
+        if (value.Type is StructureType structureType)
+        {
+            VerifyGenericFields(module, results, method, value, structureType);
+            return;
+        }
         if (value.Type is not AddressSpaceType
             {
                 AddressSpace: MemoryAddressSpace.Generic
@@ -342,7 +368,9 @@ abstract class Backend(
 
         const AddressSpaceFlags Spaces = AddressSpaceFlags.Global |
             AddressSpaceFlags.Shared | AddressSpaceFlags.Local;
-        var flags = results[value].Flags & Spaces;
+        var flags = (unknownIsGlobal
+            ? GetKnownSpaces(results, value)
+            : results[value].Flags) & Spaces;
         if ((flags & (AddressSpaceFlags.Shared | AddressSpaceFlags.Local)) ==
             AddressSpaceFlags.None)
         {
@@ -352,14 +380,40 @@ abstract class Backend(
         bool severalSpaces = (flags & (flags - 1)) != AddressSpaceFlags.None;
         bool crossesMethod = value is Parameter || value is MethodCall ||
             IsPassedAcrossMethods(value);
-        if (!severalSpaces && !crossesMethod)
-            return;
-
-        var reason = severalSpaces
-            ? $"can point to {FormatSpaces(flags)} memory"
-            : $"points to {FormatSpaces(flags)} memory but is passed to or " +
+        string reason;
+        if (severalSpaces)
+        {
+            reason = $"can point to {FormatSpaces(flags)} memory";
+        }
+        else if (crossesMethod)
+        {
+            reason = $"points to {FormatSpaces(flags)} memory but is passed to or " +
                 "returned from a helper method as a generic pointer";
-        throw GetGenericPointerException(module, method, value.Location, reason);
+        }
+        else if (value is PhiValue &&
+            (unknownIsGlobal ||
+            (results[value].Flags & AddressSpaceFlags.Generic) ==
+            AddressSpaceFlags.None))
+        {
+            // Address space inference specializes the phis that point into a
+            // single address space, but not the phis that SSA construction
+            // creates after it from allocations holding generic pointers, such
+            // as the phis of a structure local at O0 once the helpers taking
+            // its address have been inlined: they are emitted as pointers to
+            // global memory
+            reason = $"points to {FormatSpaces(flags)} memory but is stored to " +
+                "memory as a generic pointer";
+        }
+        else
+        {
+            return;
+        }
+
+        throw GetGenericPointerException(
+            module,
+            method,
+            GetSourceLocation(value),
+            reason);
     }
 
     /// <summary>
@@ -408,6 +462,84 @@ abstract class Backend(
             store.Location,
             $"points to {FormatSpaces(flags)} memory but is stored to memory " +
             "as a generic pointer");
+    }
+
+    /// <summary>
+    /// Throws if the given structure value holds a pointer or reference into
+    /// shared or local memory in a generic field, which the backend emits as a
+    /// pointer into its default (global) address space.
+    /// </summary>
+    private void VerifyGenericFields(
+        Module module,
+        AddressSpaceResults results,
+        Method method,
+        Value value,
+        StructureType structureType)
+    {
+        var flags = GetGenericFieldSpaces(results, value, structureType);
+        if (flags == AddressSpaceFlags.None)
+            return;
+        throw GetGenericPointerException(
+            module,
+            method,
+            GetSourceLocation(value),
+            $"points to {FormatSpaces(flags)} memory but is held in a structure " +
+            "field that holds generic pointers");
+    }
+
+    /// <summary>
+    /// The address spaces that generic pointers cannot point into on this
+    /// backend.
+    /// </summary>
+    private const AddressSpaceFlags SharedOrLocal =
+        AddressSpaceFlags.Shared | AddressSpaceFlags.Local;
+
+    /// <summary>
+    /// Returns the shared and local address spaces that the generic pointer and
+    /// view fields of the given structure value can point into.
+    /// </summary>
+    private static AddressSpaceFlags GetGenericFieldSpaces(
+        AddressSpaceResults results,
+        Value value,
+        StructureType structureType)
+    {
+        var analysis = results.GetAnalysisValue(value);
+        var flags = AddressSpaceFlags.None;
+        for (int i = 0; i < structureType.NumFields; ++i)
+        {
+            if (structureType[i] is AddressSpaceType
+                {
+                    AddressSpace: MemoryAddressSpace.Generic
+                })
+            {
+                flags |= analysis.IsStructure && i < analysis.NumFields
+                    ? analysis[i].Flags
+                    : analysis.Data.Flags;
+            }
+        }
+        return flags & SharedOrLocal;
+    }
+
+    /// <summary>
+    /// Returns the source location of the given value or, for values without
+    /// one, such as phis, the source location of the first of its users or
+    /// operands that has one.
+    /// </summary>
+    private static Location GetSourceLocation(Value value)
+    {
+        if (value.Location is FileLocation)
+            return value.Location;
+        foreach (var use in value.Uses)
+        {
+            if (use.Target.Location is FileLocation location)
+                return location;
+        }
+        foreach (var operand in value.Values)
+        {
+            if (operand.Location is FileLocation location)
+                return location;
+        }
+        return value.Location;
     }
 
     /// <summary>

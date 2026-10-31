@@ -83,6 +83,58 @@ public abstract class PointerLoopExecutionTests : ExecutionTestBase
             programOptimization);
     }
 
+    // Metal and OpenCL kept structure fields and pointer locals whose address
+    // is taken generic when they were assigned pointers derived from their own
+    // values (c.P++, (*pp)++), and rejected comparing them with end pointers as
+    // comparing pointers to global and local memory
+    [SkippableTheory]
+    [InlineData(RoslynOptimizationLevel.Release, OptimizationLevel.O0)]
+    [InlineData(RoslynOptimizationLevel.Debug, OptimizationLevel.O0)]
+    [InlineData(RoslynOptimizationLevel.Release, OptimizationLevel.O1)]
+    [InlineData(RoslynOptimizationLevel.Debug, OptimizationLevel.O2)]
+    public async Task StoredLoops_ProduceCorrectOutput(
+        RoslynOptimizationLevel programOptimization,
+        OptimizationLevel level)
+    {
+        await VerifyProgramOutputAsync(
+            "TestPrograms/PointerLoop/StoredLoops.cs",
+            [
+                "Kernels.FieldLessKernel",
+                "Kernels.TrailingFieldLessKernel",
+                "Kernels.PointerToPointerLessKernel",
+                "Kernels.PointerToPointerCompareKernel",
+            ],
+            [
+                "194", "294", "394", "494",
+                "132", "232", "332", "432",
+                "19", "29", "39", "49",
+                "131", "141", "151", "161",
+            ],
+            new CompilationProperties { OptimizationLevel = level },
+            programOptimization);
+    }
+
+    // Metal and OpenCL reject structure fields and pointer locals that point
+    // to local memory on one iteration and to global memory on another
+    [SkippableTheory]
+    [InlineData(RoslynOptimizationLevel.Release, OptimizationLevel.O0)]
+    [InlineData(RoslynOptimizationLevel.Debug, OptimizationLevel.O1)]
+    public async Task MixedStoredLoops_ProduceCorrectOutput(
+        RoslynOptimizationLevel programOptimization,
+        OptimizationLevel level)
+    {
+        RequireCapability(Backend, BackendCapability.GenericAddressSpace);
+        await VerifyProgramOutputAsync(
+            "TestPrograms/PointerLoop/MixedStoredLoops.cs",
+            ["Kernels.MixedFieldLoopKernel", "Kernels.MixedPointerLoopKernel"],
+            [
+                "33", "63", "93", "123",
+                "30", "60", "90", "120",
+            ],
+            new CompilationProperties { OptimizationLevel = level },
+            programOptimization);
+    }
+
     // Metal and OpenCL reject comparisons of pointers into different address
     // spaces (ILGPU1216)
     [SkippableTheory]

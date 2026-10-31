@@ -19,6 +19,7 @@ using ILGPUC.IR.ModuleValues;
 using ILGPUC.IR.PureValues;
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 
 namespace ILGPUC.IR.Analyses;
@@ -315,13 +316,20 @@ sealed class PointerAddressSpaces(PointerAddressSpaces.AnalysisFlags flags) :
     /// </summary>
     /// <param name="rootMethod">The root (entry) method.</param>
     /// <param name="flags">The analysis flags.</param>
+    /// <param name="canTrack">
+    /// Returns true if the loads from the given allocation may read the values
+    /// stored into it (see <see cref="TryCollectAccesses"/>). If not provided,
+    /// the loads from all allocations whose address does not escape do.
+    /// </param>
     /// <returns>Address space analysis results for all methods in the module.</returns>
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     public static AddressSpaceResults AnalyzeModule(
         Method rootMethod,
-        AnalysisFlags flags = AnalysisFlags.None)
+        AnalysisFlags flags = AnalysisFlags.None,
+        Func<Alloca, bool>? canTrack = null)
     {
         var analysis = Create(flags);
+        analysis.TrackAllocations(rootMethod.Module, canTrack);
 
         // Globals live in the address space of their type (shared, local or
         // constant memory)
@@ -343,6 +351,217 @@ sealed class PointerAddressSpaces(PointerAddressSpaces.AnalysisFlags flags) :
 
         var result = analysis.AnalyzeModule(rootMethod, globalMap);
         return new AddressSpaceResults(result);
+    }
+
+    /// <summary>
+    /// Maps all loads from tracked allocations to the stores into their
+    /// allocation and to the first field of the allocated type they read.
+    /// </summary>
+    private readonly Dictionary<Load, (List<(Store Store, int Field)> Stores, int Field)>
+        _trackedLoads = [];
+
+    /// <summary>
+    /// Returns the number of (flattened) fields of the given type.
+    /// </summary>
+    public static int GetNumFields(TypeValue type) =>
+        type is StructureType structureType ? structureType.NumFields : 1;
+
+    /// <summary>
+    /// Collects all loads and stores through addresses derived from the given
+    /// allocation, such as field addresses or the address of a pointer local
+    /// taken by <c>int** pp = &amp;q</c>, with the first (flattened) field of
+    /// the allocated type they access.
+    /// </summary>
+    /// <returns>
+    /// False if the address escapes or is reinterpreted before writes, so that
+    /// anything could be stored into the allocation.
+    /// </returns>
+    public static bool TryCollectAccesses(
+        Alloca alloca,
+        List<(Store Store, int Field)> stores,
+        List<(Load Load, int Field)>? loads = null) =>
+        TryCollectFieldAccesses(
+            alloca,
+            alloca.AllocType,
+            0,
+            GetNumFields(alloca.AllocType),
+            stores,
+            loads);
+
+    /// <summary>
+    /// Collects all loads and stores through the given address, which points to
+    /// the given field of the allocated type.
+    /// </summary>
+    private static bool TryCollectFieldAccesses(
+        Value address,
+        TypeValue allocType,
+        int field,
+        int numFields,
+        List<(Store Store, int Field)> stores,
+        List<(Load Load, int Field)>? loads)
+    {
+        foreach (var use in address.Uses)
+        {
+            switch (use.Target)
+            {
+                case Store store when use.Index == 0:
+                    if (field + GetNumFields(store.Value.Type) > numFields)
+                        return false;
+                    stores.Add((store, field));
+                    break;
+                case Load load:
+                    if (field + GetNumFields(load.Type) > numFields)
+                        return false;
+                    loads?.Add((load, field));
+                    break;
+                case CompareValue:
+                    // Comparisons only read the address itself
+                    break;
+                case LoadFieldAddress fieldAddress when use.Index == 0:
+                    if (!TryCollectFieldAccesses(
+                        fieldAddress,
+                        allocType,
+                        field + fieldAddress.FieldSpan.Index,
+                        numFields,
+                        stores,
+                        loads))
+                    {
+                        return false;
+                    }
+                    break;
+                case PointerCast cast when use.Index == 0 && !IsPointeeCast(cast):
+                    // Reinterpreted addresses may only be read
+                    if (!IsReadOnly(cast))
+                        return false;
+                    break;
+                case LoadElementAddress elementAddress when use.Index == 0 &&
+                    numFields > 1 &&
+                    (field != 0 ||
+                    elementAddress.Type is not PointerType { ElementType: var type } ||
+                    !type.Equals(allocType)):
+                    // Element addresses relative to a field can reach any field
+                    return false;
+                case AddressSpaceCast or
+                    PointerCast or
+                    LoadElementAddress when use.Index == 0:
+                    if (!TryCollectFieldAccesses(
+                        use.Target,
+                        allocType,
+                        field,
+                        numFields,
+                        stores,
+                        loads))
+                    {
+                        return false;
+                    }
+                    break;
+                default:
+                    return false;
+            }
+        }
+        return true;
+    }
+
+    /// <summary>
+    /// Returns true if the given pointer cast keeps its element type or casts a
+    /// pointer to a pointer into a pointer to another pointer in the same
+    /// address space (such as <c>int**</c> to <c>void**</c>), whose elements
+    /// keep the address space of the source (see <see cref="PointerCast"/>).
+    /// </summary>
+    private static bool IsPointeeCast(PointerCast cast) =>
+        cast.SourceElementType.Equals(cast.TargetElementType) ||
+        cast.SourceElementType is AddressSpaceType sourceElement &&
+        cast.TargetElementType is AddressSpaceType targetElement &&
+        sourceElement.AddressSpace == targetElement.AddressSpace;
+
+    /// <summary>
+    /// Returns true if the given address is only read (loaded from), possibly
+    /// through derived addresses.
+    /// </summary>
+    public static bool IsReadOnly(Value value)
+    {
+        foreach (var use in value.Uses)
+        {
+            switch (use.Target)
+            {
+                case Load:
+                    break;
+                case AddressSpaceCast or
+                    PointerCast or
+                    LoadElementAddress or
+                    LoadFieldAddress when use.Index == 0:
+                    if (!IsReadOnly(use.Target))
+                        return false;
+                    break;
+                default:
+                    return false;
+            }
+        }
+        return true;
+    }
+
+    /// <summary>
+    /// Tracks the loads from all allocations holding addresses that are stored
+    /// into at least once, whose address does not escape and that the given
+    /// predicate accepts: these loads read the values stored into the
+    /// allocation, including values derived from earlier loads (such as a
+    /// pointer field incremented in a loop), instead of addresses of unknown
+    /// origin.
+    /// </summary>
+    private void TrackAllocations(Module module, Func<Alloca, bool>? canTrack)
+    {
+        var loads = new List<(Load Load, int Field)>();
+        foreach (var method in module.Methods)
+        {
+            if (!method.HasImplementation)
+                continue;
+            method.ForEachValue<Alloca>(alloca =>
+            {
+                if (!alloca.AllocType.HasFlags(TypeFlags.AddressSpaceDependent))
+                    return;
+                var stores = new List<(Store Store, int Field)>();
+                loads.Clear();
+                if (!TryCollectAccesses(alloca, stores, loads) ||
+                    stores.Count < 1 ||
+                    canTrack?.Invoke(alloca) == false)
+                {
+                    return;
+                }
+                foreach (var (load, field) in loads)
+                    _trackedLoads[load] = (stores, field);
+            });
+        }
+    }
+
+    /// <summary>
+    /// Analyzes a load from a tracked allocation: it reads the fields of all
+    /// values stored into the allocation that overlap the loaded fields.
+    /// </summary>
+    private AnalysisValue<AddressSpaceInfo> AnalyzeLoad(
+        Load load,
+        List<(Store Store, int Field)> stores,
+        int field,
+        GlobalValueMap<AnalysisValue<AddressSpaceInfo>> data)
+    {
+        var fields = new AddressSpaceInfo[GetNumFields(load.Type)];
+        foreach (var (store, storeField) in stores)
+        {
+            var value = GetOperand(store.Value, data);
+            int numFields = GetNumFields(store.Value.Type);
+            for (int i = 0; i < numFields; ++i)
+            {
+                int index = storeField + i - field;
+                if (index >= 0 && index < fields.Length)
+                {
+                    fields[index] = AddressSpaceInfo.Merge(
+                        fields[index],
+                        GetField(value, i));
+                }
+            }
+        }
+        return load.Type is StructureType
+            ? CreateStructure(fields)
+            : AnalysisValue.Create(fields[0], load.Type);
     }
 
     /// <summary>
@@ -394,9 +613,10 @@ sealed class PointerAddressSpaces(PointerAddressSpaces.AnalysisFlags flags) :
         : CreateInitialValue(operand.Type);
 
     /// <summary>
-    /// Returns the information of the given field of a structure value.
+    /// Returns the information of the given field of a structure value, or the
+    /// information of a scalar value for all of its fields.
     /// </summary>
-    private static AddressSpaceInfo GetField(
+    public static AddressSpaceInfo GetField(
         in AnalysisValue<AddressSpaceInfo> value,
         int index) =>
         value.IsStructure && index < value.NumFields
@@ -477,9 +697,11 @@ sealed class PointerAddressSpaces(PointerAddressSpaces.AnalysisFlags flags) :
     /// </summary>
     /// <remarks>
     /// Values that derive an address from another one point into the address
-    /// spaces of their source. All other values point into the address spaces
-    /// of their types, including the generic one: a pointer loaded from memory
-    /// or returned from a call may point anywhere.
+    /// spaces of their source, and loads from tracked allocations into the
+    /// address spaces of the values stored into them. All other values point
+    /// into the address spaces of their types, including the generic one: a
+    /// pointer loaded from other memory or returned from a call may point
+    /// anywhere.
     /// </remarks>
     protected override AnalysisValue<AddressSpaceInfo> Analyze(
         Value value,
@@ -522,6 +744,10 @@ sealed class PointerAddressSpaces(PointerAddressSpaces.AnalysisFlags flags) :
                 return AnalyzeGetField(getField, data);
             case SetField setField:
                 return AnalyzeSetField(setField, data);
+
+            // A load from a tracked allocation reads the values stored into it
+            case Load load when _trackedLoads.TryGetValue(load, out var source):
+                return AnalyzeLoad(load, source.Stores, source.Field, data);
 
             // A null pointer is compatible with every address space
             case NullValue:

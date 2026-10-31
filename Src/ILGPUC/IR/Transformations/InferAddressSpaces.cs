@@ -34,22 +34,39 @@ namespace ILGPUC.IR.Transformations;
 /// arguments, call arguments, stored values and returned values). Otherwise,
 /// the value keeps its type.
 /// </remarks>
-/// <param name="args">The transformation args.</param>
-sealed class InferAddressSpaces(TransformationArgs args) : Transformation(args)
+sealed class InferAddressSpaces : Transformation
 {
-    private readonly AddressSpaceResults _results = PointerAddressSpaces.AnalyzeModule(
-        args.Module.EntryPoint,
-        PointerAddressSpaces.AnalysisFlags.IgnoreGenericAddressSpace);
+    /// <summary>
+    /// The address spaces of all values of the input module.
+    /// </summary>
+    private readonly AddressSpaceResults _results;
 
     /// <summary>
     /// The generation of the input module.
     /// </summary>
-    private readonly Generation _generation = args.Module.Generation;
+    private readonly Generation _generation;
 
     /// <summary>
     /// Caches whether a value of the input module may change its type.
     /// </summary>
     private readonly Dictionary<ValueId, bool> _canRetype = [];
+
+    /// <summary>
+    /// Analyzes the address spaces of the given module. Loads from allocations
+    /// that may change their type read the values stored into them: such an
+    /// allocation takes the address spaces of these values (see
+    /// <see cref="RewriteAlloca"/>), and so do its loads.
+    /// </summary>
+    /// <param name="args">The transformation args.</param>
+    public InferAddressSpaces(TransformationArgs args)
+        : base(args)
+    {
+        _generation = args.Module.Generation;
+        _results = PointerAddressSpaces.AnalyzeModule(
+            args.Module.EntryPoint,
+            PointerAddressSpaces.AnalysisFlags.IgnoreGenericAddressSpace,
+            CanRetype);
+    }
 
     /// <summary>
     /// Caches the specialized types of all method parameters (null if a
@@ -153,8 +170,8 @@ sealed class InferAddressSpaces(TransformationArgs args) : Transformation(args)
     /// of field insertions whose structure and inserted value do not match any
     /// more. Comparisons with the null pointer give the null pointer the type of
     /// the other operand, and comparisons of two pointers whose types differ
-    /// compare them as generic pointers. All other users (e.g. structure
-    /// values) require the original type.
+    /// compare them as generic pointers. Structure values take the types of
+    /// their fields. All other users require the original type.
     /// </remarks>
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     private bool CanRetype(Value value)
@@ -191,6 +208,9 @@ sealed class InferAddressSpaces(TransformationArgs args) : Transformation(args)
         Predicate => use.Index > 0 && CanRetype(use.Target),
         CompareValue => true,
 
+        // Structures whose fields follow the types of their values
+        StructureValue => CanRetype(use.Target),
+
         // Users whose results follow the type of their source
         Load or
         AtomicValue or
@@ -216,7 +236,8 @@ sealed class InferAddressSpaces(TransformationArgs args) : Transformation(args)
     /// <summary>
     /// Returns true if the given value may change its type and if this is
     /// worth it: values that are only stored or returned would be converted
-    /// back right away.
+    /// back right away, except phis stored into allocations that may change
+    /// their type.
     /// </summary>
     private bool ShouldRetype(Value value)
     {
@@ -227,7 +248,8 @@ sealed class InferAddressSpaces(TransformationArgs args) : Transformation(args)
             switch (use.Target)
             {
                 case Method:
-                case Store when use.Index == 1:
+                case Store store when use.Index == 1 &&
+                    (value is not PhiValue || !StoresIntoAllocation(store)):
                 case BasicBlock:
                     break;
                 default:
@@ -235,6 +257,32 @@ sealed class InferAddressSpaces(TransformationArgs args) : Transformation(args)
             }
         }
         return false;
+    }
+
+    /// <summary>
+    /// Returns true if the given store writes into an allocation that may change
+    /// its type, possibly through a field or element address.
+    /// </summary>
+    private bool StoresIntoAllocation(Store store)
+    {
+        var target = store.Target;
+        while (true)
+        {
+            switch (target)
+            {
+                case LoadFieldAddress fieldAddress:
+                    target = fieldAddress.Source;
+                    break;
+                case LoadElementAddress elementAddress:
+                    target = elementAddress.Source;
+                    break;
+                case BaseAddressSpaceCast cast:
+                    target = cast.Source;
+                    break;
+                default:
+                    return target is Alloca alloca && CanRetype(alloca);
+            }
+        }
     }
 
     /// <summary>
@@ -358,36 +406,15 @@ sealed class InferAddressSpaces(TransformationArgs args) : Transformation(args)
     }
 
     /// <summary>
-    /// Returns true if the given address is only read (loaded from), possibly
-    /// through derived addresses.
-    /// </summary>
-    private static bool IsReadOnly(Value value)
-    {
-        foreach (var use in value.Uses)
-        {
-            switch (use.Target)
-            {
-                case Load:
-                    break;
-                case AddressSpaceCast or
-                    PointerCast or
-                    LoadElementAddress or
-                    LoadFieldAddress when use.Index == 0:
-                    if (!IsReadOnly(use.Target))
-                        return false;
-                    break;
-                default:
-                    return false;
-            }
-        }
-        return true;
-    }
-
-    /// <summary>
     /// Rewrites alloca values to use more specific address spaces when the
-    /// values stored into them have been specialized. Examines Store uses of
-    /// the alloca and merges their analysis results to determine the best
-    /// element type.
+    /// values stored into them have been specialized. Examines all stores into
+    /// the alloca, including stores through addresses derived from it (such as
+    /// field addresses or the address of a pointer local taken by
+    /// <c>int** pp = &amp;q</c>), and merges their analysis results field by
+    /// field to determine the best element type. Values derived from loads of
+    /// the alloca itself (such as <c>h.P++</c> or <c>a = cond ? a : b</c> in a
+    /// loop) point into the address spaces of the values stored into it, since
+    /// the analysis tracks the loads of allocas that may change their type.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     private Alloca RewriteAlloca(BasicBlockTransform transform, Alloca alloca)
@@ -399,42 +426,32 @@ sealed class InferAddressSpaces(TransformationArgs args) : Transformation(args)
             return alloca;
 
         // Determine address space from values stored into this alloca. All
-        // writes must be direct stores; writes through derived or escaping
-        // addresses could store anything.
-        AnalysisValue<AddressSpaceInfo>? mergedAnalysis = null;
-        foreach (var use in alloca.Uses)
+        // writes must be stores through addresses derived from the alloca;
+        // writes through escaping addresses could store anything.
+        var stores = new List<(Store Store, int Field)>();
+        if (!PointerAddressSpaces.TryCollectAccesses(alloca, stores) ||
+            stores.Count < 1 ||
+            !CanRetype(alloca))
         {
-            switch (use.Target)
-            {
-                case Store store when use.Index == 0:
-                    var valueAnalysis = _results.GetAnalysisValue(store.Value);
-                    mergedAnalysis = mergedAnalysis == null
-                        ? valueAnalysis
-                        : Merge(mergedAnalysis.Value, valueAnalysis);
-                    break;
-                case Load:
-                    break;
-                case AddressSpaceCast or
-                    PointerCast or
-                    LoadElementAddress or
-                    LoadFieldAddress when use.Index == 0:
-                    if (!IsReadOnly(use.Target))
-                        return alloca;
-                    break;
-                default:
-                    return alloca;
-            }
+            return alloca;
         }
 
-        if (mergedAnalysis == null || !CanRetype(alloca))
-            return alloca;
+        var fields = new AddressSpaceInfo[
+            allocType is StructureType structureType ? structureType.NumFields : 1];
+        foreach (var (store, field) in stores)
+            MergeStore(store, field, fields);
 
         // Try to specialize the alloca's element type
+        var data = new AddressSpaceInfo();
+        foreach (var field in fields)
+            data = AddressSpaceInfo.Merge(data, field);
         var newAllocType = transform.Rewrite(allocType);
         var specializedType = SpecializeType(
             transform.ModuleBuilder,
             newAllocType,
-            mergedAnalysis.Value);
+            allocType is StructureType
+                ? new AnalysisValue<AddressSpaceInfo>(data, fields)
+                : new AnalysisValue<AddressSpaceInfo>(data));
 
         if (specializedType == null)
             return alloca;
@@ -454,23 +471,19 @@ sealed class InferAddressSpaces(TransformationArgs args) : Transformation(args)
     }
 
     /// <summary>
-    /// Merges two analysis values by combining their address space information.
+    /// Merges the analysis result of the value of the given store into the
+    /// fields of the allocated type it writes, starting at the given field.
     /// </summary>
-    private static AnalysisValue<AddressSpaceInfo> Merge(
-        AnalysisValue<AddressSpaceInfo> first,
-        AnalysisValue<AddressSpaceInfo> second)
+    private void MergeStore(Store store, int fieldIndex, AddressSpaceInfo[] fields)
     {
-        if (first.IsScalar)
-            return new AnalysisValue<AddressSpaceInfo>(
-                AddressSpaceInfo.Merge(first.Data, second.Data));
-
-        var fieldData = new AddressSpaceInfo[first.NumFields];
-        for (int i = 0; i < first.NumFields; i++)
-            fieldData[i] = AddressSpaceInfo.Merge(first[i], second[i]);
-
-        return new AnalysisValue<AddressSpaceInfo>(
-            AddressSpaceInfo.Merge(first.Data, second.Data),
-            fieldData);
+        var value = _results.GetAnalysisValue(store.Value);
+        int numFields = PointerAddressSpaces.GetNumFields(store.Value.Type);
+        for (int i = 0; i < numFields; ++i)
+        {
+            fields[fieldIndex + i] = AddressSpaceInfo.Merge(
+                fields[fieldIndex + i],
+                PointerAddressSpaces.GetField(value, i));
+        }
     }
 
     /// <summary>

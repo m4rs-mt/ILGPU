@@ -99,9 +99,20 @@ On Metal, the addresses of local and shared memory are 32-bit values: converted 
 zero.
 
 Pointers can be compared with each other, for example to move a pointer up to an end pointer with
-`for (int* p = first; p < end; ++p)`.
+`for (int* p = first; p < end; ++p)`, and stored in structure fields and in pointer locals.
 On Metal and OpenCL, comparing pointers into different address spaces, such as the address of a local variable with the
 address of a view element, is rejected with error `ILGPU1216`.
+Pointers to shared or local memory stored in the elements of local arrays are rejected there as well, since the
+elements hold pointers to global memory.
+The same holds for pointers stored through element addresses relative to a structure field, such as `f[-1] = &value`
+with `int** f = &pair.B` for a structure with two pointer fields `A` and `B`.
+It also holds for structures and pointer locals whose address is passed to a helper method that is not inlined, such
+as `Add(ref holder)` for a `Holder` structure with a pointer field, `Increment(&p)` for an `int* p` or a recursive
+helper that passes `ref holder` on: a pointer to shared or local memory stored in them is rejected on Metal and
+OpenCL. Pass the structure or the pointer by value instead, or let the helper be inlined.
+A structure field or pointer local that points to local memory on one loop iteration and to global memory on another
+is rejected there as well, and so is, at `O0`, a structure local that points to local memory in a loop and is given a
+pointer to global memory after it.
 
 ## Lambdas and Delegates
 
