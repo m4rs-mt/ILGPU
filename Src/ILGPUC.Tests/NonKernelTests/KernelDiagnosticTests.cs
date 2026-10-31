@@ -975,6 +975,39 @@ public sealed class KernelDiagnosticTests
         Assert.Contains("Expression`1", diagnostic.Message);
     }
 
+    /// <summary>
+    /// A local of a structure containing itself through a field of a class
+    /// type, whose type information overflowed the stack of the compiler.
+    /// </summary>
+    [Fact]
+    public Task RecursiveLocalType_FailsBuild() =>
+        AssertBuildErrorAsync(
+            """
+            struct S
+            {
+                public int Value;
+                public L? Link;
+            }
+
+            sealed class L
+            {
+                public S Node;
+            }
+
+            static class K
+            {
+                public static void Kern(Index1D i, ArrayView1D<int, Stride1D.Dense> data)
+                {
+                    var node = new S { Value = i }; // error
+                    data[i] = node.Value;
+                }
+            }
+            """,
+            "ILGPU1200",
+            "Kernel code uses an unsupported construct: Recursive type 'S' is " +
+            "not supported in GPU kernels: it refers to itself through " +
+            "'S.Link.Node'.");
+
     #endregion
 
     #region Returned Local Addresses (ILGPU1200)

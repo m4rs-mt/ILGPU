@@ -10,7 +10,6 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.Resources;
-using ILGPU.Util;
 using ILGPUC.IR.ModuleValues;
 using ILGPUC.Util;
 using System;
@@ -49,10 +48,6 @@ sealed class TypeInformationManager
         /// <param name="fieldOffsets">All field offsets.</param>
         /// <param name="fieldTypes">All managed field types.</param>
         /// <param name="numFlattenedFields">The number of flattened fields.</param>
-        /// <param name="isBlittable">True, if this type is blittable.</param>
-        /// <param name="isValidKernelParameter">
-        /// True, if a valid kernel parameter.
-        /// </param>
         internal TypeInformation(
             TypeInformationManager parent,
             Type type,
@@ -60,9 +55,7 @@ sealed class TypeInformationManager
             ImmutableArray<FieldInfo> fields,
             ImmutableArray<int> fieldOffsets,
             ImmutableArray<Type> fieldTypes,
-            int numFlattenedFields,
-            bool isBlittable,
-            bool isValidKernelParameter)
+            int numFlattenedFields)
         {
             Parent = parent;
             ManagedType = type;
@@ -70,8 +63,6 @@ sealed class TypeInformationManager
             Fields = fields;
             FieldOffsets = fieldOffsets;
             FieldTypes = fieldTypes;
-            IsBlittable = isBlittable;
-            IsValidKernelParameter = isValidKernelParameter;
             NumFlattenedFields = numFlattenedFields;
         }
 
@@ -115,17 +106,8 @@ sealed class TypeInformationManager
         public ImmutableArray<int> FieldOffsets { get; }
 
         /// <summary>
-        /// Returns true if the associated .Net type is blittable.
-        /// </summary>
-        public bool IsBlittable { get; }
-
-        /// <summary>
-        /// Returns true if the type can be used as a kernel parameter.
-        /// </summary>
-        internal bool IsValidKernelParameter { get; }
-
-        /// <summary>
-        /// Returns the number of flattened fields.
+        /// Returns the number of flattened fields a value of this type occupies.
+        /// Values of reference types are pointers and occupy a single field.
         /// </summary>
         public int NumFlattenedFields { get; }
 
@@ -174,34 +156,33 @@ sealed class TypeInformationManager
     #region Instance
 
     private readonly Dictionary<Type, TypeInformation> _typeInfoMapping = [];
-    private readonly HashSet<Type> _compoundTypesInProgress = [];
 
     /// <summary>
     /// Constructs a new type context.
     /// </summary>
     public TypeInformationManager()
     {
-        AddTypeInfo(typeof(bool), false);
+        AddTypeInfo(typeof(bool));
 
-        AddTypeInfo(typeof(byte), true);
-        AddTypeInfo(typeof(ushort), true);
-        AddTypeInfo(typeof(uint), true);
-        AddTypeInfo(typeof(ulong), true);
+        AddTypeInfo(typeof(byte));
+        AddTypeInfo(typeof(ushort));
+        AddTypeInfo(typeof(uint));
+        AddTypeInfo(typeof(ulong));
         AddWideIntegerTypeInfo(typeof(UInt128));
-        AddTypeInfo(typeof(UIntPtr), true);
+        AddTypeInfo(typeof(UIntPtr));
 
-        AddTypeInfo(typeof(sbyte), true);
-        AddTypeInfo(typeof(short), true);
-        AddTypeInfo(typeof(int), true);
-        AddTypeInfo(typeof(long), true);
+        AddTypeInfo(typeof(sbyte));
+        AddTypeInfo(typeof(short));
+        AddTypeInfo(typeof(int));
+        AddTypeInfo(typeof(long));
         AddWideIntegerTypeInfo(typeof(Int128));
-        AddTypeInfo(typeof(IntPtr), true);
+        AddTypeInfo(typeof(IntPtr));
 
-        AddTypeInfo(typeof(float), true);
-        AddTypeInfo(typeof(double), true);
+        AddTypeInfo(typeof(float));
+        AddTypeInfo(typeof(double));
 
-        AddTypeInfo(typeof(char), false);
-        AddTypeInfo(typeof(string), false);
+        AddTypeInfo(typeof(char));
+        AddTypeInfo(typeof(string));
     }
 
     #endregion
@@ -239,59 +220,24 @@ sealed class TypeInformationManager
     }
 
     /// <summary>
-    /// Adds primitive type information.
+    /// Adds type information for a type that occupies a single field without
+    /// any nested fields.
     /// </summary>
     /// <param name="type">The type to add.</param>
-    /// <param name="isBlittable">True, if this type is blittable.</param>
     /// <returns>The created type information instance.</returns>
-    private TypeInformation AddTypeInfo(Type type, bool isBlittable) =>
-        AddTypeInfo(type, isBlittable, isValidKernelParameter: isBlittable);
-
-    /// <summary>
-    /// Adds primitive type information.
-    /// </summary>
-    /// <param name="type">The type to add.</param>
-    /// <param name="isBlittable">True, if this type is blittable.</param>
-    /// <param name="isValidKernelParameter">
-    /// True, if a valid kernel parameter.
-    /// </param>
-    /// <returns>The created type information instance.</returns>
-    private TypeInformation AddTypeInfo(
-        Type type,
-        bool isBlittable,
-        bool isValidKernelParameter)
+    private TypeInformation AddTypeInfo(Type type)
     {
-        var result = CreatePrimitiveTypeInfo(
-            type,
-            isBlittable,
-            isValidKernelParameter);
-        _typeInfoMapping.Add(type, result);
-        return result;
-    }
-
-    /// <summary>
-    /// Creates primitive type information without registering it.
-    /// </summary>
-    /// <param name="type">The type.</param>
-    /// <param name="isBlittable">True, if this type is blittable.</param>
-    /// <param name="isValidKernelParameter">
-    /// True, if a valid kernel parameter.
-    /// </param>
-    /// <returns>The created type information instance.</returns>
-    private TypeInformation CreatePrimitiveTypeInfo(
-        Type type,
-        bool isBlittable,
-        bool isValidKernelParameter) =>
-        new(
+        var result = new TypeInformation(
             this,
             type,
             0,
             ImmutableArray<FieldInfo>.Empty,
             ImmutableArray<int>.Empty,
             ImmutableArray<Type>.Empty,
-            1,
-            isBlittable,
-            isValidKernelParameter);
+            1);
+        _typeInfoMapping.Add(type, result);
+        return result;
+    }
 
     /// <summary>
     /// Adds the type information of <see cref="Int128"/> or
@@ -309,9 +255,7 @@ sealed class TypeInformationManager
             ImmutableArray<FieldInfo>.Empty,
             ImmutableArray<int>.Empty,
             ImmutableArray<Type>.Empty,
-            2,
-            isBlittable: true,
-            isValidKernelParameter: true));
+            2));
 
     /// <summary>
     /// Creates new type information and registers the created object
@@ -319,49 +263,21 @@ sealed class TypeInformationManager
     /// </summary>
     /// <param name="type">The base .Net type.</param>
     /// <returns>The created type information object.</returns>
+    /// <remarks>
+    /// Pointers, arrays and views refer to their elements and occupy a single
+    /// field without resolving their element types, which may refer back to
+    /// the types containing them.
+    /// </remarks>
     private TypeInformation CreateTypeInfo(Type type)
     {
-        TypeInformation result;
-
-        // Check for pointers and arrays
-        if (type.IsPointer || type.IsByRef || type.IsArray)
+        if (type.IsPointer || type.IsByRef || type.IsArray || type.IsEnum ||
+            type.IsArrayViewType(out _))
         {
-            // A structure that points to itself through its fields is blittable
-            // if its other fields are: the information about such a pointer is
-            // registered once the information about the structure is complete
-            var elementType = type.GetElementType().AsNotNull();
-            if (_compoundTypesInProgress.Contains(elementType))
-                return CreatePrimitiveTypeInfo(type, true, true);
-
-            var elementInfo = GetTypeInfoInternal(elementType);
-            result = AddTypeInfo(type, elementInfo.IsBlittable);
-        }
-        // Check for enum types
-        else if (type.IsEnum)
-        {
-            var baseInfo = GetTypeInfoInternal(type.GetEnumUnderlyingType());
-            result = AddTypeInfo(type, baseInfo.IsBlittable);
-        }
-        // Check for opaque view types
-        else if (type.IsArrayViewType(out Type? elementType))
-        {
-            var elementInfo = GetTypeInfoInternal(elementType);
-            result = AddTypeInfo(type, false, elementInfo.IsBlittable);
-        }
-        else
-        {
-            _compoundTypesInProgress.Add(type);
-            try
-            {
-                result = CreateCompoundTypeInfo(type);
-            }
-            finally
-            {
-                _compoundTypesInProgress.Remove(type);
-            }
-            _typeInfoMapping.Add(type, result);
+            return AddTypeInfo(type);
         }
 
+        var result = CreateCompoundTypeInfo(type);
+        _typeInfoMapping.Add(type, result);
         return result;
     }
 
@@ -414,18 +330,22 @@ sealed class TypeInformationManager
         var fieldTypesBuilder = ImmutableArray.CreateBuilder<Type>(fields.Length);
         var fieldOffsetsBuilder = ImmutableArray.CreateBuilder<int>(fields.Length);
         int flattenedFields = 0;
-        bool isBlittable = true;
-        bool isValidKernelParameter = true;
         foreach (var field in fields)
         {
             fieldOffsetsBuilder.Add(flattenedFields);
             fieldTypesBuilder.Add(field.FieldType);
 
-            var nestedTypeInfo = GetTypeInfoInternal(field.FieldType);
-            isBlittable &= nestedTypeInfo.IsBlittable;
-            isValidKernelParameter &= nestedTypeInfo.IsValidKernelParameter;
+            // Fields of reference types are pointers occupying a single field.
+            // Their types are not resolved here, as they may refer back to the
+            // types containing them. Nested structures cannot contain themselves.
+            if (!field.FieldType.IsValueType)
+            {
+                ++flattenedFields;
+                continue;
+            }
 
             // Empty structures are treated as having a single field.
+            var nestedTypeInfo = GetTypeInfoInternal(field.FieldType);
             flattenedFields += nestedTypeInfo.NumFlattenedFields > 0
                 ? nestedTypeInfo.NumFlattenedFields
                 : 1;
@@ -450,9 +370,7 @@ sealed class TypeInformationManager
             fields,
             fieldOffsetsBuilder.MoveToImmutable(),
             fieldTypesBuilder.MoveToImmutable(),
-            flattenedFields,
-            isBlittable,
-            isValidKernelParameter);
+            type.IsValueType ? flattenedFields : 1);
     }
 
     /// <summary>

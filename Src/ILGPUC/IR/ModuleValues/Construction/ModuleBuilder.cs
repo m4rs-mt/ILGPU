@@ -22,6 +22,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using System.Text;
 using static ILGPUC.IR.TypeInformationManager;
 
 namespace ILGPUC.IR.ModuleValues.Construction;
@@ -60,8 +61,8 @@ partial class ModuleBuilder : IGenerationObject
     private readonly Dictionary<TypeValue, TypeValue> _unifiedTypes = [];
     private readonly Dictionary<(Type, MemoryAddressSpace), TypeValue> _typeMapping = [];
     private readonly Dictionary<Type, TypeValue> _classStructCache = new(8);
-    private readonly HashSet<Type> _classStructInProgress = new(4);
-    private readonly HashSet<Type> _structureTypesInProgress = new(4);
+    private readonly List<(Type Type, FieldInfo? Field)> _typesInProgress = new(4);
+    private readonly Dictionary<Type, bool> _expandingGenericTypes = [];
     private DelegateHandleType? _delegateHandleType;
 
     private InlineList<Global> _globals = InlineList<Global>.Create(32);
@@ -470,15 +471,6 @@ partial class ModuleBuilder : IGenerationObject
         }
         else if (type.IsArray)
         {
-            // Arrays hold their elements, which cannot be structures that
-            // contain these arrays
-            if (_structureTypesInProgress.Contains(type.GetElementType().AsNotNull()))
-            {
-                throw new NotSupportedException(
-                    string.Format(
-                        ErrorMessages.NotSupportedRecursiveReferenceType,
-                        type));
-            }
             var arrayElementType = CreateType(
                 type.GetElementType().AsNotNull(),
                 addressSpace);
@@ -510,7 +502,8 @@ partial class ModuleBuilder : IGenerationObject
             // it points to itself are opaque pointers, which loads from these
             // fields convert back to the pointer type
             var pointerElementType = type.GetElementType().AsNotNull();
-            if (_structureTypesInProgress.Contains(pointerElementType))
+            if (pointerElementType.IsValueType &&
+                IsTypeInProgress(pointerElementType))
                 return CreatePointerType(VoidType, addressSpace);
 
             return Map(
@@ -572,27 +565,19 @@ partial class ModuleBuilder : IGenerationObject
         if (_classStructCache.TryGetValue(type, out var cached))
             return cached;
 
-        // Detect recursive types
-        if (!_classStructInProgress.Add(type))
-        {
-            throw new NotSupportedException(
-                string.Format(
-                    ErrorMessages.NotSupportedRecursiveReferenceType,
-                    type));
-        }
-
+        BeginTypeCreation(type);
         try
         {
             VerifyNoDelegateFields(type, type, []);
             var typeInfo = GetTypeInfo(type);
             var builder = new StructureType.Builder(
                 this,
-                typeInfo.NumFlattenedFields,
+                typeInfo.NumFields,
                 typeInfo.Size);
             foreach (var field in typeInfo.Fields)
             {
-                // Use CreateType for each field — class-typed fields become pointers
-                builder.Add(CreateType(field.FieldType, ClassStructSpace));
+                // Class-typed fields become pointers
+                builder.Add(CreateFieldType(field, ClassStructSpace));
             }
             var result = UnifyType(builder.Seal());
             _classStructCache[type] = result;
@@ -600,8 +585,196 @@ partial class ModuleBuilder : IGenerationObject
         }
         finally
         {
-            _classStructInProgress.Remove(type);
+            _typesInProgress.RemoveAt(_typesInProgress.Count - 1);
         }
+    }
+
+    /// <summary>
+    /// Registers the given structure or class type as being created and rejects
+    /// recursive types, which have no finite representation in the IR: types
+    /// that contain themselves through arrays, views or fields of class types,
+    /// whose element and field types are all created, and generic types that
+    /// contain ever larger instantiations of their definitions. Pointers to
+    /// structures being created are opaque pointers instead.
+    /// </summary>
+    /// <param name="type">The type being created.</param>
+    private void BeginTypeCreation(Type type)
+    {
+        for (int i = 0; i < _typesInProgress.Count; ++i)
+        {
+            if (_typesInProgress[i].Type != type)
+                continue;
+            throw new NotSupportedException(
+                string.Format(
+                    ErrorMessages.NotSupportedRecursiveType,
+                    TypeDisplay.Format(type),
+                    GetFieldPath(i)));
+        }
+        if (IsExpandingGenericType(type, out var definition))
+        {
+            throw new NotSupportedException(
+                string.Format(
+                    ErrorMessages.NotSupportedExpandingGenericType,
+                    TypeDisplay.Format(type),
+                    TypeDisplay.Format(definition)));
+        }
+        _typesInProgress.Add((type, null));
+    }
+
+    /// <summary>
+    /// Returns true if the given type is being created.
+    /// </summary>
+    /// <param name="type">The type.</param>
+    /// <returns>True if the type is being created.</returns>
+    private bool IsTypeInProgress(Type type) =>
+        _typesInProgress.Exists(entry => entry.Type == type);
+
+    /// <summary>
+    /// Creates the type of the given field of the type created last.
+    /// </summary>
+    /// <param name="field">The field.</param>
+    /// <param name="addressSpace">The address space for pointer types.</param>
+    /// <returns>The IR type of the field.</returns>
+    private TypeValue CreateFieldType(FieldInfo field, MemoryAddressSpace addressSpace)
+    {
+        _typesInProgress[^1] = (_typesInProgress[^1].Type, field);
+        return CreateType(field.FieldType, addressSpace);
+    }
+
+    /// <summary>
+    /// Returns the path of fields through which the type being created at the
+    /// given index refers to itself, such as <c>Node.Next</c>.
+    /// </summary>
+    /// <param name="index">The index of the type in progress.</param>
+    /// <returns>The field path.</returns>
+    private string GetFieldPath(int index)
+    {
+        var path = new StringBuilder(
+            TypeDisplay.Format(_typesInProgress[index].Type));
+        for (int i = index; i < _typesInProgress.Count; ++i)
+        {
+            // Auto-implemented properties store their values in fields named
+            // '<Name>k__BackingField'
+            var name = _typesInProgress[i].Field.AsNotNull().Name;
+            int end = name.IndexOf(">k__BackingField", StringComparison.Ordinal);
+            path.Append('.').Append(end > 1 ? name[1..end] : name);
+        }
+        return path.ToString();
+    }
+
+    /// <summary>
+    /// Returns true if the given type is an instantiation of a generic type
+    /// definition with an expanding cycle (ECMA-335 II.9.2): a type parameter of
+    /// the definition flows through the type arguments of the types of its
+    /// fields back into itself, nested in a type argument at least once, as in
+    /// <c>Node&lt;T&gt;</c> holding <c>Node&lt;Node&lt;T&gt;&gt;[]</c>. Creating such a
+    /// type would create ever larger instantiations without end. Instantiations
+    /// nested in their type arguments, such as <c>W&lt;W&lt;int&gt;&gt;</c>, are
+    /// finite and supported.
+    /// </summary>
+    /// <param name="type">The type being created.</param>
+    /// <param name="definition">The generic type definition (if any).</param>
+    /// <returns>True if the generic type definition expands.</returns>
+    private bool IsExpandingGenericType(
+        Type type,
+        [NotNullWhen(true)] out Type? definition)
+    {
+        definition = type.IsGenericType ? type.GetGenericTypeDefinition() : null;
+        if (definition is null)
+            return false;
+        if (!_expandingGenericTypes.TryGetValue(definition, out bool expanding))
+        {
+            expanding = HasExpandingCycle(definition);
+            _expandingGenericTypes.Add(definition, expanding);
+        }
+        return expanding;
+    }
+
+    /// <summary>
+    /// Returns true if a type parameter of the given generic type definition
+    /// flows back into itself through a nested type argument.
+    /// </summary>
+    /// <param name="definition">The generic type definition.</param>
+    /// <returns>True if the definition has an expanding cycle.</returns>
+    private static bool HasExpandingCycle(Type definition)
+    {
+        var visited = new HashSet<(Type, bool)>();
+        var worklist = new Stack<(Type Parameter, bool Expanded)>();
+        var flows = new List<(Type Parameter, bool Expanding)>();
+        foreach (var parameter in definition.GetGenericArguments())
+        {
+            visited.Clear();
+            worklist.Push((parameter, false));
+            while (worklist.TryPop(out var entry))
+            {
+                flows.Clear();
+                GetTypeArgumentFlows(entry.Parameter, flows);
+                foreach (var (target, expanding) in flows)
+                {
+                    bool expanded = entry.Expanded | expanding;
+                    if (target == parameter && expanded)
+                        return true;
+                    if (visited.Add((target, expanded)))
+                        worklist.Push((target, expanded));
+                }
+            }
+        }
+        return false;
+    }
+
+    /// <summary>
+    /// Collects the type parameters the given type parameter is passed to as a
+    /// type argument of the types of the instance fields of its declaring type,
+    /// and whether it is nested in that type argument.
+    /// </summary>
+    /// <param name="parameter">The generic type parameter.</param>
+    /// <param name="flows">The list to add the receiving parameters to.</param>
+    private static void GetTypeArgumentFlows(
+        Type parameter,
+        List<(Type Parameter, bool Expanding)> flows)
+    {
+        const BindingFlags FieldFlags = BindingFlags.Instance |
+            BindingFlags.Public | BindingFlags.NonPublic;
+        if (parameter.DeclaringType is not Type declaringType)
+            return;
+        foreach (var field in declaringType.GetFields(FieldFlags))
+            Collect(field.FieldType);
+
+        void Collect(Type type)
+        {
+            if (type.HasElementType)
+            {
+                Collect(type.GetElementType().AsNotNull());
+                return;
+            }
+            if (!type.IsGenericType)
+                return;
+
+            // Views are created from their element types like arrays
+            var arguments = type.GetGenericArguments();
+            if (!type.IsArrayViewType(out _))
+            {
+                var targets = type.GetGenericTypeDefinition().GetGenericArguments();
+                for (int i = 0; i < arguments.Length; ++i)
+                {
+                    if (arguments[i] == parameter)
+                        flows.Add((targets[i], false));
+                    else if (ContainsType(arguments[i], parameter))
+                        flows.Add((targets[i], true));
+                }
+            }
+            foreach (var argument in arguments)
+                Collect(argument);
+        }
+
+        static bool ContainsType(Type type, Type parameter) =>
+            type == parameter ||
+            type.HasElementType &&
+                ContainsType(type.GetElementType().AsNotNull(), parameter) ||
+            type.IsGenericType &&
+                Array.Exists(
+                    type.GetGenericArguments(),
+                    argument => ContainsType(argument, parameter));
     }
 
     /// <summary>
@@ -646,15 +819,15 @@ partial class ModuleBuilder : IGenerationObject
             this,
             typeInfo.NumFlattenedFields,
             typeInfo.Size);
-        _structureTypesInProgress.Add(type);
+        BeginTypeCreation(type);
         try
         {
             foreach (var field in typeInfo.Fields)
-                builder.Add(CreateType(field.FieldType, addressSpace));
+                builder.Add(CreateFieldType(field, addressSpace));
         }
         finally
         {
-            _structureTypesInProgress.Remove(type);
+            _typesInProgress.RemoveAt(_typesInProgress.Count - 1);
         }
     }
 

@@ -124,4 +124,22 @@ static class LambdaKernels
             addA(index.X > 0 ? index.X : a) +
             mulB(index.X > 0 ? index.X : b);
     }
+
+    /// <summary>
+    /// A lambda capturing locals of two nested scopes, which the C# compiler
+    /// stores in two closure classes: the inner one refers to the outer one
+    /// through a field of a class type that occupies a single pointer field.
+    /// </summary>
+    public static void NestedScopeCaptureKernel(
+        Index1D index, ArrayView1D<int, Stride1D.Dense> data)
+    {
+        int offset = index * 10;
+        int scale = 2;
+        if (index >= 0)
+        {
+            int bias = 3;
+            Func<int, int> f = x => x * scale + offset + bias;
+            data[index] = f(index);
+        }
+    }
 }

@@ -265,7 +265,10 @@ public sealed class SelfReferentialPointerTests
             Microsoft.CodeAnalysis.Location.None,
             out var diagnostic));
         Assert.Equal("ILGPU1200", diagnostic!.Id);
-        Assert.Contains("+ArrayNode[]' is not supported", diagnostic.Message);
+        Assert.Contains(
+            "Recursive type 'ArrayNode' is not supported in GPU kernels: " +
+            "it refers to itself through 'ArrayNode.Children'.",
+            diagnostic.Message);
 
         // The local is created with the kernel, at the first sequence point of
         // the kernel: its opening brace in debug builds or the declaration
