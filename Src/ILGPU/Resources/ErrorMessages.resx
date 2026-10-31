@@ -629,6 +629,10 @@
     <value>{0} does not support values of type '{1}'. Only primitive types and structures of primitive types can be broadcast, shuffled, reduced or scanned.</value>
     <comment/>
   </data>
+  <data name="KernelDiagnosticIntegerToPointer" xml:space="preserve">
+    <value>Method '{0}' converts an integer that holds the address of {1} memory to a pointer, which {2} does not support: without generic pointers, integers converted to pointers refer to global memory. Use the original pointer or reference instead.</value>
+    <comment/>
+  </data>
   <data name="KernelDiagnosticUnsupportedNumericOperation" xml:space="preserve">
     <value>Kernel code cannot call '{0}', which computes with values of type '{1}'. Kernels can store and copy Int128, UInt128 and decimal values, but cannot compute with them or convert them; use long, ulong or double instead.</value>
     <comment/>

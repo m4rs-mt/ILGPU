@@ -1239,11 +1239,12 @@ sealed partial class CPUMethodEmitter(
                         context.LanguageConfig;
                     var castType = config2.GetPrimitiveTypeName(
                         ptrCast.BasicValueType);
+                    // Addresses such as view + 3 bind more loosely than casts
                     if (analysis.IsScalar(ptrCast))
                     {
                         context.WriteLine(
                             $"{castResult} = ({castType})(nint)" +
-                            $"{sourceExpr};");
+                            $"({sourceExpr});");
                     }
                     else if (analysis.IsScalar(ptrCast.Source))
                     {
@@ -1252,7 +1253,7 @@ sealed partial class CPUMethodEmitter(
                         context.WriteLine(
                             $"CPUVectorIntrinsics.Broadcast<{castType}>(" +
                             $"{castResult}, ({castType})(nint)" +
-                            $"{sourceExpr});");
+                            $"({sourceExpr}));");
                     }
                     else
                     {
