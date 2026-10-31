@@ -55,9 +55,10 @@ Target framework is **net10.0** (C# 13). `AllowUnsafeBlocks` is enabled.
 |---------|------|---------|
 | `ILGPU/` | Library | Runtime library (accelerators, buffers, intrinsics) |
 | `ILGPUC/` | Exe | AOT compiler CLI (`compile` and `build` commands) |
-| `ILGPUC.Compilers/` | Library | Native compiler bindings (Metal, NVCC, Hipcc, clang) |
+| `ILGPUC.Compilers/` | Library | Native compiler bindings (Metal, NVCC, Hipcc, clang, ocloc), the local and remote compiler managers and `CompilerManagerFactory` |
 | `ILGPUC.CompilerService/` | Exe | Remote compilation service |
-| `ILGPUC.Tests/` | Tests | xUnit test suite (IR snapshots, backend codegen, execution) |
+| `ILGPUC.CompilerService.Tests/` | Tests | xUnit tests of the compilation service against a mock compiler manager |
+| `ILGPUC.Tests/` | Tests | xUnit test suite (IR snapshots, backend codegen, execution, MSBuild integration) |
 
 ## Compilation Pipeline
 
@@ -79,13 +80,13 @@ IL bytecode ──→ ILFrontend ──→ ModuleBuilder.Seal() ──→ Optimi
 
 ### Roslyn-based `build` command (alternative pipeline)
 
-`ILGPUC/RoslynFrontend/` — Parses C# source directly via Roslyn, rewrites launch sites, injects compiled kernels. Namespaces: `ILGPUC.RoslynFrontend.{Analysis,Rewriting,Emit,Generation}`.
+`ILGPUC/Roslyn/` — Parses C# source directly via Roslyn, rewrites launch sites, injects compiled kernels. Namespaces: `ILGPUC.Roslyn.Analysis` (launch sites, kernel extraction, diagnostics) and `ILGPUC.Roslyn.Generation` (call-site rewriting, dispatch stubs, compilation emit).
 
 ## IR Architecture
 
 **Type hierarchy:** `TypeValue` → `PrimitiveType`, `ViewType`, `PointerType`, `StructureType`, `ArrayType`, `VoidType`
 
-**Value hierarchy:** `Value` → `GlobalValue` (Module-level: `Method`, `Global`, `TypeValue`) and `BasicBlockValue` (block-local SSA values: `PhiValue`, `MethodCall`, loads/stores, arithmetic, etc.)
+**Value hierarchy:** `Value` → `Value<TScope>` → `ModuleValue` (module-level: `Method`, `Global`, `TypeValue`, `UndefinedValue`), `MethodValue` (method-level: `Parameter`, `BasicBlock`), `BasicBlockValue` (values ordered inside a block: `PhiValue`, `MethodCall`, loads/stores, atomics, etc.) and `PureValue` (side-effect-free values that belong to no block: constants, arithmetic, comparisons, conversions, field and view operations, etc.)
 
 **Key types:**
 - `Module` — Container for methods, globals, types
@@ -103,7 +104,7 @@ IL bytecode ──→ ILFrontend ──→ ModuleBuilder.Seal() ──→ Optimi
 
 ## Test Infrastructure
 
-Four test layers in `ILGPUC.Tests/`:
+Four main test layers in `ILGPUC.Tests/`:
 
 1. **IR Snapshot Tests** (`IRTests/`) — Compare IR text at pipeline stages (`AfterFrontend`, `AfterGlobalOpt`, `AfterBackendTransforms/`) against `.il` files in `Snapshots/` submodule. Set `ILGPU_UPDATE_IR=1` to regenerate.
 
@@ -112,14 +113,16 @@ Four test layers in `ILGPUC.Tests/`:
 3. **Execution Tests** (`ExecutionTests/`) — Build standalone programs from `TestPrograms/`, run as subprocess with 30s timeout, verify stdout line-by-line. At most four programs run at once per GPU backend (`DeviceProgramLimiter`; set `ILGPU_TEST_DEVICE_PROGRAMS=<n>`, `0` = unlimited) so the per-program device contexts fit into limited GPU memory; CPU programs are not limited.
 
 4. **Integration Tests** (`IntegrationTests/`) — End-to-end MSBuild integration. Materialize a real standalone `.csproj` from a template under `IntegrationProjects/`, run `dotnet build` against it as a subprocess, inspect the artifacts produced by `Src/ILGPUC/build/ILGPU.Kernels.targets` (`obj/.../ilgpu/{manifest.txt,args.rsp,rewritten/,generated/}`), and execute the resulting binary verifying stdout. The closest analog to "what a downstream user gets" — exercises the `ilgpuc build` CLI, the `.targets` file, the `<Compile Remove>` source-swapping, and the rewritten launch sites end-to-end. Two test classes:
-   - `MsBuildIntegrationTests` — 19 tests covering happy path, no-kernel projects, multi-kernel projects, backend property override, compile errors, incremental skip / rebuild, `dotnet clean`, inline lambda kernels (including delegate parameters bound to the targets their callers pass) and their capture diagnostics, launch-site shapes (a public launching method of an executable capturing delegate parameters passed from another class, launches sharing a line with other code, grouped launches passing values computed from the index), the not-compiled report of ILGPU library algorithms, generic kernels launched through generic wrappers and classes, projects that need their source generators, reruns of the kernel build when an MSBuild property changes, type-specialized generic helpers, including instantiations that throw (skipped when reached through generic code, a build error when launched directly), and generic kernels launched across assemblies, including the build error for lambda kernels that other assemblies cannot compile. Each scenario is a nested class (`MsBuildIntegrationTests+HelloKernel`, `+Clean`, ...) so xUnit runs the scenarios in parallel; every test builds in its own temp dir with MSBuild node reuse disabled. Most tests are `[SkippableTheory]` over `BackendType.{CPU,Metal}` with the existing `Availability` skip gates handling missing GPU hardware. Run with `dotnet test --filter MsBuildIntegrationTests`.
+   - `MsBuildIntegrationTests` — 22 tests in 21 scenarios covering happy path, no-kernel projects, multi-kernel projects, backend property override, compile errors, incremental skip / rebuild, `dotnet clean`, inline lambda kernels (including delegate parameters bound to the targets their callers pass) and their capture diagnostics, launch-site shapes (a public launching method of an executable capturing delegate parameters passed from another class, launches sharing a line with other code, grouped launches passing values computed from the index), the not-compiled report of ILGPU library algorithms, generic kernels launched through generic wrappers and classes, projects that need their source generators, reruns of the kernel build when an MSBuild property changes, type-specialized generic helpers, including instantiations that throw (skipped when reached through generic code, a build error when launched directly), generic kernels launched across assemblies, including the build error for lambda kernels that other assemblies cannot compile, kernels compiled from optimized IL (`Optimize=true`, as in Release builds), and type-specialized helpers that live in a referenced library without ILGPU. Each scenario is a nested class (`MsBuildIntegrationTests+HelloKernel`, `+Clean`, ...) so xUnit runs the scenarios in parallel; every test builds in its own temp dir with MSBuild node reuse disabled. Half of the tests (11 of 22) are `[SkippableTheory]` over `BackendType.{CPU,Metal}` with the existing `Availability` skip gates handling missing GPU hardware; the other 11 are CPU-only `[SkippableFact]`s. Run with `dotnet test --filter MsBuildIntegrationTests`.
    - `SampleFamilyIntegrationTests` — builds and runs templates that mirror samples under `Samples/` (advanced views, generic kernels, float64 atomics, tiled matrix multiply) to pin sample-portability bug families, one nested class per sample with the same parallel layout. The NuGet pack/restore path is covered by `EndToEndTest/` instead.
 
    The framework helpers live at `ILGPUC.Tests/Framework/{MsBuildRunner.cs,IntegrationProjectFixture.cs}` — a subprocess wrapper for `dotnet build/clean/pack/restore` and a fixture that materializes templates with token substitution. The fixture leaves the temp working dir in place on test failure so you can inspect `obj/.../ilgpu/` directly.
 
+Next to these layers, `PerfTests/` holds the deterministic compile-time counter budgets (see the commands above), `NonKernelTests/` tests compiler internals, diagnostics and launch analysis directly without running the backend matrix, and `KnownIssues/` holds kernels the frontend must reject, which `KernelRegistry` deliberately skips.
+
 ### Remote Compiler Service Configuration
 
-Backend and execution tests resolve native compilers via `CompilerManagerFactory` (`ILGPUC.Tests/Framework/CompilerManagerFactory.cs`). By default it uses a local `CompilerManager`, but environment variables can redirect any backend to a remote `ILGPUC.CompilerService` instance — useful when developing on a machine that lacks one or more native toolchains (e.g. macOS without nvcc/hipcc/ocloc).
+Backend and execution tests resolve native compilers via `CompilerManagerFactory.ResolveAsync` (`ILGPUC.Compilers/CompilerManagerFactory.cs`, the discovery path shared with the CLI, which builds its manager with `CompilerManagerFactory.CreateAsync`). By default it uses a local `CompilerManager`, but environment variables can redirect any backend to a remote `ILGPUC.CompilerService` instance — useful when developing on a machine that lacks one or more native toolchains (e.g. macOS without nvcc/hipcc/ocloc).
 
 | Variable | Scope |
 |----------|-------|
@@ -133,7 +136,7 @@ Resolution precedence per backend: per-backend variable > `ILGPU_COMPILER_SERVIC
 
 `Availability.IsRuntimeAvailable(BackendType)` is a *separate* gate from the compiler check. It probes for an actual local device via `XxxDevice.GetDevices()` and is used by `ExecutionTestBase.RunProgramAsync` (after the compiler check). The compiler check can be satisfied by a remote / Docker service even on a host without GPU hardware; execution tests additionally need a real device. Without this gate, GPU execution tests on hardware-less hosts (e.g. macOS running the CUDA / ROCm Docker containers) crashed with an opaque exit-code-134 process abort. CPU is always available, Metal returns true on macOS, CUDA / ROCm / OpenCL return true only when the corresponding driver is loaded.
 
-When **no** env var is set, `CompilerManagerFactory.GetCompilerManagerAsync` probes the per-backend Docker default URL once per backend per `dotnet test` invocation (3 s timeout, near-instant on connection-refused). If the container is up and reports the backend as available, all CUDA / ROCm / OpenCL compilation routes through it automatically — no env vars needed after `Src/docker/run.sh`. If the probe fails, it falls back to the local `CompilerManager` (today's behaviour). Defaults match `Src/docker/run.sh` `CUDA_HOST_PORT` / `ROCM_HOST_PORT` / `OPENCL_HOST_PORT`; bump both files together when reassigning. Metal has no Docker default and stays env-var-only.
+When **no** env var is set, `CompilerManagerFactory.ResolveAsync` probes the per-backend Docker default URL once per backend per `dotnet test` invocation (3 s timeout, near-instant on connection-refused). If the container is up and reports the backend as available, all CUDA / ROCm / OpenCL compilation routes through it automatically — no env vars needed after `Src/docker/run.sh`. If the probe fails, it falls back to the local `CompilerManager` (today's behaviour). Defaults match `Src/docker/run.sh` `CUDA_HOST_PORT` / `ROCM_HOST_PORT` / `OPENCL_HOST_PORT`; bump both files together when reassigning. Metal has no Docker default and stays env-var-only.
 
 ```bash
 # Run all tests with Cuda/ROCm/OpenCL via a remote builder, Metal local:
@@ -201,7 +204,7 @@ On Apple Silicon, enable Rosetta in Docker Desktop (`Settings → General`) for 
 
 #### CI uses these images without the HTTP service tier
 
-`.github/workflows/ci.yml` is the canonical CI pipeline (one workflow, sixteen jobs). For the GPU compile-only test jobs, instead of running the CompilerService and reaching it over HTTP, the CI workflow `docker run`s the GHCR-published image directly with the prebuilt test binaries bind-mounted in, and executes `dotnet test --no-build` **inside** the container — where the local `nvcc`/`hipcc`/`ocloc` is on PATH. The test framework's `CompilerManagerFactory` falls back to `LocalCompilerManager`, which finds the compiler at the path `Src/ILGPUC.Compilers/CompilerOptions.cs` expects. No HTTP, no probe, no service tier active in CI — the same images that serve as a remote builder for dev also serve as test runners for CI. See `plans/ci_redesign.md` for the design rationale.
+`.github/workflows/ci.yml` is the canonical CI pipeline (one workflow, twenty-five jobs). For the GPU compile-only test jobs, instead of running the CompilerService and reaching it over HTTP, the CI workflow `docker run`s the GHCR-published image directly with the prebuilt test binaries bind-mounted in, and executes `dotnet test --no-build` **inside** the container — where the local `nvcc`/`hipcc`/`ocloc` is on PATH. `CompilerManagerFactory` falls back to the local `CompilerManager` (`CompilerManagerFactory.GetLocalManager()`), which finds the compiler at the path `Src/ILGPUC.Compilers/CompilerOptions.cs` expects. No HTTP, no probe, no service tier active in CI — the same images that serve as a remote builder for dev also serve as test runners for CI.
 
 ## Critical Pitfalls
 
@@ -232,7 +235,7 @@ On Apple Silicon, enable Rosetta in Docker Desktop (`Settings → General`) for 
 
 ## Code Style
 
-- 4-space indentation, CRLF line endings
+- 4-space indentation; `Src/.editorconfig` asks editors for CRLF line endings, while `.gitattributes` (`* text=auto`) stores text files with LF line endings in the repository
 - No `ImplicitUsings` in ILGPUC — all files need explicit `using` statements
 - `Backend` class is `internal` — public APIs cannot expose it
 - `.editorconfig` enforces naming conventions (PascalCase, `I` prefix for interfaces)

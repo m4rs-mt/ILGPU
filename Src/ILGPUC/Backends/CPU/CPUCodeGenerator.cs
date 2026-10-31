@@ -136,8 +136,12 @@ sealed class CPUCodeGenerator(
     /// </summary>
     private string? GetEntryPointIndexTypeName(GenerationContext context)
     {
-        if (module.EntryPoint is null || module.EntryPoint.Parameters.Count == 0)
+        if (module.EntryPoint is null
+            || module.EntryPoint.Parameters.Count == 0
+            || !context.Launch.HasKernelIndex)
+        {
             return null;
+        }
         if (module.EntryPoint.Parameters[0].Type is not StructureType st
             || !CPUMethodEmitter.IsKernelIndexStructType(st))
         {
@@ -149,8 +153,9 @@ sealed class CPUCodeGenerator(
 
     /// <summary>
     /// Collects the post-backend-transform type names for the entry point
-    /// parameters. For auto-sized launches, skips parameter 0 (the implicit
-    /// thread index). For grouped launches, includes all parameters.
+    /// parameters. Skips parameter 0 if it is the thread index: for
+    /// auto-sized launches and grouped launches with a <c>KernelIndex</c>.
+    /// Grouped launches without an index parameter include all parameters.
     /// </summary>
     private string[]? GetEntryPointParamTypeNames(GenerationContext context)
     {
@@ -160,17 +165,12 @@ sealed class CPUCodeGenerator(
         var typeEmitter = new TypeEmitter(context);
         var parameters = module.EntryPoint.Parameters;
 
-        // Detect whether param 0 is the thread index (Int32 for Index1D,
-        // Index2D/3D struct, or KernelIndex for grouped launches). Pure
-        // grouped kernels without an index parameter start marshaling from
-        // parameter 0.
-        bool hasIndexParam = parameters.Count > 0
-            && (parameters[0].Type is PrimitiveType
-                    { BasicValueType: BasicValueType.Int32 }
-                || (parameters[0].Type is StructureType st
-                    && (CPUMethodEmitter.IsIndexStructType(st)
-                        || CPUMethodEmitter.IsKernelIndexStructType(st))));
-        int startParam = hasIndexParam ? 1 : 0;
+        // The launch tells whether param 0 is the thread index, as in the
+        // compiled kernel generator: the first parameter of a grouped kernel
+        // without an index parameter may have the type of an index
+        int startParam = context.Launch.HasIndexParameter && parameters.Count > 0
+            ? 1
+            : 0;
 
         var result = new string[parameters.Count - startParam];
         for (int i = startParam; i < parameters.Count; i++)

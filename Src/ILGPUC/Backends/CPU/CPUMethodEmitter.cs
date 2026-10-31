@@ -136,12 +136,13 @@ sealed partial class CPUMethodEmitter(
             EmitGlobalDeclarations();
 
         // Redirect the entry point's first parameter to laneIdx — but ONLY
-        // when it actually IS the thread index. For auto-sized launches
-        // (Index1D, Index2D, Index3D), the first parameter is the index.
-        // For grouped launches (KernelConfig), there is no index parameter
-        // — the kernel reads Grid.GlobalThreadIndex internally — so the
-        // first parameter is a real kernel parameter and must NOT be aliased.
-        if (isEntryPoint && method.Parameters.Count > 0)
+        // when the launch passes it as the thread index: the Index1D/2D/3D
+        // of auto-sized launches and the KernelIndex of grouped launches.
+        // Grouped kernels without an index parameter read the grid and group
+        // indices internally, so their first parameter is a real kernel
+        // parameter, even if it has the type of an index, and must NOT be
+        // aliased.
+        if (HasEntryPointIndex(method))
         {
             var param0 = method.Parameters[0];
             if (param0.Type is StructureType indexStruct
@@ -161,7 +162,14 @@ sealed partial class CPUMethodEmitter(
                 // 1D index (Index1D → int): alias to laneIdx
                 context.SetValueName(param0, "laneIdx");
             }
-            // else: grouped kernel — param0 is a real parameter, don't alias
+            else if (param0.Type is PrimitiveType
+                { BasicValueType: BasicValueType.Int64 })
+            {
+                // 1D long index (LongIndex1D → long): alias to the lane
+                // indices widened to long
+                EmitLongLaneIndices(param0);
+            }
+            // else: an index type that is not decomposed or aliased
         }
 
         // Emit method body with vectorized control flow
@@ -234,12 +242,15 @@ sealed partial class CPUMethodEmitter(
             first = false;
 
             var typeName = typeEmitter.GetTypeName(param.Type);
-            // Entry point's first param: for multi-dim kernels (Index2D/3D),
-            // emit as int (the linear base index) instead of the struct type.
-            // The decomposition into X/Y/Z happens in EmitIndexDecomposition.
-            if (isEntryPoint && param.Index == 0
-                && param.Type is StructureType pSt
-                && IsIndexStructType(pSt))
+            // Entry point's first param: for multi-dim kernels (Index2D/3D)
+            // and long indices, emit as int (the linear base index of the
+            // launcher) instead of the index type. The decomposition into
+            // X/Y/Z happens in EmitIndexDecomposition, the widening of long
+            // indices in EmitLongLaneIndices.
+            if (IsEntryPointIndex(param)
+                && (param.Type is StructureType pSt && IsIndexStructType(pSt)
+                    || param.Type is PrimitiveType
+                        { BasicValueType: BasicValueType.Int64 }))
             {
                 typeName = "int";
             }
@@ -287,7 +298,7 @@ sealed partial class CPUMethodEmitter(
             // numeric struct (Index2D/Index3D). Structs with pointer/view
             // dependencies (e.g. ArrayView) are user parameters from
             // grouped kernels and must not be treated as multi-dim indices.
-            if (method.Parameters.Count > 0
+            if (HasEntryPointIndex(method)
                 && method.Parameters[0].Type is StructureType idxSt
                 && IsIndexStructType(idxSt))
             {
@@ -435,6 +446,25 @@ sealed partial class CPUMethodEmitter(
     }
 
     /// <summary>
+    /// Returns <see langword="true"/> when <paramref name="method"/> is the
+    /// entry point and the launch passes the thread index as its first
+    /// parameter. The launch decides this, since the first parameter of a
+    /// grouped kernel without an index parameter may have the type of an
+    /// index.
+    /// </summary>
+    private bool HasEntryPointIndex(Method method) =>
+        method == context.Module.EntryPoint
+        && method.Parameters.Count > 0
+        && context.Launch.HasIndexParameter;
+
+    /// <summary>
+    /// Returns <see langword="true"/> when <paramref name="param"/> is the
+    /// thread index of the entry point (see <see cref="HasEntryPointIndex"/>).
+    /// </summary>
+    private bool IsEntryPointIndex(Parameter param) =>
+        param.Index == 0 && HasEntryPointIndex(param.Scope);
+
+    /// <summary>
     /// Returns <see langword="true"/> when the entry point's first parameter of
     /// type <paramref name="st"/> is decomposed into per-lane field arrays: a
     /// multi-dim index or a <c>KernelIndex</c>.
@@ -447,9 +477,11 @@ sealed partial class CPUMethodEmitter(
     /// exact shape of <c>ILGPU.KernelIndex</c> — two primitive fields
     /// <c>{i64 GridIndex, i32 GroupIndex}</c>. Unlike
     /// <see cref="IsIndexStructType"/>, which only recognises homogeneous
-    /// multi-dim index structs, this check is used to decide whether the
-    /// grouped-kernel first parameter should be skipped when marshaling
-    /// user-visible arguments.
+    /// multi-dim index structs, this check identifies the <c>KernelIndex</c>
+    /// of grouped launches. It only applies to a first parameter that the
+    /// launch passes as the index (see <see cref="HasEntryPointIndex"/>): a
+    /// user structure of the same shape may be the first parameter of a
+    /// grouped kernel without an index.
     /// </summary>
     internal static bool IsKernelIndexStructType(StructureType st)
     {
@@ -492,13 +524,15 @@ sealed partial class CPUMethodEmitter(
         var config = (CPULanguageConfiguration)context.LanguageConfig;
 
         context.WriteLine("// Decompose linear index into multi-dim components");
-        // Declare per-field arrays
+        // Declare per-field arrays of the field type: int for Index2D/3D and
+        // long for LongIndex2D/3D
+        var fieldType = new TypeEmitter(context).GetTypeName(indexStruct.Fields[0]);
         var fieldNames = new string[numFields];
         for (int f = 0; f < numFields; f++)
         {
             var fieldName = $"_idx_{StructureType.GetFieldName(f)}";
             fieldNames[f] = fieldName;
-            context.WriteLine($"var {fieldName} = new int[SIMDWidth];");
+            context.WriteLine($"var {fieldName} = new {fieldType}[SIMDWidth];");
         }
 
         // Decompose linear index into multi-dim components.
@@ -531,6 +565,21 @@ sealed partial class CPUMethodEmitter(
                 context.MarkNeedsVariable(gf);
             }
         });
+    }
+
+    /// <summary>
+    /// Aliases the long index parameter of a <c>LongIndex1D</c> launch to the
+    /// lane indices widened to long.
+    /// </summary>
+    private void EmitLongLaneIndices(Parameter param0)
+    {
+        const string lanes = "_idx_long";
+        context.WriteLine("// Widen the lane indices to the long index");
+        context.WriteLine($"var {lanes} = new long[SIMDWidth];");
+        context.WriteLine("for (int _d = 0; _d < SIMDWidth; _d++)");
+        context.WriteLine($"    {lanes}[_d] = laneIdx[_d];");
+        context.WriteLine();
+        context.SetValueName(param0, lanes);
     }
 
     /// <summary>
@@ -814,9 +863,9 @@ sealed partial class CPUMethodEmitter(
                 // as _idx_FieldN in EmitIndexDecomposition — skip pool redirect
                 // and variable declaration entirely.
                 if (value is GetField gf2 && gf2.Source is Parameter p2
-                    && p2.Index == 0 && p2.Type is StructureType gf2St
+                    && p2.Type is StructureType gf2St
                     && IsDecomposedIndexType(gf2St)
-                    && p2.Scope == context.Module.EntryPoint)
+                    && IsEntryPointIndex(p2))
                 {
                     // Name was already set by EmitIndexDecomposition
                     continue;
@@ -1255,9 +1304,9 @@ sealed partial class CPUMethodEmitter(
         // the decomposed array is already computed, just assign it to
         // the pool variable (or whatever varName was set to).
         if (value is GetField gf && gf.Source is Parameter p
-            && p.Index == 0 && p.Type is StructureType gfSt
+            && p.Type is StructureType gfSt
             && IsDecomposedIndexType(gfSt)
-            && p.Scope == context.Module.EntryPoint)
+            && IsEntryPointIndex(p))
         {
             // The field's decomposed name was registered via SetValueName
             // in EmitIndexDecomposition. Read it back from the original
@@ -1369,12 +1418,11 @@ sealed partial class CPUMethodEmitter(
             return null;
 
         // The entry point's first parameter (the thread index) is vectorized,
-        // mapping to per-lane laneIdx. For grouped kernels, there is no index
-        // parameter, so param0 is a real parameter and must NOT be vectorized.
-        bool hasIndexParam = method == context.Module.EntryPoint
-            && method.Parameters.Count > 0
+        // mapping to per-lane laneIdx. For grouped kernels without an index
+        // parameter, param0 is a real parameter and must NOT be vectorized.
+        bool hasIndexParam = HasEntryPointIndex(method)
             && (method.Parameters[0].Type is PrimitiveType
-                    { BasicValueType: BasicValueType.Int32 }
+                    { BasicValueType: BasicValueType.Int32 or BasicValueType.Int64 }
                 || (method.Parameters[0].Type is StructureType st
                     && IsDecomposedIndexType(st)));
         analysis = new VectorizationAnalysis(

@@ -39,8 +39,6 @@ name: CI
 #    execution test classes; Metal is required and adds a hard preflight that
 #    asserts a Metal device is enumerable, the three Linux execution jobs are
 #    advisory and pass-through-skip when no GPU device is present
-#
-# See plans/ci_redesign.md for the full design rationale.
 # ---------------------------------------------------------------------------
 
 on:
