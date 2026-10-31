@@ -179,6 +179,7 @@ sealed class ExpressionEmitter(GenerationContext context, TypeEmitter typeEmitte
                     typeEmitter.GetTypeName(nullPointer.Type)), Prec.Atom),
             NullValue nullValue => new Emitted(
                 context.LanguageConfig.FormatNullLiteral(
+                    nullValue.Type,
                     typeEmitter.GetTypeName(nullValue.Type)), Prec.Atom),
             UndefinedValue undef => EmitUndefined(undef),
 
@@ -435,9 +436,12 @@ sealed class ExpressionEmitter(GenerationContext context, TypeEmitter typeEmitte
         if (!hasAddrSpace && !elemDiffers)
             return source;
 
-        // Build cast type using source address space + target element type
-        var castType = context.LanguageConfig.GetQualifiedTypeName(
-            elemTypeName, addrKeyword) + "*";
+        // Build cast type using source address space + target element type.
+        // The language decides whether pointer types carry the keyword (CUDA
+        // pointer types do not).
+        var castType = context.LanguageConfig.GetPointerTypeName(
+            elemTypeName,
+            addrKeyword);
 
         return new Emitted(
             $"({castType}){Parenthesize(source, Prec.Unary)}",
@@ -483,9 +487,9 @@ sealed class ExpressionEmitter(GenerationContext context, TypeEmitter typeEmitte
 
     /// <summary>
     /// Emits a view cast (element type reinterpretation).
-    /// For the CPU backend, <c>CPURuntimeView&lt;A&gt;</c> and
-    /// <c>CPURuntimeView&lt;B&gt;</c> have identical binary layout
-    /// (pointer + length), so <c>Unsafe.BitCast</c> performs the conversion.
+    /// For the CPU backend, <c>CPURuntimeView&lt;A&gt;.Cast&lt;B&gt;()</c>
+    /// reinterprets the pointer and rescales the length by
+    /// <c>sizeof(A) / sizeof(B)</c>.
     /// GPU backends treat this as a transparent pointer-type change.
     /// </summary>
     private Emitted EmitViewCast(ViewCast viewCast)
@@ -499,16 +503,15 @@ sealed class ExpressionEmitter(GenerationContext context, TypeEmitter typeEmitte
         if (context.LanguageConfig is not CPU.CPULanguageConfiguration)
             return source;
 
-        // CPU backend: BitCast between CPURuntimeView<A> and CPURuntimeView<B>
+        // CPU backend: CPURuntimeView<A>.Cast<B>() (a plain BitCast would keep
+        // the element count of the source view)
         var sourceElem = typeEmitter.GetTypeName(sourceViewType.ElementType);
         var targetElem = typeEmitter.GetTypeName(targetViewType.ElementType);
         if (sourceElem == targetElem)
             return source;
 
-        return new Emitted(
-            $"Unsafe.BitCast<CPURuntimeView<{sourceElem}>, " +
-            $"CPURuntimeView<{targetElem}>>({source.Text})",
-            Prec.Postfix);
+        var target = Parenthesize(source, Prec.Postfix);
+        return new Emitted($"{target}.Cast<{targetElem}>()", Prec.Postfix);
     }
 
     #endregion
@@ -533,6 +536,10 @@ sealed class ExpressionEmitter(GenerationContext context, TypeEmitter typeEmitte
     /// <summary>
     /// Emits a primitive constant value (bool, int, float, etc.).
     /// </summary>
+    /// <remarks>
+    /// Literals never depend on the current culture, whose negative sign may be
+    /// the Unicode minus sign U+2212 (e.g. sv-SE) that no native compiler reads.
+    /// </remarks>
     private Emitted EmitPrimitive(PrimitiveValue primitive)
     {
         if (context.LanguageConfig.FormatPrimitive(primitive) is string formatted)
@@ -540,17 +547,21 @@ sealed class ExpressionEmitter(GenerationContext context, TypeEmitter typeEmitte
         var text = primitive.BasicValueType switch
         {
             BasicValueType.Int1 => primitive.Int1Value ? "true" : "false",
-            BasicValueType.Int8 => primitive.Int8Value.ToString(),
-            BasicValueType.Int16 => primitive.Int16Value.ToString(),
+            BasicValueType.Int8 =>
+                primitive.Int8Value.ToString(CultureInfo.InvariantCulture),
+            BasicValueType.Int16 =>
+                primitive.Int16Value.ToString(CultureInfo.InvariantCulture),
             // The minimum values have no literal in C: the magnitude does not
             // fit the signed type, so the literal would be promoted to a
             // wider type (or be ill-formed) before the negation.
             BasicValueType.Int32 when primitive.Int32Value == int.MinValue =>
                 "(-2147483647 - 1)",
-            BasicValueType.Int32 => primitive.Int32Value.ToString(),
+            BasicValueType.Int32 =>
+                primitive.Int32Value.ToString(CultureInfo.InvariantCulture),
             BasicValueType.Int64 when primitive.Int64Value == long.MinValue =>
                 "(-9223372036854775807L - 1)",
-            BasicValueType.Int64 => primitive.Int64Value.ToString() + "L",
+            BasicValueType.Int64 =>
+                primitive.Int64Value.ToString(CultureInfo.InvariantCulture) + "L",
             BasicValueType.Float16 =>
                 IntrinsicEmitter.EmitHalfConstant(
                     BitConverter.HalfToUInt16Bits(primitive.Float16Value)),
@@ -1430,17 +1441,18 @@ sealed class ExpressionEmitter(GenerationContext context, TypeEmitter typeEmitte
         // CUDA omits the address-space qualifier (pointer types in CUDA C++
         // don't carry one); Metal/OpenCL prepend their qualifier.
         var elemTypeName = typeEmitter.GetTypeName(lfa.FieldType);
-        var castType = context.LanguageConfig.GetQualifiedTypeName(
-            elemTypeName, addrKeyword) + "*";
+        var castType = context.LanguageConfig.GetPointerTypeName(
+            elemTypeName,
+            addrKeyword);
 
         // Take the address of the flattened field member so that the native
         // compiler applies the real byte offset of the field. A multi-field
         // span addresses a sub-structure starting at its first field.
         var fieldName = StructureType.GetFieldName(lfa.FieldSpan.Index);
         var structTypeName = typeEmitter.GetTypeName(lfa.StructureType);
-        var structPtrType = string.IsNullOrEmpty(addrKeyword)
-            ? $"{structTypeName}*"
-            : $"{addrKeyword} {structTypeName}*";
+        var structPtrType = context.LanguageConfig.GetPointerTypeName(
+            structTypeName,
+            addrKeyword);
         var inner = Parenthesize(source, Prec.Unary);
         return new Emitted(
             $"({castType})&(({structPtrType}){inner})->{fieldName}",

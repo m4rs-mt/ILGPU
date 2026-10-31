@@ -76,6 +76,12 @@ partial class PureValueBuilder
         if (view is NewView newView)
             return CreateConvert(location, newView.Length, lengthType).AsNotNull();
 
+        // A null view (e.g. ArrayView<T>.Empty or a default view) has no
+        // elements. Backends that keep views would otherwise have to emit a
+        // property access on a null literal, such as default.Length in C#.
+        if (view is NullValue)
+            return CreatePrimitiveValue(location, lengthType, 0);
+
         return Append(new GetViewLength(
             GetInitializer(location),
             view,

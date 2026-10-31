@@ -116,7 +116,7 @@ sealed class CodeGenerator(
         context.WriteLine();
 
         // Emit pragmas
-        var pragmas = languageConfig.GetPragmas(module.FusedMultiplyAddMode).ToArray();
+        var pragmas = languageConfig.GetPragmas(module).ToArray();
         foreach (var pragma in pragmas)
             context.WriteLine(pragma);
 

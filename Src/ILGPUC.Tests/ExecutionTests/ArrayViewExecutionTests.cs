@@ -58,6 +58,46 @@ public abstract class ArrayViewExecutionTests : ExecutionTestBase
             ["30", "40", "-1", "-1"]);
     }
 
+    /// <summary>
+    /// Casting a view between element types of different sizes rescales its
+    /// length by sizeof(source) / sizeof(target), for widening, narrowing and
+    /// same-size casts, and for views that differ per lane.
+    /// </summary>
+    [SkippableTheory]
+    [MemberData(nameof(TestTypes.OptLevels), MemberType = typeof(TestTypes))]
+    public async Task Cast_ProducesCorrectOutput(OptimizationLevel opt)
+    {
+        await VerifyProgramOutputAsync(
+            "TestPrograms/ArrayView/Cast.cs",
+            ["Kernels.CastKernel", "Kernels.PerLaneCastKernel"],
+            ["4", "32", "4", "8", "4", "3", "4", "2", "117835012", "4 2 4 2"],
+            new CompilationProperties(OptimizationLevel: opt));
+    }
+
+    /// <summary>
+    /// The members of the empty view and of a default view are constants:
+    /// their lengths are zero and they are not valid, also for sub views and
+    /// casts of them.
+    /// </summary>
+    [SkippableTheory]
+    [MemberData(nameof(TestTypes.OptLevels), MemberType = typeof(TestTypes))]
+    public async Task EmptyView_ProducesCorrectOutput(OptimizationLevel opt)
+    {
+        await VerifyProgramOutputAsync(
+            "TestPrograms/ArrayView/EmptyView.cs",
+            [
+                "Kernels.EmptyIntLengthKernel",
+                "Kernels.EmptyMembersKernel",
+                "Kernels.DefaultMembersKernel",
+            ],
+            [
+                "0 0 0 0",
+                "0 0 0 0 0 0 0", "0 0 0 0 0 0 0",
+                "0 0 0 0 0 0 0", "0 0 0 0 0 0 0",
+            ],
+            new CompilationProperties(OptimizationLevel: opt));
+    }
+
     [SkippableFact]
     public async Task SubViewSelect_ProducesCorrectOutput()
     {

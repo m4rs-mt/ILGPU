@@ -132,11 +132,11 @@ abstract class LanguageConfiguration
     /// <summary>
     /// Gets language-specific pragmas or attributes.
     /// </summary>
-    /// <param name="fusedMultiplyAdd">
-    /// Whether multiplications and additions may be fused into multiply-adds.
+    /// <param name="module">
+    /// The module to generate code for, whose properties and types determine
+    /// the optional language features to enable, such as multiply-add fusion.
     /// </param>
-    public virtual IEnumerable<string> GetPragmas(
-        FusedMultiplyAddMode fusedMultiplyAdd) => [];
+    public virtual IEnumerable<string> GetPragmas(Module module) => [];
 
     /// <summary>
     /// Formats a constant in the target language, or returns null to use the
@@ -151,10 +151,13 @@ abstract class LanguageConfiguration
     public virtual string? FormatGlobalAddress(Global global, string name) => null;
 
     /// <summary>
-    /// Formats a null literal for a given type name.
-    /// Default: C-style <c>TypeNULL</c>. CPU override: <c>default</c>.
+    /// Formats a null literal of the given type.
+    /// Default: a zero-initialized C-style compound literal. CPU override:
+    /// <c>default</c>.
     /// </summary>
-    public virtual string FormatNullLiteral(string typeName) =>
+    /// <param name="type">The type of the null value.</param>
+    /// <param name="typeName">The name of the type in the target language.</param>
+    public virtual string FormatNullLiteral(TypeValue type, string typeName) =>
         $"(({typeName}){{}})";  // Zero-initialized struct/value
 
     /// <summary>

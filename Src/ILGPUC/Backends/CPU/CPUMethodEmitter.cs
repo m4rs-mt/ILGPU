@@ -1545,7 +1545,8 @@ sealed partial class CPUMethodEmitter(
     /// <summary>
     /// Emits an address space or element type cast of a view that differs per
     /// lane. The views are copied, as the buffers of both values may be
-    /// reused independently.
+    /// reused independently. An element type cast rescales the length of each
+    /// view by <c>sizeof(source) / sizeof(target)</c>.
     /// </summary>
     private void EmitPerLaneViewCast(
         BaseAddressSpaceCast cast,
@@ -1556,10 +1557,24 @@ sealed partial class CPUMethodEmitter(
         var sourceType = GetVectorElementType(cast.Source);
         var targetType = GetVectorElementType(cast);
         context.WriteLine("for (int _si = 0; _si < SIMDWidth; _si++)");
-        context.WriteLine(sourceType == targetType
-            ? $"    {result}[_si] = {source}[_si];"
-            : $"    {result}[_si] = Unsafe.BitCast<{sourceType}, {targetType}>(" +
+        if (sourceType == targetType)
+        {
+            context.WriteLine($"    {result}[_si] = {source}[_si];");
+        }
+        else if (cast is ViewCast viewCast)
+        {
+            var targetElement = VectorizationAnalysis.GetScalarTypeName(
+                viewCast.TargetElementType,
+                (CPULanguageConfiguration)context.LanguageConfig);
+            context.WriteLine(
+                $"    {result}[_si] = {source}[_si].Cast<{targetElement}>();");
+        }
+        else
+        {
+            context.WriteLine(
+                $"    {result}[_si] = Unsafe.BitCast<{sourceType}, {targetType}>(" +
                 $"{source}[_si]);");
+        }
     }
 
     /// <summary>

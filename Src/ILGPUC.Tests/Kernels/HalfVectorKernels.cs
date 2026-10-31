@@ -44,4 +44,16 @@ static class HalfVectorKernels
         r.ToElementView(data, index * 2);
         flags[index] = Float16x2.IsNaN(r) ? 1 : Float16x2.IsNegative(r) ? 2 : 0;
     }
+
+    /// <summary>
+    /// Copies Float16x2 values, which loads and stores the structure without
+    /// a value of the half type itself.
+    /// </summary>
+    public static void CopyFloat16x2Kernel(
+        Index1D index,
+        ArrayView1D<Float16x2, Stride1D.Dense> source,
+        ArrayView1D<Float16x2, Stride1D.Dense> target)
+    {
+        target[index] = source[index];
+    }
 }

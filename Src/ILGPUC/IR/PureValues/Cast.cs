@@ -313,6 +313,11 @@ sealed partial class ViewCast : BaseAddressSpaceCast
     }
 
     /// <summary>
+    /// Returns the source element type.
+    /// </summary>
+    public TypeValue SourceElementType => SourceType.As<ViewType>().ElementType;
+
+    /// <summary>
     /// Returns the target element type.
     /// </summary>
     public TypeValue TargetElementType => Type.ElementType;

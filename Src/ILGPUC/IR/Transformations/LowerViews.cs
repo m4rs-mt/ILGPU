@@ -174,10 +174,12 @@ sealed class LowerViews(TransformationArgs args) : LowerTypes<ViewType>(args)
 
         // Compute new length:
         // newLength = length * sourceElementSize / targetElementSize;
-        var sourceElementType = value.Type.ElementType;
+        // Note that value.Type is the resulting view type, so its element type
+        // is the target element type; the source element type must be taken
+        // from the source view.
         var sourceElementSize = transform.CreateLongSizeOf(
             location,
-            sourceElementType);
+            value.SourceElementType);
         var targetElementSize = transform.CreateLongSizeOf(
             location,
             value.TargetElementType);

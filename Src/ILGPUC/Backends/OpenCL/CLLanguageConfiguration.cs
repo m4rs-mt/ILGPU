@@ -31,7 +31,8 @@ enum CLVendor
 /// <summary>
 /// OpenCL-specific language configuration.
 /// </summary>
-sealed class CLLanguageConfiguration(CLVendor vendor = CLVendor.Intel) : LanguageConfiguration
+sealed class CLLanguageConfiguration(CLVendor vendor = CLVendor.Intel)
+    : LanguageConfiguration
 {
     /// <inheritdoc/>
     public override string GetAddressSpaceKeyword(MemoryAddressSpace addressSpace) =>
@@ -252,8 +253,7 @@ sealed class CLLanguageConfiguration(CLVendor vendor = CLVendor.Intel) : Languag
     }
 
     /// <inheritdoc/>
-    public override IEnumerable<string> GetPragmas(
-        FusedMultiplyAddMode fusedMultiplyAdd)
+    public override IEnumerable<string> GetPragmas(Module module)
     {
         // cl_khr_fp64 is required for any kernel that uses `double` —
         // OpenCL C disallows it without an explicit enable pragma.
@@ -273,10 +273,59 @@ sealed class CLLanguageConfiguration(CLVendor vendor = CLVendor.Intel) : Languag
         else
             yield return "#pragma OPENCL EXTENSION cl_khr_subgroup_shuffle : enable";
 
+        // OpenCL C disallows half variables and arithmetic without
+        // cl_khr_fp16 (clang: "declaring variable of type '__private half'
+        // is not allowed"). It is only enabled for modules using half, the
+        // sources the launcher gates by the Float16 capability, so other
+        // kernels build without a warning on devices lacking the extension.
+        if (UsesFloat16(module))
+            yield return "#pragma OPENCL EXTENSION cl_khr_fp16 : enable";
+
         // OpenCL C allows fusion by default; the pragma disables it for
         // the offline compilers and for builds of the source at runtime
-        if (fusedMultiplyAdd == FusedMultiplyAddMode.Off)
+        if (module.FusedMultiplyAddMode == FusedMultiplyAddMode.Off)
             yield return "#pragma OPENCL FP_CONTRACT OFF";
+    }
+
+    /// <summary>
+    /// Returns true if the generated code of the module uses half: a value of
+    /// the half type or a type with half fields or elements.
+    /// </summary>
+    /// <remarks>
+    /// Sealing a value registers a use of its type, whereas structure types do
+    /// not use their field types, which are therefore visited explicitly.
+    /// </remarks>
+    private static bool UsesFloat16(Module module)
+    {
+        if (module.GetPrimitiveType(BasicValueType.Float16).HasUses)
+            return true;
+        foreach (var type in module.Types)
+        {
+            if (ContainsFloat16(type))
+                return true;
+        }
+        return false;
+    }
+
+    /// <summary>
+    /// Returns true if the type is half or contains half fields or elements.
+    /// </summary>
+    private static bool ContainsFloat16(TypeValue type)
+    {
+        switch (type)
+        {
+            case StructureType structure:
+                foreach (var field in structure.Fields)
+                {
+                    if (ContainsFloat16(field))
+                        return true;
+                }
+                return false;
+            case AddressSpaceType addressSpaceType:
+                return ContainsFloat16(addressSpaceType.ElementType);
+            default:
+                return type.BasicValueType == BasicValueType.Float16;
+        }
     }
 
     /// <inheritdoc/>
