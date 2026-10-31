@@ -15,6 +15,7 @@ using ILGPU.Util;
 using ILGPUC.Backends;
 using ILGPUC.Frontend.DebugInformation;
 using ILGPUC.Frontend.Intrinsic;
+using ILGPUC.IR;
 using ILGPUC.IR.Analyses;
 using ILGPUC.IR.ModuleValues;
 using ILGPUC.IR.ModuleValues.Construction;
@@ -229,6 +230,33 @@ sealed class ILFrontend
     /// <returns>True if a valid disassembled method could be found.</returns>
     public DisassembledMethod? GetDisassembledMethod(MethodBase methodBase) =>
         _methods.TryGetValue(methodBase, out var disassembled) ? disassembled : null;
+
+    /// <summary>
+    /// Returns the error of a method whose IL code cannot be disassembled, at the
+    /// location of the instruction that the disassembler rejected.
+    /// </summary>
+    /// <param name="method">The method.</param>
+    /// <param name="error">The disassembler error, or null if there is no body.</param>
+    /// <returns>The error to report.</returns>
+    private Exception GetDisassemblyError(MethodBase method, Exception? error)
+    {
+        if (error is null)
+        {
+            return new NotSupportedException(
+                $"'{FrontendDisplay.Format(method)}' has no IL body that can be " +
+                "compiled");
+        }
+
+        // Errors outside of an instruction, such as a local whose type cannot be
+        // loaded, are located at the first sequence point of the method
+        LoadDebugSymbols(method.Module.Assembly);
+        var sequencePoints = LoadSequencePoints(method);
+        sequencePoints.MoveTo((error as DisassemblerException)?.ILOffset ?? 0);
+        return sequencePoints.Current.GetNotSupportedException(
+            ErrorMessages.NotSupportedMethodBody,
+            FrontendDisplay.Format(method),
+            error.Message);
+    }
 
     /// <summary>
     /// Tries to load debug information for the given method.
@@ -867,13 +895,18 @@ sealed class ILFrontend
             }
             if (disassembled is null)
             {
+                Exception? disassemblyError = null;
                 try
                 {
                     disassembled = Disassembler.TryDisassemble(method);
                 }
-                catch (Exception)
+                catch (Exception exception) when (
+                    exception is DisassemblerException ||
+                    Disassembler.IsLoadError(exception))
                 {
-                    // Fall through to External marking below
+                    // Fall through to External marking below, while internal
+                    // errors propagate as they are
+                    disassemblyError = exception;
                 }
 
                 if (disassembled is not null)
@@ -901,12 +934,15 @@ sealed class ILFrontend
                 {
                     // Legitimately external methods ([External], InternalCall)
                     // never get here; they are external from their declaration.
-                    // A call to this one may still be removed by optimization,
-                    // so record why it failed instead of failing right away.
+                    // A kernel without a body fails right away, as the module
+                    // would be left without methods. A call to a helper may
+                    // still be removed by optimization, so record why it failed
+                    // instead of failing right away.
+                    var error = GetDisassemblyError(method, disassemblyError);
+                    if (isEntryPoint)
+                        throw error;
                     methodBuilder.Method.AddFlags(MethodFlags.External);
-                    _failedMethods[method] = new NotSupportedException(
-                        $"'{FrontendDisplay.Format(method)}' has no IL body that " +
-                        "can be compiled");
+                    _failedMethods[method] = error;
                     return;
                 }
             }

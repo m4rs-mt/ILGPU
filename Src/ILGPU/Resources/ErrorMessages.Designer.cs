@@ -331,6 +331,15 @@ namespace ILGPU.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Variable argument lists are not supported in kernels: &apos;{0}&apos; uses __arglist.
+        /// </summary>
+        internal static string NotSupportedArgList {
+            get {
+                return ResourceManager.GetString("NotSupportedArgList", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Not supported arithmetic operands &apos;{0}&apos; &amp; &apos;{1}&apos;.
         /// </summary>
         internal static string NotSupportedArithmeticOperandTypes {
@@ -493,7 +502,7 @@ namespace ILGPU.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Not supported indirect call to a method with the signature &apos;{0}&apos;.
+        ///   Looks up a localized string similar to Function pointers are not supported in kernels: &apos;{0}&apos; uses delegate*.
         /// </summary>
         internal static string NotSupportedIndirectMethodCall {
             get {
@@ -673,6 +682,15 @@ namespace ILGPU.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to The IL code of &apos;{0}&apos; cannot be compiled: {1}.
+        /// </summary>
+        internal static string NotSupportedMethodBody {
+            get {
+                return ResourceManager.GetString("NotSupportedMethodBody", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Not supported jump to method &apos;{0}&apos;.
         /// </summary>
         internal static string NotSupportedMethodJump {
@@ -790,11 +808,29 @@ namespace ILGPU.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to The IL code ends within an instruction.
+        /// </summary>
+        internal static string NotSupportedTruncatedILInstruction {
+            get {
+                return ResourceManager.GetString("NotSupportedTruncatedILInstruction", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Not supported type &apos;{0}&apos;.
         /// </summary>
         internal static string NotSupportedType {
             get {
                 return ResourceManager.GetString("NotSupportedType", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Typed references are not supported in kernels: &apos;{0}&apos; uses __makeref, __refvalue or __reftype.
+        /// </summary>
+        internal static string NotSupportedTypedReference {
+            get {
+                return ResourceManager.GetString("NotSupportedTypedReference", resourceCulture);
             }
         }
         

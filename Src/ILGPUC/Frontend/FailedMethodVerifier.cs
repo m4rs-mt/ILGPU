@@ -141,10 +141,18 @@ static class FailedMethodVerifier
 
     /// <summary>
     /// Returns the reason of a failure: the messages of the exception and its inner
-    /// exceptions, which carry the source location and the actual problem.
+    /// exceptions, which carry the actual problem. A located failure wraps its
+    /// problem in an internal compiler error, whose message reports nothing but
+    /// the location: the reason starts from the problem and keeps the location.
     /// </summary>
     private static string GetReason(Exception failure)
     {
+        Location? location = null;
+        if (failure is InternalCompilerException { InnerException: { } problem } error)
+        {
+            location = error.SourceLocation;
+            failure = problem;
+        }
         var reason = failure.Message;
         for (var inner = failure.InnerException;
              inner is not null;
@@ -152,6 +160,7 @@ static class FailedMethodVerifier
         {
             reason += $" {inner.Message}";
         }
-        return reason;
+        reason = reason.TrimEnd();
+        return location?.FormatErrorMessage(reason) ?? reason;
     }
 }

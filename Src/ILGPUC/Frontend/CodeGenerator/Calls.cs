@@ -219,6 +219,9 @@ partial class CodeGenerator
     {
         if (target == null)
             throw Location.GetInvalidOperationException();
+        if (target.CallingConvention.HasFlag(CallingConventions.VarArgs))
+            MakeArgList(target);
+        VerifyFunctionPointerSignature(target);
         VerifyDelegateMemberCall(target);
 
         // The constructor of System.Object has no effect: a base constructor call
@@ -698,13 +701,38 @@ partial class CodeGenerator
     }
 
     /// <summary>
-    /// Realizes an indirect call instruction.
+    /// Realizes an indirect call instruction, which calls a function pointer
+    /// that kernels do not support.
     /// </summary>
-    /// <param name="signature">The target signature.</param>
-    private void MakeCalli(object signature) =>
-        throw Location.GetNotSupportedException(
+    private void MakeCalli() => throw GetFunctionPointerException();
+
+    /// <summary>
+    /// Creates the error for a function pointer in the current method, which
+    /// kernels do not support.
+    /// </summary>
+    private InternalCompilerException GetFunctionPointerException() =>
+        Location.GetNotSupportedException(
             ErrorMessages.NotSupportedIndirectMethodCall,
-            signature);
+            FrontendDisplay.Format(Method));
+
+    /// <summary>
+    /// Rejects a call to a method that takes or returns a function pointer, which
+    /// kernels do not support.
+    /// </summary>
+    /// <param name="target">The called method.</param>
+    private void VerifyFunctionPointerSignature(MethodBase target)
+    {
+        bool usesFunctionPointer =
+            target is MethodInfo { ReturnType.IsFunctionPointer: true };
+        foreach (var parameter in target.GetParameters())
+            usesFunctionPointer |= parameter.ParameterType.IsFunctionPointer;
+        if (usesFunctionPointer)
+        {
+            throw Location.GetNotSupportedException(
+                ErrorMessages.NotSupportedIndirectMethodCall,
+                FrontendDisplay.Format(target));
+        }
+    }
 
     /// <summary>
     /// Realizes a jump instruction.
@@ -714,6 +742,25 @@ partial class CodeGenerator
         throw Location.GetNotSupportedException(
             ErrorMessages.NotSupportedMethodJump,
             target.Name);
+
+    /// <summary>
+    /// Realizes an instruction that creates or reads a typed reference, which
+    /// kernels do not support.
+    /// </summary>
+    private void MakeTypedReference() =>
+        throw Location.GetNotSupportedException(
+            ErrorMessages.NotSupportedTypedReference,
+            FrontendDisplay.Format(Method));
+
+    /// <summary>
+    /// Realizes an instruction that accesses the variable argument list of the
+    /// given method, or a call to it, which kernels do not support.
+    /// </summary>
+    /// <param name="method">The method with a variable argument list.</param>
+    private void MakeArgList(MethodBase method) =>
+        throw Location.GetNotSupportedException(
+            ErrorMessages.NotSupportedArgList,
+            FrontendDisplay.Format(method));
 }
 
 #pragma warning restore CA1031 // Do not catch general exception types

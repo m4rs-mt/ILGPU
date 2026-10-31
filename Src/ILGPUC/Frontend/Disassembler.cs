@@ -16,7 +16,7 @@ using ILGPU.Util;
 using ILGPUC.IR;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
+using System.IO;
 using System.Reflection;
 using System.Reflection.Emit;
 using System.Runtime.CompilerServices;
@@ -52,6 +52,20 @@ sealed partial class Disassembler
         var disassembler = new Disassembler(methodBase, body, compilationStackLocation);
         return disassembler.Disassemble();
     }
+
+    /// <summary>
+    /// Returns true if the given exception reports metadata that cannot be loaded:
+    /// an assembly, type or member that the IL code, locals or attributes of a
+    /// method refer to. Other exceptions are internal errors.
+    /// </summary>
+    /// <param name="exception">The exception to test.</param>
+    /// <returns>True if the exception reports metadata that cannot be loaded.</returns>
+    public static bool IsLoadError(Exception exception) =>
+        exception is BadImageFormatException
+            or FileNotFoundException
+            or FileLoadException
+            or TypeLoadException
+            or MissingMemberException;
 
     #endregion
 
@@ -170,23 +184,33 @@ sealed partial class Disassembler
         while (_ilOffset < _il.Length)
         {
             _instructionOffset = _ilOffset;
-            var opCode = ReadOpCode();
-
-            if (TryDisassemblePrefix(opCode))
-                continue;
-
-            if (TryDisassembleInstruction(opCode))
+            try
             {
-                // Reset flags
-                _flags = ILInstructionFlags.None;
-                _flagsArgument = null;
+                var opCode = ReadOpCode();
+
+                if (TryDisassemblePrefix(opCode))
+                    continue;
+
+                if (!TryDisassembleInstruction(opCode))
+                {
+                    throw new DisassemblerException(
+                        string.Format(ErrorMessages.NotSupportedILInstruction, opCode),
+                        _instructionOffset);
+                }
             }
-            else
+            catch (Exception exception) when (IsLoadError(exception))
             {
-                throw new NotSupportedException(string.Format(
-                    ErrorMessages.NotSupportedILInstruction,
-                    opCode));
+                // Tokens whose metadata cannot be loaded, while internal errors
+                // propagate as they are
+                throw new DisassemblerException(
+                    exception.Message,
+                    _instructionOffset,
+                    exception);
             }
+
+            // Reset flags
+            _flags = ILInstructionFlags.None;
+            _flagsArgument = null;
         }
 
         // Decode exception clauses
@@ -274,9 +298,11 @@ sealed partial class Disassembler
                         handlerIndex, handlerLength));
                     break;
                 case ExceptionHandlingClauseOptions.Fault:
-                    throw new NotSupportedException(string.Format(
-                        ErrorMessages.NotSupportedILInstruction,
-                        exceptionBlock.Flags));
+                    throw new DisassemblerException(
+                        string.Format(
+                            ErrorMessages.NotSupportedILInstruction,
+                            exceptionBlock.Flags),
+                        exceptionBlock.TryOffset);
             }
         }
     }
@@ -323,16 +349,42 @@ sealed partial class Disassembler
     #region Metadata
 
     /// <summary>
+    /// Resolves the given token with the given Module.Resolve* method using the
+    /// current generic information. The ArgumentException with which it rejects
+    /// an invalid token reports IL code that cannot be disassembled.
+    /// </summary>
+    /// <typeparam name="T">The type of the resolved metadata.</typeparam>
+    /// <param name="token">The token to resolve.</param>
+    /// <param name="resolve">The Module.Resolve* method to use.</param>
+    /// <returns>The resolved metadata.</returns>
+    private T Resolve<T>(int token, Func<Module, int, Type[], Type[], T> resolve)
+    {
+        try
+        {
+            return resolve(
+                AssociatedModule,
+                token,
+                TypeGenericArguments,
+                MethodGenericArguments);
+        }
+        catch (ArgumentException exception)
+        {
+            throw new DisassemblerException(
+                exception.Message,
+                _instructionOffset,
+                exception);
+        }
+    }
+
+    /// <summary>
     /// Resolves the type for the given token using
     /// the current generic information.
     /// </summary>
     /// <param name="token">The token of the type to resolve.</param>
     /// <returns>The resolved type.</returns>
     private Type ResolveType(int token) =>
-        AssociatedModule.ResolveType(
-            token,
-            TypeGenericArguments,
-            MethodGenericArguments);
+        Resolve(token, static (module, t, types, methods) =>
+            module.ResolveType(t, types, methods));
 
     /// <summary>
     /// Resolves the method for the given token using
@@ -341,10 +393,8 @@ sealed partial class Disassembler
     /// <param name="token">The token of the method to resolve.</param>
     /// <returns>The resolved method.</returns>
     private MethodBase? ResolveMethod(int token) =>
-        AssociatedModule.ResolveMethod(
-            token,
-            TypeGenericArguments,
-            MethodGenericArguments);
+        Resolve(token, static (module, t, types, methods) =>
+            module.ResolveMethod(t, types, methods));
 
     /// <summary>
     /// Resolves the field for the given token using
@@ -353,14 +403,56 @@ sealed partial class Disassembler
     /// <param name="token">The token of the field to resolve.</param>
     /// <returns>The resolved field.</returns>
     private FieldInfo? ResolveField(int token) =>
-        AssociatedModule.ResolveField(
-            token,
-            TypeGenericArguments,
-            MethodGenericArguments);
+        Resolve(token, static (module, t, types, methods) =>
+            module.ResolveField(t, types, methods));
+
+    /// <summary>
+    /// Resolves the member for the given token using
+    /// the current generic information.
+    /// </summary>
+    /// <param name="token">The token of the member to resolve.</param>
+    /// <returns>The resolved member.</returns>
+    private MemberInfo? ResolveMember(int token) =>
+        Resolve(token, static (module, t, types, methods) =>
+            module.ResolveMember(t, types, methods));
+
+    /// <summary>
+    /// Resolves the string for the given token.
+    /// </summary>
+    /// <param name="token">The token of the string to resolve.</param>
+    /// <returns>The resolved string.</returns>
+    private string ResolveString(int token) =>
+        Resolve(token, static (module, t, _, _) => module.ResolveString(t));
+
+    /// <summary>
+    /// Resolves the signature for the given token.
+    /// </summary>
+    /// <param name="token">The token of the signature to resolve.</param>
+    /// <returns>The resolved signature blob.</returns>
+    private byte[] ResolveSignature(int token) =>
+        Resolve(token, static (module, t, _, _) => module.ResolveSignature(t));
 
     #endregion
 
     #region Read Methods
+
+    /// <summary>
+    /// Skips the operand of the given size of the current instruction.
+    /// </summary>
+    /// <param name="size">The size of the operand in bytes.</param>
+    /// <returns>The offset of the operand.</returns>
+    private int ReadOperand(int size)
+    {
+        int offset = _ilOffset;
+        if (_il.Length - offset < size)
+        {
+            throw new DisassemblerException(
+                ErrorMessages.NotSupportedTruncatedILInstruction,
+                _instructionOffset);
+        }
+        _ilOffset += size;
+        return offset;
+    }
 
     /// <summary>
     /// Reads an op-code from the current instruction data.
@@ -370,19 +462,12 @@ sealed partial class Disassembler
     private ILOpCode ReadOpCode()
     {
         // Setup target block (if found)
-        int instructionCode = _il[_ilOffset];
+        int instructionCode = _il[_ilOffset++];
         if (instructionCode == OpCodes.Prefix1.Value)
         {
             // This is a two-byte command
-            ++_ilOffset;
-            Debug.Assert(_il.Length > _ilOffset);
-            instructionCode = (instructionCode << 8) | _il[_ilOffset];
+            instructionCode = (instructionCode << 8) | _il[ReadOperand(1)];
         }
-        else
-        {
-            // This is a single-byte command
-        }
-        ++_ilOffset;
         return (ILOpCode)instructionCode;
     }
 
@@ -402,7 +487,7 @@ sealed partial class Disassembler
     /// Reads a byte from the current instruction data.
     /// </summary>
     /// <returns>The decoded byte.</returns>
-    private int ReadByteArg() => _il[_ilOffset++];
+    private int ReadByteArg() => _il[ReadOperand(1)];
 
     /// <summary>
     /// Reads a type reference from the current instruction data.
@@ -428,13 +513,7 @@ sealed partial class Disassembler
     /// Reads a sbyte from the current instruction data.
     /// </summary>
     /// <returns>The decoded sbyte.</returns>
-    private unsafe int ReadSByteArg()
-    {
-        fixed (byte* p = &_il[_ilOffset++])
-        {
-            return *(sbyte*)p;
-        }
-    }
+    private int ReadSByteArg() => (sbyte)_il[ReadOperand(1)];
 
     /// <summary>
     /// Reads an ushort from the current instruction data.
@@ -442,9 +521,7 @@ sealed partial class Disassembler
     /// <returns>The decoded ushort.</returns>
     private int ReadUShortArg()
     {
-        var result = BitConverter.ToUInt16(_il, _ilOffset);
-        _ilOffset += sizeof(ushort);
-        return result;
+        return BitConverter.ToUInt16(_il, ReadOperand(sizeof(ushort)));
     }
 
     /// <summary>
@@ -453,9 +530,7 @@ sealed partial class Disassembler
     /// <returns>The decoded int.</returns>
     private int ReadIntArg()
     {
-        var result = BitConverter.ToInt32(_il, _ilOffset);
-        _ilOffset += sizeof(int);
-        return result;
+        return BitConverter.ToInt32(_il, ReadOperand(sizeof(int)));
     }
 
     /// <summary>
@@ -464,9 +539,7 @@ sealed partial class Disassembler
     /// <returns>The decoded uint.</returns>
     private uint ReadUIntArg()
     {
-        var result = BitConverter.ToUInt32(_il, _ilOffset);
-        _ilOffset += sizeof(uint);
-        return result;
+        return BitConverter.ToUInt32(_il, ReadOperand(sizeof(uint)));
     }
 
     /// <summary>
@@ -475,9 +548,7 @@ sealed partial class Disassembler
     /// <returns>The decoded string.</returns>
     private float ReadSingleArg()
     {
-        var result = BitConverter.ToSingle(_il, _ilOffset);
-        _ilOffset += sizeof(float);
-        return result;
+        return BitConverter.ToSingle(_il, ReadOperand(sizeof(float)));
     }
 
     /// <summary>
@@ -486,9 +557,7 @@ sealed partial class Disassembler
     /// <returns>The decoded long.</returns>
     private long ReadLongArg()
     {
-        var result = BitConverter.ToInt64(_il, _ilOffset);
-        _ilOffset += sizeof(long);
-        return result;
+        return BitConverter.ToInt64(_il, ReadOperand(sizeof(long)));
     }
 
     /// <summary>
@@ -497,9 +566,7 @@ sealed partial class Disassembler
     /// <returns>The decoded double.</returns>
     private double ReadDoubleArg()
     {
-        var result = BitConverter.ToDouble(_il, _ilOffset);
-        _ilOffset += sizeof(double);
-        return result;
+        return BitConverter.ToDouble(_il, ReadOperand(sizeof(double)));
     }
 
     #endregion

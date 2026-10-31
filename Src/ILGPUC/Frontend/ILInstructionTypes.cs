@@ -350,6 +350,14 @@ enum ILInstructionType
     ///
     LdVirtualFunction,
     ///
+    /// <summary>TypedReference (mkrefany, refanyval, refanytype)</summary>
+    ///
+    TypedReference,
+    ///
+    /// <summary>ArgumentList</summary>
+    ///
+    ArgList,
+    ///
     /// <summary>ThrowException</summary>
     ///
     Throw,
@@ -548,6 +556,12 @@ static class ILInstructionTypes
             { ILInstructionType.LdFunction, (0, 1) },
             // ldvirtftn pops the object reference (arg 0) and pushes the function ptr
             { ILInstructionType.LdVirtualFunction, (1, 1) },
+
+            // Typed references: mkrefany and refanyval pop an address or a typed
+            // reference and push the other, refanytype pushes its type token
+            { ILInstructionType.TypedReference, (1, 1) },
+            // Variable argument lists: arglist pushes the argument handle
+            { ILInstructionType.ArgList, (0, 1) },
 
             // Exceptions
             { ILInstructionType.Throw, (1, 0) },
