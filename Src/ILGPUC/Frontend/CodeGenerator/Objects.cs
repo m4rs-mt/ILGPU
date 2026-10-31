@@ -305,6 +305,187 @@ partial class CodeGenerator
     }
 
     /// <summary>
+    /// Realizes an instruction that leaves a try block, which kernels cannot
+    /// execute: they do not support exception handling. A method with several
+    /// try blocks is reported at the try block of the first leave reached.
+    /// </summary>
+    private void MakeExceptionHandling() =>
+        throw GetExceptionHandlingException(CurrentInstructionIndex);
+
+    /// <summary>
+    /// Creates the error for exception handling in the current method, located
+    /// at the innermost try block whose try block, filter or handler contains
+    /// the given instruction, or at the current location if there is none.
+    /// </summary>
+    /// <param name="instructionIndex">The index of the instruction.</param>
+    private InternalCompilerException GetExceptionHandlingException(
+        int instructionIndex)
+    {
+        int regionStart = -1;
+        var location = Location;
+        void Include(
+            int start,
+            int end,
+            int tryStart,
+            int tryLength,
+            FinallyClause? finallyClause)
+        {
+            if (instructionIndex >= start &&
+                instructionIndex < end &&
+                start > regionStart)
+            {
+                regionStart = start;
+                location = GetTryLocation(tryStart, tryLength, finallyClause);
+            }
+        }
+        foreach (var clause in DisassembledMethod.CatchClauses.Span)
+        {
+            int tryStart = clause.TryStart;
+            int tryLength = clause.TryLength;
+            Include(tryStart, tryStart + tryLength, tryStart, tryLength, null);
+            if (clause.FilterBlock is int filterStart)
+            {
+                Include(
+                    filterStart,
+                    clause.HandlerStart,
+                    tryStart,
+                    tryLength,
+                    null);
+            }
+            Include(
+                clause.HandlerStart,
+                clause.HandlerStart + clause.HandlerLength,
+                tryStart,
+                tryLength,
+                null);
+        }
+        foreach (var clause in DisassembledMethod.FinallyClauses.Span)
+        {
+            Include(
+                clause.TryStart,
+                clause.TryStart + clause.TryLength,
+                clause.TryStart,
+                clause.TryLength,
+                clause);
+        }
+
+        return location.GetNotSupportedException(
+            ErrorMessages.NotSupportedExceptionHandling,
+            FrontendDisplay.Format(Method));
+    }
+
+    /// <summary>
+    /// Returns true if the given instruction lies in the filter or the handler
+    /// of a catch clause.
+    /// </summary>
+    /// <param name="instructionIndex">The index of the instruction.</param>
+    private bool IsInCatchHandler(int instructionIndex)
+    {
+        foreach (var clause in DisassembledMethod.CatchClauses.Span)
+        {
+            // The filter of a catch clause directly precedes its handler
+            if (instructionIndex >= (clause.FilterBlock ?? clause.HandlerStart) &&
+                instructionIndex < clause.HandlerStart + clause.HandlerLength)
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /// <summary>
+    /// Returns the location of a try block: its first statement, or the
+    /// statement that acquires the resource its finally handler releases. C#
+    /// creates such try blocks for using statements, foreach loops and fixed
+    /// statements.
+    /// </summary>
+    /// <param name="tryStart">The first instruction of the try block.</param>
+    /// <param name="tryLength">The number of instructions of the try block.</param>
+    /// <param name="finallyClause">Its finally clause (if any).</param>
+    private Location GetTryLocation(
+        int tryStart,
+        int tryLength,
+        FinallyClause? finallyClause)
+    {
+        int tryEnd = tryStart + tryLength;
+        if (finallyClause is not null)
+        {
+            var localVariables = Method.GetMethodBody().AsNotNull().LocalVariables;
+            int finallyEnd =
+                finallyClause.FinallyStart + finallyClause.FinallyLength;
+            for (int i = finallyClause.FinallyStart; i < finallyEnd; ++i)
+            {
+                // Using statements and foreach loops store the resource in a
+                // local right before the try block whose finally handler
+                // disposes it; other finally handlers may call Dispose too
+                var instruction = DisassembledMethod[i];
+                if (instruction.Argument is MethodBase
+                    {
+                        Name: nameof(IDisposable.Dispose)
+                    } &&
+                    i > finallyClause.FinallyStart &&
+                    tryStart > 0)
+                {
+                    var receiver = DisassembledMethod[i - 1];
+                    var resource = DisassembledMethod[tryStart - 1];
+                    if (resource.InstructionType == ILInstructionType.Stloc &&
+                        receiver.InstructionType is ILInstructionType.Ldloc or
+                            ILInstructionType.Ldloca &&
+                        receiver.GetArgumentAs<int>() ==
+                            resource.GetArgumentAs<int>())
+                    {
+                        return resource.Location;
+                    }
+                }
+
+                // Fixed statements pin their variable at the start of the try
+                // block whose finally handler releases it, before their own
+                // statement
+                if (instruction.InstructionType != ILInstructionType.Stloc)
+                    continue;
+                int pinned = instruction.GetArgumentAs<int>();
+                if (!localVariables[pinned].IsPinned)
+                    continue;
+                for (int j = tryStart; j + 1 < tryEnd; ++j)
+                {
+                    var store = DisassembledMethod[j];
+                    if (store.InstructionType == ILInstructionType.Stloc &&
+                        store.GetArgumentAs<int>() == pinned)
+                    {
+                        return DisassembledMethod[j + 1].Location;
+                    }
+                }
+            }
+        }
+
+        // C# has no sequence point for the try keyword: debug builds start the
+        // try block with a nop at its opening brace, release builds with its
+        // first statement, at which both report it
+        int first = tryStart;
+        while (first + 1 < tryEnd &&
+            DisassembledMethod[first].InstructionType == ILInstructionType.Nop)
+        {
+            ++first;
+        }
+
+        // A while loop as the first statement starts with a jump to its
+        // condition, which has no sequence point of its own
+        var firstInstruction = DisassembledMethod[first];
+        if (firstInstruction.InstructionType == ILInstructionType.Br)
+        {
+            int target = firstInstruction
+                .GetArgumentAs<ILInstructionBranchTargets>()
+                .GetTargetOffsets()[0];
+            for (int i = first + 1; i < tryEnd; ++i)
+            {
+                if (DisassembledMethod[i].Offset == target)
+                    return DisassembledMethod[i].Location;
+            }
+        }
+        return firstInstruction.Location;
+    }
+
+    /// <summary>
     /// Creates the error for a throw that is reachable in the current method.
     /// </summary>
     /// <param name="exceptionType">Describes the thrown exception.</param>

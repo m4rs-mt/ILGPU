@@ -448,6 +448,15 @@ namespace ILGPU.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Exception handling is not supported in kernels: &apos;{0}&apos; contains a try block, which C# also creates for using statements, foreach loops over disposable enumerators and fixed statements left by a jump.
+        /// </summary>
+        internal static string NotSupportedExceptionHandling {
+            get {
+                return ResourceManager.GetString("NotSupportedExceptionHandling", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Exceptions are not supported in kernels: &apos;{1}&apos; throws &apos;{0}&apos; in code that is reachable for these type arguments. Exceptions may only be thrown in branches that are removed at compile time, for example by a typeof(T) test.
         /// </summary>
         internal static string NotSupportedExceptionThrow {

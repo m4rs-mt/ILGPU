@@ -119,6 +119,32 @@ public sealed class TypeSpecializationRegressionTests
             }
         }
 
+        /// <summary>
+        /// The try block ends in a throw, directly followed by its handler,
+        /// which the frontend entered as if the throw fell through to it.
+        /// </summary>
+        public static void ThrowingTryInRemovedBranch<T>(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data)
+            where T : unmanaged
+        {
+            if (typeof(T) == typeof(int))
+            {
+                data[index] = 11;
+            }
+            else
+            {
+                try
+                {
+                    throw new NotSupportedException();
+                }
+                catch (NotSupportedException)
+                {
+                    data[index] = 22;
+                }
+            }
+        }
+
         public static void HoistedTypeLoop<T>(
             Index1D index,
             ArrayView1D<int, Stride1D.Dense> data,
@@ -292,6 +318,7 @@ public sealed class TypeSpecializationRegressionTests
     [InlineData(nameof(Kernels.HoistedBoolLoop), typeof(float))]
     [InlineData(nameof(Kernels.HoistedTypeLoop), typeof(float))]
     [InlineData(nameof(Kernels.HoistedTypeLoop), typeof(int))]
+    [InlineData(nameof(Kernels.ThrowingTryInRemovedBranch), typeof(int))]
     public void ValidKernels_Compile(string kernelName, Type type)
     {
         using var helper = new CompilationHelper(BackendType.CPU);
