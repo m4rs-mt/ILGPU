@@ -211,6 +211,7 @@ abstract class Backend(
             VerifyNoGenericAddressSpaces(finalModule);
         if (!LanguageConfiguration.SupportsFeature(LanguageFeature.Recursion))
             VerifyNoRecursion(finalModule);
+        ArrayBufferVerifier.Verify(finalModule);
 
         return GenerateCode(finalModule, EntryPointLaunch.Resolve(module, launch));
     }

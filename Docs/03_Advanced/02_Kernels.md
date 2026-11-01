@@ -31,8 +31,17 @@ Loops like `while (true)` that are left through a `return` or `break` are suppor
 
 Arrays created in kernels, such as `new int[4]`, can be `null` (e.g. `c ? new int[4] : null` or `a ?? b`) and can be
 tested for `null` like in .NET.
-Arrays are compared by their buffers, and every allocation site has a single buffer per thread: two arrays allocated by
-the same `new` expression, such as in a loop or in a helper method called twice, are equal.
+Arrays are compared by their buffers, and every allocation site has a single buffer per thread, which every iteration of
+a loop reuses.
+A loop that uses the array of an iteration after its allocation has run again, such as an array kept in a variable, a
+structure or memory for the next iteration, or compared with the array of a later iteration, is rejected with error
+`ILGPU1200` at the allocation, also for the arrays that a helper method called in the loop returns or stores.
+Arrays used in their iteration and the array of the last iteration used after the loop are supported.
+Every inlined copy of a helper method has buffers of its own, so a helper method that is inlined returns a new array
+from every call.
+A helper method that is not inlined, such as one marked with `[MethodImpl(MethodImplOptions.NoInlining)]`, uses the same
+buffers in every call: it is rejected with error `ILGPU1200` at the allocation if it returns or stores an array that it
+allocates and can be called more than once per thread, or if it calls itself and accesses such an array after the call.
 `Array.Empty<T>()` returns the same array for the same `T` and different arrays for different types, also for `int` and
 `uint`, as in .NET.
 Unlike in .NET, the `Length` of a `null` array is 0, and accessing an element of a `null` array is undefined behavior on
@@ -154,7 +163,7 @@ with an error at the offending source line in the form `File.cs(line,column): er
 
 | Diagnostic | Rejected kernel code |
 |---|---|
-| `ILGPU1200` | Other constructs kernels do not support, such as `Expression<Func<...>>` or `object`, and `DynamicInvoke`, whose argument array is an `object[]`, and expressions nested too deeply for the stack of the compiling thread, such as unrolled chains of thousands of operations |
+| `ILGPU1200` | Other constructs kernels do not support, such as `Expression<Func<...>>` or `object`, and `DynamicInvoke`, whose argument array is an `object[]`, expressions nested too deeply for the stack of the compiling thread, such as unrolled chains of thousands of operations, and arrays that the calls of a helper method that is not inlined or the iterations of a loop would share (see [General Information](#general-information)) |
 | `ILGPU1201` | Null tests and comparisons of delegates (`f?.Invoke(x)`, `f != null`, `f == null`, `f == g`, `Equals`), casts and type tests to delegate types, and delegate members other than `Invoke`, such as `+=`/`Delegate.Combine`, `Method` or `Target` |
 | `ILGPU1202` | Invoking a delegate, or passing it to a method, that cannot be traced to a lambda or a static method in kernel code, such as a delegate returned from a method |
 | `ILGPU1203` | Delegate variables passed as `ref`, `out` or `in` arguments, or used through a reference |

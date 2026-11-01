@@ -457,7 +457,8 @@ partial class PureValueBuilder
                 location,
                 arrayType.ElementType,
                 MemoryAddressSpace.Local,
-                CreatePrimitiveValue(location, 1)).ThrowIfNull());
+                CreatePrimitiveValue(location, 1),
+                isAllocatedPerCopy: true).ThrowIfNull());
 
     /// <summary>
     /// Creates a new empty array value with the given back buffer of a single
@@ -521,7 +522,8 @@ partial class PureValueBuilder
             location,
             arrayType.ElementType,
             MemoryAddressSpace.Local,
-            totalLength).ThrowIfNull();
+            totalLength,
+            isAllocatedPerCopy: true).ThrowIfNull();
 
         // Build combined list: [backBuffer, dim0, dim1, ..., dimN-1]
         var combined = ValueBuilderList.Create(

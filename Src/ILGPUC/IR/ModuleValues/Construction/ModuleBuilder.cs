@@ -1052,6 +1052,9 @@ partial class ModuleBuilder : IGenerationObject
     /// <param name="mallocType">The allocation type.</param>
     /// <param name="addressSpace">The target address space.</param>
     /// <param name="valueInitializer">The initializer to use.</param>
+    /// <param name="isAllocatedPerCopy">
+    /// True if every copy of the code referring to the global allocates it.
+    /// </param>
     /// <returns>The created node.</returns>
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     public Global? CreateGlobal(
@@ -1059,7 +1062,8 @@ partial class ModuleBuilder : IGenerationObject
         TypeValue? mallocType,
         MemoryAddressSpace addressSpace,
         Value? arrayLength = null,
-        Value? valueInitializer = null)
+        Value? valueInitializer = null,
+        bool isAllocatedPerCopy = false)
     {
         if (mallocType is null) return null;
 
@@ -1081,7 +1085,8 @@ partial class ModuleBuilder : IGenerationObject
             arrayLengthInfo.Method,
             valueInitializerInfo.Method,
             arrayLengthInfo.Box,
-            valueInitializerInfo.Box);
+            valueInitializerInfo.Box,
+            isAllocatedPerCopy: isAllocatedPerCopy);
     }
 
     /// <summary>
@@ -1095,6 +1100,9 @@ partial class ModuleBuilder : IGenerationObject
     /// <param name="rawArrayLength">The raw array length as box.</param>
     /// <param name="rawValueInitializer">The raw value initializer as box.</param>
     /// <param name="arrayScale">The scale of the raw array length.</param>
+    /// <param name="isAllocatedPerCopy">
+    /// True if every copy of the code referring to the global allocates it.
+    /// </param>
     /// <returns>The created node.</returns>
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     internal Global? CreateGlobalDirect(
@@ -1105,7 +1113,8 @@ partial class ModuleBuilder : IGenerationObject
         Value? valueInitializer = null,
         PrimitiveValueBox? rawArrayLength = null,
         PrimitiveValueBox? rawValueInitializer = null,
-        GlobalArrayScale arrayScale = GlobalArrayScale.None)
+        GlobalArrayScale arrayScale = GlobalArrayScale.None,
+        bool isAllocatedPerCopy = false)
     {
         if (mallocType is null) return null;
         if (arrayLength is null && !rawArrayLength.HasValue) return null;
@@ -1118,7 +1127,8 @@ partial class ModuleBuilder : IGenerationObject
             valueInitializer as Method,
             rawArrayLength,
             rawValueInitializer,
-            arrayScale);
+            arrayScale,
+            isAllocatedPerCopy);
 
         _globals.Add(global);
         return global;

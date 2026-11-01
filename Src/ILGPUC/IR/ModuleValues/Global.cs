@@ -66,6 +66,9 @@ sealed partial class Global :
     /// <param name="arrayScale">
     /// The scale of the direct array length on the target accelerator.
     /// </param>
+    /// <param name="isAllocatedPerCopy">
+    /// True if every copy of the code referring to the global allocates it.
+    /// </param>
     internal Global(
         in ModuleValueInitializer initializer,
         TypeValue mallocType,
@@ -74,7 +77,8 @@ sealed partial class Global :
         Method? valueInitializer,
         PrimitiveValueBox? rawArrayLength = null,
         PrimitiveValueBox? rawValueInitializer = null,
-        GlobalArrayScale arrayScale = GlobalArrayScale.None)
+        GlobalArrayScale arrayScale = GlobalArrayScale.None,
+        bool isAllocatedPerCopy = false)
         : base(
             initializer,
             initializer.Builder.CreatePointerType(
@@ -109,6 +113,7 @@ sealed partial class Global :
         ArrayLength = rawArrayLength;
         ValueInitializer = rawValueInitializer;
         ArrayScale = arrayScale;
+        IsAllocatedPerCopy = isAllocatedPerCopy;
 
         Seal(ref values);
     }
@@ -161,6 +166,17 @@ sealed partial class Global :
     /// </summary>
     public GlobalArrayScale ArrayScale { get; }
 
+    /// <summary>
+    /// Returns true if every method and every inlined copy of a method referring
+    /// to this global allocates a buffer of its own, as the back buffer of an
+    /// array created with <c>new</c>, so that every call of a helper returning a
+    /// new array returns a different array. Other globals, such as shared memory,
+    /// local memory per thread and the back buffer that the arrays of
+    /// <see cref="System.Array.Empty{T}"/> share, are one buffer for the kernel
+    /// and all its helpers.
+    /// </summary>
+    public bool IsAllocatedPerCopy { get; }
+
     /// <inheritdoc/>
     public Global? Rewrite<TRewriter>(in TRewriter rewriter)
         where TRewriter : IModuleRewriter, allows ref struct =>
@@ -176,7 +192,8 @@ sealed partial class Global :
                 : null,
             ArrayLength,
             ValueInitializer,
-            ArrayScale);
+            ArrayScale,
+            IsAllocatedPerCopy);
 
     /// <summary>
     /// Rewrites this global with the given number of elements, resolving its
@@ -196,7 +213,8 @@ sealed partial class Global :
             null,
             null,
             arrayLength,
-            ValueInitializer);
+            ValueInitializer,
+            isAllocatedPerCopy: IsAllocatedPerCopy);
 
     /// <inheritdoc cref="Value.ToPrefixString"/>
     protected override string ToPrefixString() => "global";

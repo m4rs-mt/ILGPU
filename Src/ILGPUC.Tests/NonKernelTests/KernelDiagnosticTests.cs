@@ -356,6 +356,22 @@ public sealed class KernelDiagnosticTests
             data[index] = value;
         }
 
+        // An array of the previous iteration used after the next allocation
+        public static void ArrayReusedInLoopKernel(
+            Index1D index,
+            ArrayView1D<int, Stride1D.Dense> data)
+        {
+            int[]? prev = null;
+            for (int k = 0; k < 2; ++k)
+            {
+                var a = new int[1]; // ArrayReusedInLoop
+                a[0] = k;
+                if (prev != null)
+                    data[index] = prev[0];
+                prev = a;
+            }
+        }
+
         // One of two integers holding local addresses
         public static unsafe void LocalAddressSelectKernel(
             Index1D index,
@@ -2221,6 +2237,475 @@ public sealed class KernelDiagnosticTests
             }
         }
     }
+
+    #endregion
+
+    #region Arrays Shared Between Calls (ILGPU1200)
+
+    /// <summary>
+    /// A helper that is not inlined returns the same buffer from every call, so
+    /// that the two arrays the kernel receives were the same array and the kernel
+    /// computed 22 instead of 12. The helper is rejected at the allocation of the
+    /// array, also on Metal, which supports no recursion.
+    /// </summary>
+    [Theory]
+    [InlineData(BackendType.CPU, RoslynOptimizationLevel.Debug)]
+    [InlineData(BackendType.CPU, RoslynOptimizationLevel.Release)]
+    [InlineData(BackendType.Metal, RoslynOptimizationLevel.Debug)]
+    [InlineData(BackendType.Metal, RoslynOptimizationLevel.Release)]
+    public Task ArrayReturnedFromHelperCalledTwice_FailsBuild(
+        BackendType backend,
+        RoslynOptimizationLevel optimizationLevel) =>
+        AssertBuildErrorAsync(
+            """
+            using System.Runtime.CompilerServices;
+            static class K
+            {
+                [MethodImpl(MethodImplOptions.NoInlining)]
+                static int[] MakeArray() =>
+                    new int[1]; // error
+                public static void Kern(Index1D i, ArrayView1D<int, Stride1D.Dense> d)
+                {
+                    var a = MakeArray();
+                    var b = MakeArray();
+                    a[0] = 1;
+                    b[0] = 2;
+                    d[i] = a[0] * 10 + b[0];
+                }
+            }
+            """,
+            "ILGPU1200",
+            "Method 'K.MakeArray' returns or stores an array that it allocates " +
+            "and is called more than once per thread without being inlined",
+            optimizationLevel,
+            backend: backend);
+
+    /// <summary>
+    /// Arrays escape through out parameters, through structures and views, and
+    /// through helpers that return them, and helpers count the calls of the
+    /// helpers calling them: here, two calls of Wrap call MakeArray twice.
+    /// </summary>
+    [Theory]
+    [InlineData(
+        """
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        static void Make(out int[] a) =>
+            a = new int[2]; // error
+        static int[] Get() { Make(out var a); return a; }
+        """,
+        "Make")]
+    [InlineData(
+        """
+        struct Holder { public int[] Values; }
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        static Holder MakeHolder() =>
+            new Holder { Values = new int[2] }; // error
+        static int[] Get() => MakeHolder().Values;
+        """,
+        "MakeHolder")]
+    [InlineData(
+        """
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        static int[] Same(int[] a) => a;
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        static int[] Get() =>
+            Same(new int[2]); // error
+        """,
+        "Get")]
+    [InlineData(
+        """
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        static int[] MakeArray() =>
+            new int[2]; // error
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        static int[] Get() => MakeArray();
+        """,
+        "MakeArray")]
+    [InlineData(
+        """
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        static int[] Get() =>
+            new int[0]; // error
+        """,
+        "Get")]
+    public Task ArrayEscapingHelperCalledTwice_FailsBuild(
+        string helpers,
+        string methodName) =>
+        AssertBuildErrorAsync(
+            $$"""
+            using System.Runtime.CompilerServices;
+            static class K
+            {
+            {{helpers}}
+                public static void Kern(Index1D i, ArrayView1D<int, Stride1D.Dense> d)
+                {
+                    var a = Get();
+                    var b = Get();
+                    d[i] = a == b ? 1 : 0;
+                }
+            }
+            """,
+            "ILGPU1200",
+            $"Method 'K.{methodName}' returns or stores an array that it " +
+            "allocates");
+
+    /// <summary>
+    /// A method calling itself shares its array with the calls it makes: the
+    /// inner calls cleared the element that the outer call reads after them.
+    /// </summary>
+    [Theory]
+    [InlineData(RoslynOptimizationLevel.Debug)]
+    [InlineData(RoslynOptimizationLevel.Release)]
+    public Task ArrayAccessedAfterRecursiveCall_FailsBuild(
+        RoslynOptimizationLevel optimizationLevel) =>
+        AssertBuildErrorAsync(
+            """
+            static class K
+            {
+                static int Sum(int n, int x)
+                {
+                    var a = new int[4]; // error
+                    a[n & 3] = x;
+                    int r = n > 0 ? Sum(n - 1, x + 1) : 0;
+                    return a[n & 3] + r;
+                }
+                public static void Kern(Index1D i, ArrayView1D<int, Stride1D.Dense> d) =>
+                    d[i] = Sum(i, 10);
+            }
+            """,
+            "ILGPU1200",
+            "Method 'K.Sum' calls itself, directly or through other methods, and " +
+            "accesses an array that it allocates after such a call",
+            optimizationLevel);
+
+    /// <summary>
+    /// Arrays that only live during a call are not rejected, and neither are the
+    /// arrays of helpers called once per thread, also in a loop, arrays passed to
+    /// a helper, Array.Empty and the arrays of a method calling itself that it
+    /// only accesses before the calls.
+    /// </summary>
+    [Theory]
+    [InlineData(RoslynOptimizationLevel.Debug)]
+    [InlineData(RoslynOptimizationLevel.Release)]
+    public Task ArraysNotSharedBetweenCalls_Build(
+        RoslynOptimizationLevel optimizationLevel) =>
+        AssertBuildSucceedsAsync(
+            """
+            using System.Runtime.CompilerServices;
+            static class K
+            {
+                [MethodImpl(MethodImplOptions.NoInlining)]
+                static int Sum(int x)
+                {
+                    var a = new int[2];
+                    a[x & 1] = x;
+                    return a[0] + a[1];
+                }
+                [MethodImpl(MethodImplOptions.NoInlining)]
+                static int Read(int[] a, int k) => a[k % a.Length];
+                [MethodImpl(MethodImplOptions.NoInlining)]
+                static int SumThroughRead(int x)
+                {
+                    var a = new int[3];
+                    a[x % 3] = x;
+                    return Read(a, x);
+                }
+                [MethodImpl(MethodImplOptions.NoInlining)]
+                static int[] Once(int x) { var a = new int[2]; a[0] = x; return a; }
+                [MethodImpl(MethodImplOptions.NoInlining)]
+                static int[] InLoop() => new int[1];
+                [MethodImpl(MethodImplOptions.NoInlining)]
+                static int[] Same(int[] a) => a;
+                [MethodImpl(MethodImplOptions.NoInlining)]
+                static int[] Empty() => Array.Empty<int>();
+                static int Before(int n, int x)
+                {
+                    var a = new int[4];
+                    a[x & 3] = x;
+                    int s = a[n & 3] + a[(n + 1) & 3];
+                    return n > 0 ? s + Before(n - 1, x + 1) : s;
+                }
+                public static void Kern(Index1D i, ArrayView1D<int, Stride1D.Dense> d)
+                {
+                    var a = new int[2];
+                    var b = new int[2];
+                    int s = Sum(i) + Sum(i + 1) + SumThroughRead(i) + SumThroughRead(2);
+                    for (int k = 0; k < i; ++k)
+                        s += InLoop()[0]++;
+                    s += Once(i)[0] + Before(i, 3);
+                    s += (Same(a) == Same(b) ? 1 : 0) + (Empty() == Empty() ? 2 : 0);
+                    d[i] = s;
+                }
+            }
+            """,
+            optimizationLevel);
+
+    /// <summary>
+    /// Kernels using the array of an iteration after its allocation has run
+    /// again: kept in a variable, a structure or an outer array, compared with
+    /// the next array, also an empty one, in a do loop, after the loop, two
+    /// iterations later, from a helper that is not inlined, or in a helper
+    /// calling itself in tail position, which becomes a loop.
+    /// </summary>
+    private static readonly Dictionary<string, string> ArraysReusedInLoops = new()
+    {
+        ["Phi"] = """
+            int[] prev = null;
+            for (int k = 0; k < 2; ++k)
+            {
+                var a = new int[1]; // error
+                a[0] = k;
+                if (prev != null)
+                    d[i] = prev[0];
+                prev = a;
+            }
+            """,
+        ["Structure"] = """
+            Holder h = default;
+            for (int k = 0; k < 2; ++k)
+            {
+                var a = new int[1]; // error
+                a[0] = k + 1;
+                if (h.Values != null)
+                    d[i] = h.Values[0];
+                h.Values = a;
+            }
+            """,
+        ["OuterArray"] = """
+            var outer = new Holder[2];
+            for (int k = 0; k < 2; ++k)
+            {
+                var a = new int[1]; // error
+                a[0] = k + 1;
+                outer[k].Values = a;
+            }
+            d[i] = outer[0].Values[0];
+            """,
+        ["Compare"] = """
+            int[] prev = null;
+            for (int k = 0; k < 2; ++k)
+            {
+                var a = new int[1]; // error
+                d[i] += a == prev ? 1 : 0;
+                prev = a;
+            }
+            """,
+        ["EmptyCompare"] = """
+            int[] prev = null;
+            for (int k = 0; k < 2; ++k)
+            {
+                var a = new int[0]; // error
+                d[i] += a == prev ? 1 : 0;
+                prev = a;
+            }
+            """,
+        ["DoWhile"] = """
+            var prev = new int[1];
+            int k = 0, s = 0;
+            do
+            {
+                var a = new int[1]; // error
+                a[0] = k;
+                s += prev[0];
+                prev = a;
+            }
+            while (++k < 3);
+            d[i] = s;
+            """,
+        ["AfterLoop"] = """
+            int[] prev = null;
+            int[] last = null;
+            int k = 0;
+            do
+            {
+                prev = last;
+                last = new int[1]; // error
+                last[0] = k;
+            }
+            while (++k < 3);
+            d[i] = prev[0];
+            """,
+        ["SecondLast"] = """
+            int[] prev = null, second = null;
+            for (int k = 0; k < 3; ++k)
+            {
+                if (second != null)
+                    d[i] += second[0];
+                var a = new int[1]; // error
+                a[0] = k + 1;
+                second = prev;
+                prev = a;
+            }
+            """,
+        ["Helper"] = """
+            int[] prev = null;
+            for (int k = 0; k < 2; ++k)
+            {
+                var a = MakeShared(k);
+                if (prev != null)
+                    d[i] = prev[0];
+                prev = a;
+            }
+            """,
+        ["TailCall"] = """
+            d[i] = Sum(0, 0, default);
+            """,
+    };
+
+    /// <summary>
+    /// The kernels of <see cref="ArraysReusedInLoops"/> on the CPU and Metal.
+    /// </summary>
+    public static TheoryData<string, BackendType, RoslynOptimizationLevel>
+        ArraysReusedInLoopsData
+    {
+        get
+        {
+            var data = new TheoryData<string, BackendType, RoslynOptimizationLevel>();
+            foreach (var name in ArraysReusedInLoops.Keys)
+            {
+                foreach (var backend in new[] { BackendType.CPU, BackendType.Metal })
+                {
+                    data.Add(name, backend, RoslynOptimizationLevel.Debug);
+                    data.Add(name, backend, RoslynOptimizationLevel.Release);
+                }
+            }
+            return data;
+        }
+    }
+
+    /// <summary>
+    /// Every iteration of a loop reuses the buffer of an array allocated in it,
+    /// also through a helper: the first kernel read 1 instead of 0. Using the
+    /// array of an iteration after the allocation of a later one is rejected at
+    /// the allocation.
+    /// </summary>
+    [Theory]
+    [MemberData(nameof(ArraysReusedInLoopsData))]
+    public Task ArrayReusedInLoop_FailsBuild(
+        string name,
+        BackendType backend,
+        RoslynOptimizationLevel optimizationLevel) =>
+        AssertBuildErrorAsync(
+            $$"""
+            using System.Runtime.CompilerServices;
+            struct Holder { public int[] Values; }
+            static class K
+            {
+                [MethodImpl(MethodImplOptions.NoInlining)]
+                static int[] MakeShared(int k)
+                {
+                    var a = new int[1];{{(name == "Helper" ? " // error" : "")}}
+                    a[0] = k;
+                    return a;
+                }
+                static int[] MakeArray(int k)
+                {
+                    var a = new int[1];{{(name == "TailCall" ? " // error" : "")}}
+                    a[0] = k;
+                    return a;
+                }
+                [MethodImpl(MethodImplOptions.NoInlining)]
+                static int Sum(int k, int s, Holder prev)
+                {
+                    if (k == 2)
+                        return s;
+                    var a = MakeArray(k + 1);
+                    if (prev.Values != null)
+                        s += prev.Values[0];
+                    return Sum(k + 1, s, new Holder { Values = a });
+                }
+                public static void Kern(Index1D i, ArrayView1D<int, Stride1D.Dense> d)
+                {
+            {{ArraysReusedInLoops[name]}}
+                }
+            }
+            """,
+            "ILGPU1200",
+            $"Method 'K.{(name == "TailCall" ? "Sum" : "Kern")}' allocates an array " +
+            "in a loop, directly or through a method it calls, and uses the array of " +
+            "an iteration after the allocation runs again",
+            optimizationLevel,
+            backend: backend);
+
+    /// <summary>
+    /// Loops reuse the buffers of their arrays at every optimization level.
+    /// </summary>
+    [Theory]
+    [InlineData(BackendType.CPU, OptimizationLevel.O0)]
+    [InlineData(BackendType.CPU, OptimizationLevel.O1)]
+    [InlineData(BackendType.CPU, OptimizationLevel.O2)]
+    [InlineData(BackendType.Metal, OptimizationLevel.O0)]
+    [InlineData(BackendType.Metal, OptimizationLevel.O1)]
+    [InlineData(BackendType.Metal, OptimizationLevel.O2)]
+    public void ArrayReusedInLoop_Reports1200(
+        BackendType backend,
+        OptimizationLevel level) =>
+        AssertDiagnostic(
+            Generate(nameof(Kernels.ArrayReusedInLoopKernel), backend, level),
+            "ILGPU1200",
+            "Method 'Kernels.ArrayReusedInLoopKernel' allocates an array in a loop",
+            "ArrayReusedInLoop");
+
+    /// <summary>
+    /// Arrays allocated in a loop and used in their iteration, the array of the
+    /// last iteration used after the loop, the array of the previous iteration
+    /// used before the allocation, arrays allocated before a loop and swapped in
+    /// it, the arrays of a helper used in their iteration and Array.Empty build.
+    /// </summary>
+    [Theory]
+    [InlineData(RoslynOptimizationLevel.Debug)]
+    [InlineData(RoslynOptimizationLevel.Release)]
+    public Task ArraysOfLoopIterations_Build(
+        RoslynOptimizationLevel optimizationLevel) =>
+        AssertBuildSucceedsAsync(
+            """
+            using System.Runtime.CompilerServices;
+            static class K
+            {
+                [MethodImpl(MethodImplOptions.NoInlining)]
+                static int[] MakeArray(int k) { var a = new int[2]; a[0] = k; return a; }
+                public static void Kern(Index1D i, ArrayView1D<int, Stride1D.Dense> d)
+                {
+                    int s = 0;
+                    for (int k = 0; k < i; ++k)
+                    {
+                        var a = new int[2];
+                        a[k & 1] = k;
+                        s += a[0] + a[1];
+                    }
+                    int[] last = null;
+                    for (int k = 0; k < i + 2; ++k)
+                    {
+                        var a = new int[2];
+                        a[1] = k;
+                        last = a;
+                    }
+                    int[] prev = null;
+                    for (int k = 0; k < i; ++k)
+                    {
+                        if (prev != null)
+                            s += prev[0];
+                        var a = new int[1];
+                        a[0] = k;
+                        prev = a;
+                    }
+                    var x = new int[1];
+                    var y = new int[1];
+                    for (int k = 0; k < i; ++k)
+                    {
+                        x[0] = y[0] + k;
+                        (x, y) = (y, x);
+                    }
+                    for (int k = 0; k < i; ++k)
+                    {
+                        var a = MakeArray(k);
+                        s += a[0] + (Array.Empty<int>() == Array.Empty<int>() ? 1 : 0);
+                    }
+                    d[i] = s + last[1] + x[0] + y[0];
+                }
+            }
+            """,
+            optimizationLevel);
 
     #endregion
 

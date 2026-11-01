@@ -87,7 +87,7 @@ partial class CodeGenerator
     /// The maximum number of elements of an array allocated in a loop that are
     /// cleared explicitly at the allocation point.
     /// </summary>
-    private const int MaxNumArrayElementsToReinitialize = 1024;
+    internal const int MaxNumArrayElementsToReinitialize = 1024;
 
     /// <summary>
     /// Clears all elements of an array allocated inside a loop or inside a
